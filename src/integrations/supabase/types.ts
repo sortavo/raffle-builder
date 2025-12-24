@@ -291,6 +291,8 @@ export type Database = {
       raffles: {
         Row: {
           allow_individual_sale: boolean | null
+          auto_publish_result: boolean | null
+          category: string | null
           close_sale_hours_before: number | null
           created_at: string | null
           created_by: string | null
@@ -300,6 +302,7 @@ export type Database = {
           draw_date: string | null
           draw_method: Database["public"]["Enums"]["draw_method"] | null
           id: string
+          livestream_url: string | null
           lottery_digits: number | null
           lottery_draw_number: string | null
           lucky_numbers_config: Json | null
@@ -309,6 +312,7 @@ export type Database = {
           organization_id: string
           prize_images: string[] | null
           prize_name: string
+          prize_terms: string | null
           prize_value: number | null
           prize_video_url: string | null
           reservation_time_minutes: number | null
@@ -328,6 +332,8 @@ export type Database = {
         }
         Insert: {
           allow_individual_sale?: boolean | null
+          auto_publish_result?: boolean | null
+          category?: string | null
           close_sale_hours_before?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -337,6 +343,7 @@ export type Database = {
           draw_date?: string | null
           draw_method?: Database["public"]["Enums"]["draw_method"] | null
           id?: string
+          livestream_url?: string | null
           lottery_digits?: number | null
           lottery_draw_number?: string | null
           lucky_numbers_config?: Json | null
@@ -346,6 +353,7 @@ export type Database = {
           organization_id: string
           prize_images?: string[] | null
           prize_name: string
+          prize_terms?: string | null
           prize_value?: number | null
           prize_video_url?: string | null
           reservation_time_minutes?: number | null
@@ -365,6 +373,8 @@ export type Database = {
         }
         Update: {
           allow_individual_sale?: boolean | null
+          auto_publish_result?: boolean | null
+          category?: string | null
           close_sale_hours_before?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -374,6 +384,7 @@ export type Database = {
           draw_date?: string | null
           draw_method?: Database["public"]["Enums"]["draw_method"] | null
           id?: string
+          livestream_url?: string | null
           lottery_digits?: number | null
           lottery_draw_number?: string | null
           lucky_numbers_config?: Json | null
@@ -383,6 +394,7 @@ export type Database = {
           organization_id?: string
           prize_images?: string[] | null
           prize_name?: string
+          prize_terms?: string | null
           prize_value?: number | null
           prize_video_url?: string | null
           reservation_time_minutes?: number | null
