@@ -9,6 +9,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import RafflesList from "./pages/dashboard/RafflesList";
+import RaffleWizard from "./pages/dashboard/RaffleWizard";
+import RaffleDetail from "./pages/dashboard/RaffleDetail";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +26,10 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/raffles" element={<RafflesList />} />
+            <Route path="/dashboard/raffles/new" element={<RaffleWizard />} />
+            <Route path="/dashboard/raffles/:id" element={<RaffleDetail />} />
+            <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
