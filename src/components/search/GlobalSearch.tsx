@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Gift, Users, Ticket, Plus, Settings, Clock, X, Loader2 } from 'lucide-react';
+import { Search, Gift, Users, Ticket, Plus, Settings, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   CommandDialog,
@@ -19,6 +19,30 @@ interface SearchResult {
   title: string;
   subtitle?: string;
   link: string;
+}
+
+// Highlight matching text in search results
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query || query.length < 2) {
+    return <>{text}</>;
+  }
+
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        regex.test(part) ? (
+          <mark key={index} className="bg-primary/20 text-primary rounded-sm px-0.5">
+            {part}
+          </mark>
+        ) : (
+          <span key={index}>{part}</span>
+        )
+      )}
+    </>
+  );
 }
 
 export function GlobalSearch() {
@@ -228,9 +252,13 @@ export function GlobalSearch() {
                     >
                       {getResultIcon(result.type)}
                       <div className="ml-2 flex-1">
-                        <p className="text-sm font-medium">{result.title}</p>
+                        <p className="text-sm font-medium">
+                          <HighlightText text={result.title} query={query} />
+                        </p>
                         {result.subtitle && (
-                          <p className="text-xs text-muted-foreground">{result.subtitle}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <HighlightText text={result.subtitle} query={query} />
+                          </p>
                         )}
                       </div>
                     </CommandItem>
@@ -249,9 +277,13 @@ export function GlobalSearch() {
                     >
                       {getResultIcon(result.type)}
                       <div className="ml-2 flex-1">
-                        <p className="text-sm font-medium">{result.title}</p>
+                        <p className="text-sm font-medium">
+                          <HighlightText text={result.title} query={query} />
+                        </p>
                         {result.subtitle && (
-                          <p className="text-xs text-muted-foreground">{result.subtitle}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <HighlightText text={result.subtitle} query={query} />
+                          </p>
                         )}
                       </div>
                     </CommandItem>
@@ -270,9 +302,13 @@ export function GlobalSearch() {
                     >
                       {getResultIcon(result.type)}
                       <div className="ml-2 flex-1">
-                        <p className="text-sm font-medium">{result.title}</p>
+                        <p className="text-sm font-medium">
+                          <HighlightText text={result.title} query={query} />
+                        </p>
                         {result.subtitle && (
-                          <p className="text-xs text-muted-foreground">{result.subtitle}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <HighlightText text={result.subtitle} query={query} />
+                          </p>
                         )}
                       </div>
                     </CommandItem>
