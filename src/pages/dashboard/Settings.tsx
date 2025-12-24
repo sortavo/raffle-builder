@@ -3,14 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, CreditCard, Users, Receipt, Loader2 } from "lucide-react";
+import { Building2, CreditCard, Users, Receipt, Loader2, Bell, ShieldAlert } from "lucide-react";
 import { OrganizationSettings } from "@/components/settings/OrganizationSettings";
 import { PaymentMethodsSettings } from "@/components/settings/PaymentMethodsSettings";
 import { TeamSettings } from "@/components/settings/TeamSettings";
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
+import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { ProtectedAction } from "@/components/auth/ProtectedAction";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ShieldAlert } from "lucide-react";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             <TabsTrigger value="organization" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Organización</span>
@@ -63,6 +63,10 @@ export default function Settings() {
             <TabsTrigger value="payment-methods" className="gap-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Métodos de Pago</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notificaciones</span>
             </TabsTrigger>
             <TabsTrigger value="team" className="gap-2">
               <Users className="h-4 w-4" />
@@ -80,6 +84,10 @@ export default function Settings() {
 
           <TabsContent value="payment-methods">
             <PaymentMethodsSettings />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationPreferences />
           </TabsContent>
 
           <TabsContent value="team">
