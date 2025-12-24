@@ -15,8 +15,11 @@ interface Organization {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
   subscription_tier: string | null;
   subscription_status: string | null;
+  subscription_period: string | null;
+  trial_ends_at: string | null;
   onboarding_completed: boolean | null;
   max_active_raffles: number | null;
   max_tickets_per_raffle: number | null;

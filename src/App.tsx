@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import Settings from "./pages/dashboard/Settings";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/dashboard/raffles/new" element={<RaffleWizard />} />
               <Route path="/dashboard/raffles/:id" element={<RaffleDetail />} />
               <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
+              <Route path="/dashboard/settings" element={<Settings />} />
               <Route path="/onboarding" element={<Onboarding />} />
               {/* Public Routes */}
               <Route path="/pricing" element={<Pricing />} />
