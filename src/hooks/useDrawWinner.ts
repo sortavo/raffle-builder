@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 interface WinnerData {
   ticket_id: string;
@@ -11,7 +12,7 @@ interface WinnerData {
   buyer_city: string | null;
   draw_method: 'manual' | 'lottery' | 'random_org';
   draw_timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface SelectWinnerParams {
@@ -84,7 +85,7 @@ export function useDrawWinner() {
         .update({
           status: 'completed',
           winner_ticket_number: ticketNumber,
-          winner_data: winnerData,
+          winner_data: winnerData as unknown as Json,
         })
         .eq('id', raffleId);
 
@@ -100,12 +101,12 @@ export function useDrawWinner() {
         .single();
 
       if (raffle) {
-        await supabase.from('analytics_events').insert({
+        await supabase.from('analytics_events').insert([{
           organization_id: raffle.organization_id,
           raffle_id: raffleId,
           event_type: 'winner_selected',
-          metadata: winnerData,
-        });
+          metadata: winnerData as unknown as Json,
+        }]);
       }
 
       return winnerData;

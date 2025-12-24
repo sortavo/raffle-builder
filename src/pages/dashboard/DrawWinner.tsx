@@ -52,8 +52,9 @@ export default function DrawWinner() {
   
   const { useRaffleById } = useRaffles();
   const { data: raffle, isLoading } = useRaffleById(id);
-  const { useTicketsByRaffle } = useTickets();
-  const { data: allTickets } = useTicketsByRaffle(id || '');
+  const { useTicketsList } = useTickets(id);
+  const { data: ticketsData } = useTicketsList({ status: 'sold', pageSize: 10000 });
+  const allTickets = ticketsData?.tickets || [];
   const { selectWinner, notifyWinner, publishResult, generateRandomNumber } = useDrawWinner();
 
   const [activeTab, setActiveTab] = useState<DrawMethod>('manual');
@@ -76,7 +77,7 @@ export default function DrawWinner() {
 
   const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const soldTickets = allTickets?.filter((t: Ticket) => t.status === 'sold') || [];
+  const soldTickets = allTickets;
 
   useEffect(() => {
     return () => {
