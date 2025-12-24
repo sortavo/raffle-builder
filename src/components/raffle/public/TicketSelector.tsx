@@ -176,20 +176,20 @@ export function TicketSelector({
             <Label htmlFor="show-available">Mostrar solo disponibles</Label>
           </div>
 
-          {/* Ticket Grid */}
+          {/* Ticket Grid - responsive columns */}
           {isLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-10 gap-1 md:gap-2">
+            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1 md:gap-2">
               {filteredTickets.map(ticket => (
                 <button
                   key={ticket.id}
                   onClick={() => handleTicketClick(ticket.ticket_number, ticket.status)}
                   disabled={ticket.status !== 'available'}
                   className={cn(
-                    'aspect-square flex items-center justify-center text-xs md:text-sm font-medium rounded transition-all',
+                    'aspect-square flex items-center justify-center text-[10px] sm:text-xs md:text-sm font-medium rounded transition-all min-h-[40px] touch-manipulation',
                     getStatusColor(ticket.status),
                     selectedTickets.includes(ticket.ticket_number) && 'ring-2 ring-primary ring-offset-2 scale-105'
                   )}
@@ -200,47 +200,68 @@ export function TicketSelector({
             </div>
           )}
 
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm px-4">
+          {/* Mobile-optimized Pagination */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            {/* Page info */}
+            <div className="text-sm text-muted-foreground">
               Página {page} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
+            </div>
+            
+            {/* Controls */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="h-9 w-9"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="h-9 w-9"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              {/* Mobile-friendly page selector */}
+              <select
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="h-9 px-2 rounded-md border border-input bg-background text-sm min-w-[60px]"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="h-9 w-9"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                className="h-9 w-9"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm justify-center">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-emerald-500" />
               <span>Disponible</span>

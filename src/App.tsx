@@ -8,6 +8,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { CookieConsent } from "@/components/legal/CookieConsent";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -37,6 +38,7 @@ const App = () => (
           <AuthProvider>
             <ScrollToTop />
             <CookieConsent />
+            <InstallPrompt />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
