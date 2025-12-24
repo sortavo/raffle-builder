@@ -50,11 +50,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/privacy#cookies" className="hover:text-white transition-colors">
-                  Política de Cookies
-                </Link>
-              </li>
-              <li>
                 <Link to="/terms#legal-notice" className="hover:text-white transition-colors">
                   Aviso Legal
                 </Link>
