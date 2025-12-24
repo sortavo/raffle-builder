@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
-import { CookieConsent } from "@/components/legal/CookieConsent";
+
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -37,7 +37,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ScrollToTop />
-            <CookieConsent />
+            
             <InstallPrompt />
             <Routes>
               <Route path="/" element={<Index />} />

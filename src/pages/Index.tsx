@@ -13,12 +13,16 @@ export default function Index() {
             <Ticket className="h-6 w-6 text-primary" />
             <span className="text-xl font-extrabold text-foreground">SORTAVO</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Link to="/auth">
-              <Button variant="ghost">Iniciar Sesión</Button>
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                Entrar
+              </Button>
             </Link>
             <Link to="/auth?tab=signup">
-              <Button>Crear Cuenta</Button>
+              <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
+                Registrarse
+              </Button>
             </Link>
           </div>
         </div>
