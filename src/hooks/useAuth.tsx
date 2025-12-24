@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "@/lib/rbac";
 
 interface Profile {
   id: string;
@@ -32,6 +33,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   organization: Organization | null;
+  role: UserRole | null;
   isLoading: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(profileData);
 
       if (profileData?.organization_id) {
+        // Fetch organization
         const { data: orgData, error: orgError } = await supabase
           .from("organizations")
           .select("*")
@@ -103,6 +107,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (orgError) throw orgError;
         setOrganization(orgData);
+
+        // Fetch user role for this organization
+        const { data: roleData, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("organization_id", profileData.organization_id)
+          .maybeSingle();
+
+        if (roleError) {
+          console.error("Error fetching role:", roleError);
+        } else {
+          setRole(roleData?.role as UserRole || null);
+        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -144,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setOrganization(null);
+    setRole(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -161,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         organization,
+        role,
         isLoading,
         signUp,
         signIn,
