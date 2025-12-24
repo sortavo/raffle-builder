@@ -394,7 +394,7 @@ export default function Onboarding() {
                           ${billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice}
                         </span>
                         <span className="text-muted-foreground">
-                          /{billingPeriod === "annual" ? "año" : "mes"}
+                          USD/{billingPeriod === "annual" ? "año" : "mes"}
                         </span>
                       </div>
                     </CardHeader>
