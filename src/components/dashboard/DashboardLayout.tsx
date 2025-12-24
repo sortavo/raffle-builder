@@ -5,8 +5,8 @@ import { DashboardSidebar } from "./DashboardSidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Ticket, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Ticket } from "lucide-react";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -39,9 +39,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
             <Ticket className="h-5 w-5 text-primary" />
             <span className="text-lg font-extrabold">SORTAVO</span>
           </Link>
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <NotificationCenter />
         </header>
 
         {/* Desktop Header */}
@@ -64,6 +62,9 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               </BreadcrumbList>
             </Breadcrumb>
           )}
+          <div className="ml-auto">
+            <NotificationCenter />
+          </div>
         </header>
         
         <main className="flex-1 p-4 lg:p-6 pb-20 md:pb-6">{children}</main>

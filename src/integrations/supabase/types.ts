@@ -104,6 +104,101 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          payment_approved: boolean | null
+          payment_pending: boolean | null
+          push_enabled: boolean | null
+          raffle_completed: boolean | null
+          raffle_ending_soon: boolean | null
+          system_notifications: boolean | null
+          ticket_sold: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          payment_approved?: boolean | null
+          payment_pending?: boolean | null
+          push_enabled?: boolean | null
+          raffle_completed?: boolean | null
+          raffle_ending_soon?: boolean | null
+          system_notifications?: boolean | null
+          ticket_sold?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          payment_approved?: boolean | null
+          payment_pending?: boolean | null
+          push_enabled?: boolean | null
+          raffle_completed?: boolean | null
+          raffle_ending_soon?: boolean | null
+          system_notifications?: boolean | null
+          ticket_sold?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string
+          metadata: Json | null
+          organization_id: string | null
+          read: boolean | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          organization_id?: string | null
+          read?: boolean | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          read?: boolean | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           brand_color: string | null
