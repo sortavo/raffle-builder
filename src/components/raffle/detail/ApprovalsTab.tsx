@@ -24,6 +24,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { notifyPaymentApproved, notifyPaymentRejected } from '@/lib/notifications';
 
 interface ApprovalsTabProps {
   raffleId: string;
@@ -66,6 +68,21 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
           raffleTitle,
           raffleSlug,
         }).catch(console.error);
+        
+        // Send in-app notification to buyer if they have an account
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', ticket.buyer_email)
+          .maybeSingle();
+        
+        if (buyerProfile?.id) {
+          notifyPaymentApproved(
+            buyerProfile.id,
+            raffleTitle,
+            [ticket.ticket_number]
+          ).catch(console.error);
+        }
       }
       
       refetch();
@@ -79,6 +96,8 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
       await rejectTicket.mutateAsync(ticket.id);
       toast({ title: 'Boleto rechazado' });
       
+      const rejectionReason = 'El comprobante no coincide con el monto esperado';
+      
       // Send rejection email (non-blocking)
       if (ticket.buyer_email && ticket.buyer_name) {
         sendRejectedEmail({
@@ -87,8 +106,24 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
           ticketNumbers: [ticket.ticket_number],
           raffleTitle,
           raffleSlug,
-          rejectionReason: 'El comprobante no coincide con el monto esperado',
+          rejectionReason,
         }).catch(console.error);
+        
+        // Send in-app notification to buyer if they have an account
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', ticket.buyer_email)
+          .maybeSingle();
+        
+        if (buyerProfile?.id) {
+          notifyPaymentRejected(
+            buyerProfile.id,
+            raffleTitle,
+            [ticket.ticket_number],
+            rejectionReason
+          ).catch(console.error);
+        }
       }
       
       refetch();
@@ -111,6 +146,31 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
     try {
       await bulkApprove.mutateAsync(ticketIds);
       toast({ title: `${ticketIds.length} boletos aprobados` });
+      
+      // Send notifications to buyers (non-blocking)
+      const ticketsToNotify = withProof.filter(t => ticketIds.includes(t.id));
+      const buyerEmails = [...new Set(ticketsToNotify.map(t => t.buyer_email).filter(Boolean))];
+      
+      for (const email of buyerEmails) {
+        const buyerTickets = ticketsToNotify.filter(t => t.buyer_email === email);
+        const ticketNumbers = buyerTickets.map(t => t.ticket_number);
+        
+        // Get buyer profile for notification
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        
+        if (buyerProfile?.id) {
+          notifyPaymentApproved(
+            buyerProfile.id,
+            raffleTitle,
+            ticketNumbers
+          ).catch(console.error);
+        }
+      }
+      
       setSelectedWithProof([]);
       refetch();
     } catch (error) {
@@ -122,6 +182,33 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
     try {
       await bulkReject.mutateAsync(ticketIds);
       toast({ title: `${ticketIds.length} boletos rechazados` });
+      
+      // Send notifications to buyers (non-blocking)
+      const allReserved = [...withoutProof, ...withProof];
+      const ticketsToNotify = allReserved.filter(t => ticketIds.includes(t.id));
+      const buyerEmails = [...new Set(ticketsToNotify.map(t => t.buyer_email).filter(Boolean))];
+      
+      for (const email of buyerEmails) {
+        const buyerTickets = ticketsToNotify.filter(t => t.buyer_email === email);
+        const ticketNumbers = buyerTickets.map(t => t.ticket_number);
+        
+        // Get buyer profile for notification
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        
+        if (buyerProfile?.id) {
+          notifyPaymentRejected(
+            buyerProfile.id,
+            raffleTitle,
+            ticketNumbers,
+            'El pago no fue verificado correctamente'
+          ).catch(console.error);
+        }
+      }
+      
       setSelectedWithoutProof([]);
       setSelectedWithProof([]);
       refetch();
