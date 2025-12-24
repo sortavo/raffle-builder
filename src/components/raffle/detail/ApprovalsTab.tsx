@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -13,12 +14,15 @@ import {
   Mail,
   Image,
   AlertCircle,
-  Timer
+  Timer,
+  ShieldAlert
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
 import { useEmails } from '@/hooks/useEmails';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { cn } from '@/lib/utils';
 
 interface ApprovalsTabProps {
@@ -28,6 +32,7 @@ interface ApprovalsTabProps {
 }
 
 export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: ApprovalsTabProps) {
+  const { role } = useAuth();
   const [selectedWithoutProof, setSelectedWithoutProof] = useState<string[]>([]);
   const [selectedWithProof, setSelectedWithProof] = useState<string[]>([]);
   
@@ -279,9 +284,22 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      {/* Without Proof Column */}
-      <div className="space-y-4">
+    <ProtectedAction
+      resource="ticket"
+      action="approve"
+      showAlert
+      fallback={
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertDescription>
+            Solo administradores pueden aprobar pagos. Contacta al propietario de la organización.
+          </AlertDescription>
+        </Alert>
+      }
+    >
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Without Proof Column */}
+        <div className="space-y-4">
         <Card className="border-destructive/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -382,6 +400,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </ProtectedAction>
   );
 }

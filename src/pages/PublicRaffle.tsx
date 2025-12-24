@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, Users, Trophy, Clock } from "lucide-react";
 import { formatCurrency } from "@/lib/currency-utils";
+import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { usePublicRaffle } from "@/hooks/usePublicRaffle";
 import { TicketSelector } from "@/components/raffle/public/TicketSelector";
 import { CheckoutModal } from "@/components/raffle/public/CheckoutModal";
@@ -87,6 +88,10 @@ export default function PublicRaffle() {
 
   const url = typeof window !== 'undefined' ? window.location.href : '';
   const progress = (raffle.ticketsSold / raffle.total_tickets) * 100;
+  
+  // Get subscription limits for branding
+  const orgTier = (raffle as any).organization?.subscription_tier as SubscriptionTier;
+  const limits = getSubscriptionLimits(orgTier);
 
   return (
     <>
@@ -236,12 +241,14 @@ export default function PublicRaffle() {
           </div>
         )}
 
-        {/* Footer */}
-        <footer className="border-t py-8 mt-8">
-          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-            <p>Powered by Sortavo</p>
-          </div>
-        </footer>
+        {/* Footer - Only show branding for Basic plan */}
+        {!limits.canRemoveBranding && (
+          <footer className="border-t py-8 mt-8">
+            <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+              <p>Powered by Sortavo</p>
+            </div>
+          </footer>
+        )}
 
         {/* Checkout Modal */}
         <CheckoutModal

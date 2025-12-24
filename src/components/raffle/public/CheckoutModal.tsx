@@ -29,14 +29,21 @@ import type { Tables } from "@/integrations/supabase/types";
 type Raffle = Tables<'raffles'>;
 
 const checkoutSchema = z.object({
-  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Ingresa un email válido"),
-  phone: z.string().min(10, "Ingresa un teléfono válido"),
-  city: z.string().optional(),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100, "El nombre es demasiado largo"),
+  email: z.string().email("Ingresa un email válido").max(255, "El email es demasiado largo"),
+  phone: z.string().min(10, "Ingresa un teléfono válido (mínimo 10 dígitos)").max(20, "El teléfono es demasiado largo"),
+  city: z.string().max(100, "La ciudad es demasiado larga").optional(),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: "Debes aceptar los términos y condiciones",
   }),
 });
+
+// List of disposable email domains to block
+const DISPOSABLE_EMAIL_DOMAINS = [
+  'tempmail.com', 'guerrillamail.com', '10minutemail.com',
+  'throwaway.email', 'mailinator.com', 'yopmail.com',
+  'temp-mail.org', 'fakeinbox.com', 'trashmail.com'
+];
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
@@ -82,15 +89,33 @@ export function CheckoutModal({
   };
 
   const onSubmit = async (data: CheckoutFormData) => {
+    // Validate phone format
+    const cleanPhone = data.phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      form.setError('phone', {
+        message: 'Ingresa un teléfono válido (10-15 dígitos)',
+      });
+      return;
+    }
+
+    // Check for disposable email domains
+    const emailDomain = data.email.split('@')[1]?.toLowerCase();
+    if (DISPOSABLE_EMAIL_DOMAINS.includes(emailDomain)) {
+      form.setError('email', {
+        message: 'Por favor usa un email permanente (no temporal)',
+      });
+      return;
+    }
+
     try {
       const result = await reserveTickets.mutateAsync({
         raffleId: raffle.id,
         ticketNumbers: selectedTickets,
         buyerData: {
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          city: data.city,
+          name: data.name.trim(),
+          email: data.email.trim().toLowerCase(),
+          phone: cleanPhone,
+          city: data.city?.trim(),
         },
         reservationMinutes: raffle.reservation_time_minutes || 15,
       });

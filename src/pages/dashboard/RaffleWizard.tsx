@@ -5,7 +5,8 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
-import { ArrowLeft, ArrowRight, Save, Rocket } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle } from 'lucide-react';
 import { useRaffles } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +17,7 @@ import { Step3Tickets } from '@/components/raffle/wizard/Step3Tickets';
 import { Step4Draw } from '@/components/raffle/wizard/Step4Draw';
 import { Step5Design } from '@/components/raffle/wizard/Step5Design';
 import { UpgradePlanModal } from '@/components/raffle/UpgradePlanModal';
-import { getTicketLimitByTier } from '@/lib/raffle-utils';
+import { checkRaffleLimit, checkTicketLimit, getSubscriptionLimits, SubscriptionTier } from '@/lib/subscription-limits';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 const STEPS = [
@@ -40,6 +41,10 @@ export default function RaffleWizard() {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState('');
+
+  // Get subscription limits
+  const subscriptionLimits = getSubscriptionLimits(organization?.subscription_tier as SubscriptionTier);
 
   const form = useForm({
     defaultValues: {
@@ -148,11 +153,38 @@ export default function RaffleWizard() {
   const handlePublish = async () => {
     const values = form.getValues();
     
-    // Check subscription limits
-    const tier = organization?.subscription_tier || 'basic';
-    const ticketLimit = getTicketLimitByTier(tier);
-    
-    if (values.total_tickets && values.total_tickets > ticketLimit) {
+    // Check raffle limit
+    if (organization?.id && !isEditing) {
+      try {
+        const raffleCheck = await checkRaffleLimit(
+          organization.id,
+          organization.subscription_tier as SubscriptionTier
+        );
+
+        if (!raffleCheck.allowed) {
+          setUpgradeReason(
+            `Has alcanzado el límite de ${raffleCheck.limit} sorteos activos. ` +
+            `Actualmente tienes ${raffleCheck.current} sorteos.`
+          );
+          setShowUpgradeModal(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking raffle limit:', error);
+      }
+    }
+
+    // Check ticket limit
+    const ticketCheck = checkTicketLimit(
+      values.total_tickets || 0,
+      organization?.subscription_tier as SubscriptionTier
+    );
+
+    if (!ticketCheck.allowed) {
+      setUpgradeReason(
+        `Tu plan permite hasta ${ticketCheck.limit.toLocaleString()} boletos por sorteo. ` +
+        `Intentas crear ${(values.total_tickets || 0).toLocaleString()} boletos.`
+      );
       setShowUpgradeModal(true);
       return;
     }
@@ -162,6 +194,27 @@ export default function RaffleWizard() {
       toast({ 
         title: 'Campos requeridos', 
         description: 'Completa los campos obligatorios antes de publicar',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // Validate dates
+    if (values.start_date && values.draw_date) {
+      if (new Date(values.start_date) >= new Date(values.draw_date)) {
+        toast({ 
+          title: 'Error en fechas', 
+          description: 'La fecha de inicio debe ser anterior a la fecha del sorteo',
+          variant: 'destructive' 
+        });
+        return;
+      }
+    }
+
+    if (values.draw_date && new Date(values.draw_date) <= new Date()) {
+      toast({ 
+        title: 'Error en fecha', 
+        description: 'La fecha del sorteo debe ser en el futuro',
         variant: 'destructive' 
       });
       return;
@@ -287,6 +340,10 @@ export default function RaffleWizard() {
         open={showUpgradeModal} 
         onOpenChange={setShowUpgradeModal}
         currentTier={organization?.subscription_tier || 'basic'}
+        currentLimit={subscriptionLimits.maxTicketsPerRaffle}
+        requestedValue={form.watch('total_tickets') || 0}
+        feature="boletos por sorteo"
+        reason={upgradeReason}
       />
     </DashboardLayout>
   );

@@ -39,13 +39,16 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useRaffles, type RaffleFilters } from '@/hooks/useRaffles';
+import { useAuth } from '@/hooks/useAuth';
 import { RaffleStatusBadge } from '@/components/raffle/RaffleStatusBadge';
+import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { formatCurrency } from '@/lib/currency-utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function RafflesList() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [filters, setFilters] = useState<RaffleFilters>({ status: 'all' });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -93,10 +96,12 @@ export default function RafflesList() {
               Gestiona todos tus sorteos y rifas
             </p>
           </div>
-          <Button onClick={() => navigate('/dashboard/raffles/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Crear Sorteo
-          </Button>
+          <ProtectedAction resource="raffle" action="create">
+            <Button onClick={() => navigate('/dashboard/raffles/new')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Sorteo
+            </Button>
+          </ProtectedAction>
         </div>
 
         {/* Filters */}
@@ -143,10 +148,12 @@ export default function RafflesList() {
               <p className="text-muted-foreground mb-6">
                 Crea tu primer sorteo para empezar a vender boletos
               </p>
-              <Button onClick={() => navigate('/dashboard/raffles/new')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Crear Sorteo
-              </Button>
+              <ProtectedAction resource="raffle" action="create">
+                <Button onClick={() => navigate('/dashboard/raffles/new')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Sorteo
+                </Button>
+              </ProtectedAction>
             </CardContent>
           </Card>
         ) : (
@@ -218,10 +225,12 @@ export default function RafflesList() {
                           <Eye className="h-4 w-4 mr-2" />
                           Ver detalles
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/dashboard/raffles/${raffle.id}/edit`)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
+                        {(role === 'owner' || role === 'admin') && (
+                          <DropdownMenuItem onClick={() => navigate(`/dashboard/raffles/${raffle.id}/edit`)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => duplicateRaffle.mutate(raffle.id)}>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicar
@@ -246,14 +255,18 @@ export default function RafflesList() {
                             )}
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setDeleteConfirmId(raffle.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
-                        </DropdownMenuItem>
+                        {(role === 'owner' || role === 'admin') && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => setDeleteConfirmId(raffle.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

@@ -50,14 +50,53 @@ export default function PaymentInstructions() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast({ title: "Error", description: "El archivo debe ser menor a 5MB", variant: "destructive" });
+    if (!selectedFile) return;
+
+    // Check file size (5MB max)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast({ 
+        title: "Archivo muy grande", 
+        description: "El archivo debe ser menor a 5MB",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast({ 
+        title: "Tipo de archivo no válido", 
+        description: "Solo se permiten imágenes JPG, PNG o WEBP",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validate image dimensions
+    const img = document.createElement('img');
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      if (img.width > 4000 || img.height > 4000) {
+        toast({
+          title: "Imagen muy grande",
+          description: "La imagen debe ser menor a 4000x4000 píxeles",
+          variant: "destructive"
+        });
         return;
       }
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
-    }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      toast({
+        title: "Archivo inválido",
+        description: "No se pudo procesar la imagen",
+        variant: "destructive"
+      });
+    };
+    img.src = URL.createObjectURL(selectedFile);
   };
 
   const handleUpload = async () => {
