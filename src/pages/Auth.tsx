@@ -107,9 +107,9 @@ export default function Auth() {
       }
     } else {
       toast.success("¡Cuenta creada exitosamente!", {
-        description: "Ya puedes acceder a tu panel.",
+        description: "Completa tu perfil para continuar.",
       });
-      navigate("/dashboard");
+      navigate("/onboarding");
     }
   };
 
