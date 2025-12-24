@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Ticket } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -62,7 +63,10 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               </BreadcrumbList>
             </Breadcrumb>
           )}
-          <div className="ml-auto">
+          <div className="flex-1 flex justify-center px-4">
+            <GlobalSearch />
+          </div>
+          <div className="flex items-center gap-2">
             <NotificationCenter />
           </div>
         </header>

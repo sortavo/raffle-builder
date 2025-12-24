@@ -21,7 +21,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, 
   Search, 
@@ -35,11 +34,13 @@ import {
   Gift,
   Calendar,
   Ticket,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
-import { useRaffles, type RaffleFilters } from '@/hooks/useRaffles';
+import { useRaffles, type RaffleFilters as RaffleFiltersType } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { RaffleStatusBadge } from '@/components/raffle/RaffleStatusBadge';
+import { RaffleFilters, type FilterState } from '@/components/raffle/RaffleFilters';
 import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { formatCurrency } from '@/lib/currency-utils';
 import { format } from 'date-fns';
@@ -52,7 +53,12 @@ import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 export default function RafflesList() {
   const navigate = useNavigate();
   const { role } = useAuth();
-  const [filters, setFilters] = useState<RaffleFilters>({ status: 'all' });
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    dateRange: [null, null],
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -63,17 +69,37 @@ export default function RafflesList() {
     duplicateRaffle 
   } = useRaffles();
   
-  const { data: raffles = [], isLoading } = useRafflesList({
-    ...filters,
+  // Build the query filters
+  const queryFilters: RaffleFiltersType = {
+    status: filters.status.length === 1 ? filters.status[0] : 
+            filters.status.length > 1 ? 'all' : 'all',
     search: searchQuery || undefined,
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+  };
+
+  const { data: allRaffles = [], isLoading } = useRafflesList(queryFilters);
+  
+  // Apply additional client-side filters
+  const raffles = allRaffles.filter(raffle => {
+    // Status filter (supports multiple)
+    if (filters.status.length > 0 && !filters.status.includes(raffle.status || 'draft')) {
+      return false;
+    }
+    
+    // Date range filter
+    if (filters.dateRange[0] && raffle.created_at) {
+      if (new Date(raffle.created_at) < filters.dateRange[0]) return false;
+    }
+    if (filters.dateRange[1] && raffle.created_at) {
+      if (new Date(raffle.created_at) > filters.dateRange[1]) return false;
+    }
+    
+    return true;
   });
 
   // Keyboard shortcut for creating new raffle
   useKeyboardShortcut('n', () => navigate('/dashboard/raffles/new'), { ctrl: true });
-
-  const handleStatusFilter = (status: string) => {
-    setFilters(prev => ({ ...prev, status }));
-  };
 
   const handleDelete = async () => {
     if (deleteConfirmId) {
@@ -81,15 +107,6 @@ export default function RafflesList() {
       setDeleteConfirmId(null);
     }
   };
-
-  const statusTabs = [
-    { value: 'all', label: 'Todos' },
-    { value: 'draft', label: 'Borrador' },
-    { value: 'active', label: 'Activo' },
-    { value: 'paused', label: 'Pausado' },
-    { value: 'completed', label: 'Completado' },
-    { value: 'canceled', label: 'Cancelado' },
-  ];
 
   return (
     <DashboardLayout>
@@ -113,15 +130,7 @@ export default function RafflesList() {
 
         {/* Filters */}
         <div className="space-y-4">
-          <Tabs value={filters.status || 'all'} onValueChange={handleStatusFilter}>
-            <TabsList className="flex-wrap h-auto">
-              {statusTabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <RaffleFilters filters={filters} onFiltersChange={setFilters} />
 
           <div className="flex gap-4">
             <div className="relative flex-1 max-w-md">
@@ -132,6 +141,16 @@ export default function RafflesList() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

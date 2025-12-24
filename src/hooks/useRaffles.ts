@@ -22,6 +22,8 @@ export interface RaffleFilters {
   search?: string;
   startDate?: Date;
   endDate?: Date;
+  sortBy?: 'created_at' | 'title' | 'draw_date' | 'total_tickets';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export const useRaffles = () => {
@@ -40,7 +42,7 @@ export const useRaffles = () => {
           .from('raffles')
           .select('*')
           .eq('organization_id', organization.id)
-          .order('created_at', { ascending: false });
+          .order(filters?.sortBy || 'created_at', { ascending: filters?.sortOrder === 'asc' });
 
         if (filters?.status && filters.status !== 'all') {
           query = query.eq('status', filters.status as 'draft' | 'active' | 'paused' | 'completed' | 'canceled');
