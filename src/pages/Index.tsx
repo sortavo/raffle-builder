@@ -1,29 +1,110 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Ticket, ArrowRight, Gift, Users, CreditCard, BarChart3 } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Ticket, ArrowRight, Gift, Users, CreditCard, BarChart3, Menu, X, Home, Tag, HelpCircle, FileText } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 
 export default function Index() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navLinks = [
+    { to: "/", label: "Inicio", icon: Home },
+    { to: "/pricing", label: "Planes y Precios", icon: Tag },
+    { to: "/#features", label: "Características", icon: Gift },
+    { to: "/terms", label: "Términos", icon: FileText },
+    { to: "/privacy", label: "Privacidad", icon: FileText },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="border-b bg-card">
+      <nav className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
             <Ticket className="h-6 w-6 text-primary" />
             <span className="text-xl font-extrabold text-foreground">SORTAVO</span>
           </Link>
-          <div className="flex items-center gap-2">
+
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex items-center gap-4">
+            <Link to="/pricing">
+              <Button variant="ghost" size="sm">
+                Precios
+              </Button>
+            </Link>
             <Link to="/auth">
-              <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+              <Button variant="ghost" size="sm">
                 Entrar
               </Button>
             </Link>
             <Link to="/auth?tab=signup">
-              <Button size="sm" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
+              <Button size="sm">
                 Registrarse
               </Button>
             </Link>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex sm:hidden items-center gap-2">
+            <Link to="/auth?tab=signup">
+              <Button size="sm" className="text-xs px-3">
+                Registrarse
+              </Button>
+            </Link>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Abrir menú</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px] p-0">
+                <div className="flex flex-col h-full">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="h-5 w-5 text-primary" />
+                      <span className="font-bold text-foreground">SORTAVO</span>
+                    </div>
+                  </div>
+
+                  {/* Navigation Links */}
+                  <div className="flex-1 py-4">
+                    <div className="space-y-1 px-2">
+                      {navLinks.map((link) => {
+                        const Icon = link.icon;
+                        return (
+                          <Link
+                            key={link.to}
+                            to={link.to}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span>{link.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Auth Buttons */}
+                  <div className="p-4 border-t space-y-2">
+                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">
+                        Iniciar Sesión
+                      </Button>
+                    </Link>
+                    <Link to="/auth?tab=signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full">
+                        Crear Cuenta Gratis
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </nav>
