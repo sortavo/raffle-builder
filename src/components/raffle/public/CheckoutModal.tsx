@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveTickets } from "@/hooks/usePublicRaffle";
+import { useEmails } from "@/hooks/useEmails";
 import { Loader2, Ticket, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -47,7 +47,7 @@ interface CheckoutModalProps {
   selectedTickets: string[];
   ticketPrice: number;
   packages?: { quantity: number; price: number }[];
-  onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string) => void;
+  onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string, buyerData: { name: string; email: string }) => void;
 }
 
 export function CheckoutModal({
@@ -60,6 +60,7 @@ export function CheckoutModal({
   onReservationComplete,
 }: CheckoutModalProps) {
   const reserveTickets = useReserveTickets();
+  const { sendReservationEmail } = useEmails();
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -94,9 +95,22 @@ export function CheckoutModal({
         reservationMinutes: raffle.reservation_time_minutes || 15,
       });
 
+      // Send reservation email (non-blocking)
+      sendReservationEmail({
+        to: data.email,
+        buyerName: data.name,
+        ticketNumbers: selectedTickets,
+        raffleTitle: raffle.title,
+        raffleSlug: raffle.slug,
+        amount: calculateTotal(),
+        currency: raffle.currency_code || 'MXN',
+        timerMinutes: raffle.reservation_time_minutes || 15,
+      }).catch(console.error);
+
       onReservationComplete(
         result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })),
-        result.reservedUntil
+        result.reservedUntil,
+        { name: data.name, email: data.email }
       );
     } catch (error) {
       // Error handled in mutation

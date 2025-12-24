@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   DollarSign, 
   Ticket, 
@@ -13,10 +16,16 @@ import {
   Play,
   Share2,
   Download,
-  Eye
+  Eye,
+  UserPlus,
+  CheckCircle,
+  XCircle,
+  Timer
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency-utils';
 import { RaffleStatusBadge } from '../RaffleStatusBadge';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type { RaffleWithStats } from '@/hooks/useRaffles';
 
 interface OverviewTabProps {
@@ -28,6 +37,23 @@ interface OverviewTabProps {
 
 export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }: OverviewTabProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Fetch activity feed
+  const { data: activities } = useQuery({
+    queryKey: ['activities', raffle.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('analytics_events')
+        .select('*')
+        .eq('raffle_id', raffle.id)
+        .order('created_at', { ascending: false })
+        .limit(15);
+
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
 
   useEffect(() => {
     if (!raffle.draw_date) return;
@@ -92,6 +118,52 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
     },
   ];
 
+  const getActivityIcon = (eventType: string) => {
+    switch (eventType) {
+      case 'ticket_reserved':
+        return <Timer className="h-4 w-4 text-amber-500" />;
+      case 'ticket_sold':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'ticket_released':
+        return <XCircle className="h-4 w-4 text-muted-foreground" />;
+      default:
+        return <Ticket className="h-4 w-4 text-primary" />;
+    }
+  };
+
+  const getActivityText = (activity: any) => {
+    const metadata = activity.metadata as { buyer_name?: string; ticket_number?: string } | null;
+    const buyerName = metadata?.buyer_name || 'Alguien';
+    const ticketNumber = metadata?.ticket_number || '?';
+
+    switch (activity.event_type) {
+      case 'ticket_reserved':
+        return (
+          <span>
+            <strong>{buyerName}</strong> reservó el boleto <Badge variant="outline">#{ticketNumber}</Badge>
+          </span>
+        );
+      case 'ticket_sold':
+        return (
+          <span>
+            <strong>{buyerName}</strong> compró el boleto <Badge variant="secondary">#{ticketNumber}</Badge>
+          </span>
+        );
+      case 'ticket_released':
+        return (
+          <span>
+            Boleto <Badge variant="outline">#{ticketNumber}</Badge> fue liberado
+          </span>
+        );
+      default:
+        return (
+          <span>
+            Actualización en boleto <Badge variant="outline">#{ticketNumber}</Badge>
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Hero Section */}
@@ -144,9 +216,11 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
           <Download className="h-4 w-4 mr-2" />
           Exportar
         </Button>
-        <Button variant="outline" size="sm">
-          <Eye className="h-4 w-4 mr-2" />
-          Ver Público
+        <Button variant="outline" size="sm" asChild>
+          <a href={`/r/${raffle.slug}`} target="_blank" rel="noopener noreferrer">
+            <Eye className="h-4 w-4 mr-2" />
+            Ver Público
+          </a>
         </Button>
       </div>
 
@@ -215,13 +289,44 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Actividad Reciente</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Actividad Reciente
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No hay actividad reciente</p>
-          </div>
+          {activities && activities.length > 0 ? (
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="space-y-4">
+                {activities.map((activity) => (
+                  <div 
+                    key={activity.id} 
+                    className="flex items-start gap-3 pb-4 border-b last:border-0"
+                  >
+                    <div className="mt-1">
+                      {getActivityIcon(activity.event_type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm">
+                        {getActivityText(activity)}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(new Date(activity.created_at || ''), { 
+                          addSuffix: true, 
+                          locale: es 
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No hay actividad reciente</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

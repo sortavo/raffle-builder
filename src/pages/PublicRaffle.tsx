@@ -58,11 +58,12 @@ export default function PublicRaffle() {
 
   const handleReservationComplete = (
     tickets: { id: string; ticket_number: string }[],
-    reservedUntil: string
+    reservedUntil: string,
+    buyerData: { name: string; email: string }
   ) => {
     setCheckoutOpen(false);
     navigate(`/r/${slug}/payment`, {
-      state: { tickets, reservedUntil, raffleId: raffle?.id },
+      state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email },
     });
   };
 

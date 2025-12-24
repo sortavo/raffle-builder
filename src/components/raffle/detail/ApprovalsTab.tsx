@@ -17,20 +17,24 @@ import {
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
+import { useEmails } from '@/hooks/useEmails';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface ApprovalsTabProps {
   raffleId: string;
+  raffleTitle?: string;
+  raffleSlug?: string;
 }
 
-export function ApprovalsTab({ raffleId }: ApprovalsTabProps) {
+export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: ApprovalsTabProps) {
   const [selectedWithoutProof, setSelectedWithoutProof] = useState<string[]>([]);
   const [selectedWithProof, setSelectedWithProof] = useState<string[]>([]);
   
   const { toast } = useToast();
   const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject } = useTickets(raffleId);
   const { getWhatsAppLink } = useBuyers(raffleId);
+  const { sendApprovedEmail, sendRejectedEmail } = useEmails();
   
   const { data: ticketsData, isLoading, refetch } = useTicketsList({
     status: 'reserved',
@@ -43,20 +47,45 @@ export function ApprovalsTab({ raffleId }: ApprovalsTabProps) {
   const withoutProof = reservedTickets.filter(t => !t.payment_proof_url);
   const withProof = reservedTickets.filter(t => t.payment_proof_url);
 
-  const handleApprove = async (ticketId: string) => {
+  const handleApprove = async (ticket: any) => {
     try {
-      await approveTicket.mutateAsync(ticketId);
+      await approveTicket.mutateAsync(ticket.id);
       toast({ title: 'Boleto aprobado' });
+      
+      // Send approval email (non-blocking)
+      if (ticket.buyer_email && ticket.buyer_name) {
+        sendApprovedEmail({
+          to: ticket.buyer_email,
+          buyerName: ticket.buyer_name,
+          ticketNumbers: [ticket.ticket_number],
+          raffleTitle,
+          raffleSlug,
+        }).catch(console.error);
+      }
+      
       refetch();
     } catch (error) {
       toast({ title: 'Error al aprobar', variant: 'destructive' });
     }
   };
 
-  const handleReject = async (ticketId: string) => {
+  const handleReject = async (ticket: any) => {
     try {
-      await rejectTicket.mutateAsync(ticketId);
+      await rejectTicket.mutateAsync(ticket.id);
       toast({ title: 'Boleto rechazado' });
+      
+      // Send rejection email (non-blocking)
+      if (ticket.buyer_email && ticket.buyer_name) {
+        sendRejectedEmail({
+          to: ticket.buyer_email,
+          buyerName: ticket.buyer_name,
+          ticketNumbers: [ticket.ticket_number],
+          raffleTitle,
+          raffleSlug,
+          rejectionReason: 'El comprobante no coincide con el monto esperado',
+        }).catch(console.error);
+      }
+      
       refetch();
     } catch (error) {
       toast({ title: 'Error al rechazar', variant: 'destructive' });
@@ -184,7 +213,7 @@ export function ApprovalsTab({ raffleId }: ApprovalsTabProps) {
             <Button 
               size="sm" 
               variant="default"
-              onClick={() => handleApprove(ticket.id)}
+              onClick={() => handleApprove(ticket)}
               disabled={approveTicket.isPending}
               className="flex-1"
             >
@@ -194,7 +223,7 @@ export function ApprovalsTab({ raffleId }: ApprovalsTabProps) {
             <Button 
               size="sm" 
               variant="destructive"
-              onClick={() => handleReject(ticket.id)}
+              onClick={() => handleReject(ticket)}
               disabled={rejectTicket.isPending}
               className="flex-1"
             >

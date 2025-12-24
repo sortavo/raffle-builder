@@ -584,6 +584,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      release_expired_tickets: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "owner" | "admin" | "member"

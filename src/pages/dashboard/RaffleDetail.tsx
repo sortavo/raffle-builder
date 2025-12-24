@@ -120,7 +120,7 @@ export default function RaffleDetail() {
           </TabsContent>
 
           <TabsContent value="approvals">
-            <ApprovalsTab raffleId={raffle.id} />
+            <ApprovalsTab raffleId={raffle.id} raffleTitle={raffle.title} raffleSlug={raffle.slug} />
           </TabsContent>
 
           <TabsContent value="analytics">

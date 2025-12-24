@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { usePublicRaffle, useUploadPaymentProof } from "@/hooks/usePublicRaffle";
+import { useEmails } from "@/hooks/useEmails";
 import { formatCurrency } from "@/lib/currency-utils";
 import { Loader2, Upload, MessageCircle, Copy, Check, AlertTriangle, Ticket } from "lucide-react";
 
@@ -18,11 +19,14 @@ export default function PaymentInstructions() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { sendProofReceivedEmail } = useEmails();
 
-  const { tickets, reservedUntil, raffleId } = (location.state as {
+  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail } = (location.state as {
     tickets: { id: string; ticket_number: string }[];
     reservedUntil: string;
     raffleId: string;
+    buyerName?: string;
+    buyerEmail?: string;
   }) || { tickets: [], reservedUntil: '', raffleId: '' };
 
   const { data: raffle } = usePublicRaffle(slug);
@@ -63,6 +67,16 @@ export default function PaymentInstructions() {
       ticketIds: tickets.map(t => t.id),
       file,
     });
+
+    // Send proof received email (non-blocking)
+    if (buyerEmail && buyerName) {
+      sendProofReceivedEmail({
+        to: buyerEmail,
+        buyerName,
+        ticketNumbers: tickets.map(t => t.ticket_number),
+        raffleTitle: raffle.title,
+      }).catch(console.error);
+    }
   };
 
   const copyToClipboard = async (text: string, field: string) => {
