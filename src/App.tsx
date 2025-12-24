@@ -18,6 +18,7 @@ import PublicRaffle from "./pages/PublicRaffle";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
 import Pricing from "./pages/Pricing";
+import AcceptInvite from "./pages/AcceptInvite";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
               <Route path="/my-tickets" element={<MyTickets />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

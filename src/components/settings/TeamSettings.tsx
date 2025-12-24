@@ -18,7 +18,9 @@ import {
   MoreVertical,
   Trash2,
   Mail,
-  Loader2
+  Loader2,
+  Clock,
+  X
 } from "lucide-react";
 import {
   Dialog,
@@ -105,22 +107,63 @@ export function TeamSettings() {
     enabled: !!organization?.id,
   });
 
+  // Fetch pending invitations
+  const { data: pendingInvites } = useQuery({
+    queryKey: ["pending-invites", organization?.id],
+    queryFn: async () => {
+      if (!organization?.id) return [];
+
+      const { data, error } = await supabase
+        .from("team_invitations")
+        .select("id, email, role, created_at, expires_at")
+        .eq("organization_id", organization.id)
+        .is("accepted_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!organization?.id,
+  });
+
   const inviteMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: "admin" | "member" }) => {
-      // In a real app, this would send an invite email
-      // For now, we'll just show a success message
-      toast.info("Funcionalidad de invitación próximamente");
-      throw new Error("Invitaciones no implementadas aún");
+      const { data, error } = await supabase.functions.invoke("send-team-invite", {
+        body: { email, role },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      
+      return data;
     },
     onSuccess: () => {
+      toast.success("Invitación enviada correctamente");
       setShowInviteDialog(false);
       setInviteEmail("");
-      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
     },
     onError: (error: Error) => {
-      if (error.message !== "Invitaciones no implementadas aún") {
-        toast.error(error.message);
-      }
+      toast.error(error.message);
+    },
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const { error } = await supabase
+        .from("team_invitations")
+        .delete()
+        .eq("id", inviteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Invitación cancelada");
+      queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Error: " + error.message);
     },
   });
 
@@ -295,6 +338,60 @@ export function TeamSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pending Invitations */}
+      {pendingInvites && pendingInvites.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Invitaciones Pendientes
+            </CardTitle>
+            <CardDescription>
+              Invitaciones enviadas que aún no han sido aceptadas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pendingInvites.map((invite) => {
+              const roleInfo = ROLE_LABELS[invite.role as keyof typeof ROLE_LABELS];
+              const expiresAt = new Date(invite.expires_at);
+              const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+              return (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-dashed"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-muted">
+                      <Mail className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{invite.email}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Expira en {daysLeft} día{daysLeft !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className={roleInfo?.color || "bg-gray-500/10 text-gray-600"}>
+                      {roleInfo?.label || invite.role}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => cancelInviteMutation.mutate(invite.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Invite Dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
