@@ -133,10 +133,20 @@
 
   html {
     touch-action: manipulation;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  #root {
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
   
   h1, h2, h3, h4, h5, h6 {

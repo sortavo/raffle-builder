@@ -87,9 +87,9 @@ export function CookieConsent() {
   return (
     <>
       {/* Cookie Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background border-t shadow-lg animate-slide-in-up print:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background border-t shadow-lg animate-fade-in print:hidden max-w-full overflow-hidden">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4">
-          <Cookie className="h-8 w-8 text-primary shrink-0" />
+          <Cookie className="h-8 w-8 text-primary shrink-0 hidden sm:block" />
           
           <div className="flex-1 text-sm text-center sm:text-left">
             <p>
