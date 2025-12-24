@@ -23,6 +23,8 @@ import {
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveTickets } from "@/hooks/usePublicRaffle";
 import { useEmails } from "@/hooks/useEmails";
+import { notifyPaymentPending } from "@/lib/notifications";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Ticket, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -131,6 +133,35 @@ export function CheckoutModal({
         currency: raffle.currency_code || 'MXN',
         timerMinutes: raffle.reservation_time_minutes || 15,
       }).catch(console.error);
+
+      // Notify organizer about pending payment (non-blocking)
+      (async () => {
+        try {
+          const { data: orgData } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .eq('organization_id', raffle.organization_id)
+            .in('role', ['owner', 'admin']);
+          
+          if (orgData && orgData.length > 0) {
+            // Notify all admins/owners
+            await Promise.all(
+              orgData.map(member =>
+                notifyPaymentPending(
+                  member.user_id,
+                  raffle.organization_id,
+                  raffle.id,
+                  raffle.title,
+                  selectedTickets,
+                  data.name
+                )
+              )
+            );
+          }
+        } catch (err) {
+          console.error('Error notifying organizer:', err);
+        }
+      })();
 
       onReservationComplete(
         result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })),
