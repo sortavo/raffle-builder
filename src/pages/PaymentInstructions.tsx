@@ -105,6 +105,7 @@ export default function PaymentInstructions() {
       raffleId,
       ticketIds: tickets.map(t => t.id),
       file,
+      buyerName: buyerName || undefined,
     });
 
     // Send proof received email (non-blocking)

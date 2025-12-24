@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { notifyPaymentPending } from "@/lib/notifications";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Raffle = Tables<'raffles'>;
@@ -185,10 +186,12 @@ export function useUploadPaymentProof() {
       raffleId,
       ticketIds,
       file,
+      buyerName,
     }: {
       raffleId: string;
       ticketIds: string[];
       file: File;
+      buyerName?: string;
     }) => {
       // Upload file to storage
       const fileName = `${raffleId}/${Date.now()}-${file.name}`;
@@ -204,12 +207,34 @@ export function useUploadPaymentProof() {
         .getPublicUrl(upload.path);
 
       // Update tickets with proof URL
-      const { error } = await supabase
+      const { data: updatedTickets, error } = await supabase
         .from('tickets')
         .update({ payment_proof_url: publicUrl })
-        .in('id', ticketIds);
+        .in('id', ticketIds)
+        .select('ticket_number');
 
       if (error) throw error;
+
+      // Get raffle info to notify the organizer
+      const { data: raffle } = await supabase
+        .from('raffles')
+        .select('title, organization_id, created_by')
+        .eq('id', raffleId)
+        .single();
+
+      if (raffle?.created_by && raffle?.organization_id) {
+        const ticketNumbers = updatedTickets?.map(t => t.ticket_number) || [];
+        
+        // Notify the organizer about new payment proof (non-blocking)
+        notifyPaymentPending(
+          raffle.created_by,
+          raffle.organization_id,
+          raffleId,
+          raffle.title,
+          ticketNumbers,
+          buyerName || 'Comprador'
+        ).catch(console.error);
+      }
 
       return publicUrl;
     },
