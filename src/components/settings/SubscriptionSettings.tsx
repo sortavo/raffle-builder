@@ -101,7 +101,8 @@ export function SubscriptionSettings() {
               <div className="text-2xl font-bold">
                 ${organization?.subscription_period === "annual" 
                   ? currentPlan?.annualPrice 
-                  : currentPlan?.monthlyPrice}
+                  : currentPlan?.monthlyPrice}{" "}
+                <span className="text-base font-medium text-muted-foreground">USD</span>
               </div>
               <div className="text-sm text-muted-foreground">
                 /{organization?.subscription_period === "annual" ? "año" : "mes"}
