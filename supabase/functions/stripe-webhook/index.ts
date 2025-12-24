@@ -8,8 +8,9 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
+  const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
+  console.log(`[STRIPE-WEBHOOK] [${timestamp}] ${step}${detailsStr}`);
 };
 
 // Map Stripe product IDs to subscription tiers
@@ -39,10 +40,22 @@ serve(async (req) => {
   );
 
   try {
+    logStep("Webhook request received", { 
+      method: req.method,
+      hasSignature: !!req.headers.get("stripe-signature"),
+    });
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) {
+      logStep("ERROR: STRIPE_SECRET_KEY not configured");
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+    
+    if (!webhookSecret) {
+      logStep("WARNING: STRIPE_WEBHOOK_SECRET not configured - signature verification disabled");
+    }
     
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const signature = req.headers.get("stripe-signature");

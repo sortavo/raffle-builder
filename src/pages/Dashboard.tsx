@@ -1,14 +1,57 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Gift, Users, DollarSign, Clock, Plus, ArrowRight } from "lucide-react";
+import { Loader2, Gift, Users, DollarSign, Clock, Plus, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, organization, isLoading } = useAuth();
+
+  // Handle subscription success/cancel from Stripe checkout
+  useEffect(() => {
+    const subscriptionStatus = searchParams.get("subscription");
+    
+    if (subscriptionStatus === "success") {
+      toast.success("¡Suscripción exitosa!", {
+        description: "Tu plan ha sido activado. Los cambios pueden tardar unos segundos en reflejarse.",
+        icon: <CheckCircle className="h-5 w-5 text-success" />,
+        duration: 5000,
+      });
+      
+      // Refresh subscription status
+      const refreshSubscription = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.functions.invoke("subscription-status");
+          }
+        } catch (error) {
+          console.error("Error refreshing subscription:", error);
+        }
+      };
+      refreshSubscription();
+      
+      // Clean up URL
+      searchParams.delete("subscription");
+      setSearchParams(searchParams, { replace: true });
+    } else if (subscriptionStatus === "cancel") {
+      toast.error("Suscripción cancelada", {
+        description: "El proceso de pago fue cancelado. Puedes intentarlo de nuevo cuando quieras.",
+        icon: <XCircle className="h-5 w-5 text-destructive" />,
+        duration: 5000,
+      });
+      
+      // Clean up URL
+      searchParams.delete("subscription");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!isLoading && !user) {
