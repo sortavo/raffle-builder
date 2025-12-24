@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { cn } from '@/lib/utils';
+import { TicketGridSkeleton } from '@/components/ui/skeletons';
 
 interface TicketsTabProps {
   raffleId: string;
@@ -160,14 +161,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="grid grid-cols-10 gap-2">
-              {Array.from({ length: 100 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className="aspect-square rounded-md bg-muted animate-pulse"
-                />
-              ))}
-            </div>
+            <TicketGridSkeleton />
           ) : (
             <div className="space-y-2">
               {gridTickets.map((row, rowIndex) => (

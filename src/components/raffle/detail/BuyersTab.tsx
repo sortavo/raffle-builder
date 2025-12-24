@@ -31,6 +31,8 @@ import { useBuyers } from '@/hooks/useBuyers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { TableSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface BuyersTabProps {
   raffleId: string;
@@ -145,16 +147,13 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-              ))}
-            </div>
+            <TableSkeleton rows={5} columns={7} />
           ) : buyers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No hay compradores registrados</p>
-            </div>
+            <EmptyState
+              icon={<Users className="h-12 w-12" />}
+              title="No hay compradores aún"
+              description="Cuando alguien compre boletos, aparecerán aquí con su información de contacto."
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Ticket, ArrowRight, Gift, Users, CreditCard, BarChart3 } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
 
 export default function Index() {
   return (
@@ -100,19 +101,7 @@ export default function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-card py-8">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-primary" />
-              <span className="font-bold text-foreground">SORTAVO</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Sortavo. Todos los derechos reservados.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

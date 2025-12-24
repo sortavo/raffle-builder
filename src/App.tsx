@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ScrollToTop } from "@/components/layout/ScrollToTop";
+import { CookieConsent } from "@/components/legal/CookieConsent";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -14,11 +16,14 @@ import NotFound from "./pages/NotFound";
 import RafflesList from "./pages/dashboard/RafflesList";
 import RaffleWizard from "./pages/dashboard/RaffleWizard";
 import RaffleDetail from "./pages/dashboard/RaffleDetail";
+import DrawWinner from "./pages/dashboard/DrawWinner";
 import PublicRaffle from "./pages/PublicRaffle";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
 import Pricing from "./pages/Pricing";
 import AcceptInvite from "./pages/AcceptInvite";
+import TermsOfService from "./pages/legal/TermsOfService";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +35,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <ScrollToTop />
+            <CookieConsent />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -38,6 +45,7 @@ const App = () => (
               <Route path="/dashboard/raffles/new" element={<RaffleWizard />} />
               <Route path="/dashboard/raffles/:id" element={<RaffleDetail />} />
               <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
+              <Route path="/dashboard/raffles/:id/draw" element={<DrawWinner />} />
               <Route path="/dashboard/settings" element={<Settings />} />
               <Route path="/onboarding" element={<Onboarding />} />
               {/* Public Routes */}
@@ -46,6 +54,9 @@ const App = () => (
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
               <Route path="/my-tickets" element={<MyTickets />} />
               <Route path="/invite/:token" element={<AcceptInvite />} />
+              {/* Legal Routes */}
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

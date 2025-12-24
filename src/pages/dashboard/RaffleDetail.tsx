@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ArrowLeft, 
   LayoutDashboard, 
@@ -21,6 +20,9 @@ import { BuyersTab } from '@/components/raffle/detail/BuyersTab';
 import { ApprovalsTab } from '@/components/raffle/detail/ApprovalsTab';
 import { AnalyticsTab } from '@/components/raffle/detail/AnalyticsTab';
 import { ExportMenu } from '@/components/raffle/detail/ExportMenu';
+import { RaffleDetailSkeleton } from '@/components/ui/skeletons';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PageTransition } from '@/components/layout/PageTransition';
 
 export default function RaffleDetail() {
   const { id } = useParams();
@@ -33,15 +35,7 @@ export default function RaffleDetail() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-48 w-full" />
-          <div className="grid grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-        </div>
+        <RaffleDetailSkeleton />
       </DashboardLayout>
     );
   }
@@ -49,16 +43,11 @@ export default function RaffleDetail() {
   if (error || !raffle) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold mb-2">Sorteo no encontrado</h2>
-          <p className="text-muted-foreground mb-4">
-            El sorteo que buscas no existe o fue eliminado.
-          </p>
-          <Button onClick={() => navigate('/dashboard/raffles')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Sorteos
-          </Button>
-        </div>
+        <ErrorState
+          title="Sorteo no encontrado"
+          message="El sorteo que buscas no existe o fue eliminado."
+          retry={() => navigate('/dashboard/raffles')}
+        />
       </DashboardLayout>
     );
   }
@@ -80,6 +69,7 @@ export default function RaffleDetail() {
 
   return (
     <DashboardLayout>
+      <PageTransition>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -149,6 +139,7 @@ export default function RaffleDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      </PageTransition>
     </DashboardLayout>
   );
 }

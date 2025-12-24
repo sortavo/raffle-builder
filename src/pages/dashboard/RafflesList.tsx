@@ -4,7 +4,6 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +44,10 @@ import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { formatCurrency } from '@/lib/currency-utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { DashboardSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageTransition } from '@/components/layout/PageTransition';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 export default function RafflesList() {
   const navigate = useNavigate();
@@ -64,6 +67,9 @@ export default function RafflesList() {
     ...filters,
     search: searchQuery || undefined,
   });
+
+  // Keyboard shortcut for creating new raffle
+  useKeyboardShortcut('n', () => navigate('/dashboard/raffles/new'), { ctrl: true });
 
   const handleStatusFilter = (status: string) => {
     setFilters(prev => ({ ...prev, status }));
@@ -87,6 +93,7 @@ export default function RafflesList() {
 
   return (
     <DashboardLayout>
+      <PageTransition>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -131,29 +138,19 @@ export default function RafflesList() {
 
         {/* Raffles List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <div className="h-20 bg-muted animate-pulse rounded" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DashboardSkeleton />
         ) : raffles.length === 0 ? (
           <Card>
-            <CardContent className="py-16 text-center">
-              <Gift className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium mb-2">No hay sorteos</h3>
-              <p className="text-muted-foreground mb-6">
-                Crea tu primer sorteo para empezar a vender boletos
-              </p>
-              <ProtectedAction resource="raffle" action="create">
-                <Button onClick={() => navigate('/dashboard/raffles/new')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Sorteo
-                </Button>
-              </ProtectedAction>
+            <CardContent className="p-0">
+              <EmptyState
+                icon={<Gift className="h-16 w-16" />}
+                title="No hay sorteos"
+                description="Crea tu primer sorteo para empezar a vender boletos y gestionar participantes."
+                action={{
+                  label: "Crear Primer Sorteo",
+                  onClick: () => navigate('/dashboard/raffles/new')
+                }}
+              />
             </CardContent>
           </Card>
         ) : (
@@ -297,6 +294,7 @@ export default function RafflesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </PageTransition>
     </DashboardLayout>
   );
 }
