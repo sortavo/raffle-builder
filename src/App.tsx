@@ -16,6 +16,7 @@ import RaffleDetail from "./pages/dashboard/RaffleDetail";
 import PublicRaffle from "./pages/PublicRaffle";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
               <Route path="/onboarding" element={<Onboarding />} />
               {/* Public Routes */}
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
               <Route path="/my-tickets" element={<MyTickets />} />
