@@ -709,6 +709,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_reference_code: { Args: never; Returns: string }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }

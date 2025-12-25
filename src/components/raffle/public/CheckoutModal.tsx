@@ -121,6 +121,7 @@ export function CheckoutModal({
   const [discount, setDiscount] = useState(0);
   const [reservedTickets, setReservedTickets] = useState<{ id: string; ticket_number: string }[]>([]);
   const [reservedUntil, setReservedUntil] = useState<string>('');
+  const [referenceCode, setReferenceCode] = useState<string>('');
   
   const reserveTickets = useReserveTickets();
   const { sendReservationEmail } = useEmails();
@@ -194,6 +195,7 @@ export function CheckoutModal({
       // Store reserved tickets info
       setReservedTickets(result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })));
       setReservedUntil(result.reservedUntil);
+      setReferenceCode(result.referenceCode);
 
       // Send reservation email (non-blocking)
       sendReservationEmail({
@@ -745,6 +747,19 @@ export function CheckoutModal({
                   </p>
                 </div>
 
+                {/* Reference code */}
+                {referenceCode && (
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-muted-foreground mb-1">Código de Referencia:</p>
+                    <p className="text-2xl font-mono font-bold text-amber-600 tracking-widest">
+                      {referenceCode}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Comparte este código con el organizador para identificar tu pago
+                    </p>
+                  </div>
+                )}
+
                 {/* Ticket numbers */}
                 <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl p-4 border border-violet-100 dark:border-violet-800">
                   <p className="text-sm text-muted-foreground mb-2">Tus boletos:</p>
@@ -761,7 +776,7 @@ export function CheckoutModal({
                   </span>
                 </div>
 
-                {/* WhatsApp Contact - NEW */}
+                {/* WhatsApp Contact - with reference code */}
                 {raffle.organization?.phone && (
                   <WhatsAppContactButton
                     organizationPhone={raffle.organization.phone}
@@ -772,6 +787,7 @@ export function CheckoutModal({
                     totalAmount={total}
                     currencyCode={raffle.currency_code || 'MXN'}
                     buyerName={form.getValues('name')}
+                    referenceCode={referenceCode}
                     variant="button"
                   />
                 )}
