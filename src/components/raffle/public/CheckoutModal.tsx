@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { CouponInput } from "@/components/marketing/CouponInput";
+import { WhatsAppContactButton } from "./WhatsAppContactButton";
 import { cn } from "@/lib/utils";
 
 const fireConfetti = () => {
@@ -92,7 +93,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 interface CheckoutModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  raffle: Raffle;
+  raffle: Raffle & { organization?: { phone?: string | null; name?: string; logo_url?: string | null } };
   selectedTickets: string[];
   ticketPrice: number;
   packages?: { quantity: number; price: number }[];
@@ -759,6 +760,21 @@ export function CheckoutModal({
                     Recuerda completar el pago en {raffle.reservation_time_minutes || 15} minutos
                   </span>
                 </div>
+
+                {/* WhatsApp Contact - NEW */}
+                {raffle.organization?.phone && (
+                  <WhatsAppContactButton
+                    organizationPhone={raffle.organization.phone}
+                    organizationName={raffle.organization.name}
+                    organizationLogo={raffle.organization.logo_url}
+                    raffleTitle={raffle.title}
+                    ticketNumbers={selectedTickets}
+                    totalAmount={total}
+                    currencyCode={raffle.currency_code || 'MXN'}
+                    buyerName={form.getValues('name')}
+                    variant="button"
+                  />
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3">
