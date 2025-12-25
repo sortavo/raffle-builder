@@ -32,6 +32,8 @@ import {
   LogOut,
   ChevronUp,
   HelpCircle,
+  Megaphone,
+  Tag,
 } from "lucide-react";
 
 const menuItems = [
@@ -55,6 +57,16 @@ const menuItems = [
     url: "/dashboard/analytics",
     icon: BarChart3,
   },
+  {
+    title: "Marketing",
+    url: "/dashboard/marketing",
+    icon: Megaphone,
+  },
+  {
+    title: "Cupones",
+    url: "/dashboard/coupons",
+    icon: Tag,
+  },
 ];
 
 const settingsItems = [
@@ -70,7 +82,7 @@ const settingsItems = [
   },
   {
     title: "Ayuda",
-    url: "/dashboard/help",
+    url: "/help",
     icon: HelpCircle,
   },
 ];
