@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LoadMoreTrigger } from "@/components/ui/LoadMoreTrigger";
+import { VirtualizedTicketList } from "@/components/ui/VirtualizedTicketList";
 import { useMyTickets } from "@/hooks/usePublicRaffle";
 import { useAuth } from "@/hooks/useAuth";
 import { TicketQRCode } from "@/components/ticket/TicketQRCode";
@@ -19,8 +19,6 @@ import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/lib/currency-utils";
-
-const TICKETS_PER_PAGE = 20;
 
 // Status configuration for visual display
 const STATUS_CONFIG = {
@@ -60,7 +58,6 @@ export default function MyTickets() {
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [ticketSearch, setTicketSearch] = useState('');
-  const [visibleRaffles, setVisibleRaffles] = useState<Record<string, number>>({});
 
   const { data: tickets, isLoading } = useMyTickets(searchEmail);
 
@@ -109,18 +106,10 @@ export default function MyTickets() {
     }>);
   }, [filteredTickets]);
 
-  // Get visible tickets count for a raffle
-  const getVisibleCount = (raffleId: string) => {
-    return visibleRaffles[raffleId] || TICKETS_PER_PAGE;
-  };
-
-  // Load more tickets for a specific raffle
-  const loadMoreTickets = (raffleId: string, totalTickets: number) => {
-    setVisibleRaffles(prev => ({
-      ...prev,
-      [raffleId]: Math.min((prev[raffleId] || TICKETS_PER_PAGE) + TICKETS_PER_PAGE, totalTickets)
-    }));
-  };
+  // Handle ticket click - opens detail modal
+  const handleTicketClick = useCallback((ticket: any, raffle: any) => {
+    setSelectedTicket({ ticket, raffle });
+  }, []);
 
   // Calculate overall stats
   const overallStats = tickets?.reduce((acc, t) => {
@@ -389,94 +378,16 @@ export default function MyTickets() {
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 group-hover:translate-x-1 transition-transform" />
                     </div>
-                  </div>
+                    </div>
 
-                  {/* Tickets List */}
-                  <CardContent className="p-0 divide-y">
-                    {(() => {
-                      const raffleId = raffle?.id || 'unknown';
-                      const visibleCount = getVisibleCount(raffleId);
-                      const visibleTickets = raffleTickets.slice(0, visibleCount);
-                      const hasMore = raffleTickets.length > visibleCount;
-                      const remaining = raffleTickets.length - visibleCount;
-
-                      return (
-                        <>
-                          {visibleTickets.map((t, ticketIndex) => {
-                            const status = STATUS_CONFIG[t.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.available;
-                            const StatusIcon = status.icon;
-                            const purchaseDate = t.reserved_at || t.sold_at || t.created_at;
-
-                            return (
-                              <motion.button
-                                key={t.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: ticketIndex * 0.02 }}
-                                onClick={() => setSelectedTicket({ ticket: t, raffle })}
-                                className="w-full p-4 text-left hover:bg-muted/50 transition-colors flex items-center gap-4"
-                              >
-                                {/* Ticket Number */}
-                                <div className="flex-shrink-0">
-                                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${status.color}`}>
-                                    {t.ticket_number}
-                                  </div>
-                                </div>
-
-                                {/* Ticket Info */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">Boleto #{t.ticket_number}</span>
-                                    <Badge variant="outline" className={`text-xs ${status.color}`}>
-                                      <StatusIcon className="w-3 h-3 mr-1" />
-                                      {status.label}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                                    {purchaseDate && (
-                                      <span className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {formatDistanceToNow(new Date(purchaseDate), { addSuffix: true, locale: es })}
-                                      </span>
-                                    )}
-                                    {t.buyer_name && (
-                                      <span className="flex items-center gap-1">
-                                        <User className="w-3 h-3" />
-                                        {t.buyer_name}
-                                      </span>
-                                    )}
-                                    {t.buyer_city && (
-                                      <span className="flex items-center gap-1">
-                                        <MapPin className="w-3 h-3" />
-                                        {t.buyer_city}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <div className="p-2 rounded-lg bg-muted/50">
-                                    {t.status === 'sold' ? (
-                                      <Download className="w-4 h-4 text-primary" />
-                                    ) : (
-                                      <Eye className="w-4 h-4 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.button>
-                            );
-                          })}
-
-                          {/* Infinite Scroll Trigger */}
-                          <LoadMoreTrigger
-                            onLoadMore={() => loadMoreTickets(raffleId, raffleTickets.length)}
-                            remaining={remaining}
-                            enabled={hasMore}
-                          />
-                        </>
-                      );
-                    })()}
+                  {/* Tickets List - Virtualized */}
+                  <CardContent className="p-0">
+                    <VirtualizedTicketList
+                      tickets={raffleTickets}
+                      raffle={raffle}
+                      onTicketClick={handleTicketClick}
+                      maxHeight={500}
+                    />
                   </CardContent>
                 </Card>
               </motion.div>
