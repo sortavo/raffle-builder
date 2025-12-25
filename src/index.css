@@ -252,3 +252,17 @@
     transform: translateY(0);
   }
 }
+
+/* Animation delay utilities */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  @apply bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent;
+}
