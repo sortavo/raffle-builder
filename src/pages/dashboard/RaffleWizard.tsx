@@ -291,16 +291,16 @@ export default function RaffleWizard() {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               {isEditing ? 'Editar Sorteo' : 'Crear Nuevo Sorteo'}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {STEPS[currentStep - 1].description}
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/dashboard/raffles')}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => navigate('/dashboard/raffles')}>
             Cancelar
           </Button>
         </div>
@@ -336,38 +336,47 @@ export default function RaffleWizard() {
         </Form>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <Button
             variant="outline"
+            size="sm"
             onClick={handleBack}
             disabled={currentStep === 1}
+            className="w-full sm:w-auto"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Anterior
+            <span className="hidden sm:inline">Anterior</span>
+            <span className="sm:hidden">Atrás</span>
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Button
               variant="outline"
+              size="sm"
               onClick={handleSaveDraft}
               disabled={createRaffle.isPending || updateRaffle.isPending}
+              className="w-full sm:w-auto"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Guardar Borrador
+              <Save className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Guardar Borrador</span>
+              <span className="sm:hidden">Guardar</span>
             </Button>
 
             {currentStep < 5 ? (
-              <Button onClick={handleNext}>
+              <Button onClick={handleNext} size="sm" className="w-full sm:w-auto">
                 Siguiente
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
               <Button 
                 onClick={handlePublish}
+                size="sm"
                 disabled={publishRaffle.isPending}
+                className="w-full sm:w-auto"
               >
                 <Rocket className="h-4 w-4 mr-2" />
-                Publicar Sorteo
+                <span className="hidden sm:inline">Publicar Sorteo</span>
+                <span className="sm:hidden">Publicar</span>
               </Button>
             )}
           </div>

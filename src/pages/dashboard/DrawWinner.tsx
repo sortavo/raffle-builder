@@ -260,34 +260,32 @@ export default function DrawWinner() {
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate(`/dashboard/raffles/${id}`)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              {raffle.prize_images?.[0] && (
-                <img 
-                  src={raffle.prize_images[0]} 
-                  alt={raffle.prize_name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
-              )}
-              <div>
-                <h1 className="text-2xl font-bold">{raffle.title}</h1>
-                <p className="text-muted-foreground">{raffle.prize_name}</p>
-              </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate(`/dashboard/raffles/${id}`)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            {raffle.prize_images?.[0] && (
+              <img 
+                src={raffle.prize_images[0]} 
+                alt={raffle.prize_name}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">{raffle.title}</h1>
+              <p className="text-sm text-muted-foreground truncate">{raffle.prize_name}</p>
             </div>
           </div>
-          <div className="text-right">
-            <Badge variant={isCompleted ? 'default' : 'secondary'}>
-              {isCompleted ? 'Completado' : 'Listo para Sortear'}
+          <div className="flex items-center justify-between sm:flex-col sm:items-end sm:text-right gap-2 pl-10 sm:pl-0">
+            <Badge variant={isCompleted ? 'default' : 'secondary'} className="text-xs">
+              {isCompleted ? 'Completado' : 'Listo'}
             </Badge>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {soldTickets.length} / {raffle.total_tickets} vendidos
             </p>
           </div>
@@ -322,15 +320,19 @@ export default function DrawWinner() {
         {!isCompleted && (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DrawMethod)}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="manual">
-                <Dice5 className="h-4 w-4 mr-2" />
+              <TabsTrigger value="manual" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <Dice5 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Manual
               </TabsTrigger>
-              <TabsTrigger value="lottery">
-                🎰 Lotería Nacional
+              <TabsTrigger value="lottery" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <span className="text-sm sm:text-base">🎰</span>
+                <span className="hidden sm:inline">Lotería Nacional</span>
+                <span className="sm:hidden">Lotería</span>
               </TabsTrigger>
-              <TabsTrigger value="random_org">
-                🔐 Random.org
+              <TabsTrigger value="random_org" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                <span className="text-sm sm:text-base">🔐</span>
+                <span className="hidden sm:inline">Random.org</span>
+                <span className="sm:hidden">Random</span>
               </TabsTrigger>
             </TabsList>
 
@@ -429,22 +431,22 @@ export default function DrawWinner() {
                     <div className="space-y-2">
                       <Label>Dígitos a extraer</Label>
                       <RadioGroup value={lotteryDigits} onValueChange={setLotteryDigits}>
-                        <div className="flex gap-4">
+                        <div className="flex flex-wrap gap-3 sm:gap-4">
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="2" id="d2" />
-                            <Label htmlFor="d2">2 últimos</Label>
+                            <Label htmlFor="d2" className="text-sm">2 últimos</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="3" id="d3" />
-                            <Label htmlFor="d3">3 últimos</Label>
+                            <Label htmlFor="d3" className="text-sm">3 últimos</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="4" id="d4" />
-                            <Label htmlFor="d4">4 últimos</Label>
+                            <Label htmlFor="d4" className="text-sm">4 últimos</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="5" id="d5" />
-                            <Label htmlFor="d5">5 últimos</Label>
+                            <Label htmlFor="d5" className="text-sm">5 últimos</Label>
                           </div>
                         </div>
                       </RadioGroup>

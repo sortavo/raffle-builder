@@ -14,6 +14,7 @@ import { usePublicPaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethod
 import { useEmails } from "@/hooks/useEmails";
 import { formatCurrency } from "@/lib/currency-utils";
 import { WhatsAppContactButton } from "@/components/raffle/public/WhatsAppContactButton";
+import { cn } from "@/lib/utils";
 import { 
   Loader2, 
   Upload, 
@@ -361,9 +362,14 @@ export default function PaymentInstructions() {
             ) : (
               // Multiple methods - show tabs
               <Tabs defaultValue={enabledMethods[0]?.id}>
-                <TabsList className={`grid w-full grid-cols-${Math.min(enabledMethods.length, 4)}`}>
+                <TabsList className={cn(
+                  "grid w-full",
+                  enabledMethods.length === 2 && "grid-cols-2",
+                  enabledMethods.length === 3 && "grid-cols-3",
+                  enabledMethods.length >= 4 && "grid-cols-4"
+                )}>
                   {enabledMethods.slice(0, 4).map((method) => (
-                    <TabsTrigger key={method.id} value={method.id} className="gap-2">
+                    <TabsTrigger key={method.id} value={method.id} className="gap-1 sm:gap-2 px-2 sm:px-3">
                       {getMethodIcon(method.type)}
                       <span className="hidden sm:inline truncate">{method.name}</span>
                     </TabsTrigger>

@@ -376,7 +376,8 @@ export const Step3Tickets = ({ form }: Step3Props) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
+            {/* Desktop header - hidden on mobile */}
+            <div className="hidden sm:grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
               <div className="col-span-2">Cantidad</div>
               <div className="col-span-3">Precio</div>
               <div className="col-span-2">Descuento</div>
@@ -385,56 +386,123 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             </div>
 
             {packages.map((pkg, index) => (
-              <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    value={pkg.quantity}
-                    onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
-                    min={1}
-                  />
-                </div>
-                <div className="col-span-3">
-                  <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                      {currencyData?.symbol}
-                    </span>
-                    <Input
-                      type="number"
-                      value={pkg.price || Math.round(basePrice * pkg.quantity * (1 - pkg.discount_percent / 100))}
-                      onChange={(e) => updatePackage(index, 'price', parseFloat(e.target.value) || 0)}
-                      className="pl-6"
-                    />
+              <div key={index} className="space-y-3 sm:space-y-0 p-3 sm:p-0 border sm:border-0 rounded-lg sm:rounded-none">
+                {/* Mobile: Stacked layout */}
+                <div className="sm:hidden space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Paquete {index + 1}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePackage(index)}
+                      disabled={packages.length <= 1}
+                      className="h-8 w-8"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Cantidad</label>
+                      <Input
+                        type="number"
+                        value={pkg.quantity}
+                        onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
+                        min={1}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Descuento</label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={pkg.discount_percent}
+                          onChange={(e) => updatePackage(index, 'discount_percent', parseFloat(e.target.value) || 0)}
+                          className="pr-6"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Precio</label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          {currencyData?.symbol}
+                        </span>
+                        <Input
+                          type="number"
+                          value={pkg.price || Math.round(basePrice * pkg.quantity * (1 - pkg.discount_percent / 100))}
+                          onChange={(e) => updatePackage(index, 'price', parseFloat(e.target.value) || 0)}
+                          className="pl-6"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Etiqueta</label>
+                      <Input
+                        placeholder="Ej: Mejor Valor"
+                        value={pkg.label}
+                        onChange={(e) => updatePackage(index, 'label', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <div className="relative">
+
+                {/* Desktop: Grid layout */}
+                <div className="hidden sm:grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-2">
                     <Input
                       type="number"
-                      value={pkg.discount_percent}
-                      onChange={(e) => updatePackage(index, 'discount_percent', parseFloat(e.target.value) || 0)}
-                      className="pr-6"
+                      value={pkg.quantity}
+                      onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
+                      min={1}
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                   </div>
-                </div>
-                <div className="col-span-4">
-                  <Input
-                    placeholder="Ej: Mejor Valor"
-                    value={pkg.label}
-                    onChange={(e) => updatePackage(index, 'label', e.target.value)}
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePackage(index)}
-                    disabled={packages.length <= 1}
-                  >
-                    <Trash2 className="w-4 h-4 text-muted-foreground" />
-                  </Button>
+                  <div className="col-span-3">
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                        {currencyData?.symbol}
+                      </span>
+                      <Input
+                        type="number"
+                        value={pkg.price || Math.round(basePrice * pkg.quantity * (1 - pkg.discount_percent / 100))}
+                        onChange={(e) => updatePackage(index, 'price', parseFloat(e.target.value) || 0)}
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={pkg.discount_percent}
+                        onChange={(e) => updatePackage(index, 'discount_percent', parseFloat(e.target.value) || 0)}
+                        className="pr-6"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                    </div>
+                  </div>
+                  <div className="col-span-4">
+                    <Input
+                      placeholder="Ej: Mejor Valor"
+                      value={pkg.label}
+                      onChange={(e) => updatePackage(index, 'label', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePackage(index)}
+                      disabled={packages.length <= 1}
+                    >
+                      <Trash2 className="w-4 h-4 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

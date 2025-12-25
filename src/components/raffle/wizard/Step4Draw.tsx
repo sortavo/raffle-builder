@@ -127,17 +127,19 @@ export const Step4Draw = ({ form }: Step4Props) => {
                     className="w-full"
                   >
                     <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="lottery_nacional" className="flex items-center gap-2">
-                        <Globe className="w-4 h-4" />
-                        Lotería Nacional
+                      <TabsTrigger value="lottery_nacional" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="hidden sm:inline">Lotería Nacional</span>
+                        <span className="sm:hidden">Lotería</span>
                       </TabsTrigger>
-                      <TabsTrigger value="manual" className="flex items-center gap-2">
-                        <Hand className="w-4 h-4" />
+                      <TabsTrigger value="manual" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                         Manual
                       </TabsTrigger>
-                      <TabsTrigger value="random_org" className="flex items-center gap-2">
-                        <Dices className="w-4 h-4" />
-                        Random.org
+                      <TabsTrigger value="random_org" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="hidden sm:inline">Random.org</span>
+                        <span className="sm:hidden">Random</span>
                       </TabsTrigger>
                     </TabsList>
 

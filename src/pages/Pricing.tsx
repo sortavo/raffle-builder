@@ -164,7 +164,7 @@ export default function Pricing() {
             return (
               <Card 
                 key={plan.key} 
-                className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
+                className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-lg sm:scale-105' : ''}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -334,7 +334,7 @@ export default function Pricing() {
       {/* Trust Indicators */}
       <section className="border-t bg-card py-12">
         <div className="container mx-auto px-4">
-          <div className="grid gap-6 md:grid-cols-4 text-center">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 text-center">
             <div className="flex flex-col items-center gap-2">
               <Shield className="h-8 w-8 text-primary" />
               <p className="font-medium text-foreground">100% Seguro</p>

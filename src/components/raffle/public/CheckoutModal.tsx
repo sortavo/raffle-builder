@@ -285,7 +285,7 @@ export function CheckoutModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-lg sm:w-full p-0 overflow-hidden">
         {/* Premium header with gradient */}
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white">
           <div className="flex items-center justify-between mb-4">
@@ -343,7 +343,7 @@ export function CheckoutModal({
         </div>
 
         {/* Content area */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 max-h-[70vh] sm:max-h-[60vh] overflow-y-auto">
           <AnimatePresence mode="wait">
             {/* Step 1: Information */}
             {currentStep === 1 && (
@@ -433,7 +433,7 @@ export function CheckoutModal({
                       )}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="phone"

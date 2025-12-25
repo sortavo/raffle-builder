@@ -115,7 +115,7 @@ export const Step5Design = ({ form }: Step5Props) => {
                   <RadioGroup
                     onValueChange={field.onChange}
                     defaultValue={field.value || 'modern'}
-                    className="grid grid-cols-2 md:grid-cols-3 gap-4"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
                   >
                     {RAFFLE_TEMPLATES.map((template) => (
                       <div key={template.id}>
@@ -284,7 +284,7 @@ export const Step5Design = ({ form }: Step5Props) => {
             <RadioGroup
               defaultValue={customization.logo_position || 'top-left'}
               onValueChange={(v) => updateCustomization('logo_position', v)}
-              className="flex gap-4"
+              className="flex flex-col sm:flex-row gap-2 sm:gap-4"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="top-left" id="top-left" />
@@ -309,7 +309,7 @@ export const Step5Design = ({ form }: Step5Props) => {
           <CardDescription>Activa o desactiva las secciones de tu página</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {DESIGN_SECTIONS.map((section) => {
               const sections = customization.sections || {};
               const isEnabled = sections[section.id] !== false;
