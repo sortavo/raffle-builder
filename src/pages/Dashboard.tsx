@@ -2,7 +2,9 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useDashboardCharts } from "@/hooks/useDashboardCharts";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { RevenueChart, SalesChart } from "@/components/dashboard/DashboardCharts";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, organization, isLoading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const { data: chartData, isLoading: chartsLoading } = useDashboardCharts();
 
   // Handle subscription success/cancel from Stripe checkout
   useEffect(() => {
@@ -236,6 +239,21 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <RevenueChart 
+              data={chartData?.dailyRevenue || []}
+              totalRevenue={chartData?.totalRevenue || 0}
+              revenueChange={chartData?.revenueChange || 0}
+              currency={organization?.currency_code || 'MXN'}
+            />
+            <SalesChart 
+              data={chartData?.raffleSales || []}
+              totalTickets={chartData?.totalTicketsSold || 0}
+              ticketsChange={chartData?.ticketsChange || 0}
+            />
           </div>
 
           {/* Content Grid */}
