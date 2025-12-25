@@ -81,7 +81,7 @@ const settingsItems = [
     icon: CreditCard,
   },
   {
-    title: "Ayuda",
+    title: "Centro de Ayuda",
     url: "/help",
     icon: HelpCircle,
   },
