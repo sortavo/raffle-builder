@@ -15,6 +15,7 @@ import { TicketButton } from "./TicketButton";
 import { FloatingCartButton } from "./FloatingCartButton";
 import { SlotMachineAnimation } from "./SlotMachineAnimation";
 import { LuckyNumbersInput } from "./LuckyNumbersInput";
+import { ProbabilityStats } from "./ProbabilityStats";
 import { toast } from "sonner";
 import { 
   Loader2, 
@@ -48,6 +49,13 @@ interface TicketSelectorProps {
   maxPerPurchase: number;
   packages: Package[];
   onContinue: (tickets: string[]) => void;
+  // Feature toggles
+  showRandomPicker?: boolean;
+  showLuckyNumbers?: boolean;
+  showWinnersHistory?: boolean;
+  showProbabilityStats?: boolean;
+  ticketsSold?: number;
+  ticketsAvailable?: number;
 }
 
 export function TicketSelector({
@@ -58,6 +66,12 @@ export function TicketSelector({
   maxPerPurchase,
   packages,
   onContinue,
+  showRandomPicker = true,
+  showLuckyNumbers = false,
+  showWinnersHistory = true,
+  showProbabilityStats = true,
+  ticketsSold = 0,
+  ticketsAvailable = 0,
 }: TicketSelectorProps) {
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [mode, setMode] = useState<'manual' | 'random' | 'search' | 'lucky'>('manual');
@@ -196,23 +210,53 @@ export function TicketSelector({
     return best;
   }, packages[0]);
 
+  // Calculate visible tabs
+  const visibleTabs = useMemo(() => {
+    const tabs = [{ id: 'manual', label: 'Manual', shortLabel: 'Manual' }];
+    if (showRandomPicker) tabs.push({ id: 'random', label: 'Al Azar', shortLabel: 'Azar' });
+    if (showLuckyNumbers) tabs.push({ id: 'lucky', label: 'Mis Números', shortLabel: 'Suerte' });
+    tabs.push({ id: 'search', label: 'Buscar', shortLabel: 'Buscar' });
+    return tabs;
+  }, [showRandomPicker, showLuckyNumbers]);
+
   return (
     <div className="space-y-6">
+      {/* Probability Stats */}
+      {showProbabilityStats && (
+        <ProbabilityStats
+          totalTickets={totalTickets}
+          ticketsSold={ticketsSold}
+          ticketsAvailable={ticketsAvailable || totalTickets - ticketsSold}
+          ticketPrice={ticketPrice}
+          currencyCode={currencyCode}
+          selectedCount={selectedTickets.length}
+        />
+      )}
+
       {/* Premium container */}
       <div className="bg-white rounded-3xl border-2 border-gray-200 p-6 lg:p-8 shadow-xl">
         <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-100 p-1 rounded-xl">
+          <TabsList className={cn(
+            "grid w-full mb-8 bg-gray-100 p-1 rounded-xl",
+            visibleTabs.length === 2 && "grid-cols-2",
+            visibleTabs.length === 3 && "grid-cols-3",
+            visibleTabs.length === 4 && "grid-cols-4"
+          )}>
             <TabsTrigger value="manual" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm">
               Manual
             </TabsTrigger>
-            <TabsTrigger value="random" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm">
-              Al Azar
-            </TabsTrigger>
-            <TabsTrigger value="lucky" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm flex items-center gap-1">
-              <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-pink-500" />
-              <span className="hidden sm:inline">Mis Números</span>
-              <span className="sm:hidden">Suerte</span>
-            </TabsTrigger>
+            {showRandomPicker && (
+              <TabsTrigger value="random" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm">
+                Al Azar
+              </TabsTrigger>
+            )}
+            {showLuckyNumbers && (
+              <TabsTrigger value="lucky" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm flex items-center gap-1">
+                <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-pink-500" />
+                <span className="hidden sm:inline">Mis Números</span>
+                <span className="sm:hidden">Suerte</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="search" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs sm:text-sm">
               Buscar
             </TabsTrigger>
@@ -575,14 +619,17 @@ export function TicketSelector({
             </Card>
           </TabsContent>
 
-          <TabsContent value="lucky" className="space-y-6">
-            <LuckyNumbersInput
-              maxDigits={maxDigits}
-              onNumbersGenerated={handleLuckyNumbersSelect}
-              checkAvailability={checkTicketsAvailability}
-              isLoading={checkAvailabilityMutation.isPending}
-            />
-          </TabsContent>
+          {showLuckyNumbers && (
+            <TabsContent value="lucky" className="space-y-6">
+              <LuckyNumbersInput
+                maxDigits={maxDigits}
+                onNumbersGenerated={handleLuckyNumbersSelect}
+                checkAvailability={checkTicketsAvailability}
+                isLoading={checkAvailabilityMutation.isPending}
+                showWinnersHistory={showWinnersHistory}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="search" className="space-y-6">
             <Card className="border-2">

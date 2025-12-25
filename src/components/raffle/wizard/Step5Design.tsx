@@ -5,14 +5,79 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Type, Layout, ImagePlus } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart } from 'lucide-react';
 import { RAFFLE_TEMPLATES, GOOGLE_FONTS_TITLES, GOOGLE_FONTS_BODY, DESIGN_SECTIONS } from '@/lib/raffle-utils';
-import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface Step5Props {
   form: UseFormReturn<any>;
 }
+
+// Feature configuration definitions
+const TICKET_SELECTOR_FEATURES = [
+  {
+    id: 'show_random_picker',
+    label: 'Máquina de la Suerte',
+    description: 'Animación slot machine para selección aleatoria',
+    icon: Shuffle,
+    defaultValue: true
+  },
+  {
+    id: 'show_winners_history',
+    label: 'Historial de Ganadores',
+    description: 'Muestra números ganadores de sorteos anteriores',
+    icon: Trophy,
+    defaultValue: true
+  },
+  {
+    id: 'show_probability_stats',
+    label: 'Estadísticas de Probabilidad',
+    description: 'Muestra probabilidades en tiempo real',
+    icon: BarChart3,
+    defaultValue: true
+  }
+];
+
+const MARKETING_FEATURES = [
+  {
+    id: 'show_viewers_count',
+    label: 'Visitantes en Tiempo Real',
+    description: '"X personas viendo ahora"',
+    icon: Eye,
+    defaultValue: true
+  },
+  {
+    id: 'show_purchase_toasts',
+    label: 'Notificaciones de Compra',
+    description: '"Juan acaba de comprar 3 boletos"',
+    icon: ShoppingCart,
+    defaultValue: true
+  },
+  {
+    id: 'show_urgency_badge',
+    label: 'Badge de Urgencia',
+    description: '"¡Solo quedan X boletos!"',
+    icon: Zap,
+    defaultValue: true
+  },
+  {
+    id: 'show_sticky_banner',
+    label: 'Banner Sticky',
+    description: 'Banner fijo con cuenta regresiva',
+    icon: Bell,
+    defaultValue: true
+  },
+  {
+    id: 'show_social_proof',
+    label: 'Prueba Social',
+    description: 'Testimonios y estadísticas de confianza',
+    icon: Star,
+    defaultValue: true
+  }
+];
 
 export const Step5Design = ({ form }: Step5Props) => {
   const selectedTemplate = form.watch('template_id') || 'modern';
@@ -23,6 +88,10 @@ export const Step5Design = ({ form }: Step5Props) => {
   const updateCustomization = (key: string, value: unknown) => {
     const current = form.getValues('customization') || {};
     form.setValue('customization', { ...current, [key]: value });
+  };
+
+  const getFeatureValue = (featureId: string, defaultValue: boolean): boolean => {
+    return customization[featureId] !== undefined ? customization[featureId] : defaultValue;
   };
 
   return (
@@ -261,6 +330,136 @@ export const Step5Design = ({ form }: Step5Props) => {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Buyer Experience - Ticket Selector Features */}
+      <Card className="border-violet-200 bg-gradient-to-br from-violet-50/50 to-indigo-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-violet-600" />
+            Experiencia del Comprador - Selector de Boletos
+          </CardTitle>
+          <CardDescription>
+            Configura qué herramientas de selección verán tus compradores
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {TICKET_SELECTOR_FEATURES.map((feature) => {
+            const Icon = feature.icon;
+            const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
+            
+            return (
+              <div 
+                key={feature.id} 
+                className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-violet-300 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center",
+                    isEnabled ? "bg-violet-100" : "bg-gray-100"
+                  )}>
+                    <Icon className={cn(
+                      "w-5 h-5",
+                      isEnabled ? "text-violet-600" : "text-gray-400"
+                    )} />
+                  </div>
+                  <div>
+                    <Label htmlFor={feature.id} className="font-medium cursor-pointer">
+                      {feature.label}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id={feature.id}
+                  checked={isEnabled}
+                  onCheckedChange={(checked) => updateCustomization(feature.id, checked)}
+                />
+              </div>
+            );
+          })}
+          
+          {/* Lucky Numbers - already exists as separate field */}
+          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-violet-300 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center",
+                form.watch('lucky_numbers_enabled') ? "bg-pink-100" : "bg-gray-100"
+              )}>
+                <Heart className={cn(
+                  "w-5 h-5",
+                  form.watch('lucky_numbers_enabled') ? "text-pink-600" : "text-gray-400"
+                )} />
+              </div>
+              <div>
+                <Label htmlFor="lucky_numbers" className="font-medium cursor-pointer">
+                  Números de la Suerte
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Permite elegir números por cumpleaños o favoritos
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="lucky_numbers"
+              checked={form.watch('lucky_numbers_enabled') || false}
+              onCheckedChange={(checked) => form.setValue('lucky_numbers_enabled', checked)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Marketing & Urgency Features */}
+      <Card className="border-orange-200 bg-gradient-to-br from-orange-50/50 to-amber-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-orange-600" />
+            Marketing y Urgencia
+          </CardTitle>
+          <CardDescription>
+            Configura los elementos que incentivan la compra
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {MARKETING_FEATURES.map((feature) => {
+            const Icon = feature.icon;
+            const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
+            
+            return (
+              <div 
+                key={feature.id} 
+                className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center",
+                    isEnabled ? "bg-orange-100" : "bg-gray-100"
+                  )}>
+                    <Icon className={cn(
+                      "w-5 h-5",
+                      isEnabled ? "text-orange-600" : "text-gray-400"
+                    )} />
+                  </div>
+                  <div>
+                    <Label htmlFor={feature.id} className="font-medium cursor-pointer">
+                      {feature.label}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id={feature.id}
+                  checked={isEnabled}
+                  onCheckedChange={(checked) => updateCustomization(feature.id, checked)}
+                />
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 

@@ -26,13 +26,15 @@ interface LuckyNumbersInputProps {
   onNumbersGenerated: (numbers: string[]) => void;
   checkAvailability: (numbers: string[]) => Promise<string[]>;
   isLoading?: boolean;
+  showWinnersHistory?: boolean;
 }
 
 export function LuckyNumbersInput({
   maxDigits,
   onNumbersGenerated,
   checkAvailability,
-  isLoading
+  isLoading,
+  showWinnersHistory = true
 }: LuckyNumbersInputProps) {
   const [mode, setMode] = useState<'birthday' | 'favorites'>('birthday');
   const [birthdayDate, setBirthdayDate] = useState('');
@@ -179,8 +181,10 @@ export function LuckyNumbersInput({
 
   return (
     <div className="space-y-4">
-      {/* Winning Numbers History */}
-      <WinningNumbersHistory onNumberClick={handleHistoryNumberClick} />
+      {/* Winning Numbers History - conditionally rendered */}
+      {showWinnersHistory && (
+        <WinningNumbersHistory onNumberClick={handleHistoryNumberClick} />
+      )}
 
       <Card className="border-2 overflow-hidden">
         <CardContent className="pt-6 space-y-6">
