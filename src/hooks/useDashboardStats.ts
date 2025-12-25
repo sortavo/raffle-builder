@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useEffect } from "react";
 
 interface DashboardStats {
   activeRaffles: number;
@@ -19,6 +20,43 @@ interface DashboardStats {
 
 export function useDashboardStats() {
   const { organization } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for tickets table
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const channel = supabase
+      .channel('dashboard-stats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tickets'
+        },
+        () => {
+          // Invalidate and refetch dashboard stats when tickets change
+          queryClient.invalidateQueries({ queryKey: ["dashboard-stats", organization.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'raffles'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-stats", organization.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organization?.id, queryClient]);
 
   return useQuery({
     queryKey: ["dashboard-stats", organization?.id],

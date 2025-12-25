@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { subDays, format, startOfDay, eachDayOfInterval } from "date-fns";
 import { es } from "date-fns/locale";
+import { useEffect } from "react";
 
 interface DailyRevenue {
   date: string;
@@ -39,6 +40,32 @@ const CHART_COLORS = [
 
 export function useDashboardCharts() {
   const { organization } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for tickets table
+  useEffect(() => {
+    if (!organization?.id) return;
+
+    const channel = supabase
+      .channel('dashboard-charts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tickets'
+        },
+        () => {
+          // Invalidate and refetch chart data when tickets change
+          queryClient.invalidateQueries({ queryKey: ["dashboard-charts", organization.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organization?.id, queryClient]);
 
   return useQuery({
     queryKey: ["dashboard-charts", organization?.id],
