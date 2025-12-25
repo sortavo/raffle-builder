@@ -292,6 +292,29 @@ export function useMyTickets(email: string | undefined) {
   });
 }
 
+/**
+ * Cryptographically secure random number generator
+ * Uses crypto.getRandomValues() for true randomness
+ */
+function secureRandomInt(max: number): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] % max;
+}
+
+/**
+ * Fisher-Yates shuffle using cryptographically secure random
+ * Provides unbiased, secure shuffling of arrays
+ */
+function secureShuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = secureRandomInt(i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export function useRandomAvailableTickets() {
   return useMutation({
     mutationFn: async ({
@@ -313,8 +336,8 @@ export function useRandomAvailableTickets() {
         throw new Error(`Solo hay ${data?.length || 0} boletos disponibles`);
       }
 
-      // Shuffle and take required count
-      const shuffled = data.sort(() => Math.random() - 0.5);
+      // Cryptographically secure shuffle using Fisher-Yates algorithm
+      const shuffled = secureShuffleArray(data);
       return shuffled.slice(0, count).map(t => t.ticket_number);
     },
   });
