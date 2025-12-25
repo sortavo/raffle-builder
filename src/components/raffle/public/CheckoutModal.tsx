@@ -1,18 +1,16 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -26,8 +24,28 @@ import { useReserveTickets } from "@/hooks/usePublicRaffle";
 import { useEmails } from "@/hooks/useEmails";
 import { notifyPaymentPending } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Ticket, Clock } from "lucide-react";
+import { 
+  Loader2, 
+  Ticket, 
+  Clock, 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin,
+  X,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Shield,
+  Lock,
+  BadgeCheck,
+  CreditCard,
+  Building2,
+  Share2
+} from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { CouponInput } from "@/components/marketing/CouponInput";
+import { cn } from "@/lib/utils";
 
 const fireConfetti = () => {
   const count = 200;
@@ -63,7 +81,6 @@ const checkoutSchema = z.object({
   }),
 });
 
-// List of disposable email domains to block
 const DISPOSABLE_EMAIL_DOMAINS = [
   'tempmail.com', 'guerrillamail.com', '10minutemail.com',
   'throwaway.email', 'mailinator.com', 'yopmail.com',
@@ -82,6 +99,12 @@ interface CheckoutModalProps {
   onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string, buyerData: { name: string; email: string }) => void;
 }
 
+const steps = [
+  { step: 1, label: 'Información' },
+  { step: 2, label: 'Pago' },
+  { step: 3, label: 'Confirmación' }
+];
+
 export function CheckoutModal({
   open,
   onOpenChange,
@@ -91,6 +114,13 @@ export function CheckoutModal({
   packages = [],
   onReservationComplete,
 }: CheckoutModalProps) {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'manual'>('manual');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
+  const [discount, setDiscount] = useState(0);
+  const [reservedTickets, setReservedTickets] = useState<{ id: string; ticket_number: string }[]>([]);
+  const [reservedUntil, setReservedUntil] = useState<string>('');
+  
   const reserveTickets = useReserveTickets();
   const { sendReservationEmail } = useEmails();
 
@@ -105,7 +135,7 @@ export function CheckoutModal({
     },
   });
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     const matchingPackage = packages.find(p => p.quantity === selectedTickets.length);
     if (matchingPackage) {
       return matchingPackage.price;
@@ -113,7 +143,15 @@ export function CheckoutModal({
     return selectedTickets.length * ticketPrice;
   };
 
-  const onSubmit = async (data: CheckoutFormData) => {
+  const subtotal = calculateSubtotal();
+  const total = subtotal - discount;
+
+  const handleContinueToPayment = async () => {
+    const isValid = await form.trigger(['name', 'email', 'phone', 'acceptTerms']);
+    if (!isValid) return;
+
+    const data = form.getValues();
+    
     // Validate phone format
     const cleanPhone = data.phone.replace(/\D/g, '');
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
@@ -132,6 +170,13 @@ export function CheckoutModal({
       return;
     }
 
+    setCurrentStep(2);
+  };
+
+  const handleCompleteReservation = async () => {
+    const data = form.getValues();
+    const cleanPhone = data.phone.replace(/\D/g, '');
+
     try {
       const result = await reserveTickets.mutateAsync({
         raffleId: raffle.id,
@@ -145,6 +190,10 @@ export function CheckoutModal({
         reservationMinutes: raffle.reservation_time_minutes || 15,
       });
 
+      // Store reserved tickets info
+      setReservedTickets(result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })));
+      setReservedUntil(result.reservedUntil);
+
       // Send reservation email (non-blocking)
       sendReservationEmail({
         to: data.email,
@@ -152,7 +201,7 @@ export function CheckoutModal({
         ticketNumbers: selectedTickets,
         raffleTitle: raffle.title,
         raffleSlug: raffle.slug,
-        amount: calculateTotal(),
+        amount: total,
         currency: raffle.currency_code || 'MXN',
         timerMinutes: raffle.reservation_time_minutes || 15,
       }).catch(console.error);
@@ -167,7 +216,6 @@ export function CheckoutModal({
             .in('role', ['owner', 'admin']);
           
           if (orgData && orgData.length > 0) {
-            // Notify all admins/owners
             await Promise.all(
               orgData.map(member =>
                 notifyPaymentPending(
@@ -189,152 +237,548 @@ export function CheckoutModal({
       // Fire confetti celebration
       fireConfetti();
 
-      onReservationComplete(
-        result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })),
-        result.reservedUntil,
-        { name: data.name, email: data.email }
-      );
+      // Move to success step
+      setCurrentStep(3);
     } catch (error) {
       // Error handled in mutation
     }
   };
 
+  const handleClose = () => {
+    if (currentStep === 3 && reservedTickets.length > 0) {
+      // Complete the reservation flow before closing
+      onReservationComplete(
+        reservedTickets,
+        reservedUntil,
+        { name: form.getValues('name'), email: form.getValues('email') }
+      );
+    }
+    // Reset state
+    setCurrentStep(1);
+    setPaymentMethod('manual');
+    setAppliedCoupon(null);
+    setDiscount(0);
+    form.reset();
+    onOpenChange(false);
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `¡Participa en ${raffle.title}!`,
+      text: `Acabo de reservar mis boletos para ganar. ¡Participa tú también!`,
+      url: window.location.href,
+    };
+    
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Reservar Boletos</DialogTitle>
-          <DialogDescription>
-            Ingresa tus datos para reservar tus boletos
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Tickets Summary */}
-          <div className="p-4 bg-muted rounded-lg space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Ticket className="h-4 w-4" />
-              <span>Boletos seleccionados:</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {selectedTickets.map(num => (
-                <Badge key={num} variant="secondary">
-                  #{num}
-                </Badge>
-              ))}
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t">
-              <span className="text-sm text-muted-foreground">Total:</span>
-              <span className="text-xl font-bold">
-                {formatCurrency(calculateTotal(), raffle.currency_code || 'MXN')}
-              </span>
-            </div>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+        {/* Premium header with gradient */}
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Finalizar Compra</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="text-white hover:bg-white/10 h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Reservation Time Notice */}
-          <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-            <Clock className="h-4 w-4" />
-            <span>
-              Tienes {raffle.reservation_time_minutes || 15} minutos para completar el pago
-            </span>
+          {/* Progress indicator */}
+          <div className="flex items-center justify-between">
+            {steps.map((item, index) => (
+              <div key={item.step} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all",
+                      currentStep >= item.step
+                        ? "bg-white text-violet-600"
+                        : "bg-white/20 text-white/60"
+                    )}
+                  >
+                    {currentStep > item.step ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      item.step
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-xs mt-1 font-medium",
+                      currentStep >= item.step ? "text-white" : "text-white/60"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+
+                {index < 2 && (
+                  <div
+                    className={cn(
+                      "w-12 h-0.5 mx-2 transition-all",
+                      currentStep > item.step ? "bg-white" : "bg-white/20"
+                    )}
+                  />
+                )}
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* Form */}
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre completo *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Juan Pérez" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email *</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="juan@ejemplo.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono *</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="55 1234 5678" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ciudad (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ciudad de México" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="acceptTerms"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-normal">
-                        Acepto los términos y condiciones del sorteo
-                      </FormLabel>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={reserveTickets.isPending}
+        {/* Content area */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {/* Step 1: Information */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
               >
-                {reserveTickets.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Reservando...
-                  </>
-                ) : (
-                  "Reservar y Continuar al Pago"
-                )}
-              </Button>
-            </form>
-          </Form>
+                {/* Selected tickets summary */}
+                <div className="p-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl border border-violet-100 dark:border-violet-800">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center">
+                        <Ticket className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {selectedTickets.length} Boleto{selectedTickets.length !== 1 && 's'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedTickets.slice(0, 5).join(', ')}{selectedTickets.length > 5 && '...'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-violet-600">
+                        {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reservation Time Notice */}
+                <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg">
+                  <Clock className="h-4 w-4 flex-shrink-0" />
+                  <span>
+                    Tienes {raffle.reservation_time_minutes || 15} minutos para completar el pago
+                  </span>
+                </div>
+
+                {/* Premium form fields */}
+                <Form {...form}>
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre Completo *</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                placeholder="Juan Pérez"
+                                className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Correo Electrónico *</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="email"
+                                placeholder="juan@ejemplo.com"
+                                className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Teléfono *</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="tel"
+                                  placeholder="55 1234 5678"
+                                  className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Ciudad</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="CDMX"
+                                  className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="acceptTerms"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-normal">
+                              Acepto los términos y condiciones del sorteo
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </Form>
+
+                {/* Coupon section */}
+                <CouponInput
+                  raffleId={raffle.id}
+                  subtotal={subtotal}
+                  currencyCode={raffle.currency_code || 'MXN'}
+                  onCouponApplied={(coupon, discountAmount) => {
+                    setAppliedCoupon(coupon);
+                    setDiscount(discountAmount);
+                  }}
+                />
+
+                {/* Trust badges */}
+                <div className="flex items-center justify-center gap-4 pt-2">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Shield className="h-4 w-4 text-green-600" />
+                    Pago Seguro
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="h-4 w-4 text-green-600" />
+                    Datos Encriptados
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <BadgeCheck className="h-4 w-4 text-green-600" />
+                    100% Verificable
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleClose}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    onClick={handleContinueToPayment}
+                  >
+                    Continuar
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Payment */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                {/* Payment method selection */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-foreground">Método de Pago</h3>
+
+                  <div className="space-y-3">
+                    {/* Stripe option */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('stripe')}
+                      className={cn(
+                        "w-full p-4 rounded-xl border-2 text-left transition-all",
+                        paymentMethod === 'stripe'
+                          ? "border-violet-600 bg-violet-50 dark:bg-violet-950/30"
+                          : "border-border hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                              paymentMethod === 'stripe'
+                                ? "border-violet-600"
+                                : "border-muted-foreground/30"
+                            )}
+                          >
+                            {paymentMethod === 'stripe' && (
+                              <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              Tarjeta de Crédito/Débito
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Pago instantáneo con Stripe
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <div className="w-8 h-5 bg-blue-600 rounded text-[10px] text-white font-bold flex items-center justify-center">
+                            V
+                          </div>
+                          <div className="w-8 h-5 bg-red-500 rounded text-[10px] text-white font-bold flex items-center justify-center">
+                            M
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Manual option */}
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('manual')}
+                      className={cn(
+                        "w-full p-4 rounded-xl border-2 text-left transition-all",
+                        paymentMethod === 'manual'
+                          ? "border-violet-600 bg-violet-50 dark:bg-violet-950/30"
+                          : "border-border hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                              paymentMethod === 'manual'
+                                ? "border-violet-600"
+                                : "border-muted-foreground/30"
+                            )}
+                          >
+                            {paymentMethod === 'manual' && (
+                              <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              Transferencia / Depósito
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Requiere aprobación manual
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          24-48h
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Price summary */}
+                <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Subtotal ({selectedTickets.length} boletos)
+                    </span>
+                    <span className="font-medium">
+                      {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
+                    </span>
+                  </div>
+
+                  {discount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>
+                        Descuento ({appliedCoupon?.code})
+                      </span>
+                      <span>
+                        -{formatCurrency(discount, raffle.currency_code || 'MXN')}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="border-t border-border pt-3">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-foreground">
+                        Total a Pagar
+                      </span>
+                      <span className="text-xl font-bold text-violet-600">
+                        {formatCurrency(total, raffle.currency_code || 'MXN')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setCurrentStep(1)}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver
+                  </Button>
+                  <Button
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    onClick={handleCompleteReservation}
+                    disabled={reserveTickets.isPending}
+                  >
+                    {reserveTickets.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        {paymentMethod === 'stripe' ? 'Pagar Ahora' : 'Reservar Boletos'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Success */}
+            {currentStep === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="text-center py-6 space-y-6"
+              >
+                {/* Success animation */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                  className="relative mx-auto w-20 h-20"
+                >
+                  <div className="absolute inset-0 bg-green-100 dark:bg-green-900/30 rounded-full animate-pulse" />
+                  <div className="absolute inset-2 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                    <Check className="h-8 w-8 text-white" />
+                  </div>
+                </motion.div>
+
+                <div>
+                  <h3 className="text-2xl font-bold text-foreground">
+                    ¡Reserva Exitosa!
+                  </h3>
+                  <p className="text-muted-foreground mt-1">
+                    Hemos enviado la confirmación a tu correo
+                  </p>
+                </div>
+
+                {/* Ticket numbers */}
+                <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl p-4 border border-violet-100 dark:border-violet-800">
+                  <p className="text-sm text-muted-foreground mb-2">Tus boletos:</p>
+                  <p className="text-lg font-bold text-violet-600">
+                    {selectedTickets.join(', ')}
+                  </p>
+                </div>
+
+                {/* Reservation timer reminder */}
+                <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    Recuerda completar el pago en {raffle.reservation_time_minutes || 15} minutos
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <Button
+                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    onClick={handleClose}
+                  >
+                    Ver Instrucciones de Pago
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>
