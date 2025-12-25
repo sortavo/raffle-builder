@@ -1,15 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar, Users, Trophy, Clock } from "lucide-react";
+import { 
+  Loader2, 
+  Calendar, 
+  Trophy, 
+  Ticket, 
+  Share2, 
+  Shield, 
+  CheckCircle2, 
+  ChevronRight,
+  Zap,
+  Clock,
+  Users
+} from "lucide-react";
 import { formatCurrency } from "@/lib/currency-utils";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { usePublicRaffle } from "@/hooks/usePublicRaffle";
@@ -17,15 +26,16 @@ import { TicketSelector } from "@/components/raffle/public/TicketSelector";
 import { CheckoutModal } from "@/components/raffle/public/CheckoutModal";
 import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { ShareButtons } from "@/components/raffle/public/ShareButtons";
-import { PrizeGallery } from "@/components/raffle/public/PrizeGallery";
 import { HowItWorks } from "@/components/raffle/public/HowItWorks";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export default function PublicRaffle() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const ticketsRef = useRef<HTMLDivElement>(null);
   const { data: raffle, isLoading, error } = usePublicRaffle(slug);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -52,6 +62,27 @@ export default function PublicRaffle() {
     };
   }, [raffle?.id, slug, queryClient]);
 
+  const scrollToTickets = () => {
+    ticketsRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const shareRaffle = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: raffle?.title,
+          text: raffle?.description || `Participa en ${raffle?.title}`,
+          url,
+        });
+      } catch (err) {
+        // User cancelled or share failed
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+    }
+  };
+
   const handleContinue = (tickets: string[]) => {
     setSelectedTickets(tickets);
     setCheckoutOpen(true);
@@ -70,28 +101,42 @@ export default function PublicRaffle() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto" />
+          <p className="text-gray-600">Cargando sorteo...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !raffle) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <h1 className="text-2xl font-bold">Sorteo no encontrado</h1>
-        <p className="text-muted-foreground">Este sorteo no existe o ya no está activo.</p>
-        <Button onClick={() => navigate("/")}>Volver al inicio</Button>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-4">
+        <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-xl">
+          <Trophy className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Sorteo no encontrado</h1>
+        <p className="text-gray-600 text-center">Este sorteo no existe o ya no está activo.</p>
+        <Button 
+          onClick={() => navigate("/")}
+          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+        >
+          Volver al inicio
+        </Button>
       </div>
     );
   }
 
   const url = typeof window !== 'undefined' ? window.location.href : '';
   const progress = (raffle.ticketsSold / raffle.total_tickets) * 100;
+  const currency = raffle.currency_code || 'MXN';
   
   // Get subscription limits for branding
   const orgTier = (raffle as any).organization?.subscription_tier as SubscriptionTier;
   const limits = getSubscriptionLimits(orgTier);
+
+  const mainImage = raffle.prize_images?.[0] || '/placeholder.svg';
 
   return (
     <>
@@ -105,147 +150,323 @@ export default function PublicRaffle() {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        {/* Hero Section */}
-        <div className="relative bg-gradient-to-b from-primary/10 to-background">
-          <div className="container mx-auto px-4 py-8 md:py-16">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="order-2 md:order-1 space-y-6">
-                {raffle.organization?.logo_url && (
-                  <img src={raffle.organization.logo_url} alt={raffle.organization.name} className="h-12 object-contain" />
-                )}
-                <h1 className="text-3xl md:text-5xl font-bold">{raffle.title}</h1>
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  <span className="text-xl font-semibold">{raffle.prize_name}</span>
+      <div className="min-h-screen bg-white">
+        {/* Premium Hero Section */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50">
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-50" style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgb(139 92 246 / 0.1) 1px, transparent 0)`,
+            backgroundSize: '24px 24px'
+          }}></div>
+          
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left: Prize Image */}
+              <div className="relative group order-2 lg:order-1">
+                {/* Floating elements */}
+                <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
+                <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl animate-pulse"></div>
+                
+                {/* Main image */}
+                <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl bg-gray-100">
+                  <img 
+                    src={mainImage} 
+                    alt={raffle.prize_name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                  
+                  {/* Floating badge - tickets sold */}
+                  <div className="absolute top-4 right-4 px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {raffle.ticketsSold} vendidos
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Prize value badge */}
                   {raffle.prize_value && (
-                    <Badge variant="secondary">
-                      Valor: {formatCurrency(Number(raffle.prize_value), raffle.currency_code || 'MXN')}
-                    </Badge>
+                    <div className="absolute bottom-4 left-4 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl shadow-xl">
+                      <div className="text-white">
+                        <p className="text-xs font-medium opacity-90">Valor del Premio</p>
+                        <p className="text-2xl font-bold">
+                          {formatCurrency(Number(raffle.prize_value), currency)}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <p className="text-muted-foreground">{raffle.description}</p>
-                <ShareButtons url={url} title={raffle.title} description={raffle.description || undefined} />
+
+                {/* Additional images */}
+                {raffle.prize_images && raffle.prize_images.length > 1 && (
+                  <div className="flex gap-2 mt-4">
+                    {raffle.prize_images.slice(0, 4).map((img, idx) => (
+                      <div 
+                        key={idx}
+                        className="w-20 h-20 rounded-xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer"
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="order-1 md:order-2">
-                <PrizeGallery images={raffle.prize_images || []} title={raffle.prize_name} />
+
+              {/* Right: Info */}
+              <div className="space-y-6 order-1 lg:order-2">
+                {/* Organization logo */}
+                {raffle.organization?.logo_url && (
+                  <img 
+                    src={raffle.organization.logo_url} 
+                    alt={raffle.organization.name} 
+                    className="h-10 object-contain" 
+                  />
+                )}
+
+                {/* Status badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium">
+                  <Zap className="w-4 h-4" />
+                  Sorteo Activo
+                </div>
+
+                {/* Title */}
+                <div className="space-y-3">
+                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 leading-tight">
+                    {raffle.prize_name}
+                  </h1>
+                  <p className="text-lg lg:text-xl text-gray-600">
+                    {raffle.title}
+                  </p>
+                  {raffle.description && (
+                    <p className="text-gray-500">{raffle.description}</p>
+                  )}
+                </div>
+
+                {/* Key info grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+                        <Ticket className="w-5 h-5 text-violet-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Precio</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {formatCurrency(Number(raffle.ticket_price), currency)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Sorteo</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {raffle.draw_date 
+                            ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
+                            : 'Por definir'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-900">
+                      {raffle.ticketsSold} de {raffle.total_tickets} vendidos
+                    </span>
+                    <span className="text-violet-600 font-semibold">
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+                  
+                  <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-shimmer"></div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-500">
+                    {raffle.ticketsAvailable} boletos disponibles
+                  </p>
+                </div>
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-lg py-6 shadow-xl shadow-violet-500/30 group"
+                    onClick={scrollToTickets}
+                  >
+                    <Ticket className="w-5 h-5 mr-2" />
+                    Comprar Boletos
+                    <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                  
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 border-gray-300 hover:border-violet-600 hover:text-violet-600 py-6"
+                    onClick={shareRaffle}
+                  >
+                    <Share2 className="w-5 h-5 mr-2" />
+                    Compartir
+                  </Button>
+                </div>
+
+                {/* Trust indicators */}
+                <div className="flex flex-wrap items-center gap-4 lg:gap-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Shield className="w-5 h-5 text-green-600" />
+                    <span>Pago 100% Seguro</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <span>Sorteo Verificable</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Users className="w-5 h-5 text-green-600" />
+                    <span>{raffle.ticketsSold}+ participantes</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Countdown */}
+        {/* Countdown Section */}
         {raffle.draw_date && (
-          <div className="container mx-auto px-4 py-8">
-            <Card>
-              <CardContent className="py-6">
-                <h2 className="text-center text-lg font-semibold mb-4">El sorteo se realizará en:</h2>
-                <CountdownTimer targetDate={new Date(raffle.draw_date)} />
-              </CardContent>
-            </Card>
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-4">
+                <p className="text-white/80 text-sm font-medium uppercase tracking-wider">El sorteo se realizará en</p>
+              </div>
+              <CountdownTimer targetDate={new Date(raffle.draw_date)} />
+            </div>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="container mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Users className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{raffle.ticketsSold}</p>
-                <p className="text-sm text-muted-foreground">Boletos vendidos</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-2xl font-bold">{raffle.ticketsAvailable}</p>
-                <p className="text-sm text-muted-foreground">Disponibles</p>
-                <Progress value={progress} className="mt-2" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Clock className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{formatCurrency(Number(raffle.ticket_price), raffle.currency_code || 'MXN')}</p>
-                <p className="text-sm text-muted-foreground">Por boleto</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <Calendar className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="text-lg font-bold">
-                  {raffle.draw_date ? format(new Date(raffle.draw_date), "dd MMM yyyy", { locale: es }) : 'Por definir'}
-                </p>
-                <p className="text-sm text-muted-foreground">Fecha del sorteo</p>
-              </CardContent>
-            </Card>
+        {/* Ticket Selection Section */}
+        <div ref={ticketsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16" id="tickets">
+          {/* Section header */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
+              Selecciona tus Boletos de la Suerte
+            </h2>
+            <p className="text-lg text-gray-600">
+              Elige los números que te llevarán a la victoria
+            </p>
           </div>
-        </div>
 
-        {/* Ticket Selection */}
-        <div className="container mx-auto px-4 py-8" id="tickets">
-          <h2 className="text-2xl font-bold mb-6">Elige tus Números de la Suerte</h2>
+          {/* Ticket Selector */}
           <TicketSelector
             raffleId={raffle.id}
             totalTickets={raffle.total_tickets}
             ticketPrice={Number(raffle.ticket_price)}
-            currencyCode={raffle.currency_code || 'MXN'}
+            currencyCode={currency}
             maxPerPurchase={raffle.max_tickets_per_purchase || 100}
             packages={raffle.packages || []}
             onContinue={handleContinue}
           />
         </div>
 
-        <Separator className="my-8" />
-
         {/* How It Works */}
-        <div className="container mx-auto px-4 py-8">
-          <h2 className="text-2xl font-bold mb-6">¿Cómo Participar?</h2>
-          <HowItWorks />
+        <div className="bg-gradient-to-br from-violet-50 via-white to-indigo-50 py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">¿Cómo Participar?</h2>
+              <p className="text-lg text-gray-600">Es muy fácil, solo sigue estos pasos</p>
+            </div>
+            <HowItWorks />
+          </div>
         </div>
 
-        {/* FAQ */}
-        <div className="container mx-auto px-4 py-8">
-          <h2 className="text-2xl font-bold mb-6">Preguntas Frecuentes</h2>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="how">
-              <AccordionTrigger>¿Cómo participo?</AccordionTrigger>
-              <AccordionContent>
-                Selecciona tus boletos, completa tus datos, realiza el pago y sube tu comprobante.
+        {/* FAQ Section */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">Preguntas Frecuentes</h2>
+          </div>
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            <AccordionItem value="how" className="bg-white rounded-xl border border-gray-200 px-6">
+              <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                ¿Cómo participo?
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-600">
+                Selecciona tus boletos, completa tus datos, realiza el pago y sube tu comprobante. 
+                Una vez verificado tu pago, recibirás la confirmación de tu participación.
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="winner">
-              <AccordionTrigger>¿Cómo sé si gané?</AccordionTrigger>
-              <AccordionContent>
-                Te contactaremos por email y teléfono si resultas ganador.
+            <AccordionItem value="winner" className="bg-white rounded-xl border border-gray-200 px-6">
+              <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                ¿Cómo sé si gané?
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-600">
+                Te contactaremos por email y teléfono si resultas ganador. También publicaremos 
+                los resultados en nuestras redes sociales.
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="when">
-              <AccordionTrigger>¿Cuándo es el sorteo?</AccordionTrigger>
-              <AccordionContent>
-                {raffle.draw_date ? format(new Date(raffle.draw_date), "EEEE dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es }) : 'Fecha por confirmar'}
+            <AccordionItem value="when" className="bg-white rounded-xl border border-gray-200 px-6">
+              <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                ¿Cuándo es el sorteo?
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-600">
+                {raffle.draw_date 
+                  ? format(new Date(raffle.draw_date), "EEEE dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })
+                  : 'La fecha será confirmada próximamente'
+                }
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="payment" className="bg-white rounded-xl border border-gray-200 px-6">
+              <AccordionTrigger className="text-left font-semibold hover:no-underline">
+                ¿Qué métodos de pago aceptan?
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-600">
+                Aceptamos transferencia bancaria, depósito en OXXO y otros métodos de pago. 
+                Verás las opciones disponibles al momento de completar tu compra.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
         </div>
 
-        {/* Terms */}
+        {/* Terms Section */}
         {raffle.prize_terms && (
-          <div className="container mx-auto px-4 py-8">
-            <h2 className="text-2xl font-bold mb-4">Términos y Condiciones</h2>
-            <Card>
-              <CardContent className="pt-6 prose prose-sm max-w-none">
-                <p className="whitespace-pre-wrap">{raffle.prize_terms}</p>
-              </CardContent>
-            </Card>
+          <div className="bg-gray-50 py-16">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Términos y Condiciones</h2>
+              <Card className="border-0 shadow-lg">
+                <CardContent className="pt-6 prose prose-sm max-w-none text-gray-600">
+                  <p className="whitespace-pre-wrap">{raffle.prize_terms}</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
+        {/* Share Section */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">¡Comparte y gana!</h2>
+          <p className="text-gray-600 mb-6">Comparte este sorteo con tus amigos</p>
+          <ShareButtons url={url} title={raffle.title} description={raffle.description || undefined} />
+        </div>
+
         {/* Footer - Only show branding for Basic plan */}
         {!limits.canRemoveBranding && (
-          <footer className="border-t py-8 mt-8">
-            <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-              <p>Powered by Sortavo</p>
+          <footer className="border-t border-gray-200 py-8 bg-gray-50">
+            <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
+              <p>Powered by <span className="font-semibold text-violet-600">Sortavo</span></p>
             </div>
           </footer>
         )}
