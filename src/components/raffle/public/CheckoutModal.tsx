@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import confetti from "canvas-confetti";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,28 @@ import { notifyPaymentPending } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Ticket, Clock } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+
+const fireConfetti = () => {
+  const count = 200;
+  const defaults = {
+    origin: { y: 0.7 },
+    zIndex: 9999,
+  };
+
+  function fire(particleRatio: number, opts: confetti.Options) {
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio),
+    });
+  }
+
+  fire(0.25, { spread: 26, startVelocity: 55 });
+  fire(0.2, { spread: 60 });
+  fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+  fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+  fire(0.1, { spread: 120, startVelocity: 45 });
+};
 
 type Raffle = Tables<'raffles'>;
 
@@ -162,6 +185,9 @@ export function CheckoutModal({
           console.error('Error notifying organizer:', err);
         }
       })();
+
+      // Fire confetti celebration
+      fireConfetti();
 
       onReservationComplete(
         result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })),
