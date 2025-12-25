@@ -21,6 +21,7 @@ import DrawWinner from "./pages/dashboard/DrawWinner";
 import PublicRaffle from "./pages/PublicRaffle";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
+import TicketVerification from "./pages/TicketVerification";
 import Pricing from "./pages/Pricing";
 import AcceptInvite from "./pages/AcceptInvite";
 import TermsOfService from "./pages/legal/TermsOfService";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
               <Route path="/my-tickets" element={<MyTickets />} />
+              <Route path="/ticket/:ticketId" element={<TicketVerification />} />
               <Route path="/invite/:token" element={<AcceptInvite />} />
               {/* Legal Routes */}
               <Route path="/terms" element={<TermsOfService />} />
