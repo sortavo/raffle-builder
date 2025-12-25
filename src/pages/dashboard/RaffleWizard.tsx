@@ -103,6 +103,10 @@ export default function RaffleWizard() {
           stats: true,
           share_buttons: true,
         },
+        faq_config: {
+          show_default_faqs: true,
+          custom_faqs: [],
+        },
         headline: '',
         subheadline: '',
         cta_text: 'Comprar Boletos',

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart } from 'lucide-react';
 import { RAFFLE_TEMPLATES, GOOGLE_FONTS_TITLES, GOOGLE_FONTS_BODY, DESIGN_SECTIONS } from '@/lib/raffle-utils';
 import { cn } from '@/lib/utils';
+import { FAQEditor } from './FAQEditor';
 
 interface Step5Props {
   form: UseFormReturn<any>;
@@ -497,6 +498,9 @@ export const Step5Design = ({ form }: Step5Props) => {
           </FormItem>
         </CardContent>
       </Card>
+
+      {/* FAQ Editor */}
+      <FAQEditor form={form} />
     </div>
   );
 };
