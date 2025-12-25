@@ -10,7 +10,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject?: string;
-  template: 'reservation' | 'proof_received' | 'approved' | 'rejected' | 'reminder' | 'winner';
+  template: 'reservation' | 'proof_received' | 'approved' | 'approved_bulk' | 'rejected' | 'reminder' | 'winner';
   data: Record<string, any>;
 }
 
@@ -18,6 +18,7 @@ const subjects: Record<string, string> = {
   reservation: '🎟️ Boletos Reservados',
   proof_received: '📄 Comprobante Recibido',
   approved: '✅ Pago Confirmado',
+  approved_bulk: '🎉 ¡Todos tus Boletos Confirmados!',
   rejected: '⚠️ Revisión de Pago',
   reminder: '🎊 Recordatorio del Sorteo',
   winner: '🏆 ¡Felicidades, Ganaste!',
@@ -153,6 +154,80 @@ const templates: Record<string, (data: any) => string> = {
         </div>
         <div class="footer">
           <p>Sortavo - Tu plataforma de sorteos</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `,
+
+  approved_bulk: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981, #059669, #047857); color: white; padding: 40px 30px; text-align: center; border-radius: 16px 16px 0 0; }
+        .header h1 { margin: 0; font-size: 28px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header .subtitle { opacity: 0.9; margin-top: 8px; font-size: 16px; }
+        .content { background: white; padding: 30px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .summary-card { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center; }
+        .summary-card .count { font-size: 48px; font-weight: 800; color: #059669; line-height: 1; }
+        .summary-card .label { color: #047857; font-weight: 600; margin-top: 5px; }
+        .reference-badge { display: inline-block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 6px 14px; border-radius: 20px; font-family: monospace; font-weight: 600; margin: 10px 0; }
+        .tickets-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 12px; }
+        .ticket-chip { display: inline-flex; align-items: center; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px 18px; border-radius: 25px; font-weight: 700; font-size: 16px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+        .ticket-chip .hash { opacity: 0.8; margin-right: 2px; }
+        .raffle-info { background: #f8fafc; border-left: 4px solid #10b981; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .raffle-info .title { font-weight: 700; color: #1f2937; font-size: 18px; }
+        .success-message { text-align: center; padding: 20px; }
+        .success-message .icon { font-size: 40px; margin-bottom: 10px; }
+        .success-message p { color: #374151; font-size: 16px; margin: 0; }
+        .button { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 35px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: transform 0.2s; }
+        .button:hover { transform: translateY(-2px); }
+        .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+        .confetti { font-size: 24px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="confetti">🎊 ✨ 🎉</div>
+          <h1>¡Todos tus Boletos Confirmados!</h1>
+          <div class="subtitle">Tu pago ha sido verificado exitosamente</div>
+        </div>
+        <div class="content">
+          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          
+          <div class="summary-card">
+            <div class="count">${(data.ticket_numbers || []).length}</div>
+            <div class="label">Boletos Confirmados</div>
+            ${data.reference_code ? `<div class="reference-badge">Código: ${data.reference_code}</div>` : ''}
+          </div>
+          
+          <p style="text-align: center; color: #6b7280; margin-bottom: 5px;">Tus números de la suerte:</p>
+          
+          <div class="tickets-grid">
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-chip"><span class="hash">#</span>${n}</span>`).join('')}
+          </div>
+          
+          <div class="raffle-info">
+            <div class="title">🎯 ${data.raffle_title}</div>
+          </div>
+          
+          <div class="success-message">
+            <div class="icon">🍀</div>
+            <p>Ya estás participando oficialmente.<br><strong>¡Te deseamos mucha suerte!</strong></p>
+          </div>
+          
+          <center style="margin-top: 25px;">
+            <a href="${data.raffle_url || '#'}" class="button">Ver mi Sorteo</a>
+          </center>
+        </div>
+        <div class="footer">
+          <p>Sortavo - Tu plataforma de sorteos</p>
+          <p style="margin-top: 5px;">Guarda este correo como comprobante de tu participación</p>
         </div>
       </div>
     </body>

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 
-type EmailTemplate = 'reservation' | 'proof_received' | 'approved' | 'rejected' | 'reminder' | 'winner';
+type EmailTemplate = 'reservation' | 'proof_received' | 'approved' | 'approved_bulk' | 'rejected' | 'reminder' | 'winner';
 
 interface SendEmailParams {
   to: string;
@@ -127,6 +127,27 @@ export function useEmails() {
     });
   };
 
+  const sendBulkApprovedEmail = async (params: {
+    to: string;
+    buyerName: string;
+    ticketNumbers: string[];
+    raffleTitle: string;
+    raffleSlug: string;
+    referenceCode?: string;
+  }) => {
+    return sendEmail.mutateAsync({
+      to: params.to,
+      template: 'approved_bulk',
+      data: {
+        buyer_name: params.buyerName,
+        ticket_numbers: params.ticketNumbers,
+        raffle_title: params.raffleTitle,
+        raffle_url: `${window.location.origin}/r/${params.raffleSlug}`,
+        reference_code: params.referenceCode,
+      },
+    });
+  };
+
   return {
     sendEmail,
     sendReservationEmail,
@@ -134,5 +155,6 @@ export function useEmails() {
     sendApprovedEmail,
     sendRejectedEmail,
     sendWinnerEmail,
+    sendBulkApprovedEmail,
   };
 }

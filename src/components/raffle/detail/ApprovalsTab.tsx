@@ -46,7 +46,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
   const { toast } = useToast();
   const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject, approveByReference } = useTickets(raffleId);
   const { getWhatsAppLink } = useBuyers(raffleId);
-  const { sendApprovedEmail, sendRejectedEmail } = useEmails();
+  const { sendApprovedEmail, sendRejectedEmail, sendBulkApprovedEmail } = useEmails();
   
   const { data: ticketsData, isLoading, refetch } = useTicketsList({
     status: 'reserved',
@@ -269,18 +269,23 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
     
     try {
       const result = await approveByReference.mutateAsync(referenceCode);
+      const ticketNumbers = result?.map(t => t.ticket_number) || ticketsInGroup.map(t => t.ticket_number);
       
-      // Send notifications to the buyer (non-blocking)
+      toast({ 
+        title: `${ticketNumbers.length} boletos aprobados`,
+        description: `Código de referencia: ${referenceCode}`,
+      });
+      
+      // Send bulk approval email notification (non-blocking)
       const firstTicket = ticketsInGroup[0];
       if (firstTicket.buyer_email && firstTicket.buyer_name) {
-        const ticketNumbers = result?.map(t => t.ticket_number) || [];
-        
-        sendApprovedEmail({
+        sendBulkApprovedEmail({
           to: firstTicket.buyer_email,
           buyerName: firstTicket.buyer_name,
           ticketNumbers,
           raffleTitle,
           raffleSlug,
+          referenceCode,
         }).catch(console.error);
         
         // Send in-app notification to buyer if they have an account
