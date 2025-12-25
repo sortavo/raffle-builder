@@ -143,6 +143,18 @@ export default function PublicRaffle() {
 
   const mainImage = raffle.prize_images?.[0] || '/placeholder.svg';
 
+  // Feature configurations from customization (with sensible defaults)
+  const customization = (raffle as any).customization || {};
+  const showRandomPicker = customization.show_random_picker !== false;
+  const showLuckyNumbers = (raffle as any).lucky_numbers_enabled || false;
+  const showWinnersHistory = customization.show_winners_history !== false;
+  const showProbabilityStats = customization.show_probability_stats !== false;
+  const showViewersCount = customization.show_viewers_count !== false;
+  const showPurchaseToasts = customization.show_purchase_toasts !== false;
+  const showUrgencyBadge = customization.show_urgency_badge !== false;
+  const showStickyBanner = customization.show_sticky_banner !== false;
+  const showSocialProof = customization.show_social_proof !== false;
+
   return (
     <>
       <Helmet>
@@ -156,8 +168,8 @@ export default function PublicRaffle() {
       </Helmet>
 
       <div className="min-h-screen bg-white">
-        {/* Sticky Urgency Banner */}
-        {raffle.draw_date && (
+        {/* Sticky Urgency Banner - conditionally rendered */}
+        {showStickyBanner && raffle.draw_date && (
           <StickyUrgencyBanner
             drawDate={raffle.draw_date}
             totalTickets={raffle.total_tickets}
@@ -166,8 +178,8 @@ export default function PublicRaffle() {
           />
         )}
 
-        {/* Purchase Toast Notifications */}
-        <PurchaseToast raffleId={raffle.id} />
+        {/* Purchase Toast Notifications - conditionally rendered */}
+        {showPurchaseToasts && <PurchaseToast raffleId={raffle.id} />}
 
         {/* Premium Hero Section */}
         <div className="relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50">
@@ -251,11 +263,11 @@ export default function PublicRaffle() {
                     <Zap className="w-4 h-4" />
                     Sorteo Activo
                   </div>
-                  <ViewersCount />
+                  {showViewersCount && <ViewersCount />}
                 </div>
 
-                {/* Urgency Badge */}
-                {raffle.draw_date && (
+                {/* Urgency Badge - conditionally rendered */}
+                {showUrgencyBadge && raffle.draw_date && (
                   <UrgencyBadge
                     drawDate={raffle.draw_date}
                     totalTickets={raffle.total_tickets}
@@ -410,12 +422,20 @@ export default function PublicRaffle() {
             maxPerPurchase={raffle.max_tickets_per_purchase || 100}
             packages={raffle.packages || []}
             onContinue={handleContinue}
+            showRandomPicker={showRandomPicker}
+            showLuckyNumbers={showLuckyNumbers}
+            showWinnersHistory={showWinnersHistory}
+            showProbabilityStats={showProbabilityStats}
+            ticketsSold={raffle.ticketsSold}
+            ticketsAvailable={raffle.ticketsAvailable}
           />
 
-          {/* Social Proof */}
-          <div className="mt-12">
-            <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" />
-          </div>
+          {/* Social Proof - conditionally rendered */}
+          {showSocialProof && (
+            <div className="mt-12">
+              <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" />
+            </div>
+          )}
         </div>
 
         {/* How It Works */}
