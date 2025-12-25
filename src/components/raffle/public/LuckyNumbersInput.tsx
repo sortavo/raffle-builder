@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { WinningNumbersHistory } from "./WinningNumbersHistory";
 import { 
   Cake, 
   Star, 
@@ -164,9 +165,25 @@ export function LuckyNumbersInput({
     }
   };
 
+  // Handle clicking a winning number from history
+  const handleHistoryNumberClick = (number: string) => {
+    const formatted = number.padStart(maxDigits, '0').slice(-maxDigits);
+    if (!favoriteNumbers.includes(formatted)) {
+      setFavoriteNumbers(prev => [...prev, formatted]);
+      setMode('favorites');
+      toast.success(`Número ${formatted} agregado a favoritos`);
+    } else {
+      toast.info(`El número ${formatted} ya está en tus favoritos`);
+    }
+  };
+
   return (
-    <Card className="border-2 overflow-hidden">
-      <CardContent className="pt-6 space-y-6">
+    <div className="space-y-4">
+      {/* Winning Numbers History */}
+      <WinningNumbersHistory onNumberClick={handleHistoryNumberClick} />
+
+      <Card className="border-2 overflow-hidden">
+        <CardContent className="pt-6 space-y-6">
         {/* Header */}
         <div className="text-center">
           <motion.div 
@@ -416,5 +433,6 @@ export function LuckyNumbersInput({
         </AnimatePresence>
       </CardContent>
     </Card>
+    </div>
   );
 }
