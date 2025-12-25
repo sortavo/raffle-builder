@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -15,7 +16,9 @@ import {
   Image,
   AlertCircle,
   Timer,
-  ShieldAlert
+  ShieldAlert,
+  Search,
+  Hash
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
@@ -37,6 +40,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
   const { role } = useAuth();
   const [selectedWithoutProof, setSelectedWithoutProof] = useState<string[]>([]);
   const [selectedWithProof, setSelectedWithProof] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const { toast } = useToast();
   const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject } = useTickets(raffleId);
@@ -50,9 +54,23 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
 
   const reservedTickets = ticketsData?.tickets || [];
 
-  // Split tickets by payment proof
-  const withoutProof = reservedTickets.filter(t => !t.payment_proof_url);
-  const withProof = reservedTickets.filter(t => t.payment_proof_url);
+  // Filter tickets based on search query (by reference code, name, phone, or ticket number)
+  const filteredTickets = useMemo(() => {
+    if (!searchQuery.trim()) return reservedTickets;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return reservedTickets.filter(ticket => 
+      ticket.payment_reference?.toLowerCase().includes(query) ||
+      ticket.buyer_name?.toLowerCase().includes(query) ||
+      ticket.buyer_phone?.includes(query) ||
+      ticket.ticket_number?.toLowerCase().includes(query) ||
+      ticket.buyer_email?.toLowerCase().includes(query)
+    );
+  }, [reservedTickets, searchQuery]);
+
+  // Split filtered tickets by payment proof
+  const withoutProof = filteredTickets.filter(t => !t.payment_proof_url);
+  const withProof = filteredTickets.filter(t => t.payment_proof_url);
 
   const handleApprove = async (ticket: any) => {
     try {
@@ -257,6 +275,12 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
               <Badge variant="outline" className="font-mono">
                 #{ticket.ticket_number}
               </Badge>
+              {ticket.payment_reference && (
+                <Badge variant="secondary" className="font-mono text-xs">
+                  <Hash className="h-3 w-3 mr-1" />
+                  {ticket.payment_reference}
+                </Badge>
+              )}
             </div>
             <div className={cn(
               'flex items-center gap-1 text-sm',
@@ -384,15 +408,32 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
         </Alert>
       }
     >
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Without Proof Column */}
-        <div className="space-y-4">
-        <Card className="border-destructive/50">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                <AlertCircle className="h-5 w-5" />
-                Sin Comprobante ({withoutProof.length})
+      <div className="space-y-4">
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por código de referencia, nombre, teléfono o boleto..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+          {searchQuery && (
+            <Badge variant="secondary" className="absolute right-3 top-1/2 -translate-y-1/2">
+              {filteredTickets.length} resultado{filteredTickets.length !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Without Proof Column */}
+          <div className="space-y-4">
+          <Card className="border-destructive/50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  Sin Comprobante ({withoutProof.length})
               </CardTitle>
               {selectedWithoutProof.length > 0 && (
                 <Button 
@@ -486,6 +527,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
       </div>
     </ProtectedAction>

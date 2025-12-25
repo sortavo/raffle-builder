@@ -15,6 +15,7 @@ interface WhatsAppContactButtonProps {
   totalAmount: number;
   currencyCode: string;
   buyerName?: string;
+  referenceCode?: string;
   variant?: 'button' | 'card' | 'expanded';
   className?: string;
 }
@@ -28,6 +29,7 @@ export function WhatsAppContactButton({
   totalAmount,
   currencyCode,
   buyerName,
+  referenceCode,
   variant = 'button',
   className,
 }: WhatsAppContactButtonProps) {
@@ -42,17 +44,21 @@ export function WhatsAppContactButton({
   // Format phone for display
   const formattedPhone = organizationPhone;
 
-  // Create WhatsApp message
+  // Create WhatsApp message with reference code
+  const referenceSection = referenceCode 
+    ? `🎫 *Código de Referencia:* ${referenceCode}\n`
+    : '';
+  
   const message = buyerName
     ? `¡Hola! Soy ${buyerName} y acabo de reservar ${ticketNumbers.length} boleto(s) para "${raffleTitle}".
 
-📋 *Números:* ${ticketNumbers.join(', ')}
+${referenceSection}📋 *Números:* ${ticketNumbers.join(', ')}
 💰 *Total:* ${formatCurrency(totalAmount, currencyCode)}
 
-¿Me pueden confirmar los datos para realizar el pago?`
+¿Me pueden confirmar los datos para realizar el pago? Una vez confirmado mi pago, por favor apruébenlo en su sistema con el código de referencia.`
     : `¡Hola! Acabo de reservar ${ticketNumbers.length} boleto(s) para "${raffleTitle}".
 
-📋 *Números:* ${ticketNumbers.join(', ')}
+${referenceSection}📋 *Números:* ${ticketNumbers.join(', ')}
 💰 *Total:* ${formatCurrency(totalAmount, currencyCode)}
 
 ¿Me pueden confirmar los datos para realizar el pago?`;

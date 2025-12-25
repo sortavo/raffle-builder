@@ -106,6 +106,16 @@ export function usePublicTickets(raffleId: string | undefined, page: number = 1,
   });
 }
 
+// Generate a unique 8-character reference code
+function generateReferenceCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export function useReserveTickets() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -130,6 +140,8 @@ export function useReserveTickets() {
       const reservedUntil = new Date();
       reservedUntil.setMinutes(reservedUntil.getMinutes() + reservationMinutes);
 
+      // Generate unique reference code for this reservation group
+      const referenceCode = generateReferenceCode();
       const reservedTickets: Ticket[] = [];
 
       // Reserve each ticket atomically
@@ -144,6 +156,7 @@ export function useReserveTickets() {
             buyer_city: buyerData.city || null,
             reserved_at: new Date().toISOString(),
             reserved_until: reservedUntil.toISOString(),
+            payment_reference: referenceCode,
           })
           .eq('raffle_id', raffleId)
           .eq('ticket_number', ticketNumber)
@@ -161,6 +174,7 @@ export function useReserveTickets() {
       return {
         tickets: reservedTickets,
         reservedUntil: reservedUntil.toISOString(),
+        referenceCode,
       };
     },
     onSuccess: (_, variables) => {
