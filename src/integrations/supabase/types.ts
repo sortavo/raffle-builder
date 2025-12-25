@@ -295,6 +295,62 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          account_holder: string | null
+          account_number: string | null
+          bank_name: string | null
+          clabe: string | null
+          created_at: string | null
+          display_order: number | null
+          enabled: boolean | null
+          id: string
+          instructions: string | null
+          name: string
+          organization_id: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          clabe?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          id?: string
+          instructions?: string | null
+          name: string
+          organization_id: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          clabe?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          enabled?: boolean | null
+          id?: string
+          instructions?: string | null
+          name?: string
+          organization_id?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           accepted_invite_at: string | null

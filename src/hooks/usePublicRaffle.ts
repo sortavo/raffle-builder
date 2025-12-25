@@ -13,6 +13,7 @@ export interface RaffleWithStats extends Raffle {
   ticketsReserved: number;
   totalRevenue: number;
   organization?: {
+    id: string;
     name: string;
     logo_url: string | null;
     phone: string | null;
@@ -37,7 +38,7 @@ export function usePublicRaffle(slug: string | undefined) {
         .from('raffles')
         .select(`
           *,
-          organizations (name, logo_url, phone, email)
+          organizations (id, name, logo_url, phone, email)
         `)
         .eq('slug', slug)
         .eq('status', 'active')

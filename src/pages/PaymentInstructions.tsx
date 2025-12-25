@@ -6,13 +6,27 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { usePublicRaffle, useUploadPaymentProof } from "@/hooks/usePublicRaffle";
+import { usePublicPaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
 import { useEmails } from "@/hooks/useEmails";
 import { formatCurrency } from "@/lib/currency-utils";
 import { WhatsAppContactButton } from "@/components/raffle/public/WhatsAppContactButton";
-import { Loader2, Upload, Copy, Check, AlertTriangle, Ticket, CheckCircle2 } from "lucide-react";
+import { 
+  Loader2, 
+  Upload, 
+  Copy, 
+  Check, 
+  AlertTriangle, 
+  Ticket, 
+  CheckCircle2,
+  Landmark,
+  Wallet,
+  CreditCard,
+  Info
+} from "lucide-react";
 
 export default function PaymentInstructions() {
   const { slug } = useParams<{ slug: string }>();
@@ -30,14 +44,15 @@ export default function PaymentInstructions() {
     buyerEmail?: string;
   }) || { tickets: [], reservedUntil: '', raffleId: '' };
 
-  const { data: raffle } = usePublicRaffle(slug);
+  const { data: raffle, isLoading: isLoadingRaffle } = usePublicRaffle(slug);
+  const { data: paymentMethods, isLoading: isLoadingMethods } = usePublicPaymentMethods(raffle?.organization?.id);
   const uploadProof = useUploadPaymentProof();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  if (!tickets.length || !raffle) {
+  if (!tickets.length || (!isLoadingRaffle && !raffle)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -47,13 +62,24 @@ export default function PaymentInstructions() {
     );
   }
 
-  const totalAmount = tickets.length * Number(raffle.ticket_price);
+  if (isLoadingRaffle) {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container mx-auto px-4 max-w-2xl space-y-6">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-60 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  const totalAmount = tickets.length * Number(raffle!.ticket_price);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Check file size (5MB max)
     if (selectedFile.size > 5 * 1024 * 1024) {
       toast({ 
         title: "Archivo muy grande", 
@@ -63,7 +89,6 @@ export default function PaymentInstructions() {
       return;
     }
 
-    // Check file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(selectedFile.type)) {
       toast({ 
@@ -74,7 +99,6 @@ export default function PaymentInstructions() {
       return;
     }
 
-    // Validate image dimensions
     const img = document.createElement('img');
     img.onload = () => {
       URL.revokeObjectURL(img.src);
@@ -109,13 +133,12 @@ export default function PaymentInstructions() {
       buyerName: buyerName || undefined,
     });
 
-    // Send proof received email (non-blocking)
     if (buyerEmail && buyerName) {
       sendProofReceivedEmail({
         to: buyerEmail,
         buyerName,
         ticketNumbers: tickets.map(t => t.ticket_number),
-        raffleTitle: raffle.title,
+        raffleTitle: raffle!.title,
       }).catch(console.error);
     }
   };
@@ -123,6 +146,7 @@ export default function PaymentInstructions() {
   const copyToClipboard = async (text: string, field: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(field);
+    toast({ title: "Copiado al portapapeles" });
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -131,6 +155,141 @@ export default function PaymentInstructions() {
     navigate(`/r/${slug}`);
   };
 
+  const getMethodIcon = (type: string) => {
+    switch (type) {
+      case "bank_transfer":
+        return <Landmark className="h-4 w-4" />;
+      case "cash":
+        return <Wallet className="h-4 w-4" />;
+      default:
+        return <CreditCard className="h-4 w-4" />;
+    }
+  };
+
+  const renderBankTransferDetails = (method: PaymentMethod) => (
+    <div className="space-y-3">
+      {method.bank_name && (
+        <div className="flex items-center gap-2 mb-4">
+          <Landmark className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-lg">{method.bank_name}</span>
+        </div>
+      )}
+      
+      {/* Amount */}
+      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div>
+          <p className="text-sm text-muted-foreground">Monto a depositar</p>
+          <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+          {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* CLABE */}
+      {method.clabe && (
+        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div>
+            <p className="text-sm text-muted-foreground">CLABE Interbancaria</p>
+            <p className="font-mono font-medium">{method.clabe}</p>
+          </div>
+          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.clabe!, `clabe-${method.id}`)}>
+            {copied === `clabe-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
+
+      {/* Account Number */}
+      {method.account_number && (
+        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div>
+            <p className="text-sm text-muted-foreground">Número de Cuenta</p>
+            <p className="font-mono font-medium">{method.account_number}</p>
+          </div>
+          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_number!, `account-${method.id}`)}>
+            {copied === `account-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
+
+      {/* Account Holder */}
+      {method.account_holder && (
+        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div>
+            <p className="text-sm text-muted-foreground">Titular de la Cuenta</p>
+            <p className="font-medium">{method.account_holder}</p>
+          </div>
+          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
+            {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
+
+      {/* Reference */}
+      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div>
+          <p className="text-sm text-muted-foreground">Concepto / Referencia</p>
+          <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+          {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* Instructions */}
+      {method.instructions && (
+        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm">{method.instructions}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderOtherMethodDetails = (method: PaymentMethod) => (
+    <div className="space-y-4">
+      {/* Amount */}
+      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div>
+          <p className="text-sm text-muted-foreground">Monto a pagar</p>
+          <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+          {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* Reference */}
+      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div>
+          <p className="text-sm text-muted-foreground">Referencia</p>
+          <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+          {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+        </Button>
+      </div>
+
+      {/* Instructions */}
+      {method.instructions ? (
+        <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm">{method.instructions}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Contacta directamente al organizador para coordinar el pago.
+        </p>
+      )}
+    </div>
+  );
+
+  const enabledMethods = paymentMethods?.filter(m => m.enabled) || [];
+  const hasPaymentMethods = enabledMethods.length > 0;
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -168,7 +327,7 @@ export default function PaymentInstructions() {
             <div className="flex justify-between items-center pt-4 border-t">
               <span className="font-medium">Total a pagar:</span>
               <span className="text-2xl font-bold text-primary">
-                {formatCurrency(totalAmount, raffle.currency_code || 'MXN')}
+                {formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}
               </span>
             </div>
           </CardContent>
@@ -180,42 +339,46 @@ export default function PaymentInstructions() {
             <CardTitle>Instrucciones de Pago</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="transfer">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="transfer">Transferencia</TabsTrigger>
-                <TabsTrigger value="other">Otro Método</TabsTrigger>
-              </TabsList>
-              <TabsContent value="transfer" className="space-y-4 pt-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Monto</p>
-                      <p className="font-mono font-bold">{formatCurrency(totalAmount, raffle.currency_code || 'MXN')}</p>
-                    </div>
-                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), 'amount')}>
-                      {copied === 'amount' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Referencia</p>
-                      <p className="font-mono">{tickets.map(t => t.ticket_number).join('-')}</p>
-                    </div>
-                    <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), 'ref')}>
-                      {copied === 'ref' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Contacta al organizador para obtener los datos bancarios específicos.
-                </p>
-              </TabsContent>
-              <TabsContent value="other" className="pt-4">
-                <p className="text-muted-foreground">
-                  Contacta directamente al organizador para coordinar otro método de pago.
-                </p>
-              </TabsContent>
-            </Tabs>
+            {isLoadingMethods ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : !hasPaymentMethods ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">Métodos de pago no configurados</p>
+                <p className="text-sm mt-1">Contacta directamente al organizador para coordinar tu pago.</p>
+              </div>
+            ) : enabledMethods.length === 1 ? (
+              // Single method - no tabs needed
+              <div className="pt-2">
+                {enabledMethods[0].type === "bank_transfer" 
+                  ? renderBankTransferDetails(enabledMethods[0])
+                  : renderOtherMethodDetails(enabledMethods[0])
+                }
+              </div>
+            ) : (
+              // Multiple methods - show tabs
+              <Tabs defaultValue={enabledMethods[0]?.id}>
+                <TabsList className={`grid w-full grid-cols-${Math.min(enabledMethods.length, 4)}`}>
+                  {enabledMethods.slice(0, 4).map((method) => (
+                    <TabsTrigger key={method.id} value={method.id} className="gap-2">
+                      {getMethodIcon(method.type)}
+                      <span className="hidden sm:inline truncate">{method.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {enabledMethods.map((method) => (
+                  <TabsContent key={method.id} value={method.id} className="pt-4">
+                    {method.type === "bank_transfer" 
+                      ? renderBankTransferDetails(method)
+                      : renderOtherMethodDetails(method)
+                    }
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
           </CardContent>
         </Card>
 
@@ -239,15 +402,15 @@ export default function PaymentInstructions() {
           </CardContent>
         </Card>
 
-        {/* WhatsApp Contact - Improved */}
+        {/* WhatsApp Contact */}
         <WhatsAppContactButton
-          organizationPhone={raffle.organization?.phone}
-          organizationName={raffle.organization?.name}
-          organizationLogo={raffle.organization?.logo_url}
-          raffleTitle={raffle.title}
+          organizationPhone={raffle!.organization?.phone}
+          organizationName={raffle!.organization?.name}
+          organizationLogo={raffle!.organization?.logo_url}
+          raffleTitle={raffle!.title}
           ticketNumbers={tickets.map(t => t.ticket_number)}
           totalAmount={totalAmount}
-          currencyCode={raffle.currency_code || 'MXN'}
+          currencyCode={raffle!.currency_code || 'MXN'}
           buyerName={buyerName}
           variant="card"
         />
