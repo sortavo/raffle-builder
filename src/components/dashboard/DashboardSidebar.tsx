@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -34,7 +35,9 @@ import {
   HelpCircle,
   Megaphone,
   Tag,
+  QrCode,
 } from "lucide-react";
+import { TicketScannerDialog } from "@/components/scanner";
 
 const menuItems = [
   {
@@ -90,6 +93,7 @@ const settingsItems = [
 export function DashboardSidebar() {
   const location = useLocation();
   const { profile, organization, signOut } = useAuth();
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "U";
@@ -136,6 +140,15 @@ export function DashboardSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setScannerOpen(true)}
+                  tooltip="Escanear QR"
+                >
+                  <QrCode className="h-4 w-4" />
+                  <span>Escanear QR</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -211,6 +224,8 @@ export function DashboardSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+
+      <TicketScannerDialog open={scannerOpen} onOpenChange={setScannerOpen} />
     </Sidebar>
   );
 }
