@@ -47,12 +47,16 @@ const STATUS_CONFIG = {
   }
 };
 
+type StatusFilter = 'all' | 'sold' | 'reserved';
+
 export default function MyTickets() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState(user?.email || '');
   const [searchEmail, setSearchEmail] = useState(user?.email || '');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [ticketSearch, setTicketSearch] = useState('');
 
   const { data: tickets, isLoading } = useMyTickets(searchEmail);
 
@@ -66,8 +70,16 @@ export default function MyTickets() {
     }
   };
 
+  // Filter tickets based on status and ticket number search
+  const filteredTickets = tickets?.filter(ticket => {
+    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+    const matchesSearch = !ticketSearch || 
+      ticket.ticket_number.toLowerCase().includes(ticketSearch.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
   // Group tickets by raffle with additional stats
-  const groupedTickets = tickets?.reduce((acc, ticket) => {
+  const groupedTickets = filteredTickets?.reduce((acc, ticket) => {
     const raffleId = ticket.raffles?.id || 'unknown';
     if (!acc[raffleId]) {
       acc[raffleId] = { 
@@ -86,8 +98,8 @@ export default function MyTickets() {
     }
     return acc;
   }, {} as Record<string, { 
-    raffle: typeof tickets[0]['raffles']; 
-    tickets: typeof tickets;
+    raffle: typeof filteredTickets[0]['raffles']; 
+    tickets: typeof filteredTickets;
     stats: { confirmed: number; pending: number; total: number; totalValue: number }
   }>);
 
@@ -146,27 +158,100 @@ export default function MyTickets() {
           </Card>
         </motion.div>
 
-        {/* Stats Summary */}
+        {/* Stats Summary & Filters */}
         <AnimatePresence>
           {searchEmail && tickets && tickets.length > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="grid grid-cols-3 gap-3"
+              className="space-y-4"
             >
-              <Card className="text-center py-4">
-                <p className="text-2xl font-bold">{overallStats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Boletos</p>
-              </Card>
-              <Card className="text-center py-4 border-emerald-500/30 bg-emerald-500/5">
-                <p className="text-2xl font-bold text-emerald-600">{overallStats.confirmed}</p>
-                <p className="text-xs text-muted-foreground">Confirmados</p>
-              </Card>
-              <Card className="text-center py-4 border-amber-500/30 bg-amber-500/5">
-                <p className="text-2xl font-bold text-amber-600">{overallStats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pendientes</p>
-              </Card>
+              {/* Stats Cards - Clickable Filters */}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`text-center py-4 rounded-lg border transition-all ${
+                    statusFilter === 'all' 
+                      ? 'ring-2 ring-primary border-primary bg-primary/5' 
+                      : 'border-border bg-card hover:bg-muted/50'
+                  }`}
+                >
+                  <p className="text-2xl font-bold">{overallStats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Boletos</p>
+                </button>
+                <button
+                  onClick={() => setStatusFilter('sold')}
+                  className={`text-center py-4 rounded-lg border transition-all ${
+                    statusFilter === 'sold' 
+                      ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/10' 
+                      : 'border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  <p className="text-2xl font-bold text-emerald-600">{overallStats.confirmed}</p>
+                  <p className="text-xs text-muted-foreground">Confirmados</p>
+                </button>
+                <button
+                  onClick={() => setStatusFilter('reserved')}
+                  className={`text-center py-4 rounded-lg border transition-all ${
+                    statusFilter === 'reserved' 
+                      ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-500/10' 
+                      : 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'
+                  }`}
+                >
+                  <p className="text-2xl font-bold text-amber-600">{overallStats.pending}</p>
+                  <p className="text-xs text-muted-foreground">Pendientes</p>
+                </button>
+              </div>
+
+              {/* Ticket Number Search */}
+              <div className="relative">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por número de boleto..."
+                  value={ticketSearch}
+                  onChange={(e) => setTicketSearch(e.target.value)}
+                  className="pl-10"
+                />
+                {ticketSearch && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2"
+                    onClick={() => setTicketSearch('')}
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+
+              {/* Active Filters Indicator */}
+              {(statusFilter !== 'all' || ticketSearch) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Filtros activos:</span>
+                  {statusFilter !== 'all' && (
+                    <Badge variant="secondary" className="gap-1">
+                      {statusFilter === 'sold' ? 'Confirmados' : 'Pendientes'}
+                      <button onClick={() => setStatusFilter('all')} className="ml-1 hover:text-destructive">×</button>
+                    </Badge>
+                  )}
+                  {ticketSearch && (
+                    <Badge variant="secondary" className="gap-1">
+                      #{ticketSearch}
+                      <button onClick={() => setTicketSearch('')} className="ml-1 hover:text-destructive">×</button>
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs"
+                    onClick={() => { setStatusFilter('all'); setTicketSearch(''); }}
+                  >
+                    Limpiar todo
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -203,6 +288,23 @@ export default function MyTickets() {
                 onClick={() => setEmail('')}
               >
                 Intentar con otro email
+              </Button>
+            </CardContent>
+          </Card>
+        ) : !filteredTickets?.length ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-lg font-medium">Sin resultados</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                No hay boletos que coincidan con los filtros aplicados
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => { setStatusFilter('all'); setTicketSearch(''); }}
+              >
+                Limpiar filtros
               </Button>
             </CardContent>
           </Card>
