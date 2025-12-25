@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
 
 interface EmptyStateProps {
   icon: React.ReactNode;
@@ -24,17 +25,35 @@ export function EmptyState({
       "flex flex-col items-center justify-center py-16 px-4 text-center animate-fade-in",
       className
     )}>
-      <div className="mb-4 text-muted-foreground opacity-50">
-        {icon}
+      {/* Premium Icon Container */}
+      <div className="relative mb-6">
+        {/* Glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-400 to-indigo-400 rounded-full blur-2xl opacity-20 scale-150"></div>
+        
+        {/* Icon */}
+        <div className="relative w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-xl">
+          <div className="text-white [&>svg]:w-10 [&>svg]:h-10">
+            {icon}
+          </div>
+        </div>
       </div>
-      <h3 className="text-lg font-semibold mb-2">
+
+      {/* Text */}
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">
         {title}
       </h3>
-      <p className="text-muted-foreground max-w-sm mb-6">
+      <p className="text-gray-500 max-w-md mb-8">
         {description}
       </p>
+
+      {/* Action */}
       {action && (
-        <Button onClick={action.onClick}>
+        <Button 
+          size="lg"
+          onClick={action.onClick}
+          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-xl shadow-violet-500/30"
+        >
+          <Plus className="w-5 h-5 mr-2" />
           {action.label}
         </Button>
       )}
