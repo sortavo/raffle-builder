@@ -279,7 +279,7 @@ export function useMyTickets(email: string | undefined) {
         .from('tickets')
         .select(`
           *,
-          raffles (id, title, slug, prize_name, prize_images, draw_date, status)
+          raffles (id, title, slug, prize_name, prize_images, draw_date, status, ticket_price, currency_code)
         `)
         .eq('buyer_email', email)
         .in('status', ['reserved', 'sold'])
