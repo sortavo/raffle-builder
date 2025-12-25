@@ -116,14 +116,15 @@ export default function RafflesList() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Sorteos</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               Gestiona todos tus sorteos y rifas
             </p>
           </div>
           <ProtectedAction resource="raffle" action="create">
-            <Button onClick={() => navigate('/dashboard/raffles/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Crear Sorteo
+            <Button onClick={() => navigate('/dashboard/raffles/new')} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Crear Sorteo</span>
+              <span className="sm:hidden">Crear</span>
             </Button>
           </ProtectedAction>
         </div>
@@ -133,7 +134,7 @@ export default function RafflesList() {
           <RaffleFilters filters={filters} onFiltersChange={setFilters} />
 
           <div className="flex gap-4">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por título..."

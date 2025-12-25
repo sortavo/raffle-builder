@@ -41,6 +41,15 @@
     @apply overflow-x-auto -mx-4 px-4 sm:-mx-6 sm:px-6;
   }
   
+  /* Hide scrollbar but allow scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Hide on mobile, show on larger screens */
   .hide-mobile {
     @apply hidden sm:table-cell;

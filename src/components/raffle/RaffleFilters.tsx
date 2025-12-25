@@ -165,9 +165,9 @@ export function RaffleFilters({ filters, onFiltersChange }: RaffleFiltersProps) 
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {/* Quick status filters */}
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-3">
+      {/* Quick status filters - scrollable on mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap scrollbar-hide">
         {statusOptions.map((option) => {
           const Icon = option.icon;
           const isActive = filters.status.includes(option.value);
@@ -178,22 +178,23 @@ export function RaffleFilters({ filters, onFiltersChange }: RaffleFiltersProps) 
               variant={isActive ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleStatusToggle(option.value)}
-              className="h-8"
+              className="h-8 flex-shrink-0 text-xs sm:text-sm"
             >
-              <Icon className="h-3.5 w-3.5 mr-1.5" />
-              {option.label}
+              <Icon className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">{option.label}</span>
             </Button>
           );
         })}
       </div>
 
-      <div className="flex items-center gap-2 ml-auto">
+      {/* Action buttons - scrollable on mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
         {/* Saved presets dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              <Bookmark className="h-3.5 w-3.5 mr-1.5" />
-              Filtros guardados
+            <Button variant="outline" size="sm" className="h-8 flex-shrink-0">
+              <Bookmark className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Filtros guardados</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -230,9 +231,9 @@ export function RaffleFilters({ filters, onFiltersChange }: RaffleFiltersProps) 
         {/* Save current filters */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              <Save className="h-3.5 w-3.5 mr-1.5" />
-              Guardar
+            <Button variant="outline" size="sm" className="h-8 flex-shrink-0">
+              <Save className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Guardar</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
@@ -263,9 +264,9 @@ export function RaffleFilters({ filters, onFiltersChange }: RaffleFiltersProps) 
         {/* Advanced filters dialog */}
         <Dialog open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
-              Filtros avanzados
+            <Button variant="outline" size="sm" className="h-8 flex-shrink-0">
+              <SlidersHorizontal className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Filtros avanzados</span>
               {activeFiltersCount > 0 && (
                 <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-xs">
                   {activeFiltersCount}
@@ -388,9 +389,9 @@ export function RaffleFilters({ filters, onFiltersChange }: RaffleFiltersProps) 
         {/* Sort dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
-              Ordenar
+            <Button variant="outline" size="sm" className="h-8 flex-shrink-0">
+              <ArrowUpDown className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Ordenar</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
