@@ -18,7 +18,8 @@ import {
   Timer,
   ShieldAlert,
   Search,
-  Hash
+  Hash,
+  CheckCheck
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
@@ -43,7 +44,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
   const [searchQuery, setSearchQuery] = useState('');
   
   const { toast } = useToast();
-  const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject } = useTickets(raffleId);
+  const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject, approveByReference } = useTickets(raffleId);
   const { getWhatsAppLink } = useBuyers(raffleId);
   const { sendApprovedEmail, sendRejectedEmail } = useEmails();
   
@@ -67,6 +68,33 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
       ticket.buyer_email?.toLowerCase().includes(query)
     );
   }, [reservedTickets, searchQuery]);
+
+  // Group tickets by reference code for bulk approval
+  const ticketsByReference = useMemo(() => {
+    const groups: Record<string, typeof reservedTickets> = {};
+    reservedTickets.forEach(ticket => {
+      if (ticket.payment_reference) {
+        if (!groups[ticket.payment_reference]) {
+          groups[ticket.payment_reference] = [];
+        }
+        groups[ticket.payment_reference].push(ticket);
+      }
+    });
+    return groups;
+  }, [reservedTickets]);
+
+  // Check if search matches a reference code with multiple tickets
+  const matchedReferenceGroup = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const upperQuery = searchQuery.toUpperCase().trim();
+    if (ticketsByReference[upperQuery] && ticketsByReference[upperQuery].length > 1) {
+      return {
+        code: upperQuery,
+        tickets: ticketsByReference[upperQuery],
+      };
+    }
+    return null;
+  }, [searchQuery, ticketsByReference]);
 
   // Split filtered tickets by payment proof
   const withoutProof = filteredTickets.filter(t => !t.payment_proof_url);
@@ -235,6 +263,48 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
     }
   };
 
+  const handleApproveByReference = async (referenceCode: string) => {
+    const ticketsInGroup = ticketsByReference[referenceCode];
+    if (!ticketsInGroup || ticketsInGroup.length === 0) return;
+    
+    try {
+      const result = await approveByReference.mutateAsync(referenceCode);
+      
+      // Send notifications to the buyer (non-blocking)
+      const firstTicket = ticketsInGroup[0];
+      if (firstTicket.buyer_email && firstTicket.buyer_name) {
+        const ticketNumbers = result?.map(t => t.ticket_number) || [];
+        
+        sendApprovedEmail({
+          to: firstTicket.buyer_email,
+          buyerName: firstTicket.buyer_name,
+          ticketNumbers,
+          raffleTitle,
+          raffleSlug,
+        }).catch(console.error);
+        
+        // Send in-app notification to buyer if they have an account
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', firstTicket.buyer_email)
+          .maybeSingle();
+        
+        if (buyerProfile?.id) {
+          notifyPaymentApproved(
+            buyerProfile.id,
+            raffleTitle,
+            ticketNumbers
+          ).catch(console.error);
+        }
+      }
+      
+      setSearchQuery('');
+      refetch();
+    } catch (error) {
+      toast({ title: 'Error al aprobar por código', variant: 'destructive' });
+    }
+  };
   const getTimeRemaining = (reservedUntil: string | null) => {
     if (!reservedUntil) return null;
     const remaining = new Date(reservedUntil).getTime() - Date.now();
@@ -276,9 +346,28 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
                 #{ticket.ticket_number}
               </Badge>
               {ticket.payment_reference && (
-                <Badge variant="secondary" className="font-mono text-xs">
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "font-mono text-xs cursor-pointer hover:bg-primary/20 transition-colors",
+                    ticketsByReference[ticket.payment_reference]?.length > 1 && "ring-1 ring-primary/50"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchQuery(ticket.payment_reference || '');
+                  }}
+                  title={ticketsByReference[ticket.payment_reference]?.length > 1 
+                    ? `Click para ver todos los ${ticketsByReference[ticket.payment_reference].length} boletos con este código` 
+                    : undefined
+                  }
+                >
                   <Hash className="h-3 w-3 mr-1" />
                   {ticket.payment_reference}
+                  {ticketsByReference[ticket.payment_reference]?.length > 1 && (
+                    <span className="ml-1 text-primary">
+                      ({ticketsByReference[ticket.payment_reference].length})
+                    </span>
+                  )}
                 </Badge>
               )}
             </div>
@@ -424,6 +513,45 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
             </Badge>
           )}
         </div>
+
+        {/* Bulk approval by reference code banner */}
+        {matchedReferenceGroup && (
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CheckCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      Código de referencia: <span className="font-mono">{matchedReferenceGroup.code}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {matchedReferenceGroup.tickets.length} boletos encontrados • 
+                      Comprador: {matchedReferenceGroup.tickets[0]?.buyer_name || 'Desconocido'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right mr-2">
+                    <p className="text-sm text-muted-foreground">Boletos:</p>
+                    <p className="font-mono text-sm">
+                      {matchedReferenceGroup.tickets.map(t => `#${t.ticket_number}`).join(', ')}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => handleApproveByReference(matchedReferenceGroup.code)}
+                    disabled={approveByReference.isPending}
+                  >
+                    <CheckCheck className="h-4 w-4 mr-2" />
+                    Aprobar todos ({matchedReferenceGroup.tickets.length})
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Without Proof Column */}

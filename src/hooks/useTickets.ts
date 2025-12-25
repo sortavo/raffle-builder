@@ -206,6 +206,36 @@ export const useTickets = (raffleId: string | undefined) => {
     },
   });
 
+  // Approve all tickets by reference code
+  const approveByReference = useMutation({
+    mutationFn: async (referenceCode: string) => {
+      if (!raffleId) throw new Error('Raffle ID required');
+      
+      const { data, error } = await supabase
+        .from('tickets')
+        .update({
+          status: 'sold',
+          approved_at: new Date().toISOString(),
+          sold_at: new Date().toISOString(),
+        })
+        .eq('raffle_id', raffleId)
+        .eq('payment_reference', referenceCode)
+        .eq('status', 'reserved')
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
+      queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
+      toast({ title: `${data?.length} boletos aprobados por código de referencia` });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Bulk reject tickets
   const bulkReject = useMutation({
     mutationFn: async (ticketIds: string[]) => {
@@ -246,5 +276,6 @@ export const useTickets = (raffleId: string | undefined) => {
     extendReservation,
     bulkApprove,
     bulkReject,
+    approveByReference,
   };
 };
