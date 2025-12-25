@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
 import { usePublicTickets, useRandomAvailableTickets } from "@/hooks/usePublicRaffle";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { 
   Loader2, 
   Search, 
@@ -66,6 +67,13 @@ export function TicketSelector({
   const randomMutation = useRandomAvailableTickets();
 
   const tickets = data?.tickets || [];
+
+  // Swipe gestures for mobile pagination
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => setPage(p => Math.min(totalPages, p + 1)),
+    onSwipeRight: () => setPage(p => Math.max(1, p - 1)),
+    minSwipeDistance: 75
+  });
 
   const filteredTickets = useMemo(() => {
     if (!showOnlyAvailable) return tickets;
@@ -247,7 +255,10 @@ export function TicketSelector({
                 <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
               </div>
             ) : (
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+              <div 
+                className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2"
+                {...swipeHandlers}
+              >
                 {filteredTickets.map(ticket => (
                   <button
                     key={ticket.id}
