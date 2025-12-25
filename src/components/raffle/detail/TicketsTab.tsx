@@ -99,29 +99,29 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
   return (
     <div className="space-y-4">
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="text-sm text-muted-foreground">Total</div>
-          <div className="text-2xl font-bold">{stats?.total || 0}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">Total</div>
+          <div className="text-xl sm:text-2xl font-bold">{stats?.total || 0}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-green-600">Disponibles</div>
-          <div className="text-2xl font-bold text-green-600">{stats?.available || 0}</div>
+        <Card className="p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-green-600">Disponibles</div>
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{stats?.available || 0}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-yellow-600">Reservados</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats?.reserved || 0}</div>
+        <Card className="p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-yellow-600">Reservados</div>
+          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats?.reserved || 0}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-sm text-muted-foreground">Vendidos</div>
-          <div className="text-2xl font-bold">{stats?.sold || 0}</div>
+        <Card className="p-3 sm:p-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">Vendidos</div>
+          <div className="text-xl sm:text-2xl font-bold">{stats?.sold || 0}</div>
         </Card>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -133,29 +133,31 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="available">Disponibles</SelectItem>
-                <SelectItem value="reserved">Reservados</SelectItem>
-                <SelectItem value="sold">Vendidos</SelectItem>
-                <SelectItem value="canceled">Cancelados</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon">
-              <Download className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="available">Disponibles</SelectItem>
+                  <SelectItem value="reserved">Reservados</SelectItem>
+                  <SelectItem value="sold">Vendidos</SelectItem>
+                  <SelectItem value="canceled">Cancelados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" className="flex-shrink-0">
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Ticket Grid */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">
             Boletos (Página {currentPage} de {totalPages || 1})
           </CardTitle>
         </CardHeader>
@@ -163,16 +165,16 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
           {isLoading ? (
             <TicketGridSkeleton />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2 overflow-x-auto">
               {gridTickets.map((row, rowIndex) => (
-                <div key={rowIndex} className="grid grid-cols-10 gap-2">
+                <div key={rowIndex} className="grid grid-cols-5 sm:grid-cols-10 gap-1 sm:gap-2">
                   {row.map((ticket, colIndex) => (
                     <button
                       key={`${rowIndex}-${colIndex}`}
                       onClick={() => ticket && setSelectedTicket(ticket)}
                       disabled={!ticket}
                       className={cn(
-                        'aspect-square rounded-md border text-xs font-medium flex items-center justify-center transition-colors',
+                        'aspect-square rounded-md border text-[10px] sm:text-xs font-medium flex items-center justify-center transition-colors min-h-[32px] sm:min-h-0',
                         ticket ? getTicketColor(ticket.status || 'available') : 'bg-muted/50 border-transparent',
                         ticket && 'cursor-pointer'
                       )}
@@ -188,11 +190,12 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
       </Card>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
           >
@@ -201,17 +204,19 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-muted-foreground px-2">
-            Página {currentPage} de {totalPages || 1}
+          <span className="text-xs sm:text-sm text-muted-foreground px-2">
+            {currentPage} / {totalPages || 1}
           </span>
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
@@ -220,6 +225,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
           <Button
             variant="outline"
             size="icon"
+            className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(totalPages)}
             disabled={currentPage === totalPages}
           >
@@ -230,14 +236,14 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
         <div className="flex items-center gap-2">
           <Input
             type="number"
-            placeholder="Ir a página..."
+            placeholder="Ir a..."
             value={jumpToPage}
             onChange={(e) => setJumpToPage(e.target.value)}
-            className="w-32"
+            className="w-20 sm:w-28 h-8 sm:h-9 text-sm"
             min={1}
             max={totalPages}
           />
-          <Button onClick={handleJumpToPage} variant="outline" size="sm">
+          <Button onClick={handleJumpToPage} variant="outline" size="sm" className="h-8 sm:h-9">
             Ir
           </Button>
         </div>

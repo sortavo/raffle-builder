@@ -276,41 +276,41 @@ export default function PublicRaffle() {
                 )}
 
                 {/* Title */}
-                <div className="space-y-3">
-                  <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 leading-tight">
+                <div className="space-y-2 sm:space-y-3">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 leading-tight">
                     {raffle.prize_name}
                   </h1>
-                  <p className="text-lg lg:text-xl text-gray-600">
+                  <p className="text-base sm:text-lg lg:text-xl text-gray-600">
                     {raffle.title}
                   </p>
                   {raffle.description && (
-                    <p className="text-gray-500">{raffle.description}</p>
+                    <p className="text-sm sm:text-base text-gray-500">{raffle.description}</p>
                   )}
                 </div>
 
                 {/* Key info grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
-                        <Ticket className="w-5 h-5 text-violet-600" />
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Precio</p>
-                        <p className="text-lg font-bold text-gray-900">
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">Precio</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
                           {formatCurrency(Number(raffle.ticket_price), currency)}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <div className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-indigo-600" />
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Sorteo</p>
-                        <p className="text-lg font-bold text-gray-900">
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm text-gray-600">Sorteo</p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
                           {raffle.draw_date 
                             ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
                             : 'Por definir'
@@ -370,17 +370,17 @@ export default function PublicRaffle() {
                 </div>
 
                 {/* Trust indicators */}
-                <div className="flex flex-wrap items-center gap-4 lg:gap-6 pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Shield className="w-5 h-5 text-green-600" />
-                    <span>Pago 100% Seguro</span>
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                    <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    <span>Pago Seguro</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <span>Sorteo Verificable</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+                    <span>Verificable</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-5 h-5 text-green-600" />
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                     <span>{raffle.ticketsSold}+ participantes</span>
                   </div>
                 </div>

@@ -94,7 +94,7 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -106,33 +106,35 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="sold">Vendidos</SelectItem>
-                <SelectItem value="reserved">Reservados</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Ciudad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleExport} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar CSV
-            </Button>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[130px]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="sold">Vendidos</SelectItem>
+                  <SelectItem value="reserved">Reservados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger className="w-full sm:w-[130px]">
+                  <SelectValue placeholder="Ciudad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleExport} variant="outline" size="sm" className="w-full sm:w-auto">
+                <Download className="h-4 w-4 mr-2" />
+                <span className="sm:inline">Exportar</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -155,29 +157,33 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
               description="Cuando alguien compre boletos, aparecerán aquí con su información de contacto."
             />
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Boleto(s)</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Ciudad</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <div className="overflow-x-auto -mx-4 sm:-mx-6">
+              <div className="inline-block min-w-full align-middle px-4 sm:px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead className="hidden sm:table-cell">Contacto</TableHead>
+                      <TableHead>Boletos</TableHead>
+                      <TableHead className="hidden md:table-cell">Estado</TableHead>
+                      <TableHead className="hidden lg:table-cell">Fecha</TableHead>
+                      <TableHead className="hidden lg:table-cell">Ciudad</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {buyers.map((buyer) => (
                     <TableRow key={buyer.id}>
-                      <TableCell className="font-medium">
-                        {buyer.name || 'Sin nombre'}
-                      </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{buyer.name || 'Sin nombre'}</p>
+                          <p className="text-xs text-muted-foreground sm:hidden truncate">{buyer.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="space-y-0.5">
                           {buyer.email && (
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate max-w-[200px]">
                               {buyer.email}
                             </div>
                           )}
@@ -190,31 +196,32 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {buyer.tickets.slice(0, 3).map((ticket) => (
-                            <Badge key={ticket} variant="outline">
+                          {buyer.tickets.slice(0, 2).map((ticket) => (
+                            <Badge key={ticket} variant="outline" className="text-xs">
                               #{ticket}
                             </Badge>
                           ))}
-                          {buyer.tickets.length > 3 && (
-                            <Badge variant="secondary">+{buyer.tickets.length - 3}</Badge>
+                          {buyer.tickets.length > 2 && (
+                            <Badge variant="secondary" className="text-xs">+{buyer.tickets.length - 2}</Badge>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {getStatusBadge(buyer.status || 'unknown')}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {buyer.date ? format(new Date(buyer.date), 'dd MMM yyyy', { locale: es }) : '-'}
+                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                        {buyer.date ? format(new Date(buyer.date), 'dd MMM', { locale: es }) : '-'}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                         {buyer.city || '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           {buyer.phone && (
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               asChild
                             >
                               <a 
@@ -230,6 +237,7 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8"
                               asChild
                             >
                               <a href={getMailtoLink(buyer.email)}>
@@ -243,6 +251,7 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -250,27 +259,29 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
+            className="w-full sm:w-auto"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 mr-1" />
             Anterior
           </Button>
-          <span className="text-sm text-muted-foreground px-4">
-            Página {currentPage} de {totalPages}
+          <span className="text-sm text-muted-foreground">
+            {currentPage} / {totalPages}
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
+            className="w-full sm:w-auto"
           >
             Siguiente
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}

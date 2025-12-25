@@ -71,7 +71,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
           </div>
         </header>
         
-        <main className="flex-1 p-4 lg:p-6 pb-20 md:pb-6">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 sm:pb-6 overflow-x-hidden">{children}</main>
         
         {/* Mobile Bottom Navigation */}
         {isMobile && <MobileNav />}

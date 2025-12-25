@@ -4,6 +4,87 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   Mobile Optimization Utilities
+   ======================================== */
+
+/* Mobile-first padding utility */
+@layer utilities {
+  .mobile-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .mobile-padding-y {
+    @apply py-4 sm:py-6 lg:py-8;
+  }
+  
+  /* Bottom padding for mobile nav clearance */
+  .pb-mobile-nav {
+    @apply pb-24 sm:pb-6;
+  }
+  
+  /* Responsive text utilities */
+  .text-responsive-xl {
+    @apply text-2xl sm:text-3xl lg:text-4xl xl:text-5xl;
+  }
+  
+  .text-responsive-lg {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  .text-responsive-md {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+  
+  /* Table scroll wrapper */
+  .table-scroll-wrapper {
+    @apply overflow-x-auto -mx-4 px-4 sm:-mx-6 sm:px-6;
+  }
+  
+  /* Hide on mobile, show on larger screens */
+  .hide-mobile {
+    @apply hidden sm:table-cell;
+  }
+  
+  .hide-mobile-flex {
+    @apply hidden sm:flex;
+  }
+  
+  /* Modal mobile optimization */
+  .modal-mobile {
+    @apply w-[95vw] sm:max-w-md lg:max-w-lg max-h-[85vh] overflow-y-auto;
+  }
+  
+  /* Responsive grid helpers */
+  .grid-mobile-1 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-mobile-2 {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+  
+  .grid-mobile-4 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
+  }
+  
+  /* Touch-friendly button sizes */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Responsive flex direction */
+  .flex-mobile-col {
+    @apply flex-col sm:flex-row;
+  }
+  
+  /* Safe scroll container */
+  .scroll-container {
+    @apply overflow-x-auto scrollbar-thin;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* ============================================
    SORTAVO Design System
    ============================================ */

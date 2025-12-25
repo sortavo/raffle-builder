@@ -70,32 +70,62 @@ export default function RaffleDetail() {
   return (
     <DashboardLayout>
       <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/dashboard/raffles')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">{raffle.title}</h1>
-            <p className="text-muted-foreground">{raffle.prize_name}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="flex-shrink-0"
+              onClick={() => navigate('/dashboard/raffles')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">{raffle.title}</h1>
+              <p className="text-sm text-muted-foreground truncate">{raffle.prize_name}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <ExportMenu raffleId={raffle.id} raffleName={raffle.title} />
             {raffle.status === 'active' && 
              raffle.tickets_sold > 0 && 
              !raffle.winner_ticket_number &&
              (role === 'owner' || role === 'admin') && (
-              <Button onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}>
+              <Button 
+                size="sm"
+                className="sm:hidden"
+                onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}
+              >
+                <Trophy className="h-4 w-4" />
+              </Button>
+            )}
+            {raffle.status === 'active' && 
+             raffle.tickets_sold > 0 && 
+             !raffle.winner_ticket_number &&
+             (role === 'owner' || role === 'admin') && (
+              <Button 
+                className="hidden sm:flex"
+                onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}
+              >
                 <Trophy className="h-4 w-4 mr-2" />
                 Realizar Sorteo
               </Button>
             )}
-            <Button variant="outline" onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="sm:hidden"
+              onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              className="hidden sm:flex"
+              onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}
+            >
               <Pencil className="h-4 w-4 mr-2" />
               Editar
             </Button>
@@ -103,15 +133,17 @@ export default function RaffleDetail() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="flex-wrap h-auto">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                <tab.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 h-auto">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 sm:gap-2 px-2.5 sm:px-3">
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden xs:inline sm:inline text-xs sm:text-sm">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <OverviewTab 

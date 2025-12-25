@@ -159,10 +159,10 @@ const Index = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
         </div>
 
-        {/* Floating blob elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+        {/* Floating blob elements - hidden on mobile */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob hidden md:block"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000 hidden md:block"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000 hidden md:block"></div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -177,7 +177,7 @@ const Index = () => {
               </div>
 
               {/* Headline */}
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-7xl font-bold leading-tight">
                 <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Organiza Sorteos
                 </span>
@@ -188,24 +188,24 @@ const Index = () => {
               </h1>
 
               {/* Subheadline */}
-              <p className="text-xl lg:text-2xl text-gray-600 max-w-xl">
+              <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-xl mx-auto lg:mx-0">
                 La plataforma más completa para gestionar rifas y sorteos. 
                 Segura, rápida y fácil de usar.
               </p>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-6 py-6">
+              <div className="grid grid-cols-3 gap-3 sm:gap-6 py-6">
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">10K+</div>
-                  <div className="text-sm text-gray-600">Sorteos Exitosos</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">10K+</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Sorteos Exitosos</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">50K+</div>
-                  <div className="text-sm text-gray-600">Usuarios Activos</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">50K+</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Usuarios Activos</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">98%</div>
-                  <div className="text-sm text-gray-600">Satisfacción</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">98%</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Satisfacción</div>
                 </div>
               </div>
 
@@ -231,18 +231,18 @@ const Index = () => {
               </div>
 
               {/* Trust indicators */}
-              <div className="flex items-center gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pt-4">
                 <div className="flex -space-x-2">
                   {[1, 2, 3, 4].map((i) => (
                     <div 
                       key={i} 
-                      className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-indigo-400 border-2 border-white flex items-center justify-center text-white text-xs font-medium"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-400 to-indigo-400 border-2 border-white flex items-center justify-center text-white text-xs font-medium"
                     >
                       {String.fromCharCode(64 + i)}
                     </div>
                   ))}
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 text-center sm:text-left">
                   <span className="font-semibold text-gray-900">2,847+</span> organizadores confían en Sortavo
                 </div>
               </div>

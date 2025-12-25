@@ -184,17 +184,17 @@ export default function Dashboard() {
       ) : (
         <div className="space-y-8">
           {/* Premium Welcome Banner */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-8">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl"></div>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-4 sm:p-6 lg:p-8">
+            {/* Decorative elements - hidden on mobile */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl hidden sm:block"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl hidden sm:block"></div>
             
-            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-white">
-                  ¡Bienvenido de vuelta, {profile?.full_name?.split(" ")[0] || "Usuario"}! 👋
+            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+              <div className="space-y-1 sm:space-y-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                  ¡Bienvenido, {profile?.full_name?.split(" ")[0] || "Usuario"}! 👋
                 </h1>
-                <p className="text-white/90 text-lg">
+                <p className="text-white/90 text-sm sm:text-base lg:text-lg">
                   {stats?.ticketsSold && stats.ticketsSold > 0 
                     ? `Has vendido ${stats.ticketsSold} boletos con ingresos de ${formatCurrency(stats.totalRevenue || 0)}`
                     : "Aquí está un resumen de tus sorteos y actividad reciente"
@@ -204,11 +204,11 @@ export default function Dashboard() {
               
               <div className="flex items-center gap-4">
                 <Button 
-                  size="lg"
-                  className="bg-white text-violet-600 hover:bg-white/90 shadow-xl"
+                  size="default"
+                  className="bg-white text-violet-600 hover:bg-white/90 shadow-xl w-full sm:w-auto"
                   onClick={() => navigate('/dashboard/raffles/new')}
                 >
-                  <Plus className="w-5 h-5 mr-2" />
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Crear Sorteo
                 </Button>
               </div>
@@ -216,7 +216,7 @@ export default function Dashboard() {
           </div>
 
           {/* Premium Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {statCards.map((stat, index) => (
               <div
                 key={index}
@@ -225,15 +225,15 @@ export default function Dashboard() {
                 {/* Background gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
                 
-                <div className="relative p-6">
+                <div className="relative p-3 sm:p-4 lg:p-6">
                   {/* Icon and Change */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <stat.icon className="w-6 h-6 text-white" />
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     
-                    {/* Change indicator */}
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                    {/* Change indicator - hidden on small mobile */}
+                    <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                       stat.changeType === 'increase' 
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-red-100 text-red-700'
@@ -244,11 +244,11 @@ export default function Dashboard() {
                   </div>
 
                   {/* Value */}
-                  <div className="space-y-1">
-                    <p className="text-3xl font-bold text-gray-900 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-violet-600 group-hover:to-indigo-600 transition-all duration-300">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <p className="text-lg sm:text-xl lg:text-3xl font-bold text-gray-900 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-violet-600 group-hover:to-indigo-600 transition-all duration-300 truncate">
                       {stat.value}
                     </p>
-                    <p className="text-sm text-gray-600 font-medium">
+                    <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">
                       {stat.title}
                     </p>
                   </div>
@@ -263,8 +263,8 @@ export default function Dashboard() {
           {/* Charts Section */}
           <div className="space-y-4">
             {/* Date Range Picker */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Análisis de Ventas</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Análisis de Ventas</h2>
               <DateRangePicker 
                 dateRange={dateRange}
                 onDateRangeChange={setDateRange}
