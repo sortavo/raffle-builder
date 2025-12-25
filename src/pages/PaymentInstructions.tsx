@@ -11,7 +11,8 @@ import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { usePublicRaffle, useUploadPaymentProof } from "@/hooks/usePublicRaffle";
 import { useEmails } from "@/hooks/useEmails";
 import { formatCurrency } from "@/lib/currency-utils";
-import { Loader2, Upload, MessageCircle, Copy, Check, AlertTriangle, Ticket } from "lucide-react";
+import { WhatsAppContactButton } from "@/components/raffle/public/WhatsAppContactButton";
+import { Loader2, Upload, Copy, Check, AlertTriangle, Ticket, CheckCircle2 } from "lucide-react";
 
 export default function PaymentInstructions() {
   const { slug } = useParams<{ slug: string }>();
@@ -130,8 +131,6 @@ export default function PaymentInstructions() {
     navigate(`/r/${slug}`);
   };
 
-  const whatsappMessage = `Hola! Acabo de reservar ${tickets.length} boleto(s) para ${raffle.title}. Números: ${tickets.map(t => t.ticket_number).join(', ')}. Total: ${formatCurrency(totalAmount, raffle.currency_code || 'MXN')}`;
-  const whatsappLink = `https://wa.me/${raffle.organization?.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -240,14 +239,32 @@ export default function PaymentInstructions() {
           </CardContent>
         </Card>
 
-        {/* WhatsApp */}
-        {raffle.organization?.phone && (
-          <Button asChild className="w-full bg-[#25D366] hover:bg-[#128C7E]">
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Enviar por WhatsApp
-            </a>
-          </Button>
+        {/* WhatsApp Contact - Improved */}
+        <WhatsAppContactButton
+          organizationPhone={raffle.organization?.phone}
+          organizationName={raffle.organization?.name}
+          organizationLogo={raffle.organization?.logo_url}
+          raffleTitle={raffle.title}
+          ticketNumbers={tickets.map(t => t.ticket_number)}
+          totalAmount={totalAmount}
+          currencyCode={raffle.currency_code || 'MXN'}
+          buyerName={buyerName}
+          variant="card"
+        />
+
+        {/* Success indicator after upload */}
+        {uploadProof.isSuccess && (
+          <Card className="border-green-500 bg-green-50 dark:bg-green-950/20">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3 text-green-700 dark:text-green-400">
+                <CheckCircle2 className="w-6 h-6" />
+                <div>
+                  <p className="font-semibold">¡Comprobante enviado!</p>
+                  <p className="text-sm opacity-80">El organizador revisará tu pago pronto</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <Button variant="outline" className="w-full" onClick={() => navigate(`/r/${slug}`)}>
