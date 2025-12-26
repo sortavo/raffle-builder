@@ -25,9 +25,9 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { raffle_id } = await req.json();
+    const { raffle_id, force_rebuild = false } = await req.json();
     if (!raffle_id) throw new Error("raffle_id is required");
-    logStep("Processing raffle", { raffle_id });
+    logStep("Processing raffle", { raffle_id, force_rebuild });
 
     // Get raffle details
     const { data: raffle, error: raffleError } = await supabaseClient
@@ -39,35 +39,77 @@ serve(async (req) => {
     if (raffleError) throw raffleError;
     if (!raffle) throw new Error("Raffle not found");
 
-    logStep("Raffle found", { 
-      total_tickets: raffle.total_tickets, 
-      format: raffle.ticket_number_format 
-    });
+    const totalTickets = raffle.total_tickets;
+    const format = raffle.ticket_number_format || "sequential";
 
-    // Check if tickets already exist
-    const { count: existingCount } = await supabaseClient
+    logStep("Raffle found", { total_tickets: totalTickets, format });
+
+    // Check existing tickets
+    const { count: existingCount, error: countError } = await supabaseClient
       .from("tickets")
       .select("*", { count: "exact", head: true })
       .eq("raffle_id", raffle_id);
 
-    if (existingCount && existingCount > 0) {
-      logStep("Tickets already exist", { count: existingCount });
+    if (countError) throw countError;
+
+    logStep("Existing tickets count", { existingCount, totalTickets });
+
+    // If tickets already exist and match total_tickets, we're done
+    if (existingCount && existingCount === totalTickets) {
+      logStep("Tickets already match total_tickets", { count: existingCount });
       return new Response(
-        JSON.stringify({ success: true, message: "Tickets already generated", count: existingCount }),
+        JSON.stringify({ success: true, message: "Tickets already generated correctly", count: existingCount }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
-    const totalTickets = raffle.total_tickets;
-    const format = raffle.ticket_number_format || "sequential";
+    // If there are existing tickets but count doesn't match, check if we can rebuild
+    if (existingCount && existingCount > 0 && existingCount !== totalTickets) {
+      logStep("Ticket count mismatch, checking if rebuild is safe", { existingCount, totalTickets });
+
+      // Check if any tickets are not available (sold or reserved)
+      const { count: nonAvailableCount, error: nonAvailableError } = await supabaseClient
+        .from("tickets")
+        .select("*", { count: "exact", head: true })
+        .eq("raffle_id", raffle_id)
+        .neq("status", "available");
+
+      if (nonAvailableError) throw nonAvailableError;
+
+      if (nonAvailableCount && nonAvailableCount > 0 && !force_rebuild) {
+        logStep("Cannot rebuild - tickets already sold/reserved", { nonAvailableCount });
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `No se pueden regenerar los boletos porque ${nonAvailableCount} ya están vendidos o reservados`,
+            nonAvailableCount 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      // Delete all existing tickets to rebuild
+      logStep("Deleting existing tickets to rebuild");
+      const { error: deleteError } = await supabaseClient
+        .from("tickets")
+        .delete()
+        .eq("raffle_id", raffle_id);
+
+      if (deleteError) {
+        logStep("Error deleting tickets", { error: deleteError.message });
+        throw deleteError;
+      }
+      logStep("Deleted existing tickets successfully");
+    }
+
+    // Generate ticket numbers
     const batchSize = 10000;
     const batches = Math.ceil(totalTickets / batchSize);
-
-    logStep("Starting ticket generation", { totalTickets, format, batches });
-
-    // Generate ticket numbers based on format
-    let ticketNumbers: string[] = [];
     const digits = Math.max(3, totalTickets.toString().length);
+
+    logStep("Starting ticket generation", { totalTickets, format, batches, digits });
+
+    let ticketNumbers: string[] = [];
 
     if (format === "random") {
       // Generate random unique numbers
@@ -121,7 +163,7 @@ serve(async (req) => {
     logStep("Ticket generation complete", { total: insertedCount });
 
     return new Response(
-      JSON.stringify({ success: true, count: insertedCount }),
+      JSON.stringify({ success: true, count: insertedCount, rebuilt: existingCount !== null && existingCount > 0 }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
