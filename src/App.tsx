@@ -34,6 +34,12 @@ import Buyers from "./pages/dashboard/Buyers";
 import Analytics from "./pages/dashboard/Analytics";
 import Subscription from "./pages/dashboard/Subscription";
 
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOrganizations from "./pages/admin/AdminOrganizations";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
+import AdminUsers from "./pages/admin/AdminUsers";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -63,8 +69,12 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard/coupons" element={<Coupons />} />
               <Route path="/dashboard/marketing" element={<Marketing />} />
+              {/* Admin Routes - Before public routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/organizations" element={<AdminOrganizations />} />
+              <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
               {/* Public Routes */}
-              <Route path="/pricing" element={<Pricing />} />
               <Route path="/help" element={<HelpCenter />} />
               {/* Legacy raffle routes */}
               <Route path="/r/:slug" element={<PublicRaffle />} />
