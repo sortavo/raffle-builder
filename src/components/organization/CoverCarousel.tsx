@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Play, Pause } from "lucide-react";
 
 export interface CoverMediaItem {
-  type: "image" | "video";
+  type: "image" | "video" | "youtube";
   url: string;
   order?: number;
 }
@@ -13,6 +13,20 @@ interface CoverCarouselProps {
   brandColor?: string;
   autoPlayInterval?: number;
   className?: string;
+}
+
+// Extract YouTube video ID from various URL formats
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
+    /youtube\.com\/shorts\/([^&\s?]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
 }
 
 export function CoverCarousel({
@@ -40,13 +54,21 @@ export function CoverCarousel({
     setCurrentIndex(index);
   };
 
-  // Auto-advance timer
+  // Auto-advance timer (pause for YouTube videos)
   useEffect(() => {
-    if (!hasMultipleItems || isPaused || isVideoPlaying) {
+    const isYoutube = currentItem?.type === "youtube";
+    
+    if (!hasMultipleItems || isPaused || isVideoPlaying || isYoutube) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      
+      // For YouTube, advance after a longer interval since we can't detect when it ends
+      if (isYoutube && hasMultipleItems && !isPaused) {
+        timerRef.current = setTimeout(goToNext, 15000); // 15 seconds for YouTube
+      }
+      
       return;
     }
 
@@ -55,9 +77,10 @@ export function CoverCarousel({
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        clearTimeout(timerRef.current);
       }
     };
-  }, [hasMultipleItems, isPaused, isVideoPlaying, autoPlayInterval, goToNext]);
+  }, [hasMultipleItems, isPaused, isVideoPlaying, autoPlayInterval, goToNext, currentItem?.type]);
 
   // Handle video end - advance to next
   const handleVideoEnded = () => {
@@ -99,35 +122,47 @@ export function CoverCarousel({
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Media items */}
-      {sortedMedia.map((item, index) => (
-        <div
-          key={item.url}
-          className={cn(
-            "absolute inset-0 transition-opacity duration-700",
-            index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-          )}
-        >
-          {item.type === "video" ? (
-            <video
-              ref={index === currentIndex ? videoRef : null}
-              src={item.url}
-              className="w-full h-full object-cover"
-              muted
-              playsInline
-              loop={!hasMultipleItems}
-              onEnded={handleVideoEnded}
-              onPlay={() => setIsVideoPlaying(true)}
-              onPause={() => setIsVideoPlaying(false)}
-            />
-          ) : (
-            <img
-              src={item.url}
-              alt={`Cover ${index + 1}`}
-              className="w-full h-full object-cover"
-            />
-          )}
-        </div>
-      ))}
+      {sortedMedia.map((item, index) => {
+        const youtubeId = item.type === "youtube" ? extractYouTubeId(item.url) : null;
+        
+        return (
+          <div
+            key={item.url}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-700",
+              index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+            )}
+          >
+            {item.type === "youtube" && youtubeId ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=${index === currentIndex ? 1 : 0}&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&showinfo=0`}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                title="YouTube video"
+              />
+            ) : item.type === "video" ? (
+              <video
+                ref={index === currentIndex ? videoRef : null}
+                src={item.url}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                loop={!hasMultipleItems}
+                onEnded={handleVideoEnded}
+                onPlay={() => setIsVideoPlaying(true)}
+                onPause={() => setIsVideoPlaying(false)}
+              />
+            ) : (
+              <img
+                src={item.url}
+                alt={`Cover ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+        );
+      })}
 
       {/* Gradient overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none" />
@@ -152,14 +187,14 @@ export function CoverCarousel({
       )}
 
       {/* Pause indicator */}
-      {hasMultipleItems && isPaused && !isVideoPlaying && (
+      {hasMultipleItems && isPaused && !isVideoPlaying && currentItem?.type !== "youtube" && (
         <div className="absolute top-4 right-4 z-30 bg-black/50 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Pause className="h-4 w-4 text-white" />
         </div>
       )}
 
       {/* Video playing indicator */}
-      {currentItem?.type === "video" && isVideoPlaying && (
+      {(currentItem?.type === "video" && isVideoPlaying) && (
         <div className="absolute top-4 right-4 z-30 bg-black/50 rounded-full p-2">
           <Play className="h-4 w-4 text-white fill-white" />
         </div>
