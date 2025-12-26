@@ -39,6 +39,10 @@ interface OrganizationWithRaffles {
   cover_image_url: string | null;
   verified: boolean | null;
   created_at: string | null;
+  // New array fields for multiple contacts
+  emails: string[] | null;
+  phones: string[] | null;
+  whatsapp_numbers: string[] | null;
   raffles: OrganizationRaffle[];
   completedRaffles: OrganizationRaffle[];
   stats: {
@@ -54,14 +58,14 @@ export function useOrganizationBySlug(slug: string | undefined) {
     queryFn: async (): Promise<OrganizationWithRaffles | null> => {
       if (!slug) return null;
 
-      // Fetch organization by slug with all new fields
+      // Fetch organization by slug with all new fields including arrays
       const { data: org, error: orgError } = await supabase
         .from("organizations")
         .select(`
           id, name, slug, logo_url, brand_color, email, phone,
           description, website_url, facebook_url, instagram_url, 
           tiktok_url, whatsapp_number, city, cover_image_url,
-          verified, created_at
+          verified, created_at, emails, phones, whatsapp_numbers
         `)
         .eq("slug", slug)
         .single();
