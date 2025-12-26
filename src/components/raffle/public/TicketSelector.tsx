@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,7 @@ export function TicketSelector({
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [randomCount, setRandomCount] = useState(1);
   const [searchNumber, setSearchNumber] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchResults, setSearchResults] = useState<{ id: string; ticket_number: string; status: string }[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [generatedNumbers, setGeneratedNumbers] = useState<string[]>([]);
@@ -94,6 +95,33 @@ export function TicketSelector({
   const randomMutation = useRandomAvailableTickets();
   const checkAvailabilityMutation = useCheckTicketsAvailability();
   const searchMutation = useSearchTickets();
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchNumber);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchNumber]);
+
+  // Auto-search when debounced value changes
+  useEffect(() => {
+    if (debouncedSearch.trim().length > 0) {
+      searchMutation.mutateAsync({
+        raffleId,
+        searchTerm: debouncedSearch.trim(),
+      }).then(results => {
+        setSearchResults(results);
+        setHasSearched(true);
+      }).catch(() => {
+        // Error handled silently for auto-search
+      });
+    } else {
+      setSearchResults([]);
+      setHasSearched(false);
+    }
+  }, [debouncedSearch, raffleId]);
 
   // Calculate max digits from total tickets
   const maxDigits = totalTickets.toString().length;
@@ -190,10 +218,7 @@ export function TicketSelector({
   }, [raffleId, checkAvailabilityMutation]);
 
   const handleSearchTicket = async () => {
-    if (!searchNumber.trim()) {
-      toast.error('Ingresa un número para buscar');
-      return;
-    }
+    if (!searchNumber.trim()) return;
     
     try {
       const results = await searchMutation.mutateAsync({
@@ -202,14 +227,8 @@ export function TicketSelector({
       });
       setSearchResults(results);
       setHasSearched(true);
-      
-      if (results.length === 0) {
-        toast.info(`No se encontraron boletos con "${searchNumber}"`);
-      } else {
-        toast.success(`Se encontraron ${results.length} boletos`);
-      }
     } catch (error) {
-      toast.error('Error al buscar boletos');
+      // Error handled silently
     }
   };
 
@@ -703,29 +722,18 @@ export function TicketSelector({
                   <p className="text-gray-600">Busca todos los boletos que contengan ciertos dígitos</p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="relative">
                   <Input
                     placeholder="Ej: 7 para ver 7, 17, 27, 70, 77..."
                     value={searchNumber}
-                    onChange={(e) => {
-                      setSearchNumber(e.target.value.replace(/[^0-9]/g, ''));
-                      setHasSearched(false);
-                    }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearchTicket()}
-                    className="h-12 text-lg border-2"
+                    onChange={(e) => setSearchNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="h-12 text-lg border-2 pr-12"
                   />
-                  <Button 
-                    onClick={handleSearchTicket}
-                    size="lg"
-                    disabled={searchMutation.isPending}
-                    className="bg-gradient-to-r from-violet-600 to-indigo-600 h-12 px-6"
-                  >
-                    {searchMutation.isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Search className="h-5 w-5" />
-                    )}
-                  </Button>
+                  {searchMutation.isPending && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
 
                 {hasSearched && (
