@@ -49,8 +49,11 @@ import {
   ArrowRightLeft,
   Link as LinkIcon,
   MapPin,
-  Clock
+  Clock,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -921,8 +924,48 @@ export function PaymentMethodsSettings() {
     return null;
   };
 
+  const MAX_METHODS = 20;
+  const methodsCount = methods.length;
+  const progressPercent = (methodsCount / MAX_METHODS) * 100;
+  const enabledCount = methods.filter(m => m.enabled).length;
+
   return (
     <div className="space-y-6">
+      {/* Progress Summary Card */}
+      <Card className="border-border/50 shadow-sm bg-gradient-to-r from-primary/5 to-transparent">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${enabledCount > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                {enabledCount > 0 ? (
+                  <CheckCircle2 className="h-5 w-5" />
+                ) : (
+                  <AlertCircle className="h-5 w-5" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium">
+                  {methodsCount}/{MAX_METHODS} métodos configurados
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {enabledCount > 0 
+                    ? `${enabledCount} activo${enabledCount > 1 ? 's' : ''}, ${methodsCount - enabledCount} inactivo${methodsCount - enabledCount !== 1 ? 's' : ''}`
+                    : 'Agrega al menos un método de pago para recibir pagos'
+                  }
+                </p>
+              </div>
+            </div>
+            <span className={`text-sm font-medium ${progressPercent >= 80 ? 'text-destructive' : progressPercent >= 50 ? 'text-yellow-600' : 'text-primary'}`}>
+              {Math.round(progressPercent)}%
+            </span>
+          </div>
+          <Progress 
+            value={progressPercent} 
+            className={`h-2 ${progressPercent >= 80 ? '[&>div]:bg-destructive' : progressPercent >= 50 ? '[&>div]:bg-yellow-500' : ''}`} 
+          />
+        </CardContent>
+      </Card>
+
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
