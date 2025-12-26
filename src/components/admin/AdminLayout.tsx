@@ -18,7 +18,7 @@ function AdminMobileNav() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="lg:hidden">
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
@@ -86,10 +86,10 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
       <main className="flex-1 min-w-0">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-card border-b border-border">
-          <div className="flex items-center justify-between px-4 lg:px-6 h-16">
+          <div className="flex items-center justify-between px-4 md:px-6 h-16">
             <div className="flex items-center gap-3">
               <AdminMobileNav />
-              <div className="lg:hidden flex items-center gap-2">
+              <div className="md:hidden flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-purple-600">
                   <Shield className="h-4 w-4 text-white" />
                 </div>
@@ -107,7 +107,7 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
         </header>
 
         {/* Page Content */}
-        <div className="p-4 lg:p-6">
+        <div className="p-4 md:p-6">
           <div className="page-header">
             <h1 className="page-title">{title}</h1>
             {description && <p className="page-description">{description}</p>}

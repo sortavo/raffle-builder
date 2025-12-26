@@ -34,7 +34,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex lg:flex-col w-64 border-r border-border bg-card h-screen sticky top-0">
+    <aside className="hidden md:flex md:flex-col w-64 border-r border-border bg-card h-screen sticky top-0">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
