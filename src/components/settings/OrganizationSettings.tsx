@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2, Link as LinkIcon, Check, X } from "lucide-react";
+import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl } from "@/lib/url-utils";
 
@@ -63,6 +64,25 @@ export function OrganizationSettings() {
   const [slugInput, setSlugInput] = useState(organization?.slug || "");
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  
+  const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
+  const hasExistingSlug = Boolean(organization?.slug);
+  const isChangingSlug = hasExistingSlug && slugInput !== organization?.slug;
+  
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copiada al portapapeles");
+    } catch {
+      toast.error("Error al copiar la URL");
+    }
+  };
+  
+  const applySuggestedSlug = () => {
+    if (suggestedSlug) {
+      setSlugInput(suggestedSlug);
+    }
+  };
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationSchema),
@@ -253,15 +273,61 @@ export function OrganizationSettings() {
       {/* Public URL / Slug Section */}
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <LinkIcon className="h-5 w-5 text-primary" />
-            URL Pública de la Organización
-          </CardTitle>
-          <CardDescription>
-            Configura una URL personalizada para tu página de sorteos
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <LinkIcon className="h-5 w-5 text-primary" />
+                URL Pública de la Organización
+              </CardTitle>
+              <CardDescription>
+                Configura una URL personalizada para tu página de sorteos
+              </CardDescription>
+            </div>
+            {hasExistingSlug && (
+              <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                <Check className="h-3 w-3 mr-1" />
+                Configurado
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Current Active URL */}
+          {hasExistingSlug && organization?.slug && (
+            <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-green-700 dark:text-green-400">URL Activa</p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyUrl(getOrganizationPublicUrl(organization.slug!))}
+                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copiar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                  >
+                    <a href={getOrganizationPublicUrl(organization.slug!)} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Visitar
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <code className="text-sm text-green-700 dark:text-green-400 break-all block">
+                {getOrganizationPublicUrl(organization.slug!)}
+              </code>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="slug">Identificador único (slug)</Label>
             <div className="flex gap-2">
@@ -287,6 +353,26 @@ export function OrganizationSettings() {
             <p className="text-xs text-muted-foreground">
               Solo letras minúsculas, números y guiones. Ejemplo: mi-organizacion
             </p>
+            
+            {/* Slug suggestion */}
+            {!slugInput && suggestedSlug && (
+              <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm text-muted-foreground flex-1">
+                  Sugerencia basada en tu nombre: <span className="font-mono text-foreground">{suggestedSlug}</span>
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={applySuggestedSlug}
+                  className="shrink-0"
+                >
+                  Usar sugerencia
+                </Button>
+              </div>
+            )}
+            
             {slugAvailable === false && slugInput && !isCheckingSlug && (
               <p className="text-sm text-destructive">
                 Este slug ya está en uso
@@ -294,13 +380,51 @@ export function OrganizationSettings() {
             )}
           </div>
 
-          {slugInput && isValidSlug(slugInput) && (
-            <div className="p-4 bg-muted rounded-lg space-y-2">
-              <p className="text-sm font-medium">Preview de tu URL pública:</p>
-              <code className="text-sm text-primary break-all">
+          {/* Warning when changing existing slug */}
+          {isChangingSlug && (
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                    ¿Estás seguro de cambiar el slug?
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    Los enlaces existentes dejarán de funcionar. Asegúrate de actualizar todos los enlaces que hayas compartido.
+                  </p>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <p className="text-muted-foreground">
+                      <span className="line-through">{getOrganizationPublicUrl(organization?.slug!)}</span>
+                    </p>
+                    <p className="text-foreground font-medium">
+                      → {getOrganizationPublicUrl(slugInput)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* URL Preview for new/changed slug */}
+          {slugInput && isValidSlug(slugInput) && !isChangingSlug && (
+            <div className="p-4 bg-muted rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Preview de tu URL pública:</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyUrl(getOrganizationPublicUrl(slugInput))}
+                  className="h-8 px-2"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <code className="text-sm text-primary break-all block">
                 {getOrganizationPublicUrl(slugInput)}
               </code>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground">
                 Tus sorteos estarán disponibles en: {getOrganizationPublicUrl(slugInput)}/nombre-del-sorteo
               </p>
             </div>
