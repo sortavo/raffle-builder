@@ -2,11 +2,22 @@
  * Utility functions for generating public URLs for raffles and organizations
  */
 
+/**
+ * Get the production base URL for public links
+ * In development/preview environments, shows a placeholder
+ */
 const getBaseUrl = () => {
   if (typeof window !== "undefined") {
-    return window.location.origin;
+    const hostname = window.location.hostname;
+    // If it's a real production domain (not lovable preview or localhost), use it
+    if (!hostname.includes("lovableproject.com") && 
+        !hostname.includes("localhost") &&
+        !hostname.includes("127.0.0.1")) {
+      return window.location.origin;
+    }
   }
-  return "";
+  // For development/preview, return a placeholder that indicates production URL
+  return "https://tu-dominio.com";
 };
 
 /**

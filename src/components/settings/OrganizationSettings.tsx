@@ -74,7 +74,7 @@ export function OrganizationSettings() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [slugInput, setSlugInput] = useState(organization?.slug || "");
+  const [slugInput, setSlugInput] = useState("");
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
@@ -82,6 +82,13 @@ export function OrganizationSettings() {
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
   const isChangingSlug = hasExistingSlug && slugInput !== organization?.slug;
+
+  // Sync slugInput with organization.slug when it loads
+  useEffect(() => {
+    if (organization?.slug && !slugInput) {
+      setSlugInput(organization.slug);
+    }
+  }, [organization?.slug]);
   
   const handleCopyUrl = async (url: string) => {
     try {
