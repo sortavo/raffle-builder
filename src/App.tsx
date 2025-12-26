@@ -30,6 +30,9 @@ import Coupons from "./pages/dashboard/Coupons";
 import Marketing from "./pages/dashboard/Marketing";
 import HelpCenter from "./pages/HelpCenter";
 import OrganizationHome from "./pages/OrganizationHome";
+import Buyers from "./pages/dashboard/Buyers";
+import Analytics from "./pages/dashboard/Analytics";
+import Subscription from "./pages/dashboard/Subscription";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +57,9 @@ const App = () => (
               <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
               <Route path="/dashboard/raffles/:id/draw" element={<DrawWinner />} />
               <Route path="/dashboard/settings" element={<Settings />} />
+              <Route path="/dashboard/buyers" element={<Buyers />} />
+              <Route path="/dashboard/analytics" element={<Analytics />} />
+              <Route path="/dashboard/subscription" element={<Subscription />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard/coupons" element={<Coupons />} />
               <Route path="/dashboard/marketing" element={<Marketing />} />
