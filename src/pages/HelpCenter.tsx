@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Search, Book, MessageCircle, FileText, ChevronRight, ExternalLink, Mail, Phone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Book, MessageCircle, FileText, ChevronRight, ExternalLink, Mail, Phone, Trophy, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,8 @@ import { LoadingButton } from '@/components/ui/LoadingButton';
 import { successToast, errorToast } from '@/lib/toast-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Link } from 'react-router-dom';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Footer } from '@/components/layout/Footer';
 
 const faqCategories = [
   {
@@ -156,6 +157,7 @@ export default function HelpCenter() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
@@ -177,7 +179,6 @@ export default function HelpCenter() {
   const onSubmitContact = async (data: ContactForm) => {
     setIsSubmitting(true);
     try {
-      // In production, this would send to a support system
       await supabase.functions.invoke('send-email', {
         body: {
           to: 'soporte@tudominio.com',
@@ -200,22 +201,110 @@ export default function HelpCenter() {
     }
   };
 
+  const navLinks = [
+    { label: 'Características', href: '/#features' },
+    { label: 'Precios', href: '/pricing' },
+    { label: 'Ayuda', href: '/help' },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">Centro de Ayuda</h1>
-          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-indigo-50">
+      {/* Premium Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                SORTAVO
+              </span>
+            </Link>
+
+            <div className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link 
+                  key={link.label}
+                  to={link.href} 
+                  className="text-gray-600 hover:text-violet-600 font-medium transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="hidden md:flex items-center gap-3">
+              <Link to="/auth">
+                <Button variant="ghost" className="text-gray-700 hover:text-violet-600 hover:bg-violet-50">
+                  Iniciar Sesión
+                </Button>
+              </Link>
+              <Link to="/auth?tab=signup">
+                <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25">
+                  Crear Cuenta
+                </Button>
+              </Link>
+            </div>
+
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px]">
+                <div className="flex flex-col gap-6 mt-8">
+                  {navLinks.map((link) => (
+                    <Link 
+                      key={link.label}
+                      to={link.href} 
+                      className="text-lg font-medium text-gray-700 hover:text-violet-600"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <hr className="border-gray-200" />
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full">Iniciar Sesión</Button>
+                  </Link>
+                  <Link to="/auth?tab=signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full bg-gradient-to-r from-violet-600 to-indigo-600">
+                      Crear Cuenta
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Header */}
+      <div className="pt-32 pb-16 relative overflow-hidden">
+        <div className="absolute top-20 -left-20 w-96 h-96 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+        <div className="absolute top-40 -right-20 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <Badge className="mb-4 bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-100">
+            Estamos para ayudarte
+          </Badge>
+          <h1 className="text-4xl font-bold mb-4 md:text-5xl">
+            <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              Centro de Ayuda
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
             Encuentra respuestas a tus preguntas, guías detalladas y soporte personalizado
           </p>
           
           {/* Search */}
           <div className="max-w-xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-violet-400" />
             <Input
               placeholder="Buscar en preguntas frecuentes..."
-              className="pl-12 h-12 text-lg"
+              className="pl-12 h-14 text-lg bg-white/80 backdrop-blur-sm border-violet-200 focus:border-violet-500 focus:ring-violet-500 shadow-xl shadow-violet-500/10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -224,78 +313,76 @@ export default function HelpCenter() {
       </div>
 
       {/* Quick Links */}
-      <div className="container mx-auto px-4 -mt-8">
+      <div className="container mx-auto px-4 -mt-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <Book className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Documentación</h3>
-                <p className="text-sm text-muted-foreground">Guías y tutoriales</p>
-              </div>
-              <ChevronRight className="w-5 h-5 ml-auto text-muted-foreground" />
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <MessageCircle className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Soporte</h3>
-                <p className="text-sm text-muted-foreground">Contactar al equipo</p>
-              </div>
-              <ChevronRight className="w-5 h-5 ml-auto text-muted-foreground" />
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <FileText className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Estado del Sistema</h3>
-                <p className="text-sm text-muted-foreground">Todo operativo</p>
-              </div>
-              <Badge variant="outline" className="ml-auto bg-green-500/10 text-green-600 border-green-500/20">
-                Online
-              </Badge>
-            </CardContent>
-          </Card>
+          {[
+            { icon: Book, title: 'Documentación', desc: 'Guías y tutoriales', gradient: 'from-violet-500 to-indigo-500' },
+            { icon: MessageCircle, title: 'Soporte', desc: 'Contactar al equipo', gradient: 'from-purple-500 to-pink-500' },
+            { icon: FileText, title: 'Estado del Sistema', desc: 'Todo operativo', gradient: 'from-emerald-500 to-teal-500', status: true },
+          ].map((item, idx) => (
+            <Card key={idx} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg`}>
+                  <item.icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{item.title}</h3>
+                  <p className="text-sm text-gray-500">{item.desc}</p>
+                </div>
+                {item.status ? (
+                  <Badge className="ml-auto bg-green-100 text-green-700 border-green-200">
+                    Online
+                  </Badge>
+                ) : (
+                  <ChevronRight className="w-5 h-5 ml-auto text-gray-400" />
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <Tabs defaultValue="faq" className="space-y-8">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
-            <TabsTrigger value="faq">Preguntas</TabsTrigger>
-            <TabsTrigger value="guides">Guías</TabsTrigger>
-            <TabsTrigger value="contact">Contacto</TabsTrigger>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-white/60 backdrop-blur-sm p-1 rounded-xl shadow-lg">
+            <TabsTrigger value="faq" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg">
+              Preguntas
+            </TabsTrigger>
+            <TabsTrigger value="guides" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg">
+              Guías
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg">
+              Contacto
+            </TabsTrigger>
           </TabsList>
 
           {/* FAQ Tab */}
           <TabsContent value="faq" className="space-y-8">
             {(searchQuery ? filteredFaqs : faqCategories).map((category) => (
-              <Card key={category.id}>
+              <Card key={category.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <category.icon className="w-5 h-5 text-primary" />
-                    {category.title}
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+                      <category.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                      {category.title}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion type="single" collapsible className="w-full space-y-2">
                     {category.questions.map((faq, index) => (
-                      <AccordionItem key={index} value={`${category.id}-${index}`}>
-                        <AccordionTrigger className="text-left">
+                      <AccordionItem 
+                        key={index} 
+                        value={`${category.id}-${index}`}
+                        className="border border-gray-100 rounded-xl px-4 hover:border-violet-200 transition-colors"
+                      >
+                        <AccordionTrigger className="text-left hover:no-underline py-4 text-gray-900">
                           {faq.q}
                         </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground">
+                        <AccordionContent className="text-gray-600 pb-4">
                           {faq.a}
                         </AccordionContent>
                       </AccordionItem>
@@ -307,12 +394,18 @@ export default function HelpCenter() {
 
             {searchQuery && filteredFaqs.length === 0 && (
               <div className="text-center py-12">
-                <Search className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Sin resultados</h3>
-                <p className="text-muted-foreground">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-violet-100 flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-violet-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Sin resultados</h3>
+                <p className="text-gray-500">
                   No encontramos preguntas que coincidan con "{searchQuery}"
                 </p>
-                <Button variant="outline" className="mt-4" onClick={() => setSearchQuery('')}>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 border-violet-200 hover:bg-violet-50" 
+                  onClick={() => setSearchQuery('')}
+                >
                   Limpiar búsqueda
                 </Button>
               </div>
@@ -323,17 +416,21 @@ export default function HelpCenter() {
           <TabsContent value="guides">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {guides.map((guide, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
+                <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">{guide.category}</Badge>
-                      <span className="text-sm text-muted-foreground">{guide.readTime}</span>
+                      <Badge className="bg-violet-100 text-violet-700 border-violet-200">{guide.category}</Badge>
+                      <span className="text-sm text-gray-500">{guide.readTime}</span>
                     </div>
-                    <CardTitle className="text-lg">{guide.title}</CardTitle>
+                    <CardTitle className="text-lg text-gray-900">{guide.title}</CardTitle>
                     <CardDescription>{guide.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="outline" className="w-full" asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-violet-200 hover:bg-violet-50 hover:border-violet-300" 
+                      asChild
+                    >
                       <a href={guide.href}>
                         Leer guía
                         <ExternalLink className="w-4 h-4 ml-2" />
@@ -350,9 +447,11 @@ export default function HelpCenter() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Contact Form */}
               <div className="lg:col-span-2">
-                <Card>
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
                   <CardHeader>
-                    <CardTitle>Enviar Mensaje</CardTitle>
+                    <CardTitle className="bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                      Enviar Mensaje
+                    </CardTitle>
                     <CardDescription>
                       Describe tu problema o pregunta y te responderemos lo antes posible
                     </CardDescription>
@@ -367,7 +466,11 @@ export default function HelpCenter() {
                             <FormItem>
                               <FormLabel>Asunto</FormLabel>
                               <FormControl>
-                                <Input placeholder="¿En qué podemos ayudarte?" {...field} />
+                                <Input 
+                                  placeholder="¿En qué podemos ayudarte?" 
+                                  {...field} 
+                                  className="bg-white/50 border-violet-200 focus:border-violet-500"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -392,6 +495,10 @@ export default function HelpCenter() {
                                     variant={field.value === option.value ? 'default' : 'outline'}
                                     size="sm"
                                     onClick={() => field.onChange(option.value)}
+                                    className={field.value === option.value 
+                                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600' 
+                                      : 'border-violet-200 hover:bg-violet-50'
+                                    }
                                   >
                                     {option.label}
                                   </Button>
@@ -410,7 +517,7 @@ export default function HelpCenter() {
                               <FormControl>
                                 <Textarea
                                   placeholder="Describe tu problema con el mayor detalle posible..."
-                                  className="min-h-[150px]"
+                                  className="min-h-[150px] bg-white/50 border-violet-200 focus:border-violet-500"
                                   {...field}
                                 />
                               </FormControl>
@@ -422,8 +529,7 @@ export default function HelpCenter() {
                         <LoadingButton
                           type="submit"
                           isLoading={isSubmitting}
-                          loadingText="Enviando..."
-                          className="w-full"
+                          className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25"
                         >
                           Enviar Mensaje
                         </LoadingButton>
@@ -435,58 +541,65 @@ export default function HelpCenter() {
 
               {/* Contact Info */}
               <div className="space-y-6">
-                <Card>
+                <Card className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-0 shadow-xl">
                   <CardHeader>
-                    <CardTitle className="text-lg">Información de Contacto</CardTitle>
+                    <CardTitle className="text-white">Contacto Directo</CardTitle>
+                    <CardDescription className="text-white/70">
+                      Prefiere hablar con alguien? Estamos disponibles
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <Mail className="w-4 h-4 text-primary" />
+                    <a 
+                      href="mailto:soporte@sortavo.com" 
+                      className="flex items-center gap-3 text-white/90 hover:text-white transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                        <Mail className="w-5 h-5" />
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium">soporte@rifas.com</p>
+                      <span>soporte@sortavo.com</span>
+                    </a>
+                    <a 
+                      href="https://wa.me/5215512345678" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 text-white/90 hover:text-white transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                        <MessageCircle className="w-5 h-5" />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <Phone className="w-4 h-4 text-primary" />
+                      <span>WhatsApp</span>
+                    </a>
+                    <a 
+                      href="tel:+5215512345678"
+                      className="flex items-center gap-3 text-white/90 hover:text-white transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                        <Phone className="w-5 h-5" />
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">WhatsApp</p>
-                        <p className="font-medium">+57 300 123 4567</p>
-                      </div>
-                    </div>
+                      <span>+52 155 1234 5678</span>
+                    </a>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-lg">Horario de Atención</CardTitle>
+                    <CardTitle className="text-lg">Horarios de Atención</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Lunes - Viernes</span>
-                      <span>8:00 AM - 6:00 PM</span>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Lunes - Viernes</span>
+                      <span className="font-medium text-gray-900">9:00 - 18:00</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sábados</span>
-                      <span>9:00 AM - 1:00 PM</span>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Sábado</span>
+                      <span className="font-medium text-gray-900">10:00 - 14:00</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Domingos</span>
-                      <span className="text-muted-foreground">Cerrado</span>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Domingo</span>
+                      <span className="font-medium text-gray-400">Cerrado</span>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-4">
-                    <p className="text-sm">
-                      <strong>Tiempo de respuesta promedio:</strong>
-                      <br />
-                      <span className="text-2xl font-bold text-primary">2 horas</span>
+                    <p className="text-xs text-gray-400 pt-2">
+                      Hora del Centro de México (CST)
                     </p>
                   </CardContent>
                 </Card>
@@ -496,26 +609,7 @@ export default function HelpCenter() {
         </Tabs>
       </div>
 
-      {/* Footer CTA */}
-      <div className="bg-muted/50 py-12">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold mb-4">¿No encontraste lo que buscabas?</h2>
-          <p className="text-muted-foreground mb-6">
-            Nuestro equipo está listo para ayudarte con cualquier pregunta
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button asChild>
-              <Link to="/dashboard">Ir al Dashboard</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }

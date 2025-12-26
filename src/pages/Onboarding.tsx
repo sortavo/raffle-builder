@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Ticket, Loader2, ArrowLeft, ArrowRight, Check, Building2, CreditCard, Sparkles } from "lucide-react";
+import { Trophy, Loader2, ArrowLeft, ArrowRight, Check, Building2, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { z } from "zod";
@@ -44,7 +44,7 @@ export default function Onboarding() {
   const [accountNumber, setAccountNumber] = useState("");
   const [clabeNumber, setClabeNumber] = useState("");
   
-  // Step 3: Plan Selection - Get plan from URL if provided
+  // Step 3: Plan Selection
   const urlPlan = searchParams.get("plan") as PlanKey | null;
   const validPlans: PlanKey[] = ["basic", "pro", "premium"];
   const initialPlan = urlPlan && validPlans.includes(urlPlan) ? urlPlan : "pro";
@@ -101,10 +101,8 @@ export default function Onboarding() {
   };
 
   const handleStep2Submit = async () => {
-    // Payment methods are optional, just save if provided
     if (bankName || accountNumber) {
-      // In a real app, you'd save this to a payment_methods table
-      // For now, we'll just proceed
+      // Save payment methods if provided
     }
     setCurrentStep(3);
   };
@@ -158,25 +156,33 @@ export default function Onboarding() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute top-0 -left-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob" />
+      <div className="absolute bottom-0 -right-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000" />
+
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="relative z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Ticket className="h-6 w-6 text-primary" />
-            <span className="text-xl font-extrabold text-foreground">SORTAVO</span>
-          </div>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
+              <Trophy className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              SORTAVO
+            </span>
+          </Link>
         </div>
       </header>
 
-      <main className="container mx-auto max-w-3xl px-4 py-8">
+      <main className="container mx-auto max-w-3xl px-4 py-8 relative z-10">
         {/* Progress Steps */}
         <nav className="mb-8">
           <ol className="flex items-center justify-center gap-4">
@@ -184,12 +190,12 @@ export default function Onboarding() {
               <li key={step.id} className="flex items-center">
                 <div
                   className={cn(
-                    "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300",
                     currentStep === step.id
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
                       : currentStep > step.id
-                      ? "bg-success text-success-foreground"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
+                      : "bg-white text-gray-400 border border-gray-200"
                   )}
                 >
                   {currentStep > step.id ? (
@@ -202,8 +208,10 @@ export default function Onboarding() {
                 {index < steps.length - 1 && (
                   <div
                     className={cn(
-                      "mx-2 h-0.5 w-8 sm:w-16",
-                      currentStep > step.id ? "bg-success" : "bg-muted"
+                      "mx-3 h-0.5 w-8 sm:w-16 rounded-full transition-colors",
+                      currentStep > step.id 
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500" 
+                        : "bg-gray-200"
                     )}
                   />
                 )}
@@ -214,9 +222,11 @@ export default function Onboarding() {
 
         {/* Step 1: Business Info */}
         {currentStep === 1 && (
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-white/40 shadow-2xl shadow-violet-500/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Información de tu negocio</CardTitle>
+              <CardTitle className="text-2xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                Información de tu negocio
+              </CardTitle>
               <CardDescription>
                 Cuéntanos sobre tu organización para personalizar tu experiencia
               </CardDescription>
@@ -229,7 +239,10 @@ export default function Onboarding() {
                   placeholder="Mi Empresa S.A. de C.V."
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className={errors.businessName ? "border-destructive" : ""}
+                  className={cn(
+                    "bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500",
+                    errors.businessName && "border-destructive"
+                  )}
                 />
                 {errors.businessName && (
                   <p className="text-sm text-destructive">{errors.businessName}</p>
@@ -247,10 +260,12 @@ export default function Onboarding() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleStep1Submit} disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
+                <Button 
+                  onClick={handleStep1Submit} 
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Continuar
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -261,9 +276,11 @@ export default function Onboarding() {
 
         {/* Step 2: Payment Methods */}
         {currentStep === 2 && (
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-white/40 shadow-2xl shadow-violet-500/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Métodos de pago</CardTitle>
+              <CardTitle className="text-2xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                Métodos de pago
+              </CardTitle>
               <CardDescription>
                 Configura cómo recibirás los pagos de tus compradores (opcional)
               </CardDescription>
@@ -276,6 +293,7 @@ export default function Onboarding() {
                   placeholder="BBVA, Banorte, Santander..."
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
+                  className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
                 />
               </div>
               
@@ -286,6 +304,7 @@ export default function Onboarding() {
                   placeholder="Juan Pérez García"
                   value={accountHolder}
                   onChange={(e) => setAccountHolder(e.target.value)}
+                  className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
                 />
               </div>
 
@@ -297,6 +316,7 @@ export default function Onboarding() {
                     placeholder="1234567890"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
+                    className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
                   />
                 </div>
                 <div className="space-y-2">
@@ -306,21 +326,29 @@ export default function Onboarding() {
                     placeholder="012345678901234567"
                     value={clabeNumber}
                     onChange={(e) => setClabeNumber(e.target.value)}
+                    className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
                   />
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground bg-violet-50 p-3 rounded-lg">
                 Esta información se mostrará a tus compradores para que realicen transferencias.
                 Puedes configurarla más tarde desde ajustes.
               </p>
 
               <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentStep(1)}
+                  className="border-violet-200 hover:bg-violet-50"
+                >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Atrás
                 </Button>
-                <Button onClick={handleStep2Submit}>
+                <Button 
+                  onClick={handleStep2Submit}
+                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                >
                   Continuar
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -333,21 +361,23 @@ export default function Onboarding() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground">Elige tu plan</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                Elige tu plan
+              </h1>
+              <p className="text-muted-foreground mt-1">
                 Selecciona el plan que mejor se adapte a tus necesidades
               </p>
             </div>
 
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 bg-white/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-violet-500/10 border border-violet-100">
               <button
                 onClick={() => setBillingPeriod("monthly")}
                 className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all",
                   billingPeriod === "monthly"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 Mensual
@@ -355,14 +385,19 @@ export default function Onboarding() {
               <button
                 onClick={() => setBillingPeriod("annual")}
                 className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-2",
                   billingPeriod === "annual"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 Anual
-                <span className="ml-2 rounded-full bg-success px-2 py-0.5 text-xs text-success-foreground">
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-xs",
+                  billingPeriod === "annual" 
+                    ? "bg-white/20 text-white" 
+                    : "bg-green-100 text-green-700"
+                )}>
                   -16%
                 </span>
               </button>
@@ -375,21 +410,23 @@ export default function Onboarding() {
                   <Card
                     key={key}
                     className={cn(
-                      "relative cursor-pointer transition-all hover:shadow-lg",
-                      selectedPlan === key && "ring-2 ring-primary",
-                      "popular" in plan && plan.popular && "border-primary"
+                      "relative cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl backdrop-blur-sm",
+                      selectedPlan === key 
+                        ? "ring-2 ring-violet-500 shadow-lg shadow-violet-500/20 bg-white" 
+                        : "bg-white/80 hover:bg-white",
+                      "popular" in plan && plan.popular && "border-violet-500"
                     )}
                     onClick={() => setSelectedPlan(key)}
                   >
                     {"popular" in plan && plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-1 text-xs font-medium text-white shadow-lg">
                         Más popular
                       </div>
                     )}
                     <CardHeader>
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">
+                        <span className="text-3xl font-bold bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
                           ${billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice}
                         </span>
                         <span className="text-muted-foreground">
@@ -401,8 +438,8 @@ export default function Onboarding() {
                       <ul className="space-y-2">
                         {plan.features.map((feature, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm">
-                            <Check className="h-4 w-4 shrink-0 text-success" />
-                            <span>{feature}</span>
+                            <Check className="h-4 w-4 shrink-0 text-green-500 mt-0.5" />
+                            <span className="text-gray-600">{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -414,18 +451,29 @@ export default function Onboarding() {
 
             {/* Actions */}
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep(2)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentStep(2)}
+                className="border-violet-200 hover:bg-violet-50"
+              >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Atrás
               </Button>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="ghost" onClick={handleSkipTrial} disabled={isSubmitting}>
+                <Button 
+                  variant="ghost" 
+                  onClick={handleSkipTrial} 
+                  disabled={isSubmitting}
+                  className="text-gray-500 hover:text-gray-700"
+                >
                   Continuar con prueba gratuita
                 </Button>
-                <Button onClick={handlePlanSelect} disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
+                <Button 
+                  onClick={handlePlanSelect} 
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Suscribirme a {STRIPE_PLANS[selectedPlan].name}
                 </Button>
               </div>
