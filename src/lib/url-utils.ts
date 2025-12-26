@@ -16,8 +16,8 @@ const getBaseUrl = () => {
       return window.location.origin;
     }
   }
-  // For development/preview, return a placeholder that indicates production URL
-  return "https://tu-dominio.com";
+  // Production domain for Sortavo
+  return "https://sortavo.com";
 };
 
 /**
