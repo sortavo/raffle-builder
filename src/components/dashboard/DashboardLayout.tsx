@@ -32,7 +32,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { isSimulating, simulatedUser, mode, endSimulation } = useSimulation();
+  const { isSimulating, simulatedUser, mode, endSimulation, toggleMode } = useSimulation();
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {
@@ -111,11 +111,13 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               <Badge 
                 variant="outline" 
                 className={cn(
-                  "text-[10px] px-1.5 py-0",
+                  "text-[10px] px-1.5 py-0 cursor-pointer transition-colors",
                   mode === 'readonly' 
-                    ? "border-amber-500 text-amber-700 dark:text-amber-300" 
-                    : "border-red-500 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20"
+                    ? "border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800" 
+                    : "border-red-500 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
                 )}
+                onClick={toggleMode}
+                title="Clic para cambiar modo"
               >
                 {mode === 'readonly' ? 'R/O' : 'FULL'}
               </Badge>
