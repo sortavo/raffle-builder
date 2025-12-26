@@ -23,6 +23,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
+import { useSimulation } from "@/contexts/SimulationContext";
 import {
   Ticket,
   LayoutDashboard,
@@ -38,7 +39,9 @@ import {
   Tag,
   QrCode,
   Shield,
+  Eye,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { TicketScannerDialog } from "@/components/scanner";
 
 const menuItems = [
@@ -96,6 +99,7 @@ export function DashboardSidebar() {
   const location = useLocation();
   const { profile, organization, signOut } = useAuth();
   const { isPlatformAdmin } = useIsPlatformAdmin();
+  const { isSimulating, simulatedUser, simulatedOrg, mode: simulationMode } = useSimulation();
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const getInitials = (name: string | null | undefined) => {
@@ -122,6 +126,29 @@ export function DashboardSidebar() {
           <Ticket className="h-6 w-6 text-primary" />
           <span className="text-lg font-extrabold text-sidebar-foreground">SORTAVO</span>
         </Link>
+        {isSimulating && (
+          <div className="mt-2 flex items-center gap-2 rounded-md bg-amber-500/10 px-2 py-1.5 border border-amber-500/20">
+            <Eye className="h-3.5 w-3.5 text-amber-600" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-medium text-amber-600 uppercase tracking-wider">
+                Simulando
+              </span>
+              <span className="text-xs text-amber-700 truncate">
+                {simulatedUser?.full_name || simulatedUser?.email}
+              </span>
+            </div>
+            <Badge 
+              variant="outline" 
+              className={`ml-auto text-[9px] px-1 py-0 ${
+                simulationMode === 'readonly' 
+                  ? 'border-amber-500 text-amber-600' 
+                  : 'border-destructive text-destructive'
+              }`}
+            >
+              {simulationMode === 'readonly' ? 'R/O' : 'FULL'}
+            </Badge>
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
