@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
-import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl } from "@/lib/url-utils";
+import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
 
 const organizationSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -55,19 +55,6 @@ const TIMEZONES = [
   { value: "America/Buenos_Aires", label: "Buenos Aires (GMT-3)" },
   { value: "Europe/Madrid", label: "Madrid (GMT+1)" },
 ];
-
-const RESERVED_SLUGS = [
-  "admin", "api", "dashboard", "auth", "login", "logout", "signup", "register",
-  "settings", "config", "app", "www", "mail", "email", "help", "support",
-  "billing", "account", "org", "organization", "user", "users", "static",
-  "assets", "public", "private", "internal", "system", "root", "null", "undefined"
-];
-
-const isReservedSlug = (slug: string): boolean => {
-  return RESERVED_SLUGS.some(reserved => 
-    slug === reserved || slug.startsWith(`${reserved}-`) || slug.endsWith(`-${reserved}`)
-  );
-};
 
 export function OrganizationSettings() {
   const { organization, profile } = useAuth();

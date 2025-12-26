@@ -67,6 +67,38 @@ export function getOrganizationRelativePath(organizationSlug: string): string {
 }
 
 /**
+ * Reserved slugs that cannot be used as organization slugs
+ * These are all routes and system paths used by the application
+ */
+export const RESERVED_SLUGS = [
+  // App routes
+  "auth", "dashboard", "onboarding", "pricing", "help", "my-tickets", "ticket", "invite",
+  "terms", "privacy", "r",
+  // System/reserved
+  "admin", "api", "login", "logout", "signup", "register", "settings", "config",
+  "app", "www", "mail", "email", "support", "billing", "account", "org", "organization",
+  "user", "users", "static", "assets", "public", "private", "internal", "system",
+  "root", "null", "undefined", "new", "edit", "delete", "create", "update",
+  // Common tech paths
+  "cdn", "media", "images", "files", "uploads", "downloads", "docs", "blog",
+  "news", "about", "contact", "faq", "search", "sitemap", "robots", "favicon",
+  // Platform-specific
+  "sortavo", "sorteo", "sorteos", "rifa", "rifas", "boleto", "boletos",
+];
+
+/**
+ * Check if a slug is reserved by the system
+ */
+export function isReservedSlug(slug: string): boolean {
+  const lowerSlug = slug.toLowerCase();
+  return RESERVED_SLUGS.some(reserved => 
+    lowerSlug === reserved || 
+    lowerSlug.startsWith(`${reserved}-`) || 
+    lowerSlug.endsWith(`-${reserved}`)
+  );
+}
+
+/**
  * Check if a slug is valid (alphanumeric with hyphens, no special characters)
  */
 export function isValidSlug(slug: string): boolean {
