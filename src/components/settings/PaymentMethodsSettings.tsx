@@ -8,6 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -34,7 +41,15 @@ import {
   Edit2,
   Check,
   X,
-  Loader2
+  Loader2,
+  Store,
+  Pill,
+  ShoppingBag,
+  HandCoins,
+  ArrowRightLeft,
+  Link as LinkIcon,
+  MapPin,
+  Clock
 } from "lucide-react";
 import {
   Dialog,
@@ -55,43 +70,123 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type PaymentMethodType = "bank_transfer" | "cash" | "other";
+// Payment subtypes with categories
+const PAYMENT_SUBTYPES = [
+  // Bank
+  { id: 'bank_deposit', label: 'Depósito en ventanilla', icon: Landmark, category: 'bank', description: 'Depósito directo en sucursal bancaria' },
+  { id: 'bank_transfer', label: 'Transferencia SPEI', icon: ArrowRightLeft, category: 'bank', description: 'Transferencia electrónica interbancaria' },
+  // Store
+  { id: 'oxxo', label: 'OXXO Pay', icon: Store, category: 'store', description: 'Pago en tiendas OXXO' },
+  { id: 'pharmacy', label: 'Farmacias', icon: Pill, category: 'store', description: 'Farmacias Guadalajara, del Ahorro, etc.' },
+  { id: 'convenience_store', label: '7-Eleven / Otras tiendas', icon: ShoppingBag, category: 'store', description: 'Tiendas de conveniencia' },
+  // Digital
+  { id: 'paypal', label: 'PayPal', icon: CreditCard, category: 'digital', description: 'Pago con cuenta PayPal' },
+  { id: 'mercado_pago', label: 'Mercado Pago', icon: Wallet, category: 'digital', description: 'Link de pago Mercado Pago' },
+  // Cash
+  { id: 'cash_in_person', label: 'Efectivo en persona', icon: HandCoins, category: 'cash', description: 'Entrega de efectivo en persona' },
+] as const;
+
+type PaymentSubtype = typeof PAYMENT_SUBTYPES[number]['id'];
+
+// Mexican banks
+const MEXICAN_BANKS = [
+  'BBVA México',
+  'Santander México',
+  'Banorte',
+  'HSBC México',
+  'Citibanamex',
+  'Scotiabank',
+  'Banco Azteca',
+  'Banco Inbursa',
+  'BanCoppel',
+  'Banregio',
+  'Afirme',
+  'Banco del Bajío',
+  'Banco Autofin',
+  'Compartamos Banco',
+  'Hey Banco',
+  'Nu México',
+  'Klar',
+  'Stori',
+  'Otro',
+] as const;
 
 interface EditingMethod {
   id?: string;
-  type: PaymentMethodType;
+  subtype: PaymentSubtype;
   name: string;
   instructions: string;
   enabled: boolean;
+  // Bank fields
   bank_name: string;
   account_number: string;
   clabe: string;
   account_holder: string;
+  card_number: string;
+  // Digital fields
+  paypal_email: string;
+  paypal_link: string;
+  payment_link: string;
+  // Cash in person fields
+  location: string;
+  schedule: string;
 }
 
-const getDefaultEditingMethod = (type: PaymentMethodType): EditingMethod => ({
-  type,
-  name: type === "bank_transfer" 
-    ? "Nueva cuenta bancaria" 
-    : type === "cash" 
-    ? "Nuevo método de efectivo"
-    : "Otro método",
-  instructions: "",
-  enabled: true,
-  bank_name: "",
-  account_number: "",
-  clabe: "",
-  account_holder: "",
-});
+const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
+  const subtypeInfo = PAYMENT_SUBTYPES.find(s => s.id === subtype);
+  return {
+    subtype,
+    name: subtypeInfo?.label || 'Nuevo método',
+    instructions: "",
+    enabled: true,
+    bank_name: "",
+    account_number: "",
+    clabe: "",
+    account_holder: "",
+    card_number: "",
+    paypal_email: "",
+    paypal_link: "",
+    payment_link: "",
+    location: "",
+    schedule: "",
+  };
+};
 
-const getIcon = (type: string) => {
-  switch (type) {
-    case "bank_transfer":
-      return <Landmark className="h-5 w-5" />;
-    case "cash":
-      return <Wallet className="h-5 w-5" />;
-    default:
-      return <CreditCard className="h-5 w-5" />;
+const getIcon = (subtype: string | null | undefined) => {
+  const found = PAYMENT_SUBTYPES.find(s => s.id === subtype);
+  if (found) {
+    const Icon = found.icon;
+    return <Icon className="h-5 w-5" />;
+  }
+  return <CreditCard className="h-5 w-5" />;
+};
+
+const getSubtypeLabel = (subtype: string | null | undefined) => {
+  const found = PAYMENT_SUBTYPES.find(s => s.id === subtype);
+  return found?.label || 'Método de pago';
+};
+
+// Validation helpers
+const isValidClabe = (clabe: string): boolean => {
+  const digits = clabe.replace(/\D/g, '');
+  return digits.length === 18;
+};
+
+const isValidCardNumber = (card: string): boolean => {
+  const digits = card.replace(/\D/g, '');
+  return digits.length === 16;
+};
+
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -119,6 +214,8 @@ function SortableMethodCard({ method, onEdit, onDelete, onToggle, isToggling }: 
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const subtype = (method as any).subtype as PaymentSubtype | null;
+
   return (
     <Card 
       ref={setNodeRef} 
@@ -135,28 +232,61 @@ function SortableMethodCard({ method, onEdit, onDelete, onToggle, isToggling }: 
         </div>
         
         <div className={`p-2 rounded-lg ${method.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-          {getIcon(method.type)}
+          {getIcon(subtype || method.type)}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-medium">{method.name}</h4>
-            {method.type === "bank_transfer" && method.bank_name && (
-              <span className="text-xs bg-secondary px-2 py-0.5 rounded">
-                {method.bank_name}
-              </span>
-            )}
+            <span className="text-xs bg-secondary px-2 py-0.5 rounded">
+              {getSubtypeLabel(subtype || method.type)}
+            </span>
           </div>
-          {method.type === "bank_transfer" && method.clabe && (
-            <p className="text-sm text-muted-foreground font-mono mt-1">
-              CLABE: {method.clabe}
+          
+          {/* Bank info */}
+          {(subtype === 'bank_transfer' || subtype === 'bank_deposit' || method.type === 'bank_transfer') && (
+            <>
+              {method.bank_name && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {method.bank_name}
+                </p>
+              )}
+              {method.clabe && (
+                <p className="text-sm text-muted-foreground font-mono">
+                  CLABE: {method.clabe}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Card number for deposits */}
+          {(method as any).card_number && (
+            <p className="text-sm text-muted-foreground font-mono">
+              Tarjeta: •••• {(method as any).card_number.slice(-4)}
             </p>
           )}
-          {method.type === "bank_transfer" && method.account_holder && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Titular: {method.account_holder}
+
+          {/* PayPal */}
+          {(method as any).paypal_email && (
+            <p className="text-sm text-muted-foreground">
+              {(method as any).paypal_email}
             </p>
           )}
+
+          {/* Payment link */}
+          {(method as any).payment_link && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <LinkIcon className="h-3 w-3" /> Link de pago configurado
+            </p>
+          )}
+
+          {/* Location */}
+          {(method as any).location && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> {(method as any).location}
+            </p>
+          )}
+
           {method.instructions && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
               {method.instructions}
@@ -195,8 +325,10 @@ export function PaymentMethodsSettings() {
   const { methods, isLoading, createMethod, updateMethod, deleteMethod, toggleMethod, reorderMethods } = usePaymentMethods();
   const [editingMethod, setEditingMethod] = useState<EditingMethod | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newMethodType, setNewMethodType] = useState<PaymentMethodType>("bank_transfer");
+  const [selectedSubtype, setSelectedSubtype] = useState<PaymentSubtype>('bank_transfer');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [customBankName, setCustomBankName] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -234,19 +366,88 @@ export function PaymentMethodsSettings() {
     }
   };
 
+  const validateMethod = (method: EditingMethod): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    
+    if (!method.name.trim()) {
+      errors.name = 'El nombre es requerido';
+    }
+
+    // Bank validations
+    if (method.subtype === 'bank_transfer' || method.subtype === 'bank_deposit') {
+      if (method.clabe && !isValidClabe(method.clabe)) {
+        errors.clabe = 'La CLABE debe tener exactamente 18 dígitos';
+      }
+      if (method.card_number && !isValidCardNumber(method.card_number)) {
+        errors.card_number = 'El número de tarjeta debe tener 16 dígitos';
+      }
+    }
+
+    // Store validations
+    if (method.subtype === 'oxxo' || method.subtype === 'pharmacy' || method.subtype === 'convenience_store') {
+      if (method.card_number && !isValidCardNumber(method.card_number)) {
+        errors.card_number = 'El número de tarjeta debe tener 16 dígitos';
+      }
+    }
+
+    // PayPal validations
+    if (method.subtype === 'paypal') {
+      if (method.paypal_email && !isValidEmail(method.paypal_email)) {
+        errors.paypal_email = 'Email inválido';
+      }
+      if (method.paypal_link && !isValidUrl(method.paypal_link)) {
+        errors.paypal_link = 'URL inválida';
+      }
+    }
+
+    // Mercado Pago validations
+    if (method.subtype === 'mercado_pago') {
+      if (method.payment_link && !isValidUrl(method.payment_link)) {
+        errors.payment_link = 'URL inválida';
+      }
+    }
+
+    return errors;
+  };
+
   const handleSave = () => {
     if (!editingMethod) return;
 
-    const methodData = {
-      type: editingMethod.type,
+    const errors = validateMethod(editingMethod);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Determine type based on subtype
+    let type: 'bank_transfer' | 'cash' | 'other' = 'other';
+    const subtype = editingMethod.subtype;
+    if (subtype === 'bank_transfer' || subtype === 'bank_deposit') {
+      type = 'bank_transfer';
+    } else if (subtype === 'cash_in_person') {
+      type = 'cash';
+    }
+
+    const methodData: any = {
+      type,
+      subtype: editingMethod.subtype,
       name: editingMethod.name,
       instructions: editingMethod.instructions || null,
       enabled: editingMethod.enabled,
-      bank_name: editingMethod.type === "bank_transfer" ? (editingMethod.bank_name || null) : null,
-      account_number: editingMethod.type === "bank_transfer" ? (editingMethod.account_number || null) : null,
-      clabe: editingMethod.type === "bank_transfer" ? (editingMethod.clabe || null) : null,
-      account_holder: editingMethod.type === "bank_transfer" ? (editingMethod.account_holder || null) : null,
       display_order: methods.length,
+      // Bank fields
+      bank_name: editingMethod.bank_name || null,
+      account_number: editingMethod.account_number || null,
+      clabe: editingMethod.clabe?.replace(/\D/g, '') || null,
+      account_holder: editingMethod.account_holder || null,
+      card_number: editingMethod.card_number?.replace(/\D/g, '') || null,
+      // Digital fields
+      paypal_email: editingMethod.paypal_email || null,
+      paypal_link: editingMethod.paypal_link || null,
+      payment_link: editingMethod.payment_link || null,
+      // Cash fields
+      location: editingMethod.location || null,
+      schedule: editingMethod.schedule || null,
     };
 
     if (editingMethod.id) {
@@ -255,17 +456,23 @@ export function PaymentMethodsSettings() {
       createMethod.mutate(methodData);
     }
     setEditingMethod(null);
+    setValidationErrors({});
   };
 
   const handleAddMethod = () => {
     setShowAddDialog(false);
-    setEditingMethod(getDefaultEditingMethod(newMethodType));
+    setEditingMethod(getDefaultEditingMethod(selectedSubtype));
+    setCustomBankName('');
+    setValidationErrors({});
   };
 
   const handleEditMethod = (method: PaymentMethod) => {
+    const m = method as any;
+    const subtype = m.subtype || (method.type === 'bank_transfer' ? 'bank_transfer' : method.type === 'cash' ? 'cash_in_person' : 'paypal');
+    
     setEditingMethod({
       id: method.id,
-      type: method.type as PaymentMethodType,
+      subtype: subtype as PaymentSubtype,
       name: method.name,
       instructions: method.instructions || "",
       enabled: method.enabled,
@@ -273,7 +480,34 @@ export function PaymentMethodsSettings() {
       account_number: method.account_number || "",
       clabe: method.clabe || "",
       account_holder: method.account_holder || "",
+      card_number: m.card_number || "",
+      paypal_email: m.paypal_email || "",
+      paypal_link: m.paypal_link || "",
+      payment_link: m.payment_link || "",
+      location: m.location || "",
+      schedule: m.schedule || "",
     });
+    setCustomBankName(method.bank_name && !MEXICAN_BANKS.includes(method.bank_name as any) ? method.bank_name : '');
+    setValidationErrors({});
+  };
+
+  const handleBankSelect = (value: string) => {
+    if (value === 'Otro') {
+      setEditingMethod(prev => prev ? { ...prev, bank_name: customBankName } : null);
+    } else {
+      setEditingMethod(prev => prev ? { ...prev, bank_name: value } : null);
+      setCustomBankName('');
+    }
+  };
+
+  const formatClabe = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 18);
+    return digits;
+  };
+
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 16);
+    return digits.replace(/(.{4})/g, '$1 ').trim();
   };
 
   if (isLoading) {
@@ -290,6 +524,239 @@ export function PaymentMethodsSettings() {
       </Card>
     );
   }
+
+  // Group subtypes by category for the selector
+  const subtypesByCategory = {
+    bank: PAYMENT_SUBTYPES.filter(s => s.category === 'bank'),
+    store: PAYMENT_SUBTYPES.filter(s => s.category === 'store'),
+    digital: PAYMENT_SUBTYPES.filter(s => s.category === 'digital'),
+    cash: PAYMENT_SUBTYPES.filter(s => s.category === 'cash'),
+  };
+
+  const renderDynamicFields = () => {
+    if (!editingMethod) return null;
+
+    const { subtype } = editingMethod;
+
+    // Bank transfer / deposit fields
+    if (subtype === 'bank_transfer' || subtype === 'bank_deposit') {
+      const isOtroBank = editingMethod.bank_name && !MEXICAN_BANKS.slice(0, -1).includes(editingMethod.bank_name as any);
+      
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Banco</Label>
+            <Select 
+              value={isOtroBank ? 'Otro' : editingMethod.bank_name || ''} 
+              onValueChange={handleBankSelect}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un banco" />
+              </SelectTrigger>
+              <SelectContent>
+                {MEXICAN_BANKS.map(bank => (
+                  <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(isOtroBank || editingMethod.bank_name === '' && customBankName) && (
+              <Input
+                placeholder="Nombre del banco"
+                value={customBankName}
+                onChange={(e) => {
+                  setCustomBankName(e.target.value);
+                  setEditingMethod(prev => prev ? { ...prev, bank_name: e.target.value } : null);
+                }}
+                className="mt-2"
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>CLABE Interbancaria (18 dígitos)</Label>
+            <Input
+              value={editingMethod.clabe}
+              onChange={(e) => setEditingMethod({ ...editingMethod, clabe: formatClabe(e.target.value) })}
+              placeholder="000000000000000000"
+              maxLength={18}
+              className={validationErrors.clabe ? 'border-destructive' : ''}
+            />
+            {validationErrors.clabe && (
+              <p className="text-xs text-destructive">{validationErrors.clabe}</p>
+            )}
+            {editingMethod.clabe && (
+              <p className="text-xs text-muted-foreground">{editingMethod.clabe.length}/18 dígitos</p>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Número de Cuenta (opcional)</Label>
+              <Input
+                value={editingMethod.account_number}
+                onChange={(e) => setEditingMethod({ ...editingMethod, account_number: e.target.value })}
+                placeholder="1234567890"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tarjeta de Débito (16 dígitos, opcional)</Label>
+              <Input
+                value={formatCardNumber(editingMethod.card_number)}
+                onChange={(e) => setEditingMethod({ ...editingMethod, card_number: e.target.value.replace(/\D/g, '') })}
+                placeholder="0000 0000 0000 0000"
+                maxLength={19}
+                className={validationErrors.card_number ? 'border-destructive' : ''}
+              />
+              {validationErrors.card_number && (
+                <p className="text-xs text-destructive">{validationErrors.card_number}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Titular de la Cuenta</Label>
+            <Input
+              value={editingMethod.account_holder}
+              onChange={(e) => setEditingMethod({ ...editingMethod, account_holder: e.target.value })}
+              placeholder="Nombre completo del titular"
+            />
+          </div>
+        </>
+      );
+    }
+
+    // Store fields (OXXO, pharmacies, convenience stores)
+    if (subtype === 'oxxo' || subtype === 'pharmacy' || subtype === 'convenience_store') {
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Número de Tarjeta de Débito (16 dígitos)</Label>
+            <Input
+              value={formatCardNumber(editingMethod.card_number)}
+              onChange={(e) => setEditingMethod({ ...editingMethod, card_number: e.target.value.replace(/\D/g, '') })}
+              placeholder="0000 0000 0000 0000"
+              maxLength={19}
+              className={validationErrors.card_number ? 'border-destructive' : ''}
+            />
+            {validationErrors.card_number && (
+              <p className="text-xs text-destructive">{validationErrors.card_number}</p>
+            )}
+            {editingMethod.card_number && (
+              <p className="text-xs text-muted-foreground">{editingMethod.card_number.length}/16 dígitos</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nombre del Titular</Label>
+            <Input
+              value={editingMethod.account_holder}
+              onChange={(e) => setEditingMethod({ ...editingMethod, account_holder: e.target.value })}
+              placeholder="Nombre como aparece en la tarjeta"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Banco de la Tarjeta (opcional)</Label>
+            <Select value={editingMethod.bank_name || ''} onValueChange={(v) => setEditingMethod({ ...editingMethod, bank_name: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un banco" />
+              </SelectTrigger>
+              <SelectContent>
+                {MEXICAN_BANKS.map(bank => (
+                  <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      );
+    }
+
+    // PayPal fields
+    if (subtype === 'paypal') {
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Email de PayPal</Label>
+            <Input
+              type="email"
+              value={editingMethod.paypal_email}
+              onChange={(e) => setEditingMethod({ ...editingMethod, paypal_email: e.target.value })}
+              placeholder="tu@email.com"
+              className={validationErrors.paypal_email ? 'border-destructive' : ''}
+            />
+            {validationErrors.paypal_email && (
+              <p className="text-xs text-destructive">{validationErrors.paypal_email}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Link de PayPal.me (opcional)</Label>
+            <Input
+              value={editingMethod.paypal_link}
+              onChange={(e) => setEditingMethod({ ...editingMethod, paypal_link: e.target.value })}
+              placeholder="https://paypal.me/tuusuario"
+              className={validationErrors.paypal_link ? 'border-destructive' : ''}
+            />
+            {validationErrors.paypal_link && (
+              <p className="text-xs text-destructive">{validationErrors.paypal_link}</p>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    // Mercado Pago fields
+    if (subtype === 'mercado_pago') {
+      return (
+        <div className="space-y-2">
+          <Label>Link de Pago</Label>
+          <Input
+            value={editingMethod.payment_link}
+            onChange={(e) => setEditingMethod({ ...editingMethod, payment_link: e.target.value })}
+            placeholder="https://mpago.la/..."
+            className={validationErrors.payment_link ? 'border-destructive' : ''}
+          />
+          {validationErrors.payment_link && (
+            <p className="text-xs text-destructive">{validationErrors.payment_link}</p>
+          )}
+        </div>
+      );
+    }
+
+    // Cash in person fields
+    if (subtype === 'cash_in_person') {
+      return (
+        <>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Ubicación / Dirección
+            </Label>
+            <Input
+              value={editingMethod.location}
+              onChange={(e) => setEditingMethod({ ...editingMethod, location: e.target.value })}
+              placeholder="Colonia, Ciudad o Punto de encuentro"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Horarios Disponibles
+            </Label>
+            <Input
+              value={editingMethod.schedule}
+              onChange={(e) => setEditingMethod({ ...editingMethod, schedule: e.target.value })}
+              placeholder="Lunes a Viernes 9am - 6pm"
+            />
+          </div>
+        </>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -346,82 +813,138 @@ export function PaymentMethodsSettings() {
         </CardContent>
       </Card>
 
-      {/* Add Method Dialog */}
+      {/* Add Method Dialog - Subtype Selector */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Agregar Método de Pago</DialogTitle>
             <DialogDescription>
               Selecciona el tipo de método que deseas agregar
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <button
-              className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
-                newMethodType === "bank_transfer"
-                  ? "border-primary bg-primary/5"
-                  : "hover:border-muted-foreground/50"
-              }`}
-              onClick={() => setNewMethodType("bank_transfer")}
-            >
-              <Landmark className="h-6 w-6" />
-              <div className="text-left">
-                <p className="font-medium">Transferencia Bancaria</p>
-                <p className="text-sm text-muted-foreground">
-                  CLABE, cuenta bancaria
-                </p>
+          <div className="space-y-4 py-4">
+            {/* Bank methods */}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                <Landmark className="h-4 w-4" /> Métodos Bancarios
+              </h4>
+              <div className="space-y-2">
+                {subtypesByCategory.bank.map(subtype => (
+                  <button
+                    key={subtype.id}
+                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                      selectedSubtype === subtype.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-muted-foreground/50"
+                    }`}
+                    onClick={() => setSelectedSubtype(subtype.id)}
+                  >
+                    <subtype.icon className="h-5 w-5 shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{subtype.label}</p>
+                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
-            <button
-              className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
-                newMethodType === "cash"
-                  ? "border-primary bg-primary/5"
-                  : "hover:border-muted-foreground/50"
-              }`}
-              onClick={() => setNewMethodType("cash")}
-            >
-              <Wallet className="h-6 w-6" />
-              <div className="text-left">
-                <p className="font-medium">Efectivo</p>
-                <p className="text-sm text-muted-foreground">
-                  OXXO, depósito en efectivo
-                </p>
+            </div>
+
+            {/* Store methods */}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                <Store className="h-4 w-4" /> Tiendas y Depósitos
+              </h4>
+              <div className="space-y-2">
+                {subtypesByCategory.store.map(subtype => (
+                  <button
+                    key={subtype.id}
+                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                      selectedSubtype === subtype.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-muted-foreground/50"
+                    }`}
+                    onClick={() => setSelectedSubtype(subtype.id)}
+                  >
+                    <subtype.icon className="h-5 w-5 shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{subtype.label}</p>
+                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
-            <button
-              className={`flex items-center gap-4 p-4 rounded-lg border transition-colors ${
-                newMethodType === "other"
-                  ? "border-primary bg-primary/5"
-                  : "hover:border-muted-foreground/50"
-              }`}
-              onClick={() => setNewMethodType("other")}
-            >
-              <CreditCard className="h-6 w-6" />
-              <div className="text-left">
-                <p className="font-medium">Otro</p>
-                <p className="text-sm text-muted-foreground">
-                  PayPal, Mercado Pago, etc.
-                </p>
+            </div>
+
+            {/* Digital methods */}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                <Wallet className="h-4 w-4" /> Pagos Digitales
+              </h4>
+              <div className="space-y-2">
+                {subtypesByCategory.digital.map(subtype => (
+                  <button
+                    key={subtype.id}
+                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                      selectedSubtype === subtype.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-muted-foreground/50"
+                    }`}
+                    onClick={() => setSelectedSubtype(subtype.id)}
+                  >
+                    <subtype.icon className="h-5 w-5 shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{subtype.label}</p>
+                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
+            </div>
+
+            {/* Cash methods */}
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                <HandCoins className="h-4 w-4" /> Efectivo
+              </h4>
+              <div className="space-y-2">
+                {subtypesByCategory.cash.map(subtype => (
+                  <button
+                    key={subtype.id}
+                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                      selectedSubtype === subtype.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-muted-foreground/50"
+                    }`}
+                    onClick={() => setSelectedSubtype(subtype.id)}
+                  >
+                    <subtype.icon className="h-5 w-5 shrink-0" />
+                    <div className="text-left">
+                      <p className="font-medium text-sm">{subtype.label}</p>
+                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAddMethod}>
-              Agregar
+              Continuar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Method Dialog */}
-      <Dialog open={!!editingMethod} onOpenChange={() => setEditingMethod(null)}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={!!editingMethod} onOpenChange={() => { setEditingMethod(null); setValidationErrors({}); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingMethod?.id ? "Editar" : "Nuevo"} Método de Pago
+            <DialogTitle className="flex items-center gap-2">
+              {editingMethod && getIcon(editingMethod.subtype)}
+              {editingMethod?.id ? "Editar" : "Nuevo"} {editingMethod && getSubtypeLabel(editingMethod.subtype)}
             </DialogTitle>
           </DialogHeader>
           {editingMethod && (
@@ -430,83 +953,23 @@ export function PaymentMethodsSettings() {
                 <Label>Nombre del Método</Label>
                 <Input
                   value={editingMethod.name}
-                  onChange={(e) =>
-                    setEditingMethod({ ...editingMethod, name: e.target.value })
-                  }
-                  placeholder="Ej: Transferencia BBVA"
+                  onChange={(e) => setEditingMethod({ ...editingMethod, name: e.target.value })}
+                  placeholder={getSubtypeLabel(editingMethod.subtype)}
+                  className={validationErrors.name ? 'border-destructive' : ''}
                 />
+                {validationErrors.name && (
+                  <p className="text-xs text-destructive">{validationErrors.name}</p>
+                )}
               </div>
 
-              {editingMethod.type === "bank_transfer" && (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Banco</Label>
-                      <Input
-                        value={editingMethod.bank_name}
-                        onChange={(e) =>
-                          setEditingMethod({
-                            ...editingMethod,
-                            bank_name: e.target.value,
-                          })
-                        }
-                        placeholder="BBVA, Santander, etc."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Número de Cuenta</Label>
-                      <Input
-                        value={editingMethod.account_number}
-                        onChange={(e) =>
-                          setEditingMethod({
-                            ...editingMethod,
-                            account_number: e.target.value,
-                          })
-                        }
-                        placeholder="1234567890"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CLABE Interbancaria</Label>
-                    <Input
-                      value={editingMethod.clabe}
-                      onChange={(e) =>
-                        setEditingMethod({
-                          ...editingMethod,
-                          clabe: e.target.value,
-                        })
-                      }
-                      placeholder="18 dígitos"
-                      maxLength={18}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Titular de la Cuenta</Label>
-                    <Input
-                      value={editingMethod.account_holder}
-                      onChange={(e) =>
-                        setEditingMethod({
-                          ...editingMethod,
-                          account_holder: e.target.value,
-                        })
-                      }
-                      placeholder="Nombre del titular"
-                    />
-                  </div>
-                </>
-              )}
+              {/* Dynamic fields based on subtype */}
+              {renderDynamicFields()}
 
               <div className="space-y-2">
                 <Label>Instrucciones para el Comprador</Label>
                 <Textarea
                   value={editingMethod.instructions}
-                  onChange={(e) =>
-                    setEditingMethod({
-                      ...editingMethod,
-                      instructions: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setEditingMethod({ ...editingMethod, instructions: e.target.value })}
                   placeholder="Describe cómo deben realizar el pago..."
                   rows={3}
                 />
@@ -514,7 +977,7 @@ export function PaymentMethodsSettings() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingMethod(null)}>
+            <Button variant="outline" onClick={() => { setEditingMethod(null); setValidationErrors({}); }}>
               <X className="mr-2 h-4 w-4" />
               Cancelar
             </Button>

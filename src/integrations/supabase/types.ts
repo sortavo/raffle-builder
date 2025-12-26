@@ -336,14 +336,21 @@ export type Database = {
           account_holder: string | null
           account_number: string | null
           bank_name: string | null
+          card_number: string | null
           clabe: string | null
           created_at: string | null
           display_order: number | null
           enabled: boolean | null
           id: string
           instructions: string | null
+          location: string | null
           name: string
           organization_id: string
+          payment_link: string | null
+          paypal_email: string | null
+          paypal_link: string | null
+          schedule: string | null
+          subtype: string | null
           type: string
           updated_at: string | null
         }
@@ -351,14 +358,21 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           bank_name?: string | null
+          card_number?: string | null
           clabe?: string | null
           created_at?: string | null
           display_order?: number | null
           enabled?: boolean | null
           id?: string
           instructions?: string | null
+          location?: string | null
           name: string
           organization_id: string
+          payment_link?: string | null
+          paypal_email?: string | null
+          paypal_link?: string | null
+          schedule?: string | null
+          subtype?: string | null
           type: string
           updated_at?: string | null
         }
@@ -366,14 +380,21 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           bank_name?: string | null
+          card_number?: string | null
           clabe?: string | null
           created_at?: string | null
           display_order?: number | null
           enabled?: boolean | null
           id?: string
           instructions?: string | null
+          location?: string | null
           name?: string
           organization_id?: string
+          payment_link?: string | null
+          paypal_email?: string | null
+          paypal_link?: string | null
+          schedule?: string | null
+          subtype?: string | null
           type?: string
           updated_at?: string | null
         }

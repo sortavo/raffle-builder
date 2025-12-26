@@ -26,8 +26,28 @@ import {
   Landmark,
   Wallet,
   CreditCard,
-  Info
+  Info,
+  Store,
+  Pill,
+  ShoppingBag,
+  HandCoins,
+  ArrowRightLeft,
+  MapPin,
+  Clock,
+  ExternalLink
 } from "lucide-react";
+
+// Payment subtype configurations
+const SUBTYPE_CONFIG = {
+  bank_deposit: { label: 'Depósito en ventanilla', icon: Landmark, color: 'text-blue-600' },
+  bank_transfer: { label: 'Transferencia SPEI', icon: ArrowRightLeft, color: 'text-blue-600' },
+  oxxo: { label: 'OXXO Pay', icon: Store, color: 'text-red-600' },
+  pharmacy: { label: 'Farmacias', icon: Pill, color: 'text-green-600' },
+  convenience_store: { label: '7-Eleven / Tiendas', icon: ShoppingBag, color: 'text-orange-600' },
+  paypal: { label: 'PayPal', icon: CreditCard, color: 'text-blue-500' },
+  mercado_pago: { label: 'Mercado Pago', icon: Wallet, color: 'text-sky-500' },
+  cash_in_person: { label: 'Efectivo en persona', icon: HandCoins, color: 'text-emerald-600' },
+} as const;
 
 export default function PaymentInstructions() {
   const { slug } = useParams<{ slug: string }>();
@@ -156,8 +176,17 @@ export default function PaymentInstructions() {
     navigate(`/r/${slug}`);
   };
 
-  const getMethodIcon = (type: string) => {
-    switch (type) {
+  const getMethodIcon = (method: PaymentMethod) => {
+    const m = method as any;
+    const subtype = m.subtype as keyof typeof SUBTYPE_CONFIG | null;
+    
+    if (subtype && SUBTYPE_CONFIG[subtype]) {
+      const Icon = SUBTYPE_CONFIG[subtype].icon;
+      return <Icon className={cn("h-4 w-4", SUBTYPE_CONFIG[subtype].color)} />;
+    }
+    
+    // Fallback to old type system
+    switch (method.type) {
       case "bank_transfer":
         return <Landmark className="h-4 w-4" />;
       case "cash":
@@ -167,127 +196,428 @@ export default function PaymentInstructions() {
     }
   };
 
-  const renderBankTransferDetails = (method: PaymentMethod) => (
-    <div className="space-y-3">
-      {method.bank_name && (
-        <div className="flex items-center gap-2 mb-4">
-          <Landmark className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-lg">{method.bank_name}</span>
+  const getMethodLabel = (method: PaymentMethod) => {
+    const m = method as any;
+    const subtype = m.subtype as keyof typeof SUBTYPE_CONFIG | null;
+    
+    if (subtype && SUBTYPE_CONFIG[subtype]) {
+      return SUBTYPE_CONFIG[subtype].label;
+    }
+    
+    return method.name;
+  };
+
+  const renderPaymentDetails = (method: PaymentMethod) => {
+    const m = method as any;
+    const subtype = m.subtype as string | null;
+    
+    // Bank transfer or deposit
+    if (subtype === 'bank_transfer' || subtype === 'bank_deposit' || method.type === 'bank_transfer') {
+      return (
+        <div className="space-y-3">
+          {method.bank_name && (
+            <div className="flex items-center gap-2 mb-4">
+              <Landmark className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-lg">{method.bank_name}</span>
+            </div>
+          )}
+          
+          {/* Amount */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Monto a depositar</p>
+              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* CLABE */}
+          {method.clabe && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">CLABE Interbancaria</p>
+                <p className="font-mono font-medium">{method.clabe}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.clabe!, `clabe-${method.id}`)}>
+                {copied === `clabe-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Account Number */}
+          {method.account_number && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Número de Cuenta</p>
+                <p className="font-mono font-medium">{method.account_number}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_number!, `account-${method.id}`)}>
+                {copied === `account-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Card Number */}
+          {m.card_number && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Tarjeta de Débito</p>
+                <p className="font-mono font-medium">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
+                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Account Holder */}
+          {method.account_holder && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Titular de la Cuenta</p>
+                <p className="font-medium">{method.account_holder}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
+                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Reference */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Concepto / Referencia</p>
+              <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Instructions */}
+          {method.instructions && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm">{method.instructions}</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      );
+    }
+
+    // Store payments (OXXO, pharmacy, convenience store)
+    if (subtype === 'oxxo' || subtype === 'pharmacy' || subtype === 'convenience_store') {
+      const config = SUBTYPE_CONFIG[subtype as keyof typeof SUBTYPE_CONFIG];
+      const Icon = config?.icon || Store;
       
-      {/* Amount */}
-      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-        <div>
-          <p className="text-sm text-muted-foreground">Monto a depositar</p>
-          <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
-        </div>
-        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-          {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <Icon className={cn("h-5 w-5", config?.color)} />
+            <span className="font-semibold text-lg">{config?.label || 'Tienda'}</span>
+          </div>
 
-      {/* CLABE */}
-      {method.clabe && (
+          {/* Amount */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Monto a depositar</p>
+              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Card Number */}
+          {m.card_number && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Número de Tarjeta</p>
+                <p className="font-mono font-medium text-lg">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
+                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Account Holder */}
+          {method.account_holder && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">A nombre de</p>
+                <p className="font-medium">{method.account_holder}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
+                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* Bank */}
+          {method.bank_name && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Banco</p>
+                <p className="font-medium">{method.bank_name}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Reference */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Referencia</p>
+              <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Instructions */}
+          {method.instructions && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm">{method.instructions}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // PayPal
+    if (subtype === 'paypal') {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="h-5 w-5 text-blue-500" />
+            <span className="font-semibold text-lg">PayPal</span>
+          </div>
+
+          {/* Amount */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* PayPal Email */}
+          {m.paypal_email && (
+            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Email de PayPal</p>
+                <p className="font-medium">{m.paypal_email}</p>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.paypal_email!, `email-${method.id}`)}>
+                {copied === `email-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {/* PayPal Link */}
+          {m.paypal_link && (
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => window.open(m.paypal_link, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Abrir PayPal.me
+            </Button>
+          )}
+
+          {/* Reference */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Nota del pago</p>
+              <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {method.instructions && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm">{method.instructions}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Mercado Pago
+    if (subtype === 'mercado_pago') {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet className="h-5 w-5 text-sky-500" />
+            <span className="font-semibold text-lg">Mercado Pago</span>
+          </div>
+
+          {/* Amount */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Payment Link */}
+          {m.payment_link && (
+            <Button 
+              className="w-full bg-sky-500 hover:bg-sky-600" 
+              onClick={() => window.open(m.payment_link, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Ir a Mercado Pago
+            </Button>
+          )}
+
+          {/* Reference */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Referencia</p>
+              <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {method.instructions && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm">{method.instructions}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Cash in person
+    if (subtype === 'cash_in_person' || method.type === 'cash') {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 mb-4">
+            <HandCoins className="h-5 w-5 text-emerald-600" />
+            <span className="font-semibold text-lg">Efectivo en Persona</span>
+          </div>
+
+          {/* Amount */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            </div>
+          </div>
+
+          {/* Location */}
+          {m.location && (
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Ubicación</p>
+                  <p className="font-medium">{m.location}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Schedule */}
+          {m.schedule && (
+            <div className="p-3 bg-muted rounded-lg">
+              <div className="flex items-start gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Horarios</p>
+                  <p className="font-medium">{m.schedule}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reference */}
+          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Boletos</p>
+              <p className="font-mono font-medium">{tickets.map(t => `#${t.ticket_number}`).join(', ')}</p>
+            </div>
+          </div>
+
+          {method.instructions && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-sm">{method.instructions}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Default / Other
+    return (
+      <div className="space-y-4">
+        {/* Amount */}
         <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">CLABE Interbancaria</p>
-            <p className="font-mono font-medium">{method.clabe}</p>
+            <p className="text-sm text-muted-foreground">Monto a pagar</p>
+            <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.clabe!, `clabe-${method.id}`)}>
-            {copied === `clabe-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+            {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-      )}
 
-      {/* Account Number */}
-      {method.account_number && (
+        {/* Reference */}
         <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Número de Cuenta</p>
-            <p className="font-mono font-medium">{method.account_number}</p>
+            <p className="text-sm text-muted-foreground">Referencia</p>
+            <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_number!, `account-${method.id}`)}>
-            {copied === `account-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+            {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-      )}
 
-      {/* Account Holder */}
-      {method.account_holder && (
-        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-          <div>
-            <p className="text-sm text-muted-foreground">Titular de la Cuenta</p>
-            <p className="font-medium">{method.account_holder}</p>
+        {/* Instructions */}
+        {method.instructions ? (
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm">{method.instructions}</p>
+            </div>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
-            {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-          </Button>
-        </div>
-      )}
-
-      {/* Reference */}
-      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-        <div>
-          <p className="text-sm text-muted-foreground">Concepto / Referencia</p>
-          <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
-        </div>
-        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
-          {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Contacta directamente al organizador para coordinar el pago.
+          </p>
+        )}
       </div>
-
-      {/* Instructions */}
-      {method.instructions && (
-        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p className="text-sm">{method.instructions}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderOtherMethodDetails = (method: PaymentMethod) => (
-    <div className="space-y-4">
-      {/* Amount */}
-      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-        <div>
-          <p className="text-sm text-muted-foreground">Monto a pagar</p>
-          <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
-        </div>
-        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-          {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      {/* Reference */}
-      <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-        <div>
-          <p className="text-sm text-muted-foreground">Referencia</p>
-          <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
-        </div>
-        <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
-          {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      {/* Instructions */}
-      {method.instructions ? (
-        <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-          <div className="flex items-start gap-2">
-            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p className="text-sm">{method.instructions}</p>
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Contacta directamente al organizador para coordinar el pago.
-        </p>
-      )}
-    </div>
-  );
+    );
+  };
 
   const enabledMethods = paymentMethods?.filter(m => m.enabled) || [];
   const hasPaymentMethods = enabledMethods.length > 0;
@@ -354,10 +684,7 @@ export default function PaymentInstructions() {
             ) : enabledMethods.length === 1 ? (
               // Single method - no tabs needed
               <div className="pt-2">
-                {enabledMethods[0].type === "bank_transfer" 
-                  ? renderBankTransferDetails(enabledMethods[0])
-                  : renderOtherMethodDetails(enabledMethods[0])
-                }
+                {renderPaymentDetails(enabledMethods[0])}
               </div>
             ) : (
               // Multiple methods - show tabs
@@ -370,17 +697,14 @@ export default function PaymentInstructions() {
                 )}>
                   {enabledMethods.slice(0, 4).map((method) => (
                     <TabsTrigger key={method.id} value={method.id} className="gap-1 sm:gap-2 px-2 sm:px-3">
-                      {getMethodIcon(method.type)}
+                      {getMethodIcon(method)}
                       <span className="hidden sm:inline truncate">{method.name}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
                 {enabledMethods.map((method) => (
                   <TabsContent key={method.id} value={method.id} className="pt-4">
-                    {method.type === "bank_transfer" 
-                      ? renderBankTransferDetails(method)
-                      : renderOtherMethodDetails(method)
-                    }
+                    {renderPaymentDetails(method)}
                   </TabsContent>
                 ))}
               </Tabs>
