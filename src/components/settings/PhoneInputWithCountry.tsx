@@ -102,11 +102,20 @@ export function PhoneInputWithCountry({
   };
 
   const handleNumberChange = (index: number, number: string) => {
-    // Only allow digits, max 10-12 characters
-    const cleaned = number.replace(/\D/g, '').slice(0, 12);
+    // Only allow digits, max 10 characters
+    const cleaned = number.replace(/\D/g, '').slice(0, 10);
     const newEntries = [...entries];
     newEntries[index] = { ...newEntries[index], number: cleaned };
     onChange(newEntries.map(combinePhoneNumber));
+  };
+
+  // Format number for display: XX XXXX XXXX
+  const formatDisplayNumber = (number: string): string => {
+    if (!number) return "";
+    const digits = number.replace(/\D/g, '');
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
+    return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6, 10)}`;
   };
 
   const displayEntries = entries.length === 0 ? [] : entries;
@@ -153,11 +162,10 @@ export function PhoneInputWithCountry({
             </Select>
             <Input
               type="tel"
-              value={entry.number}
+              value={formatDisplayNumber(entry.number)}
               onChange={(e) => handleNumberChange(index, e.target.value)}
               placeholder="55 1234 5678"
               className="flex-1"
-              maxLength={12}
             />
             <Button
               type="button"
