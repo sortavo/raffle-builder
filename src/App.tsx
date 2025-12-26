@@ -37,7 +37,10 @@ import Analytics from "./pages/dashboard/Analytics";
 import Subscription from "./pages/dashboard/Subscription";
 
 // Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminFinancial from "./pages/admin/AdminFinancial";
+import AdminActivity from "./pages/admin/AdminActivity";
+import AdminUsersDashboard from "./pages/admin/AdminUsersDashboard";
 import AdminOrganizations from "./pages/admin/AdminOrganizations";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -74,7 +77,10 @@ const App = () => (
               <Route path="/dashboard/coupons" element={<Coupons />} />
               <Route path="/dashboard/marketing" element={<Marketing />} />
               {/* Admin Routes - Before public routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminOverview />} />
+              <Route path="/admin/financial" element={<AdminFinancial />} />
+              <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/users-dashboard" element={<AdminUsersDashboard />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
               <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
               <Route path="/admin/users" element={<AdminUsers />} />

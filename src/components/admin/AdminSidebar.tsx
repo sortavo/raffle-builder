@@ -7,30 +7,20 @@ import {
   Users,
   ChevronLeft,
   Shield,
+  DollarSign,
+  Activity,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
-  {
-    title: "Dashboard",
-    url: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Organizaciones",
-    url: "/admin/organizations",
-    icon: Building2,
-  },
-  {
-    title: "Suscripciones",
-    url: "/admin/subscriptions",
-    icon: CreditCard,
-  },
-  {
-    title: "Usuarios",
-    url: "/admin/users",
-    icon: Users,
-  },
+  { title: "Vista General", url: "/admin", icon: LayoutDashboard },
+  { title: "Financiero", url: "/admin/financial", icon: DollarSign },
+  { title: "Actividad", url: "/admin/activity", icon: Activity },
+  { title: "Usuarios", url: "/admin/users-dashboard", icon: UserCircle },
+  { title: "Organizaciones", url: "/admin/organizations", icon: Building2 },
+  { title: "Suscripciones", url: "/admin/subscriptions", icon: CreditCard },
+  { title: "Lista Usuarios", url: "/admin/users", icon: Users },
 ];
 
 export function AdminSidebar() {

@@ -1,8 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { subDays } from "date-fns";
+import { DateRange } from "react-day-picker";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminDateRangePicker } from "@/components/admin/AdminDateRangePicker";
+import { StatCard } from "@/components/admin/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminOverviewStats } from "@/hooks/useAdminStats";
 import {
   Building2,
   Users,
@@ -11,55 +15,8 @@ import {
   Crown,
   Sparkles,
   Gem,
+  Calendar,
 } from "lucide-react";
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  description,
-  loading,
-  color = "primary",
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  description?: string;
-  loading?: boolean;
-  color?: "primary" | "success" | "warning" | "purple";
-}) {
-  const colorClasses = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-emerald-500/10 text-emerald-600",
-    warning: "bg-amber-500/10 text-amber-600",
-    purple: "bg-purple-500/10 text-purple-600",
-  };
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <Skeleton className="h-8 w-24" />
-        ) : (
-          <>
-            <div className="text-2xl font-bold">{value}</div>
-            {description && (
-              <p className="text-xs text-muted-foreground mt-1">{description}</p>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function SubscriptionCard({
   tier,
@@ -91,84 +48,44 @@ function SubscriptionCard({
   );
 }
 
-export default function AdminDashboard() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ["admin-stats"],
-    queryFn: async () => {
-      const [
-        { count: totalOrgs },
-        { count: totalProfiles },
-        { count: totalRaffles },
-        { count: activeRaffles },
-        { count: totalTicketsSold },
-        { data: subscriptionData },
-      ] = await Promise.all([
-        supabase.from("organizations").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("raffles").select("*", { count: "exact", head: true }),
-        supabase
-          .from("raffles")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "active"),
-        supabase
-          .from("tickets")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "sold"),
-        supabase.from("organizations").select("subscription_tier, subscription_status"),
-      ]);
-
-      const subscriptionStats = {
-        basic: 0,
-        pro: 0,
-        premium: 0,
-        trial: 0,
-        active: 0,
-      };
-
-      subscriptionData?.forEach((org) => {
-        if (org.subscription_tier) {
-          subscriptionStats[org.subscription_tier as keyof typeof subscriptionStats]++;
-        }
-        if (org.subscription_status === "trial") {
-          subscriptionStats.trial++;
-        } else if (org.subscription_status === "active") {
-          subscriptionStats.active++;
-        }
-      });
-
-      return {
-        totalOrgs: totalOrgs || 0,
-        totalProfiles: totalProfiles || 0,
-        totalRaffles: totalRaffles || 0,
-        activeRaffles: activeRaffles || 0,
-        totalTicketsSold: totalTicketsSold || 0,
-        subscriptionStats,
-      };
-    },
+export default function AdminOverview() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
   });
+
+  const { data: stats, isLoading } = useAdminOverviewStats(dateRange);
 
   return (
     <AdminLayout
-      title="Dashboard"
-      description="Vista general de la plataforma Sortavo"
+      title="Vista General"
+      description="KPIs principales de la plataforma"
     >
+      {/* Date Range Picker */}
+      <div className="flex justify-end mb-6">
+        <AdminDateRangePicker
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
+      </div>
+
       {/* Main Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Total Organizaciones"
           value={stats?.totalOrgs || 0}
           icon={Building2}
-          description="Organizaciones registradas"
           loading={isLoading}
           color="purple"
+          trend={stats ? { value: stats.newOrgsInPeriod, label: "nuevas en período" } : undefined}
         />
         <StatCard
           title="Total Usuarios"
-          value={stats?.totalProfiles || 0}
+          value={stats?.totalUsers || 0}
           icon={Users}
-          description="Usuarios en la plataforma"
           loading={isLoading}
           color="primary"
+          trend={stats ? { value: stats.newUsersInPeriod, label: "nuevos en período" } : undefined}
         />
         <StatCard
           title="Sorteos Activos"
@@ -182,10 +99,74 @@ export default function AdminDashboard() {
           title="Boletos Vendidos"
           value={stats?.totalTicketsSold?.toLocaleString() || 0}
           icon={Ticket}
-          description="En toda la plataforma"
           loading={isLoading}
           color="warning"
+          trend={stats ? { value: stats.ticketsSoldInPeriod, label: "en período" } : undefined}
         />
+      </div>
+
+      {/* Period Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-purple-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Nuevas Orgs</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.newOrgsInPeriod || 0}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Users className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Nuevos Usuarios</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.newUsersInPeriod || 0}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-emerald-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Nuevos Sorteos</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.newRafflesInPeriod || 0}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Ticket className="h-5 w-5 text-amber-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Boletos Vendidos</p>
+                {isLoading ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats?.ticketsSoldInPeriod?.toLocaleString() || 0}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Subscription Stats */}
