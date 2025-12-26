@@ -1,4 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
+import { useParams } from 'react-router-dom';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,9 +12,15 @@ interface Step1Props {
 }
 
 export const Step1BasicInfo = ({ form }: Step1Props) => {
+  const { id } = useParams();
+  const isEditing = !!id;
+
   const handleTitleChange = (value: string) => {
     form.setValue('title', value);
-    form.setValue('slug', generateSlug(value));
+    // Only auto-generate slug for new raffles, not when editing
+    if (!isEditing) {
+      form.setValue('slug', generateSlug(value));
+    }
   };
 
   return (
