@@ -7,6 +7,7 @@ export interface PaymentMethod {
   id: string;
   organization_id: string;
   type: "bank_transfer" | "cash" | "other";
+  subtype: string | null;
   enabled: boolean;
   display_order: number;
   name: string;
@@ -15,6 +16,12 @@ export interface PaymentMethod {
   account_number: string | null;
   clabe: string | null;
   account_holder: string | null;
+  card_number: string | null;
+  paypal_email: string | null;
+  paypal_link: string | null;
+  payment_link: string | null;
+  location: string | null;
+  schedule: string | null;
   created_at: string;
   updated_at: string;
 }
