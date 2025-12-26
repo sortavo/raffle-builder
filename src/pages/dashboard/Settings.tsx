@@ -55,26 +55,26 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="organization" className="gap-2">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Organización</span>
+          <TabsList className="inline-flex h-auto w-full flex-wrap gap-1 p-1 sm:flex-nowrap sm:overflow-x-auto">
+            <TabsTrigger value="organization" className="flex-1 min-w-fit gap-2 px-3 py-2 text-xs sm:text-sm">
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">Organización</span>
             </TabsTrigger>
-            <TabsTrigger value="payment-methods" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Métodos de Pago</span>
+            <TabsTrigger value="payment-methods" className="flex-1 min-w-fit gap-2 px-3 py-2 text-xs sm:text-sm">
+              <CreditCard className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">Pagos</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notificaciones</span>
+            <TabsTrigger value="notifications" className="flex-1 min-w-fit gap-2 px-3 py-2 text-xs sm:text-sm">
+              <Bell className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">Notificaciones</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Equipo</span>
+            <TabsTrigger value="team" className="flex-1 min-w-fit gap-2 px-3 py-2 text-xs sm:text-sm">
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">Equipo</span>
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="gap-2">
-              <Receipt className="h-4 w-4" />
-              <span className="hidden sm:inline">Suscripción</span>
+            <TabsTrigger value="subscription" className="flex-1 min-w-fit gap-2 px-3 py-2 text-xs sm:text-sm">
+              <Receipt className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">Suscripción</span>
             </TabsTrigger>
           </TabsList>
 
