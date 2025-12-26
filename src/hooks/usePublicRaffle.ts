@@ -18,6 +18,8 @@ export interface RaffleWithStats extends Raffle {
     logo_url: string | null;
     phone: string | null;
     email: string;
+    brand_color: string | null;
+    slug: string | null;
   };
   packages?: {
     id: string;
@@ -38,7 +40,7 @@ export function usePublicRaffle(slug: string | undefined) {
         .from('raffles')
         .select(`
           *,
-          organizations (id, name, logo_url, phone, email)
+          organizations (id, name, logo_url, phone, email, brand_color, slug)
         `)
         .eq('slug', slug)
         .eq('status', 'active')

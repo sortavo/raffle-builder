@@ -63,6 +63,7 @@ const App = () => (
               {/* Organization-based public routes */}
               <Route path="/org/:orgSlug" element={<OrganizationHome />} />
               <Route path="/org/:orgSlug/:slug" element={<PublicRaffle />} />
+              <Route path="/org/:orgSlug/:slug/payment" element={<PaymentInstructions />} />
               {/* Legacy raffle routes */}
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
