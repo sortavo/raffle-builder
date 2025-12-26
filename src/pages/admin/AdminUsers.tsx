@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Mail, Building2, Eye } from "lucide-react";
+import { Search, Users, Mail, Building2, Eye, Crown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -32,6 +32,8 @@ interface Profile {
   organizations: {
     name: string;
     slug: string | null;
+    subscription_tier: "basic" | "pro" | "premium" | null;
+    subscription_status: "active" | "canceled" | "past_due" | "trial" | null;
   } | null;
 }
 
@@ -58,6 +60,19 @@ const roleLabels: Record<string, string> = {
   member: "Miembro",
 };
 
+const tierColors: Record<string, string> = {
+  premium: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-300 dark:from-amber-900/40 dark:to-yellow-900/40 dark:text-amber-300 dark:border-amber-600",
+  pro: "bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border-indigo-300 dark:from-indigo-900/40 dark:to-purple-900/40 dark:text-indigo-300 dark:border-indigo-600",
+  basic: "bg-slate-100 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-600",
+  trial: "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-600",
+};
+
+const tierLabels: Record<string, string> = {
+  premium: "Premium",
+  pro: "Pro",
+  basic: "Básico",
+};
+
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [simulateModalOpen, setSimulateModalOpen] = useState(false);
@@ -76,7 +91,7 @@ export default function AdminUsers() {
           created_at,
           last_login,
           organization_id,
-          organizations:organization_id (name, slug)
+          organizations:organization_id (name, slug, subscription_tier, subscription_status)
         `)
         .order("created_at", { ascending: false });
 
@@ -181,8 +196,8 @@ export default function AdminUsers() {
                   <TableHead>Usuario</TableHead>
                   <TableHead className="hidden md:table-cell">Organización</TableHead>
                   <TableHead>Rol</TableHead>
+                  <TableHead className="hidden sm:table-cell">Plan</TableHead>
                   <TableHead className="hidden lg:table-cell">Registrado</TableHead>
-                  <TableHead className="hidden lg:table-cell">Último acceso</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -201,20 +216,22 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                      <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
                       <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredProfiles?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       No se encontraron usuarios
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredProfiles?.map((profile) => {
                     const role = getRoleForUser(profile.id);
+                    const tier = profile.organizations?.subscription_tier;
+                    const status = profile.organizations?.subscription_status;
                     
                     return (
                       <TableRow key={profile.id}>
@@ -256,15 +273,25 @@ export default function AdminUsers() {
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {tier ? (
+                            <div className="flex items-center gap-1">
+                              {tier === "premium" && <Crown className="h-3 w-3 text-amber-500" />}
+                              <Badge 
+                                variant="outline" 
+                                className={status === "trial" ? tierColors.trial : tierColors[tier]}
+                              >
+                                {status === "trial" ? "Trial" : tierLabels[tier]}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                           {profile.created_at
                             ? format(new Date(profile.created_at), "d MMM yyyy", { locale: es })
                             : "-"}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
-                          {profile.last_login
-                            ? format(new Date(profile.last_login), "d MMM yyyy", { locale: es })
-                            : "Nunca"}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
