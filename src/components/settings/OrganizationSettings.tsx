@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles } from "lucide-react";
+import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles, Eye } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { OrganizationPreview } from "./OrganizationPreview";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
@@ -482,6 +484,27 @@ export function OrganizationSettings() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Live Preview Section */}
+          {slugInput && isValidSlug(slugInput) && slugAvailable !== false && (
+            <Collapsible className="mt-4">
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Ver preview de tu página pública
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <OrganizationPreview
+                  name={form.watch("name") || organization?.name || ""}
+                  slug={slugInput}
+                  logoUrl={organization?.logo_url}
+                  brandColor={form.watch("brand_color") || organization?.brand_color || "#2563EB"}
+                  email={form.watch("email") || organization?.email}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </CardContent>
       </Card>
