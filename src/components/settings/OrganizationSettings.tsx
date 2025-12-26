@@ -56,6 +56,19 @@ const TIMEZONES = [
   { value: "Europe/Madrid", label: "Madrid (GMT+1)" },
 ];
 
+const RESERVED_SLUGS = [
+  "admin", "api", "dashboard", "auth", "login", "logout", "signup", "register",
+  "settings", "config", "app", "www", "mail", "email", "help", "support",
+  "billing", "account", "org", "organization", "user", "users", "static",
+  "assets", "public", "private", "internal", "system", "root", "null", "undefined"
+];
+
+const isReservedSlug = (slug: string): boolean => {
+  return RESERVED_SLUGS.some(reserved => 
+    slug === reserved || slug.startsWith(`${reserved}-`) || slug.endsWith(`-${reserved}`)
+  );
+};
+
 export function OrganizationSettings() {
   const { organization, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -64,6 +77,7 @@ export function OrganizationSettings() {
   const [slugInput, setSlugInput] = useState(organization?.slug || "");
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
   
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
@@ -100,6 +114,8 @@ export function OrganizationSettings() {
 
   // Check slug availability with debounce
   useEffect(() => {
+    setSlugError(null);
+    
     if (!slugInput || slugInput === organization?.slug) {
       setSlugAvailable(null);
       return;
@@ -107,6 +123,13 @@ export function OrganizationSettings() {
 
     if (!isValidSlug(slugInput)) {
       setSlugAvailable(false);
+      setSlugError("Solo letras minúsculas, números y guiones");
+      return;
+    }
+    
+    if (isReservedSlug(slugInput)) {
+      setSlugAvailable(false);
+      setSlugError("Este nombre está reservado por el sistema");
       return;
     }
 
@@ -124,6 +147,9 @@ export function OrganizationSettings() {
           setSlugAvailable(null);
         } else {
           setSlugAvailable(!data);
+          if (data) {
+            setSlugError("Este slug ya está en uso");
+          }
         }
       } catch (err) {
         setSlugAvailable(null);
@@ -143,9 +169,14 @@ export function OrganizationSettings() {
       toast.error("El slug solo puede contener letras minúsculas, números y guiones");
       return;
     }
+    
+    if (slugInput && isReservedSlug(slugInput)) {
+      toast.error("Este nombre está reservado por el sistema");
+      return;
+    }
 
     if (slugInput && slugAvailable === false) {
-      toast.error("Este slug ya está en uso");
+      toast.error(slugError || "Este slug ya está en uso");
       return;
     }
 
@@ -373,9 +404,9 @@ export function OrganizationSettings() {
               </div>
             )}
             
-            {slugAvailable === false && slugInput && !isCheckingSlug && (
+            {slugError && slugInput && !isCheckingSlug && (
               <p className="text-sm text-destructive">
-                Este slug ya está en uso
+                {slugError}
               </p>
             )}
           </div>
