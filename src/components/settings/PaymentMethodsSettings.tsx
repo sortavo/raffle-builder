@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
+import { PaymentMethodsPreview } from "./PaymentMethodsPreview";
 import {
   Select,
   SelectContent,
@@ -1018,6 +1019,9 @@ export function PaymentMethodsSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Buyer Preview */}
+      <PaymentMethodsPreview methods={methods} />
 
       {/* Add Method Dialog - Two-Step Flow */}
       <Dialog open={showAddDialog} onOpenChange={handleCloseAddDialog}>
