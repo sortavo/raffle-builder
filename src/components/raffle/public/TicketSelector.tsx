@@ -482,25 +482,24 @@ export function TicketSelector({
               </div>
             )}
 
-            {/* Go to ticket input */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 flex gap-2">
-                <div className="flex-1 relative z-10">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-20" />
+            {/* Go to ticket input - simplified structure matching Search tab */}
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
                   <Input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Ir al boleto #..."
+                    placeholder="Ir al boleto... (ej: 42)"
                     value={manualFilter}
                     onChange={(e) => setManualFilter(e.target.value.replace(/[^0-9]/g, ''))}
                     onKeyDown={handleManualKeyDown}
-                    className="pl-12 pr-10 h-12 text-lg border-2 focus:border-violet-600 rounded-xl relative z-10"
+                    className="h-12 text-lg border-2 pr-10"
                   />
                   {manualFilter && (
                     <button
                       type="button"
                       onClick={() => setManualFilter('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-20"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       ✕
                     </button>
@@ -521,8 +520,8 @@ export function TicketSelector({
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground pointer-events-none sm:self-center sm:max-w-[420px]">
-                Escribe el número y presiona Enter para ir directamente al boleto. Para buscar coincidencias usa la pestaña "Buscar".
+              <p className="text-xs text-muted-foreground">
+                Escribe el número y presiona Enter para ir directamente al boleto.
               </p>
               
               <div className="flex items-center gap-4">
