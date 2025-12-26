@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, 
   Calendar, 
@@ -18,7 +19,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Zap,
-  Clock,
   Users
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency-utils";
@@ -29,6 +29,8 @@ import { CheckoutModal } from "@/components/raffle/public/CheckoutModal";
 import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { ShareButtons } from "@/components/raffle/public/ShareButtons";
 import { HowItWorks } from "@/components/raffle/public/HowItWorks";
+import { OrganizerSection } from "@/components/raffle/public/OrganizerSection";
+import { FloatingWhatsAppButton } from "@/components/raffle/public/FloatingWhatsAppButton";
 import { UrgencyBadge } from "@/components/marketing/UrgencyBadge";
 import { SocialProof } from "@/components/marketing/SocialProof";
 import { PurchaseToast } from "@/components/marketing/PurchaseToast";
@@ -36,7 +38,6 @@ import { ViewersCount } from "@/components/marketing/ViewersCount";
 import { StickyUrgencyBanner } from "@/components/marketing/StickyUrgencyBanner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
 export default function PublicRaffle() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug?: string }>();
@@ -164,15 +165,18 @@ export default function PublicRaffle() {
   const showStickyBanner = customization.show_sticky_banner !== false;
   const showSocialProof = customization.show_social_proof !== false;
 
-  // Organization branding
-  const orgBrandColor = raffle.organization?.brand_color || "#2563EB";
-  const orgName = raffle.organization?.name || "";
-  const orgLogo = raffle.organization?.logo_url;
+  // Organization branding - ALWAYS available
+  const org = raffle.organization;
+  const orgBrandColor = org?.brand_color || "#2563EB";
+  const orgName = org?.name || "";
+  const orgLogo = org?.logo_url;
+  const orgSlugValue = org?.slug;
+  const hasWhatsApp = !!org?.whatsapp_number;
 
   return (
     <>
       <Helmet>
-        <title>{raffle.title} - {isFromOrganization ? orgName : "Sortavo"}</title>
+        <title>{raffle.title} - {orgName || "Sortavo"}</title>
         <meta name="description" content={raffle.description || `Participa en ${raffle.title}`} />
         <meta property="og:title" content={raffle.title} />
         <meta property="og:description" content={raffle.description || ''} />
@@ -182,46 +186,53 @@ export default function PublicRaffle() {
       </Helmet>
 
       <div className="min-h-screen bg-white">
-        {/* Organization Header - only show when coming from org route */}
-        {isFromOrganization && (
-          <header 
-            className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-sm"
-            style={{ borderBottomColor: `${orgBrandColor}20` }}
-          >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex items-center justify-between h-16">
-                <Link 
-                  to={`/${orgSlug}`}
-                  className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
-                >
+        {/* Organization Header - ALWAYS visible */}
+        <header 
+          className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-sm"
+          style={{ borderBottomColor: `${orgBrandColor}20` }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Link 
+                to={orgSlugValue ? `/${orgSlugValue}` : "#"}
+                className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
+              >
+                {isFromOrganization && (
                   <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                  <Avatar className="h-8 w-8 border" style={{ borderColor: orgBrandColor }}>
-                    <AvatarImage src={orgLogo || undefined} alt={orgName} />
-                    <AvatarFallback 
-                      className="text-xs font-semibold"
-                      style={{ backgroundColor: orgBrandColor, color: "white" }}
-                    >
-                      {orgName.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium hidden sm:inline">{orgName}</span>
-                </Link>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={shareRaffle}
-                    className="text-muted-foreground hover:text-foreground"
+                )}
+                <Avatar className="h-8 w-8 border-2" style={{ borderColor: orgBrandColor }}>
+                  <AvatarImage src={orgLogo || undefined} alt={orgName} />
+                  <AvatarFallback 
+                    className="text-xs font-semibold text-white"
+                    style={{ backgroundColor: orgBrandColor }}
                   >
-                    <Share2 className="w-4 h-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Compartir</span>
-                  </Button>
+                    {orgName.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">{orgName}</span>
+                  {org?.verified && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0">
+                      <CheckCircle2 className="w-3 h-3" />
+                    </Badge>
+                  )}
                 </div>
+              </Link>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={shareRaffle}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Share2 className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Compartir</span>
+                </Button>
               </div>
             </div>
-          </header>
-        )}
+          </div>
+        </header>
 
         {/* Sticky Urgency Banner - conditionally rendered */}
         {showStickyBanner && raffle.draw_date && (
@@ -275,7 +286,10 @@ export default function PublicRaffle() {
 
                   {/* Prize value badge */}
                   {raffle.prize_value && (
-                    <div className="absolute bottom-4 left-4 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl shadow-xl">
+                    <div 
+                      className="absolute bottom-4 left-4 px-6 py-3 rounded-2xl shadow-xl"
+                      style={{ background: `linear-gradient(135deg, ${orgBrandColor}, ${orgBrandColor}cc)` }}
+                    >
                       <div className="text-white">
                         <p className="text-xs font-medium opacity-90">Valor del Premio</p>
                         <p className="text-2xl font-bold">
@@ -303,18 +317,12 @@ export default function PublicRaffle() {
 
               {/* Right: Info */}
               <div className="space-y-6 order-1 lg:order-2">
-                {/* Organization logo */}
-                {raffle.organization?.logo_url && (
-                  <img 
-                    src={raffle.organization.logo_url} 
-                    alt={raffle.organization.name} 
-                    className="h-10 object-contain" 
-                  />
-                )}
-
                 {/* Status badge */}
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium">
+                  <div 
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white"
+                    style={{ backgroundColor: orgBrandColor }}
+                  >
                     <Zap className="w-4 h-4" />
                     Sorteo Activo
                   </div>
@@ -347,8 +355,11 @@ export default function PublicRaffle() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${orgBrandColor}20` }}
+                      >
+                        <Ticket className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: orgBrandColor }} />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm text-gray-600">Precio</p>
@@ -360,8 +371,11 @@ export default function PublicRaffle() {
                   </div>
                   <div className="p-3 sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${orgBrandColor}20` }}
+                      >
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: orgBrandColor }} />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm text-gray-600">Sorteo</p>
@@ -382,15 +396,18 @@ export default function PublicRaffle() {
                     <span className="font-medium text-gray-900">
                       {raffle.ticketsSold} de {raffle.total_tickets} vendidos
                     </span>
-                    <span className="text-violet-600 font-semibold">
+                    <span className="font-semibold" style={{ color: orgBrandColor }}>
                       {Math.round(progress)}%
                     </span>
                   </div>
                   
                   <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
+                      className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${progress}%`,
+                        background: `linear-gradient(90deg, ${orgBrandColor}, ${orgBrandColor}cc)` 
+                      }}
                     >
                       <div className="absolute inset-0 bg-white/20 animate-shimmer"></div>
                     </div>
@@ -405,7 +422,10 @@ export default function PublicRaffle() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     size="lg"
-                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-lg py-6 shadow-xl shadow-violet-500/30 group"
+                    className="flex-1 text-lg py-6 shadow-xl group text-white"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${orgBrandColor}, ${orgBrandColor}dd)`,
+                    }}
                     onClick={scrollToTickets}
                   >
                     <Ticket className="w-5 h-5 mr-2" />
@@ -416,7 +436,7 @@ export default function PublicRaffle() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-2 border-gray-300 hover:border-violet-600 hover:text-violet-600 py-6"
+                    className="border-2 border-gray-300 hover:border-gray-400 py-6"
                     onClick={shareRaffle}
                   >
                     <Share2 className="w-5 h-5 mr-2" />
@@ -446,7 +466,10 @@ export default function PublicRaffle() {
 
         {/* Countdown Section */}
         {raffle.draw_date && (
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 py-8">
+          <div 
+            className="py-8"
+            style={{ background: `linear-gradient(135deg, ${orgBrandColor}, ${orgBrandColor}dd)` }}
+          >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-4">
                 <p className="text-white/80 text-sm font-medium uppercase tracking-wider">El sorteo se realizará en</p>
@@ -503,6 +526,30 @@ export default function PublicRaffle() {
             <HowItWorks />
           </div>
         </div>
+
+        {/* About the Organizer Section */}
+        {org && (
+          <OrganizerSection
+            organization={{
+              id: org.id,
+              name: org.name,
+              logo_url: org.logo_url,
+              slug: org.slug,
+              description: org.description,
+              whatsapp_number: org.whatsapp_number,
+              facebook_url: org.facebook_url,
+              instagram_url: org.instagram_url,
+              tiktok_url: org.tiktok_url,
+              website_url: org.website_url,
+              city: org.city,
+              verified: org.verified,
+              brand_color: org.brand_color,
+              created_at: org.created_at,
+            }}
+            raffleTitle={raffle.title}
+            brandColor={orgBrandColor}
+          />
+        )}
 
         {/* FAQ Section - Dynamic */}
         {(() => {
@@ -599,6 +646,15 @@ export default function PublicRaffle() {
               <p>Powered by <span className="font-semibold text-violet-600">Sortavo</span></p>
             </div>
           </footer>
+        )}
+
+        {/* Floating WhatsApp Button */}
+        {hasWhatsApp && org?.whatsapp_number && (
+          <FloatingWhatsAppButton
+            whatsappNumber={org.whatsapp_number}
+            organizationName={orgName}
+            raffleTitle={raffle.title}
+          />
         )}
 
         {/* Checkout Modal */}
