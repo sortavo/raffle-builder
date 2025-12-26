@@ -349,77 +349,114 @@ export function OrganizationSettings() {
               Solo letras minúsculas, números y guiones. Ejemplo: mi-organizacion
             </p>
             
-            {/* URL Preview - Always show when there's a valid slug */}
-            {slugInput && isValidSlug(slugInput) && (
-              <div className={`p-3 rounded-lg border ${
-                slugInput === organization?.slug 
-                  ? 'bg-green-500/10 border-green-500/30' 
-                  : 'bg-muted border-border'
-              }`}>
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2">
+            {/* Tu URL Section - Always visible */}
+            <div className="mt-3">
+              <Label className="text-sm font-medium mb-2 block">Tu URL</Label>
+              
+              {/* Case 1: Has valid slugInput */}
+              {slugInput && isValidSlug(slugInput) && (
+                <div className={`p-3 rounded-lg border ${
+                  slugInput === organization?.slug 
+                    ? 'bg-green-500/10 border-green-500/30' 
+                    : 'bg-muted border-border'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
                     <Badge 
                       variant={slugInput === organization?.slug ? "default" : "secondary"}
                       className={slugInput === organization?.slug ? "bg-green-600" : ""}
                     >
                       {slugInput === organization?.slug ? "URL Activa" : "Vista previa"}
                     </Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopyUrl(getOrganizationPublicUrl(slugInput))}
-                      className="h-7 px-2"
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1" />
-                      Copiar
-                    </Button>
-                    {slugInput === organization?.slug && (
+                    <div className="flex items-center gap-1">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        asChild
+                        onClick={() => handleCopyUrl(getOrganizationPublicUrl(slugInput))}
                         className="h-7 px-2"
                       >
-                        <a href={getOrganizationPublicUrl(slugInput)} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                          Visitar
-                        </a>
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copiar
                       </Button>
-                    )}
+                      {slugInput === organization?.slug && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className="h-7 px-2"
+                        >
+                          <a href={getOrganizationPublicUrl(slugInput)} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            Visitar
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </div>
+                  <code className={`text-sm break-all block ${
+                    slugInput === organization?.slug 
+                      ? 'text-green-700 dark:text-green-400' 
+                      : 'text-foreground'
+                  }`}>
+                    {getOrganizationPublicUrl(slugInput)}
+                  </code>
+                  {slugInput !== organization?.slug && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Guarda los cambios para activar esta URL
+                    </p>
+                  )}
                 </div>
-                <code className={`text-sm break-all block ${
-                  slugInput === organization?.slug 
-                    ? 'text-green-700 dark:text-green-400' 
-                    : 'text-foreground'
-                }`}>
-                  {getOrganizationPublicUrl(slugInput)}
-                </code>
-              </div>
-            )}
-            
-            {/* Slug suggestion - only when empty */}
-            {!slugInput && suggestedSlug && (
-              <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm text-muted-foreground flex-1">
-                  Sugerencia basada en tu nombre: <span className="font-mono text-foreground">{suggestedSlug}</span>
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={applySuggestedSlug}
-                  className="shrink-0"
-                >
-                  Usar sugerencia
-                </Button>
-              </div>
-            )}
+              )}
+              
+              {/* Case 2: Empty input but has suggestion */}
+              {!slugInput && suggestedSlug && (
+                <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Badge variant="outline">Sugerencia</Badge>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyUrl(getOrganizationPublicUrl(suggestedSlug))}
+                        className="h-7 px-2"
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copiar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={applySuggestedSlug}
+                        className="h-7"
+                      >
+                        Usar sugerencia
+                      </Button>
+                    </div>
+                  </div>
+                  <code className="text-sm break-all block text-foreground">
+                    {getOrganizationPublicUrl(suggestedSlug)}
+                  </code>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Basada en el nombre de tu organización
+                  </p>
+                </div>
+              )}
+              
+              {/* Case 3: Empty input and no suggestion */}
+              {!slugInput && !suggestedSlug && (
+                <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Escribe un identificador arriba para ver tu URL
+                  </p>
+                </div>
+              )}
+            </div>
             
             {slugError && slugInput && !isCheckingSlug && (
               <p className="text-sm text-destructive">
