@@ -549,14 +549,39 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                 alt="Comprobante de pago"
                 className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
               />
-              <a
-                href={selectedTicket.payment_proof_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm text-sm px-3 py-1.5 rounded-lg border hover:bg-background transition-colors"
-              >
-                Abrir en nueva pestaña
-              </a>
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(selectedTicket.payment_proof_url);
+                      const blob = await response.blob();
+                      const url = URL.createObjectURL(blob);
+                      const extension = selectedTicket.payment_proof_url.split('.').pop()?.split('?')[0] || 'jpg';
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `comprobante-boleto-${selectedTicket.ticket_number}.${extension}`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    } catch (error) {
+                      console.error('Error downloading image:', error);
+                    }
+                  }}
+                  className="bg-background/90 backdrop-blur-sm text-sm px-3 py-1.5 rounded-lg border hover:bg-background transition-colors flex items-center gap-1.5"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar
+                </button>
+                <a
+                  href={selectedTicket.payment_proof_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-background/90 backdrop-blur-sm text-sm px-3 py-1.5 rounded-lg border hover:bg-background transition-colors"
+                >
+                  Abrir en nueva pestaña
+                </a>
+              </div>
             </div>
           )}
         </DialogContent>
