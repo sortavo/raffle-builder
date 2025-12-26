@@ -486,18 +486,21 @@ export function TicketSelector({
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 flex gap-2">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
                   <Input
+                    type="text"
+                    inputMode="numeric"
                     placeholder="Ir al boleto #..."
                     value={manualFilter}
                     onChange={(e) => setManualFilter(e.target.value.replace(/[^0-9]/g, ''))}
                     onKeyDown={handleManualKeyDown}
-                    className="pl-12 pr-10 h-12 text-lg border-2 focus:border-violet-600 rounded-xl"
+                    className="pl-12 pr-10 h-12 text-lg border-2 focus:border-violet-600 rounded-xl relative z-0"
                   />
                   {manualFilter && (
                     <button
+                      type="button"
                       onClick={() => setManualFilter('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
                     >
                       ✕
                     </button>
