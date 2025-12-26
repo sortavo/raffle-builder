@@ -33,7 +33,7 @@ export default function Pricing() {
         { text: 'Aprobación manual de pagos', included: true },
         { text: 'Marca "Powered by Sortavo" visible', included: 'partial' },
       ],
-      cta: 'Empezar Gratis 14 días',
+      cta: 'Prueba 7 días gratis',
       ctaLink: '/auth?tab=signup&plan=basic',
     },
     {
@@ -55,7 +55,7 @@ export default function Pricing() {
         { text: 'API de sorteo de Lotería Nacional', included: true },
         { text: 'Múltiples métodos de pago', included: true },
       ],
-      cta: 'Empezar Prueba Gratuita',
+      cta: 'Empezar ahora',
       ctaLink: '/auth?tab=signup&plan=pro',
     },
     {
@@ -85,7 +85,7 @@ export default function Pricing() {
   const faqs = [
     {
       question: '¿Hay período de prueba?',
-      answer: 'Sí, todos los planes incluyen 14 días de prueba gratuita sin compromiso. No necesitas tarjeta de crédito para empezar.',
+      answer: 'El plan Básico incluye 7 días de prueba gratuita sin compromiso. Los planes Pro y Premium no incluyen período de prueba, pero puedes cancelar en cualquier momento.',
     },
     {
       question: '¿Puedo cambiar de plan después?',

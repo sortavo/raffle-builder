@@ -54,6 +54,14 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://sortavo.com";
     
+    // Basic plan price IDs - only these get 7 day trial
+    const BASIC_PRICE_IDS = [
+      "price_1ShldQRk7xhLUSttlw5O8LPm", // monthly
+      "price_1ShldlRk7xhLUSttMCfocNpN", // annual
+    ];
+    const isBasicPlan = BASIC_PRICE_IDS.includes(priceId);
+    logStep("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0 });
+    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -69,6 +77,11 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
       },
+      ...(isBasicPlan && {
+        subscription_data: {
+          trial_period_days: 7,
+        },
+      }),
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
