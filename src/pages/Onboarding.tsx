@@ -11,10 +11,11 @@ import { Ticket, Loader2, ArrowLeft, ArrowRight, Check, Building2, CreditCard, S
 import { cn } from "@/lib/utils";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { z } from "zod";
+import { SinglePhoneInput } from "@/components/ui/SinglePhoneInput";
 
 const businessInfoSchema = z.object({
   businessName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  phone: z.string().refine((val) => val.replace(/\D/g, "").length >= 12, "El teléfono debe tener al menos 10 dígitos"),
 });
 
 const steps = [
@@ -237,17 +238,12 @@ export default function Onboarding() {
               
               <div className="space-y-2">
                 <Label htmlFor="phone">Teléfono de contacto</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+52 55 1234 5678"
+                <SinglePhoneInput
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={errors.phone ? "border-destructive" : ""}
+                  onChange={setPhone}
+                  error={errors.phone}
+                  defaultCountryCode="+52"
                 />
-                {errors.phone && (
-                  <p className="text-sm text-destructive">{errors.phone}</p>
-                )}
               </div>
 
               <div className="flex justify-end pt-4">
