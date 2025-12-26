@@ -106,7 +106,7 @@ export default function PublicRaffle() {
     setCheckoutOpen(false);
     // Navigate to payment page, preserving organization context
     const paymentPath = isFromOrganization 
-      ? `/org/${orgSlug}/${slug}/payment`
+      ? `/${orgSlug}/${slug}/payment`
       : `/r/${slug}/payment`;
     navigate(paymentPath, {
       state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email },
@@ -191,7 +191,7 @@ export default function PublicRaffle() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <Link 
-                  to={`/org/${orgSlug}`}
+                  to={`/${orgSlug}`}
                   className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
                 >
                   <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

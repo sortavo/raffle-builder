@@ -32,7 +32,7 @@ export function getRafflePublicUrl(
   const baseUrl = getBaseUrl();
   
   if (organizationSlug) {
-    return `${baseUrl}/org/${organizationSlug}/${raffleSlug}`;
+    return `${baseUrl}/${organizationSlug}/${raffleSlug}`;
   }
   
   return `${baseUrl}/r/${raffleSlug}`;
@@ -43,7 +43,7 @@ export function getRafflePublicUrl(
  */
 export function getOrganizationPublicUrl(organizationSlug: string): string {
   const baseUrl = getBaseUrl();
-  return `${baseUrl}/org/${organizationSlug}`;
+  return `${baseUrl}/${organizationSlug}`;
 }
 
 /**
@@ -54,7 +54,7 @@ export function getRaffleRelativePath(
   organizationSlug?: string | null
 ): string {
   if (organizationSlug) {
-    return `/org/${organizationSlug}/${raffleSlug}`;
+    return `/${organizationSlug}/${raffleSlug}`;
   }
   return `/r/${raffleSlug}`;
 }
@@ -63,7 +63,7 @@ export function getRaffleRelativePath(
  * Get the relative path for an organization landing page
  */
 export function getOrganizationRelativePath(organizationSlug: string): string {
-  return `/org/${organizationSlug}`;
+  return `/${organizationSlug}`;
 }
 
 /**

@@ -66,10 +66,6 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/help" element={<HelpCenter />} />
-              {/* Organization-based public routes */}
-              <Route path="/org/:orgSlug" element={<OrganizationHome />} />
-              <Route path="/org/:orgSlug/:slug" element={<PublicRaffle />} />
-              <Route path="/org/:orgSlug/:slug/payment" element={<PaymentInstructions />} />
               {/* Legacy raffle routes */}
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
@@ -79,6 +75,10 @@ const App = () => (
               {/* Legal Routes */}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              {/* Organization-based public routes - MUST be last before catch-all */}
+              <Route path="/:orgSlug" element={<OrganizationHome />} />
+              <Route path="/:orgSlug/:slug" element={<PublicRaffle />} />
+              <Route path="/:orgSlug/:slug/payment" element={<PaymentInstructions />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

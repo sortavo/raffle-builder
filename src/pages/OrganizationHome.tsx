@@ -157,7 +157,7 @@ export default function OrganizationHome() {
                           className="w-full group/btn"
                           style={{ backgroundColor: brandColor }}
                         >
-                          <Link to={`/org/${orgSlug}/${raffle.slug}`}>
+                          <Link to={`/${orgSlug}/${raffle.slug}`}>
                             Participar
                             <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                           </Link>
