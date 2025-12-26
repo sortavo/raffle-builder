@@ -136,16 +136,19 @@ export function SlotMachineAnimation({
 }: SlotMachineAnimationProps) {
   const [stoppedCount, setStoppedCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (isSpinning) {
       setStoppedCount(0);
       setShowConfetti(false);
+      completedRef.current = false;
     }
   }, [isSpinning]);
 
   useEffect(() => {
-    if (stoppedCount === numbers.length && numbers.length > 0) {
+    if (stoppedCount === numbers.length && numbers.length > 0 && !completedRef.current) {
+      completedRef.current = true;
       setShowConfetti(true);
       onComplete?.();
       

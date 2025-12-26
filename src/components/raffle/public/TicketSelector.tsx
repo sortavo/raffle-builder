@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,7 @@ export function TicketSelector({
   const [regenerateCount, setRegenerateCount] = useState(0);
   const [isSlotSpinning, setIsSlotSpinning] = useState(false);
   const [pendingNumbers, setPendingNumbers] = useState<string[]>([]);
+  const pendingNumbersRef = useRef<string[]>([]);
 
   const pageSize = 100;
   const totalPages = Math.ceil(totalTickets / pageSize);
@@ -136,31 +137,36 @@ export function TicketSelector({
       // Start spinning animation
       setIsSlotSpinning(true);
       setPendingNumbers([]);
+      pendingNumbersRef.current = [];
       
       const numbers = await randomMutation.mutateAsync({
         raffleId,
         count: randomCount,
       });
       
-      // Set pending numbers for the animation to reveal
+      // Set pending numbers for the animation to reveal - both state and ref
+      pendingNumbersRef.current = numbers;
       setPendingNumbers(numbers);
       
       // The animation will complete and call handleSlotComplete
     } catch (error) {
       setIsSlotSpinning(false);
       setPendingNumbers([]);
+      pendingNumbersRef.current = [];
       // Error handled by mutation
     }
   };
 
   const handleSlotComplete = useCallback(() => {
     setIsSlotSpinning(false);
-    if (pendingNumbers.length > 0) {
-      setGeneratedNumbers(pendingNumbers);
-      setSelectedTickets(pendingNumbers);
-      toast.success(`${pendingNumbers.length} boletos aleatorios seleccionados`);
+    // Use ref to avoid stale closure issue
+    const numbers = pendingNumbersRef.current;
+    if (numbers.length > 0) {
+      setGeneratedNumbers(numbers);
+      setSelectedTickets(numbers);
+      toast.success(`${numbers.length} boletos aleatorios seleccionados`);
     }
-  }, [pendingNumbers]);
+  }, []);
 
   const handleRegenerate = async () => {
     if (regenerateCount >= 3) {
