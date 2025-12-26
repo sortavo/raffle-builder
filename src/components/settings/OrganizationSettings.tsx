@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles, Eye, Facebook, Instagram, Globe, MessageCircle, MapPin, Image } from "lucide-react";
+import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles, Eye, Facebook, Instagram, Globe, MessageCircle, MapPin, Image, Mail, Phone } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { OrganizationPreview } from "./OrganizationPreview";
+import { MultiContactInput } from "./MultiContactInput";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
@@ -28,8 +29,6 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 const organizationSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().optional(),
   country_code: z.string().min(2, "Selecciona un país"),
   currency_code: z.string().min(3, "Selecciona una moneda"),
   timezone: z.string().min(1, "Selecciona una zona horaria"),
@@ -41,7 +40,6 @@ const organizationSchema = z.object({
   facebook_url: z.string().url("URL inválida").optional().or(z.literal("")),
   instagram_url: z.string().url("URL inválida").optional().or(z.literal("")),
   tiktok_url: z.string().url("URL inválida").optional().or(z.literal("")),
-  whatsapp_number: z.string().optional(),
 });
 
 type OrganizationFormData = z.infer<typeof organizationSchema>;
@@ -84,6 +82,11 @@ export function OrganizationSettings() {
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
   
+  // State for multiple contacts (arrays)
+  const [emails, setEmails] = useState<string[]>([]);
+  const [phones, setPhones] = useState<string[]>([]);
+  const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>([]);
+  
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
   const isChangingSlug = hasExistingSlug && slugInput !== organization?.slug;
@@ -94,6 +97,17 @@ export function OrganizationSettings() {
       setSlugInput(organization.slug);
     }
   }, [organization?.slug]);
+  
+  // Sync contact arrays with organization data
+  useEffect(() => {
+    if (organization) {
+      const org = organization as any;
+      // Use the new array fields, falling back to legacy single values
+      setEmails(org.emails?.length > 0 ? org.emails : (org.email ? [org.email] : []));
+      setPhones(org.phones?.length > 0 ? org.phones : (org.phone ? [org.phone] : []));
+      setWhatsappNumbers(org.whatsapp_numbers?.length > 0 ? org.whatsapp_numbers : (org.whatsapp_number ? [org.whatsapp_number] : []));
+    }
+  }, [organization]);
   
   const handleCopyUrl = async (url: string) => {
     try {
@@ -114,8 +128,6 @@ export function OrganizationSettings() {
     resolver: zodResolver(organizationSchema),
     defaultValues: {
       name: organization?.name || "",
-      email: organization?.email || "",
-      phone: organization?.phone || "",
       country_code: organization?.country_code || "MX",
       currency_code: organization?.currency_code || "MXN",
       timezone: organization?.timezone || "America/Mexico_City",
@@ -127,7 +139,6 @@ export function OrganizationSettings() {
       facebook_url: (organization as any)?.facebook_url || "",
       instagram_url: (organization as any)?.instagram_url || "",
       tiktok_url: (organization as any)?.tiktok_url || "",
-      whatsapp_number: (organization as any)?.whatsapp_number || "",
     },
   });
 
@@ -136,8 +147,6 @@ export function OrganizationSettings() {
     if (organization) {
       form.reset({
         name: organization.name || "",
-        email: organization.email || "",
-        phone: organization.phone || "",
         country_code: organization.country_code || "MX",
         currency_code: organization.currency_code || "MXN",
         timezone: organization.timezone || "America/Mexico_City",
@@ -149,7 +158,6 @@ export function OrganizationSettings() {
         facebook_url: (organization as any)?.facebook_url || "",
         instagram_url: (organization as any)?.instagram_url || "",
         tiktok_url: (organization as any)?.tiktok_url || "",
-        whatsapp_number: (organization as any)?.whatsapp_number || "",
       });
     }
   }, [organization]);
@@ -224,12 +232,30 @@ export function OrganizationSettings() {
 
     setIsSubmitting(true);
     try {
+      // Filter out empty values from arrays
+      const filteredEmails = emails.filter(e => e.trim());
+      const filteredPhones = phones.filter(p => p.trim());
+      const filteredWhatsapps = whatsappNumbers.filter(w => w.trim());
+      
+      // Validate at least one email
+      if (filteredEmails.length === 0) {
+        toast.error("Debes agregar al menos un email de contacto");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const { error } = await supabase
         .from("organizations")
         .update({
           name: data.name,
-          email: data.email,
-          phone: data.phone || null,
+          // Store first values in legacy fields for compatibility
+          email: filteredEmails[0] || organization?.email,
+          phone: filteredPhones[0] || null,
+          whatsapp_number: filteredWhatsapps[0] || null,
+          // Store arrays in new fields
+          emails: filteredEmails,
+          phones: filteredPhones,
+          whatsapp_numbers: filteredWhatsapps,
           country_code: data.country_code,
           currency_code: data.currency_code,
           timezone: data.timezone,
@@ -241,7 +267,6 @@ export function OrganizationSettings() {
           facebook_url: data.facebook_url || null,
           instagram_url: data.instagram_url || null,
           tiktok_url: data.tiktok_url || null,
-          whatsapp_number: data.whatsapp_number || null,
         })
         .eq("id", organization.id);
 
@@ -642,7 +667,7 @@ export function OrganizationSettings() {
                   slug={slugInput}
                   logoUrl={organization?.logo_url}
                   brandColor={form.watch("brand_color") || organization?.brand_color || "#2563EB"}
-                  email={form.watch("email") || organization?.email}
+                  email={emails[0] || organization?.email}
                 />
               </CollapsibleContent>
             </Collapsible>
@@ -673,30 +698,6 @@ export function OrganizationSettings() {
                     {form.formState.errors.name.message}
                   </p>
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email de Contacto</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...form.register("email")}
-                  placeholder="contacto@ejemplo.com"
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono (opcional)</Label>
-                <Input
-                  id="phone"
-                  {...form.register("phone")}
-                  placeholder="+52 55 1234 5678"
-                />
               </div>
 
               <div className="space-y-2">
@@ -800,24 +801,49 @@ export function OrganizationSettings() {
               </div>
             </div>
 
+            {/* Contact Information Section - Multi-contact inputs */}
+            <div className="pt-4 border-t">
+              <h3 className="text-sm font-medium mb-4">Información de Contacto</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Puedes agregar hasta 5 de cada tipo de contacto
+              </p>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <MultiContactInput
+                  label="Email"
+                  icon={<Mail className="h-4 w-4" />}
+                  values={emails}
+                  onChange={setEmails}
+                  placeholder="contacto@ejemplo.com"
+                  type="email"
+                  required
+                  helperText="El primer email será el principal"
+                />
+                
+                <MultiContactInput
+                  label="Teléfono"
+                  icon={<Phone className="h-4 w-4" />}
+                  values={phones}
+                  onChange={setPhones}
+                  placeholder="+52 55 1234 5678"
+                  type="tel"
+                />
+                
+                <MultiContactInput
+                  label="WhatsApp"
+                  icon={<MessageCircle className="h-4 w-4" />}
+                  values={whatsappNumbers}
+                  onChange={setWhatsappNumbers}
+                  placeholder="+52 55 1234 5678"
+                  type="tel"
+                  helperText="Incluye el código de país"
+                />
+              </div>
+            </div>
+
             {/* Social Links Section */}
             <div className="pt-4 border-t">
-              <h3 className="text-sm font-medium mb-4">Redes Sociales y Contacto</h3>
+              <h3 className="text-sm font-medium mb-4">Redes Sociales</h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp_number">
-                    <MessageCircle className="inline h-4 w-4 mr-1" />
-                    WhatsApp
-                  </Label>
-                  <Input
-                    id="whatsapp_number"
-                    {...form.register("whatsapp_number")}
-                    placeholder="+52 55 1234 5678"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Incluye el código de país
-                  </p>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="website_url">

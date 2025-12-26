@@ -34,6 +34,10 @@ interface OrganizerSectionProps {
     verified: boolean | null;
     brand_color: string | null;
     created_at: string | null;
+    // New array fields (optional for backward compatibility)
+    emails?: string[] | null;
+    phones?: string[] | null;
+    whatsapp_numbers?: string[] | null;
   };
   raffleTitle: string;
   brandColor: string;
@@ -61,10 +65,15 @@ export function OrganizerSection({ organization, raffleTitle, brandColor }: Orga
 
   const timeOnPlatform = getTimeOnPlatform();
 
-  // WhatsApp link with pre-filled message
+  // Get all whatsapp numbers (use array if available, fallback to single)
+  const whatsappList = organization.whatsapp_numbers?.filter(w => w) || 
+    (organization.whatsapp_number ? [organization.whatsapp_number] : []);
+  
+  // Primary WhatsApp link with pre-filled message
   const whatsappMessage = `¡Hola! Vi su sorteo "${raffleTitle}" y tengo una pregunta.`;
-  const whatsappLink = organization.whatsapp_number 
-    ? `https://wa.me/${organization.whatsapp_number.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`
+  const primaryWhatsapp = whatsappList[0];
+  const whatsappLink = primaryWhatsapp 
+    ? `https://wa.me/${primaryWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`
     : null;
 
   return (
@@ -178,6 +187,11 @@ export function OrganizerSection({ organization, raffleTitle, brandColor }: Orga
                     <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
                       <MessageCircle className="w-5 h-5 mr-2" />
                       Contactar por WhatsApp
+                      {whatsappList.length > 1 && (
+                        <span className="ml-1 text-xs opacity-75">
+                          (+{whatsappList.length - 1})
+                        </span>
+                      )}
                     </a>
                   </Button>
                 )}

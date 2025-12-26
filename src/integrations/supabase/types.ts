@@ -209,6 +209,7 @@ export type Database = {
           currency_code: string | null
           description: string | null
           email: string
+          emails: string[] | null
           facebook_url: string | null
           id: string
           instagram_url: string | null
@@ -218,6 +219,7 @@ export type Database = {
           name: string
           onboarding_completed: boolean | null
           phone: string | null
+          phones: string[] | null
           slug: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -239,6 +241,7 @@ export type Database = {
           verified: boolean | null
           website_url: string | null
           whatsapp_number: string | null
+          whatsapp_numbers: string[] | null
         }
         Insert: {
           brand_color?: string | null
@@ -249,6 +252,7 @@ export type Database = {
           currency_code?: string | null
           description?: string | null
           email: string
+          emails?: string[] | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
@@ -258,6 +262,7 @@ export type Database = {
           name: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          phones?: string[] | null
           slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -279,6 +284,7 @@ export type Database = {
           verified?: boolean | null
           website_url?: string | null
           whatsapp_number?: string | null
+          whatsapp_numbers?: string[] | null
         }
         Update: {
           brand_color?: string | null
@@ -289,6 +295,7 @@ export type Database = {
           currency_code?: string | null
           description?: string | null
           email?: string
+          emails?: string[] | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
@@ -298,6 +305,7 @@ export type Database = {
           name?: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          phones?: string[] | null
           slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -319,6 +327,7 @@ export type Database = {
           verified?: boolean | null
           website_url?: string | null
           whatsapp_number?: string | null
+          whatsapp_numbers?: string[] | null
         }
         Relationships: []
       }
