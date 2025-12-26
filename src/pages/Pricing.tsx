@@ -77,8 +77,8 @@ export default function Pricing() {
         { text: 'Subdominios personalizados', included: true },
         { text: 'White-label completo', included: true },
       ],
-      cta: 'Contactar Ventas',
-      ctaLink: 'mailto:sales@sortavo.com',
+      cta: 'Empezar ahora',
+      ctaLink: '/auth?tab=signup&plan=premium',
     },
   ];
 
@@ -216,21 +216,12 @@ export default function Pricing() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  {plan.key === 'premium' ? (
-                    <Button asChild variant="outline" className="w-full">
-                      <a href={plan.ctaLink}>
-                        {plan.cta}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button asChild className="w-full" variant={plan.popular ? 'default' : 'outline'}>
-                      <Link to={plan.ctaLink}>
-                        {plan.cta}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  )}
+                  <Button asChild className="w-full" variant={plan.popular ? 'default' : 'outline'}>
+                    <Link to={plan.ctaLink}>
+                      {plan.cta}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </CardFooter>
               </Card>
             );
