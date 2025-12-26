@@ -305,9 +305,9 @@ function SortableMethodCard({ method, onEdit, onDelete, onToggle, isToggling }: 
 
 export function PaymentMethodsSettings() {
   const { methods, isLoading, createMethod, updateMethod, deleteMethod, toggleMethod, reorderMethods } = usePaymentMethods();
-  const [editingMethod, setEditingMethod] = useState<EditingMethod | null>(null);
+const [editingMethod, setEditingMethod] = useState<EditingMethod | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [selectedSubtype, setSelectedSubtype] = useState<PaymentSubtype>('bank_transfer');
+  const [selectedSubtypes, setSelectedSubtypes] = useState<PaymentSubtype[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [customBankName, setCustomBankName] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -441,11 +441,49 @@ export function PaymentMethodsSettings() {
     setValidationErrors({});
   };
 
-  const handleAddMethod = () => {
+  const handleAddMethods = async () => {
+    if (selectedSubtypes.length === 0) return;
+    
+    // Create each selected method
+    for (const subtype of selectedSubtypes) {
+      const methodData = getDefaultEditingMethod(subtype);
+      let type: 'bank_transfer' | 'cash' | 'other' = 'other';
+      if (subtype === 'bank_transfer' || subtype === 'bank_deposit') {
+        type = 'bank_transfer';
+      } else if (subtype === 'cash_in_person') {
+        type = 'cash';
+      }
+      
+      await createMethod.mutateAsync({
+        type,
+        subtype,
+        name: methodData.name,
+        instructions: null,
+        enabled: true,
+        display_order: methods.length,
+        bank_name: null,
+        account_number: null,
+        clabe: null,
+        account_holder: null,
+        card_number: null,
+        paypal_email: null,
+        paypal_link: null,
+        payment_link: null,
+        location: null,
+        schedule: null,
+      });
+    }
+    
     setShowAddDialog(false);
-    setEditingMethod(getDefaultEditingMethod(selectedSubtype));
-    setCustomBankName('');
-    setValidationErrors({});
+    setSelectedSubtypes([]);
+  };
+
+  const toggleSubtypeSelection = (subtype: PaymentSubtype) => {
+    setSelectedSubtypes(prev => 
+      prev.includes(subtype)
+        ? prev.filter(s => s !== subtype)
+        : [...prev, subtype]
+    );
   };
 
   const handleEditMethod = (method: PaymentMethod) => {
@@ -768,7 +806,7 @@ export function PaymentMethodsSettings() {
               Configura cómo los compradores pueden pagarte. Arrastra para reordenar.
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={methods.length >= 10} className="shadow-sm">
+          <Button onClick={() => setShowAddDialog(true)} disabled={methods.length >= 20} className="shadow-sm">
             <Plus className="mr-2 h-4 w-4" />
             Agregar Método
           </Button>
@@ -805,21 +843,21 @@ export function PaymentMethodsSettings() {
               </SortableContext>
             </DndContext>
           )}
-          {methods.length >= 10 && (
+          {methods.length >= 20 && (
             <p className="text-sm text-muted-foreground text-center">
-              Has alcanzado el límite de 10 métodos de pago
+              Has alcanzado el límite de 20 métodos de pago
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Add Method Dialog - Subtype Selector */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+      {/* Add Method Dialog - Multi-Select Subtype Selector */}
+      <Dialog open={showAddDialog} onOpenChange={(open) => { setShowAddDialog(open); if (!open) setSelectedSubtypes([]); }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Agregar Método de Pago</DialogTitle>
+            <DialogTitle>Agregar Métodos de Pago</DialogTitle>
             <DialogDescription>
-              Selecciona el tipo de método que deseas agregar
+              Selecciona los métodos que deseas agregar (puedes seleccionar varios)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -829,23 +867,29 @@ export function PaymentMethodsSettings() {
                 <Landmark className="h-4 w-4" /> Métodos Bancarios
               </h4>
               <div className="space-y-2">
-                {subtypesByCategory.bank.map(subtype => (
-                  <button
-                    key={subtype.id}
-                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                      selectedSubtype === subtype.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedSubtype(subtype.id)}
-                  >
-                    <subtype.icon className="h-5 w-5 shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium text-sm">{subtype.label}</p>
-                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                    </div>
-                  </button>
-                ))}
+                {subtypesByCategory.bank.map(subtype => {
+                  const isSelected = selectedSubtypes.includes(subtype.id);
+                  return (
+                    <button
+                      key={subtype.id}
+                      className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground/50"
+                      }`}
+                      onClick={() => toggleSubtypeSelection(subtype.id)}
+                    >
+                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <subtype.icon className="h-5 w-5 shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium text-sm">{subtype.label}</p>
+                        <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -855,23 +899,29 @@ export function PaymentMethodsSettings() {
                 <Store className="h-4 w-4" /> Tiendas y Depósitos
               </h4>
               <div className="space-y-2">
-                {subtypesByCategory.store.map(subtype => (
-                  <button
-                    key={subtype.id}
-                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                      selectedSubtype === subtype.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedSubtype(subtype.id)}
-                  >
-                    <subtype.icon className="h-5 w-5 shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium text-sm">{subtype.label}</p>
-                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                    </div>
-                  </button>
-                ))}
+                {subtypesByCategory.store.map(subtype => {
+                  const isSelected = selectedSubtypes.includes(subtype.id);
+                  return (
+                    <button
+                      key={subtype.id}
+                      className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground/50"
+                      }`}
+                      onClick={() => toggleSubtypeSelection(subtype.id)}
+                    >
+                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <subtype.icon className="h-5 w-5 shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium text-sm">{subtype.label}</p>
+                        <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -881,23 +931,29 @@ export function PaymentMethodsSettings() {
                 <Wallet className="h-4 w-4" /> Pagos Digitales
               </h4>
               <div className="space-y-2">
-                {subtypesByCategory.digital.map(subtype => (
-                  <button
-                    key={subtype.id}
-                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                      selectedSubtype === subtype.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedSubtype(subtype.id)}
-                  >
-                    <subtype.icon className="h-5 w-5 shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium text-sm">{subtype.label}</p>
-                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                    </div>
-                  </button>
-                ))}
+                {subtypesByCategory.digital.map(subtype => {
+                  const isSelected = selectedSubtypes.includes(subtype.id);
+                  return (
+                    <button
+                      key={subtype.id}
+                      className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground/50"
+                      }`}
+                      onClick={() => toggleSubtypeSelection(subtype.id)}
+                    >
+                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <subtype.icon className="h-5 w-5 shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium text-sm">{subtype.label}</p>
+                        <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -907,32 +963,46 @@ export function PaymentMethodsSettings() {
                 <HandCoins className="h-4 w-4" /> Efectivo
               </h4>
               <div className="space-y-2">
-                {subtypesByCategory.cash.map(subtype => (
-                  <button
-                    key={subtype.id}
-                    className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                      selectedSubtype === subtype.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-muted-foreground/50"
-                    }`}
-                    onClick={() => setSelectedSubtype(subtype.id)}
-                  >
-                    <subtype.icon className="h-5 w-5 shrink-0" />
-                    <div className="text-left">
-                      <p className="font-medium text-sm">{subtype.label}</p>
-                      <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                    </div>
-                  </button>
-                ))}
+                {subtypesByCategory.cash.map(subtype => {
+                  const isSelected = selectedSubtypes.includes(subtype.id);
+                  return (
+                    <button
+                      key={subtype.id}
+                      className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-muted-foreground/50"
+                      }`}
+                      onClick={() => toggleSubtypeSelection(subtype.id)}
+                    >
+                      <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                      <subtype.icon className="h-5 w-5 shrink-0" />
+                      <div className="text-left">
+                        <p className="font-medium text-sm">{subtype.label}</p>
+                        <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="text-sm text-muted-foreground mr-auto">
+              {selectedSubtypes.length > 0 && `${selectedSubtypes.length} seleccionado${selectedSubtypes.length > 1 ? 's' : ''}`}
+            </div>
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); setSelectedSubtypes([]); }}>
               Cancelar
             </Button>
-            <Button onClick={handleAddMethod}>
-              Continuar
+            <Button onClick={handleAddMethods} disabled={selectedSubtypes.length === 0 || createMethod.isPending}>
+              {createMethod.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              Agregar {selectedSubtypes.length > 0 ? `(${selectedSubtypes.length})` : ''}
             </Button>
           </DialogFooter>
         </DialogContent>
