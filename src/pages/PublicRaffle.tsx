@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Loader2, 
   Calendar, 
@@ -15,6 +16,7 @@ import {
   Shield, 
   CheckCircle2, 
   ChevronRight,
+  ChevronLeft,
   Zap,
   Clock,
   Users
@@ -37,13 +39,16 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export default function PublicRaffle() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, orgSlug } = useParams<{ slug: string; orgSlug?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const ticketsRef = useRef<HTMLDivElement>(null);
   const { data: raffle, isLoading, error } = usePublicRaffle(slug);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  
+  // Detect if we're coming from organization route
+  const isFromOrganization = !!orgSlug;
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -99,7 +104,11 @@ export default function PublicRaffle() {
     buyerData: { name: string; email: string }
   ) => {
     setCheckoutOpen(false);
-    navigate(`/r/${slug}/payment`, {
+    // Navigate to payment page, preserving organization context
+    const paymentPath = isFromOrganization 
+      ? `/org/${orgSlug}/${slug}/payment`
+      : `/r/${slug}/payment`;
+    navigate(paymentPath, {
       state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email },
     });
   };
@@ -155,10 +164,15 @@ export default function PublicRaffle() {
   const showStickyBanner = customization.show_sticky_banner !== false;
   const showSocialProof = customization.show_social_proof !== false;
 
+  // Organization branding
+  const orgBrandColor = raffle.organization?.brand_color || "#2563EB";
+  const orgName = raffle.organization?.name || "";
+  const orgLogo = raffle.organization?.logo_url;
+
   return (
     <>
       <Helmet>
-        <title>{raffle.title} - Sortavo</title>
+        <title>{raffle.title} - {isFromOrganization ? orgName : "Sortavo"}</title>
         <meta name="description" content={raffle.description || `Participa en ${raffle.title}`} />
         <meta property="og:title" content={raffle.title} />
         <meta property="og:description" content={raffle.description || ''} />
@@ -168,6 +182,47 @@ export default function PublicRaffle() {
       </Helmet>
 
       <div className="min-h-screen bg-white">
+        {/* Organization Header - only show when coming from org route */}
+        {isFromOrganization && (
+          <header 
+            className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-sm"
+            style={{ borderBottomColor: `${orgBrandColor}20` }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <Link 
+                  to={`/org/${orgSlug}`}
+                  className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                  <Avatar className="h-8 w-8 border" style={{ borderColor: orgBrandColor }}>
+                    <AvatarImage src={orgLogo || undefined} alt={orgName} />
+                    <AvatarFallback 
+                      className="text-xs font-semibold"
+                      style={{ backgroundColor: orgBrandColor, color: "white" }}
+                    >
+                      {orgName.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium hidden sm:inline">{orgName}</span>
+                </Link>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={shareRaffle}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Share2 className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Compartir</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </header>
+        )}
+
         {/* Sticky Urgency Banner - conditionally rendered */}
         {showStickyBanner && raffle.draw_date && (
           <StickyUrgencyBanner
