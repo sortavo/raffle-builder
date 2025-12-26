@@ -78,19 +78,19 @@ export default function Settings() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="organization">
+          <TabsContent value="organization" className="animate-fade-in">
             <OrganizationSettings />
           </TabsContent>
 
-          <TabsContent value="payment-methods">
+          <TabsContent value="payment-methods" className="animate-fade-in">
             <PaymentMethodsSettings />
           </TabsContent>
 
-          <TabsContent value="notifications">
+          <TabsContent value="notifications" className="animate-fade-in">
             <NotificationPreferences />
           </TabsContent>
 
-          <TabsContent value="team">
+          <TabsContent value="team" className="animate-fade-in">
             <ProtectedAction
               resource="team"
               action="create"
@@ -107,7 +107,7 @@ export default function Settings() {
             </ProtectedAction>
           </TabsContent>
 
-          <TabsContent value="subscription">
+          <TabsContent value="subscription" className="animate-fade-in">
             <ProtectedAction
               resource="subscription"
               action="update"
