@@ -78,15 +78,15 @@ export function SubscriptionSettings() {
   return (
     <div className="space-y-6">
       {/* Current Plan */}
-      <Card>
-        <CardHeader>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+        <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2.5 rounded-xl bg-primary/10 shadow-sm">
                 <PlanIcon className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   Plan {currentPlan?.name}
                   <Badge className={status.color}>{status.label}</Badge>
                 </CardTitle>
@@ -148,9 +148,9 @@ export function SubscriptionSettings() {
       </Card>
 
       {/* Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Uso Actual</CardTitle>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Uso Actual</CardTitle>
           <CardDescription>
             Tu consumo en el período actual
           </CardDescription>
@@ -190,9 +190,9 @@ export function SubscriptionSettings() {
       </Card>
 
       {/* Features */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Características del Plan</CardTitle>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Características del Plan</CardTitle>
           <CardDescription>
             Lo que incluye tu plan {currentPlan?.name}
           </CardDescription>
@@ -208,7 +208,7 @@ export function SubscriptionSettings() {
           </ul>
 
           {currentTier !== "premium" && (
-            <div className="mt-6 p-4 rounded-lg border border-dashed">
+            <div className="mt-6 p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
               <h4 className="font-medium mb-2">
                 ¿Necesitas más?
               </h4>
@@ -225,9 +225,9 @@ export function SubscriptionSettings() {
       </Card>
 
       {/* Billing History Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Facturación</CardTitle>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Historial de Facturación</CardTitle>
           <CardDescription>
             Tus facturas y recibos de pago
           </CardDescription>

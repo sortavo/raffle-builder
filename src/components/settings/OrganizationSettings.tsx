@@ -208,15 +208,15 @@ export function OrganizationSettings() {
   return (
     <div className="space-y-6">
       {/* Logo Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo de la Organización</CardTitle>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Logo de la Organización</CardTitle>
           <CardDescription>
             Este logo aparecerá en tus sorteos públicos
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-6">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24 ring-2 ring-border/50 ring-offset-2 ring-offset-background">
             <AvatarImage src={organization?.logo_url || undefined} />
             <AvatarFallback className="bg-primary/10 text-primary text-2xl">
               <Building2 className="h-10 w-10" />
@@ -227,6 +227,7 @@ export function OrganizationSettings() {
               variant="outline"
               disabled={isUploadingLogo}
               onClick={() => document.getElementById("logo-upload")?.click()}
+              className="shadow-sm"
             >
               {isUploadingLogo ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -250,10 +251,10 @@ export function OrganizationSettings() {
       </Card>
 
       {/* Public URL / Slug Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <LinkIcon className="h-5 w-5 text-primary" />
             URL Pública de la Organización
           </CardTitle>
           <CardDescription>
@@ -308,9 +309,9 @@ export function OrganizationSettings() {
       </Card>
 
       {/* Organization Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Información de la Organización</CardTitle>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Información de la Organización</CardTitle>
           <CardDescription>
             Datos básicos de tu organización
           </CardDescription>

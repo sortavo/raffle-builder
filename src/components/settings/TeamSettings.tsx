@@ -224,15 +224,15 @@ export function TeamSettings() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
-            <CardTitle>Equipo</CardTitle>
+            <CardTitle className="text-lg">Equipo</CardTitle>
             <CardDescription>
               Administra los miembros de tu organización
             </CardDescription>
           </div>
-          <Button onClick={() => setShowInviteDialog(true)}>
+          <Button onClick={() => setShowInviteDialog(true)} className="shadow-sm">
             <UserPlus className="mr-2 h-4 w-4" />
             Invitar Miembro
           </Button>
@@ -254,11 +254,11 @@ export function TeamSettings() {
                 const isCurrentUser = member.user_id === user?.id;
                 const isOwner = member.role === "owner";
 
-                return (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
-                  >
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card/50 shadow-sm hover:shadow-md transition-all duration-300"
+                    >
                     <div className="flex items-center gap-4">
                       <Avatar>
                         <AvatarImage src={member.profile?.avatar_url || undefined} />
@@ -341,10 +341,10 @@ export function TeamSettings() {
 
       {/* Pending Invitations */}
       {pendingInvites && pendingInvites.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+        <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Clock className="h-5 w-5 text-primary" />
               Invitaciones Pendientes
             </CardTitle>
             <CardDescription>
@@ -360,7 +360,7 @@ export function TeamSettings() {
               return (
                 <div
                   key={invite.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-dashed"
+                  className="flex items-center justify-between p-4 rounded-xl border border-dashed border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors duration-300"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-muted">

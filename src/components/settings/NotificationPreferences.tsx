@@ -212,9 +212,9 @@ export function NotificationPreferences() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Bell className="h-5 w-5 text-primary" />
             Preferencias de Notificaciones
           </CardTitle>
@@ -225,9 +225,9 @@ export function NotificationPreferences() {
         <CardContent className="space-y-6">
           {/* Master toggles */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -245,9 +245,9 @@ export function NotificationPreferences() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
                   <Smartphone className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -330,7 +330,7 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Clear notifications */}
-      <Card>
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>

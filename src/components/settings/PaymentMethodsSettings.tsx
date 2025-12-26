@@ -123,7 +123,7 @@ function SortableMethodCard({ method, onEdit, onDelete, onToggle, isToggling }: 
     <Card 
       ref={setNodeRef} 
       style={style} 
-      className={`${!method.enabled ? "opacity-60" : ""} ${isDragging ? "shadow-lg ring-2 ring-primary" : ""}`}
+      className={`border-border/50 shadow-sm hover:shadow-md transition-all duration-300 ${!method.enabled ? "opacity-60" : ""} ${isDragging ? "shadow-lg ring-2 ring-primary" : ""}`}
     >
       <CardContent className="flex items-start gap-4 p-4">
         <div 
@@ -293,15 +293,15 @@ export function PaymentMethodsSettings() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
-            <CardTitle>Métodos de Pago</CardTitle>
+            <CardTitle className="text-lg">Métodos de Pago</CardTitle>
             <CardDescription>
               Configura cómo los compradores pueden pagarte. Arrastra para reordenar.
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={methods.length >= 10}>
+          <Button onClick={() => setShowAddDialog(true)} disabled={methods.length >= 10} className="shadow-sm">
             <Plus className="mr-2 h-4 w-4" />
             Agregar Método
           </Button>
