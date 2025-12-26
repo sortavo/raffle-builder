@@ -3,14 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Upload, X, GripVertical, Play, Image as ImageIcon, Film, Youtube, Plus } from "lucide-react";
+import { Loader2, Upload, X, GripVertical, Play, Image as ImageIcon, Film, Youtube, Plus, Video } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
 export interface CoverMediaItem {
-  type: "image" | "video" | "youtube";
+  type: "image" | "video" | "youtube" | "vimeo";
   url: string;
   order: number;
 }
@@ -41,8 +41,27 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+// Extract Vimeo video ID from various URL formats
+function extractVimeoId(url: string): string | null {
+  const patterns = [
+    /vimeo\.com\/(\d+)/,
+    /player\.vimeo\.com\/video\/(\d+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
 function getYouTubeThumbnail(videoId: string): string {
   return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+}
+
+function getVimeoThumbnail(videoId: string): string {
+  // Vimeo doesn't have a simple thumbnail URL, we'll use a placeholder style
+  return `https://vumbnail.com/${videoId}.jpg`;
 }
 
 function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
@@ -61,6 +80,7 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
   };
 
   const youtubeId = item.type === "youtube" ? extractYouTubeId(item.url) : null;
+  const vimeoId = item.type === "vimeo" ? extractVimeoId(item.url) : null;
 
   return (
     <div
@@ -82,6 +102,21 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
             <Play className="h-8 w-8 text-white fill-white" />
           </div>
         </div>
+      ) : item.type === "vimeo" && vimeoId ? (
+        <div className="relative w-full h-full">
+          <img 
+            src={getVimeoThumbnail(vimeoId)} 
+            alt="Vimeo" 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback if vumbnail.com fails
+              (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231ab7ea' width='100' height='100'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14' font-family='sans-serif'%3EVimeo%3C/text%3E%3C/svg%3E";
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <Play className="h-8 w-8 text-white fill-white" />
+          </div>
+        </div>
       ) : item.type === "video" ? (
         <div className="relative w-full h-full">
           <video src={item.url} className="w-full h-full object-cover" muted />
@@ -97,6 +132,8 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
       <div className="absolute top-1 left-1 bg-black/60 rounded px-1.5 py-0.5 flex items-center gap-1">
         {item.type === "youtube" ? (
           <Youtube className="h-3 w-3 text-red-500" />
+        ) : item.type === "vimeo" ? (
+          <Video className="h-3 w-3 text-[#1ab7ea]" />
         ) : item.type === "video" ? (
           <Film className="h-3 w-3 text-white" />
         ) : (
@@ -131,8 +168,8 @@ export function CoverMediaUploader({
   maxItems = 10 
 }: CoverMediaUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [showYoutubeInput, setShowYoutubeInput] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [showVideoInput, setShowVideoInput] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -162,38 +199,49 @@ export function CoverMediaUploader({
     onChange(newMedia);
   };
 
-  const handleAddYoutube = () => {
-    if (!youtubeUrl.trim()) return;
+  const handleAddVideo = () => {
+    if (!videoUrl.trim()) return;
     
     if (media.length >= maxItems) {
       toast.error(`Máximo ${maxItems} medios permitidos`);
       return;
     }
 
-    const videoId = extractYouTubeId(youtubeUrl.trim());
-    if (!videoId) {
-      toast.error("URL de YouTube inválida");
-      return;
-    }
-
+    const url = videoUrl.trim();
+    
     // Check if already exists
-    if (media.some(m => m.url === youtubeUrl.trim())) {
+    if (media.some(m => m.url === url)) {
       toast.error("Este video ya está agregado");
       return;
     }
 
-    onChange([
-      ...media,
-      {
-        type: "youtube",
-        url: youtubeUrl.trim(),
-        order: media.length,
-      },
-    ]);
-    
-    setYoutubeUrl("");
-    setShowYoutubeInput(false);
-    toast.success("Video de YouTube agregado");
+    // Try YouTube first
+    const youtubeId = extractYouTubeId(url);
+    if (youtubeId) {
+      onChange([
+        ...media,
+        { type: "youtube", url, order: media.length },
+      ]);
+      setVideoUrl("");
+      setShowVideoInput(false);
+      toast.success("Video de YouTube agregado");
+      return;
+    }
+
+    // Try Vimeo
+    const vimeoId = extractVimeoId(url);
+    if (vimeoId) {
+      onChange([
+        ...media,
+        { type: "vimeo", url, order: media.length },
+      ]);
+      setVideoUrl("");
+      setShowVideoInput(false);
+      toast.success("Video de Vimeo agregado");
+      return;
+    }
+
+    toast.error("URL no válida. Soportamos YouTube y Vimeo.");
   };
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -314,43 +362,46 @@ export function CoverMediaUploader({
               />
             </label>
 
-            {/* YouTube button */}
+            {/* YouTube/Vimeo button */}
             <button
               type="button"
-              onClick={() => setShowYoutubeInput(!showYoutubeInput)}
+              onClick={() => setShowVideoInput(!showVideoInput)}
               className={cn(
-                "h-24 w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-red-500/50 hover:bg-red-500/5 transition-colors",
-                showYoutubeInput && "border-red-500 bg-red-500/10"
+                "h-24 w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-muted transition-colors",
+                showVideoInput && "border-primary bg-primary/10"
               )}
             >
-              <Youtube className="h-5 w-5 text-red-500" />
-              <span className="text-[10px] text-muted-foreground">YouTube</span>
+              <div className="flex items-center gap-1">
+                <Youtube className="h-4 w-4 text-red-500" />
+                <Video className="h-4 w-4 text-[#1ab7ea]" />
+              </div>
+              <span className="text-[10px] text-muted-foreground">YouTube/Vimeo</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* YouTube URL input */}
-      {showYoutubeInput && (
+      {/* Video URL input */}
+      {showVideoInput && (
         <div className="flex gap-2">
           <Input
             type="url"
-            placeholder="https://youtube.com/watch?v=..."
-            value={youtubeUrl}
-            onChange={(e) => setYoutubeUrl(e.target.value)}
+            placeholder="https://youtube.com/... o https://vimeo.com/..."
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
             className="flex-1"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handleAddYoutube();
+                handleAddVideo();
               }
             }}
           />
           <Button 
             type="button" 
             size="sm" 
-            onClick={handleAddYoutube}
-            disabled={!youtubeUrl.trim()}
+            onClick={handleAddVideo}
+            disabled={!videoUrl.trim()}
           >
             <Plus className="h-4 w-4 mr-1" />
             Agregar
@@ -359,7 +410,7 @@ export function CoverMediaUploader({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Arrastra para reordenar. Máximo {maxItems} medios. Imágenes: JPG, PNG, GIF, WebP (máx 5MB). Videos: MP4, WebM (máx 50MB) o YouTube.
+        Arrastra para reordenar. Máximo {maxItems} medios. Imágenes: JPG, PNG, GIF, WebP (máx 5MB). Videos: MP4, WebM (máx 50MB), YouTube o Vimeo.
       </p>
     </div>
   );

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Play, Pause } from "lucide-react";
 
 export interface CoverMediaItem {
-  type: "image" | "video" | "youtube";
+  type: "image" | "video" | "youtube" | "vimeo";
   url: string;
   order?: number;
 }
@@ -20,6 +20,20 @@ function extractYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s?]+)/,
     /youtube\.com\/shorts\/([^&\s?]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+// Extract Vimeo video ID from various URL formats
+function extractVimeoId(url: string): string | null {
+  const patterns = [
+    /vimeo\.com\/(\d+)/,
+    /player\.vimeo\.com\/video\/(\d+)/,
   ];
   
   for (const pattern of patterns) {
@@ -54,19 +68,19 @@ export function CoverCarousel({
     setCurrentIndex(index);
   };
 
-  // Auto-advance timer (pause for YouTube videos)
+  // Auto-advance timer (pause for embedded videos)
   useEffect(() => {
-    const isYoutube = currentItem?.type === "youtube";
+    const isEmbedded = currentItem?.type === "youtube" || currentItem?.type === "vimeo";
     
-    if (!hasMultipleItems || isPaused || isVideoPlaying || isYoutube) {
+    if (!hasMultipleItems || isPaused || isVideoPlaying || isEmbedded) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
       
-      // For YouTube, advance after a longer interval since we can't detect when it ends
-      if (isYoutube && hasMultipleItems && !isPaused) {
-        timerRef.current = setTimeout(goToNext, 15000); // 15 seconds for YouTube
+      // For embedded videos, advance after a longer interval since we can't detect when it ends
+      if (isEmbedded && hasMultipleItems && !isPaused) {
+        timerRef.current = setTimeout(goToNext, 15000); // 15 seconds for embedded videos
       }
       
       return;
@@ -124,6 +138,7 @@ export function CoverCarousel({
       {/* Media items */}
       {sortedMedia.map((item, index) => {
         const youtubeId = item.type === "youtube" ? extractYouTubeId(item.url) : null;
+        const vimeoId = item.type === "vimeo" ? extractVimeoId(item.url) : null;
         
         return (
           <div
@@ -140,6 +155,14 @@ export function CoverCarousel({
                 allow="autoplay; encrypted-media"
                 allowFullScreen
                 title="YouTube video"
+              />
+            ) : item.type === "vimeo" && vimeoId ? (
+              <iframe
+                src={`https://player.vimeo.com/video/${vimeoId}?autoplay=${index === currentIndex ? 1 : 0}&muted=1&loop=1&background=1&title=0&byline=0&portrait=0`}
+                className="w-full h-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                title="Vimeo video"
               />
             ) : item.type === "video" ? (
               <video
@@ -187,7 +210,7 @@ export function CoverCarousel({
       )}
 
       {/* Pause indicator */}
-      {hasMultipleItems && isPaused && !isVideoPlaying && currentItem?.type !== "youtube" && (
+      {hasMultipleItems && isPaused && !isVideoPlaying && currentItem?.type !== "youtube" && currentItem?.type !== "vimeo" && (
         <div className="absolute top-4 right-4 z-30 bg-black/50 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Pause className="h-4 w-4 text-white" />
         </div>
