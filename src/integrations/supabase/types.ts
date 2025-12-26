@@ -336,11 +336,13 @@ export type Database = {
           account_holder: string | null
           account_number: string | null
           bank_name: string | null
+          bank_select_value: string | null
           card_number: string | null
           clabe: string | null
           created_at: string | null
           display_order: number | null
           enabled: boolean | null
+          group_id: string | null
           id: string
           instructions: string | null
           location: string | null
@@ -358,11 +360,13 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           bank_name?: string | null
+          bank_select_value?: string | null
           card_number?: string | null
           clabe?: string | null
           created_at?: string | null
           display_order?: number | null
           enabled?: boolean | null
+          group_id?: string | null
           id?: string
           instructions?: string | null
           location?: string | null
@@ -380,11 +384,13 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           bank_name?: string | null
+          bank_select_value?: string | null
           card_number?: string | null
           clabe?: string | null
           created_at?: string | null
           display_order?: number | null
           enabled?: boolean | null
+          group_id?: string | null
           id?: string
           instructions?: string | null
           location?: string | null

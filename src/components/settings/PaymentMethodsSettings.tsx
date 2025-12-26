@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,6 @@ import {
   GripVertical,
   Edit2,
   Check,
-  X,
   Loader2,
   Store,
   Pill,
@@ -52,7 +51,9 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -74,7 +75,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { BankBadge, BankSelectItem } from "@/components/ui/BankBadge";
-import { BANK_NAMES, getBankConfig } from "@/lib/bank-config";
+import { BANK_NAMES } from "@/lib/bank-config";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Payment subtypes with categories
 const PAYMENT_SUBTYPES = [
@@ -103,8 +109,9 @@ interface EditingMethod {
   name: string;
   instructions: string;
   enabled: boolean;
-  // Bank fields
-  bank_name: string;
+  // Bank selection
+  bank_select_value: string; // The dropdown value ('BBVA', 'Banamex', 'Otro', etc.)
+  bank_name: string; // The actual bank name (same as select or custom text)
   account_number: string;
   clabe: string;
   account_holder: string;
@@ -116,6 +123,8 @@ interface EditingMethod {
   // Cash in person fields
   location: string;
   schedule: string;
+  // Grouping
+  group_id: string | null;
 }
 
 const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
@@ -125,6 +134,7 @@ const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
     name: subtypeInfo?.label || 'Nuevo método',
     instructions: "",
     enabled: true,
+    bank_select_value: "",
     bank_name: "",
     account_number: "",
     clabe: "",
@@ -135,6 +145,7 @@ const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
     payment_link: "",
     location: "",
     schedule: "",
+    group_id: null,
   };
 };
 
@@ -176,132 +187,186 @@ const isValidUrl = (url: string): boolean => {
   }
 };
 
-interface SortableMethodCardProps {
-  method: PaymentMethod;
+// Group methods by group_id for display
+interface MethodGroup {
+  groupId: string | null;
+  methods: PaymentMethod[];
+  bankName: string | null;
+  accountHolder: string | null;
+}
+
+function groupMethodsByAccount(methods: PaymentMethod[]): MethodGroup[] {
+  const groups = new Map<string, PaymentMethod[]>();
+  const ungrouped: PaymentMethod[] = [];
+  
+  methods.forEach(method => {
+    if (method.group_id) {
+      const existing = groups.get(method.group_id) || [];
+      groups.set(method.group_id, [...existing, method]);
+    } else {
+      ungrouped.push(method);
+    }
+  });
+  
+  const result: MethodGroup[] = [];
+  
+  // Add grouped methods
+  groups.forEach((groupMethods, groupId) => {
+    const firstMethod = groupMethods[0];
+    result.push({
+      groupId,
+      methods: groupMethods,
+      bankName: firstMethod.bank_name,
+      accountHolder: firstMethod.account_holder,
+    });
+  });
+  
+  // Add ungrouped methods as individual groups
+  ungrouped.forEach(method => {
+    result.push({
+      groupId: null,
+      methods: [method],
+      bankName: method.bank_name,
+      accountHolder: method.account_holder,
+    });
+  });
+  
+  return result;
+}
+
+interface AccountCardProps {
+  group: MethodGroup;
   onEdit: (method: PaymentMethod) => void;
-  onDelete: (id: string) => void;
+  onDelete: (groupId: string | null, methodIds: string[]) => void;
   onToggle: (method: PaymentMethod) => void;
   isToggling: boolean;
 }
 
-function SortableMethodCard({ method, onEdit, onDelete, onToggle, isToggling }: SortableMethodCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: method.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const subtype = (method as any).subtype as PaymentSubtype | null;
-
+function AccountCard({ group, onEdit, onDelete, onToggle, isToggling }: AccountCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const allEnabled = group.methods.every(m => m.enabled);
+  const someEnabled = group.methods.some(m => m.enabled);
+  const firstMethod = group.methods[0];
+  
+  const methodIds = group.methods.map(m => m.id);
+  
   return (
-    <Card 
-      ref={setNodeRef} 
-      style={style} 
-      className={`border-border/50 shadow-sm hover:shadow-md transition-all duration-300 ${!method.enabled ? "opacity-60" : ""} ${isDragging ? "shadow-lg ring-2 ring-primary" : ""}`}
-    >
-      <CardContent className="flex items-start gap-4 p-4">
-        <div 
-          className="flex items-center gap-2 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-5 w-5" />
-        </div>
-        
-        <div className={`p-2 rounded-lg ${method.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-          {getIcon(subtype || method.type)}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-medium">{method.name}</h4>
-            <span className="text-xs bg-secondary px-2 py-0.5 rounded">
-              {getSubtypeLabel(subtype || method.type)}
-            </span>
+    <Card className={`border-border/50 shadow-sm hover:shadow-md transition-all duration-300 ${!someEnabled ? "opacity-60" : ""}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          <div className={`p-2 rounded-lg ${someEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+            {firstMethod.bank_name ? (
+              <Landmark className="h-5 w-5" />
+            ) : (
+              getIcon(firstMethod.subtype)
+            )}
           </div>
-          
-          {/* Bank info with badge */}
-          {(subtype === 'bank_transfer' || subtype === 'bank_deposit' || method.type === 'bank_transfer') && (
-            <>
-              {method.bank_name && (
-                <div className="mt-1">
-                  <BankBadge bankName={method.bank_name} size="sm" />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              {group.bankName && (
+                <BankBadge bankName={group.bankName} size="sm" />
+              )}
+              {!group.bankName && (
+                <h4 className="font-medium">{firstMethod.name}</h4>
+              )}
+            </div>
+            
+            {/* Methods as chips */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {group.methods.map(method => (
+                <span 
+                  key={method.id} 
+                  className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                    method.enabled 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {getIcon(method.subtype)}
+                  {getSubtypeLabel(method.subtype)}
+                </span>
+              ))}
+            </div>
+
+            {/* Account info */}
+            {firstMethod.clabe && (
+              <p className="text-sm text-muted-foreground font-mono">
+                CLABE: {firstMethod.clabe}
+              </p>
+            )}
+            {firstMethod.account_holder && (
+              <p className="text-sm text-muted-foreground">
+                {firstMethod.account_holder}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(firstMethod)}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              onClick={() => onDelete(group.groupId, methodIds)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Switch
+              checked={allEnabled}
+              onCheckedChange={() => {
+                // Toggle all methods in the group
+                group.methods.forEach(m => onToggle(m));
+              }}
+              disabled={isToggling}
+            />
+          </div>
+        </div>
+
+        {/* Expandable section for individual method controls */}
+        {group.methods.length > 1 && (
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full mt-2 text-muted-foreground">
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Ocultar métodos individuales
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Ver {group.methods.length} métodos
+                  </>
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-2">
+              {group.methods.map(method => (
+                <div 
+                  key={method.id} 
+                  className="flex items-center justify-between p-2 rounded bg-muted/50"
+                >
+                  <div className="flex items-center gap-2">
+                    {getIcon(method.subtype)}
+                    <span className="text-sm">{getSubtypeLabel(method.subtype)}</span>
+                  </div>
+                  <Switch
+                    checked={method.enabled}
+                    onCheckedChange={() => onToggle(method)}
+                    disabled={isToggling}
+                  />
                 </div>
-              )}
-              {method.clabe && (
-                <p className="text-sm text-muted-foreground font-mono mt-1">
-                  CLABE: {method.clabe}
-                </p>
-              )}
-            </>
-          )}
-
-          {/* Card number for deposits */}
-          {(method as any).card_number && (
-            <p className="text-sm text-muted-foreground font-mono">
-              Tarjeta: •••• {(method as any).card_number.slice(-4)}
-            </p>
-          )}
-
-          {/* PayPal */}
-          {(method as any).paypal_email && (
-            <p className="text-sm text-muted-foreground">
-              {(method as any).paypal_email}
-            </p>
-          )}
-
-          {/* Payment link */}
-          {(method as any).payment_link && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <LinkIcon className="h-3 w-3" /> Link de pago configurado
-            </p>
-          )}
-
-          {/* Location */}
-          {(method as any).location && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {(method as any).location}
-            </p>
-          )}
-
-          {method.instructions && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {method.instructions}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onEdit(method)}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive hover:text-destructive"
-            onClick={() => onDelete(method.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <Switch
-            checked={method.enabled}
-            onCheckedChange={() => onToggle(method)}
-            disabled={isToggling}
-          />
-        </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </CardContent>
     </Card>
   );
@@ -317,6 +382,7 @@ export function PaymentMethodsSettings() {
     name: '',
     instructions: '',
     enabled: true,
+    bank_select_value: '',
     bank_name: '',
     account_number: '',
     clabe: '',
@@ -328,8 +394,7 @@ export function PaymentMethodsSettings() {
     location: '',
     schedule: '',
   });
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [customBankName, setCustomBankName] = useState('');
+  const [deleteConfirmData, setDeleteConfirmData] = useState<{ groupId: string | null; methodIds: string[] } | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const sensors = useSensors(
@@ -342,6 +407,9 @@ export function PaymentMethodsSettings() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Group methods for display
+  const groupedMethods = useMemo(() => groupMethodsByAccount(methods), [methods]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -361,10 +429,13 @@ export function PaymentMethodsSettings() {
     toggleMethod.mutate({ id: method.id, enabled: !method.enabled });
   };
 
-  const handleDelete = () => {
-    if (deleteConfirmId) {
-      deleteMethod.mutate(deleteConfirmId);
-      setDeleteConfirmId(null);
+  const handleDeleteGroup = () => {
+    if (deleteConfirmData) {
+      // Delete all methods in the group
+      deleteConfirmData.methodIds.forEach(id => {
+        deleteMethod.mutate(id);
+      });
+      setDeleteConfirmData(null);
     }
   };
 
@@ -384,6 +455,10 @@ export function PaymentMethodsSettings() {
 
     // Bank validations
     if (hasBank || hasStore) {
+      // Validate "Otro" bank requires custom name
+      if (newMethodData.bank_select_value === 'Otro' && !newMethodData.bank_name?.trim()) {
+        errors.bank_name = 'Ingresa el nombre del banco';
+      }
       if (newMethodData.clabe && !isValidClabe(newMethodData.clabe)) {
         errors.clabe = 'La CLABE debe tener exactamente 18 dígitos';
       }
@@ -429,7 +504,15 @@ export function PaymentMethodsSettings() {
       return;
     }
 
-    // Create each selected method with shared data
+    // Generate a shared group_id for all methods created together
+    const groupId = crypto.randomUUID();
+    
+    // Get the actual bank name to save
+    const finalBankName = newMethodData.bank_select_value === 'Otro' 
+      ? newMethodData.bank_name 
+      : newMethodData.bank_select_value;
+
+    // Create each selected method with shared data and same group_id
     for (const subtype of selectedSubtypes) {
       const subtypeInfo = PAYMENT_SUBTYPES.find(s => s.id === subtype);
       let type: 'bank_transfer' | 'cash' | 'other' = 'other';
@@ -446,7 +529,8 @@ export function PaymentMethodsSettings() {
         instructions: newMethodData.instructions || null,
         enabled: true,
         display_order: methods.length,
-        bank_name: newMethodData.bank_name || null,
+        bank_name: finalBankName || null,
+        bank_select_value: newMethodData.bank_select_value || null,
         account_number: newMethodData.account_number || null,
         clabe: newMethodData.clabe?.replace(/\D/g, '') || null,
         account_holder: newMethodData.account_holder || null,
@@ -456,6 +540,7 @@ export function PaymentMethodsSettings() {
         payment_link: newMethodData.payment_link || null,
         location: newMethodData.location || null,
         schedule: newMethodData.schedule || null,
+        group_id: selectedSubtypes.length > 1 ? groupId : null,
       });
     }
     
@@ -467,6 +552,7 @@ export function PaymentMethodsSettings() {
       name: '',
       instructions: '',
       enabled: true,
+      bank_select_value: '',
       bank_name: '',
       account_number: '',
       clabe: '',
@@ -479,7 +565,6 @@ export function PaymentMethodsSettings() {
       schedule: '',
     });
     setValidationErrors({});
-    setCustomBankName('');
   };
 
   const handleCloseAddDialog = () => {
@@ -490,6 +575,7 @@ export function PaymentMethodsSettings() {
       name: '',
       instructions: '',
       enabled: true,
+      bank_select_value: '',
       bank_name: '',
       account_number: '',
       clabe: '',
@@ -502,7 +588,6 @@ export function PaymentMethodsSettings() {
       schedule: '',
     });
     setValidationErrors({});
-    setCustomBankName('');
   };
 
   const toggleSubtypeSelection = (subtype: PaymentSubtype) => {
@@ -514,8 +599,11 @@ export function PaymentMethodsSettings() {
   };
 
   const handleEditMethod = (method: PaymentMethod) => {
-    const m = method as any;
+    const m = method;
     const subtype = m.subtype || (method.type === 'bank_transfer' ? 'bank_transfer' : method.type === 'cash' ? 'cash_in_person' : 'paypal');
+    
+    // Determine if it's a custom bank (not in predefined list)
+    const isOtroBank = method.bank_name && !BANK_NAMES.includes(method.bank_name);
     
     setEditingMethod({
       id: method.id,
@@ -523,7 +611,8 @@ export function PaymentMethodsSettings() {
       name: method.name,
       instructions: method.instructions || "",
       enabled: method.enabled,
-      bank_name: method.bank_name || "",
+      bank_select_value: isOtroBank ? 'Otro' : (method.bank_name || ''),
+      bank_name: isOtroBank ? (method.bank_name || '') : '',
       account_number: method.account_number || "",
       clabe: method.clabe || "",
       account_holder: method.account_holder || "",
@@ -533,26 +622,42 @@ export function PaymentMethodsSettings() {
       payment_link: m.payment_link || "",
       location: m.location || "",
       schedule: m.schedule || "",
+      group_id: method.group_id || null,
     });
-    setCustomBankName(method.bank_name && !BANK_NAMES.includes(method.bank_name) ? method.bank_name : '');
     setValidationErrors({});
   };
 
+  // Handle bank selection for editing
   const handleBankSelect = (value: string) => {
     if (value === 'Otro') {
-      setEditingMethod(prev => prev ? { ...prev, bank_name: customBankName } : null);
+      setEditingMethod(prev => prev ? { 
+        ...prev, 
+        bank_select_value: 'Otro',
+        bank_name: '' 
+      } : null);
     } else {
-      setEditingMethod(prev => prev ? { ...prev, bank_name: value } : null);
-      setCustomBankName('');
+      setEditingMethod(prev => prev ? { 
+        ...prev, 
+        bank_select_value: value,
+        bank_name: '' // Clear custom name when selecting predefined bank
+      } : null);
     }
   };
 
+  // Handle bank selection for new method
   const handleNewMethodBankSelect = (value: string) => {
     if (value === 'Otro') {
-      setNewMethodData(prev => ({ ...prev, bank_name: customBankName }));
+      setNewMethodData(prev => ({ 
+        ...prev, 
+        bank_select_value: 'Otro',
+        bank_name: '' 
+      }));
     } else {
-      setNewMethodData(prev => ({ ...prev, bank_name: value }));
-      setCustomBankName('');
+      setNewMethodData(prev => ({ 
+        ...prev, 
+        bank_select_value: value,
+        bank_name: '' // Clear custom name when selecting predefined bank
+      }));
     }
   };
 
@@ -566,6 +671,11 @@ export function PaymentMethodsSettings() {
     
     if (!method.name.trim()) {
       errors.name = 'El nombre es requerido';
+    }
+
+    // Validate "Otro" bank requires custom name
+    if (method.bank_select_value === 'Otro' && !method.bank_name?.trim()) {
+      errors.bank_name = 'Ingresa el nombre del banco';
     }
 
     // Bank validations
@@ -623,6 +733,11 @@ export function PaymentMethodsSettings() {
       type = 'cash';
     }
 
+    // Get the actual bank name to save
+    const finalBankName = editingMethod.bank_select_value === 'Otro' 
+      ? editingMethod.bank_name 
+      : editingMethod.bank_select_value;
+
     const methodData: any = {
       type,
       subtype: editingMethod.subtype,
@@ -631,7 +746,8 @@ export function PaymentMethodsSettings() {
       enabled: editingMethod.enabled,
       display_order: methods.length,
       // Bank fields
-      bank_name: editingMethod.bank_name || null,
+      bank_name: finalBankName || null,
+      bank_select_value: editingMethod.bank_select_value || null,
       account_number: editingMethod.account_number || null,
       clabe: editingMethod.clabe?.replace(/\D/g, '') || null,
       account_holder: editingMethod.account_holder || null,
@@ -643,10 +759,36 @@ export function PaymentMethodsSettings() {
       // Cash fields
       location: editingMethod.location || null,
       schedule: editingMethod.schedule || null,
+      // Grouping
+      group_id: editingMethod.group_id,
     };
 
     if (editingMethod.id) {
-      updateMethod.mutate({ id: editingMethod.id, updates: methodData });
+      // If editing, also update all methods in the same group with shared data
+      if (editingMethod.group_id) {
+        const groupMethods = methods.filter(m => m.group_id === editingMethod.group_id);
+        groupMethods.forEach(m => {
+          updateMethod.mutate({ 
+            id: m.id, 
+            updates: {
+              bank_name: finalBankName || null,
+              bank_select_value: editingMethod.bank_select_value || null,
+              account_number: editingMethod.account_number || null,
+              clabe: editingMethod.clabe?.replace(/\D/g, '') || null,
+              account_holder: editingMethod.account_holder || null,
+              card_number: editingMethod.card_number?.replace(/\D/g, '') || null,
+              paypal_email: editingMethod.paypal_email || null,
+              paypal_link: editingMethod.paypal_link || null,
+              payment_link: editingMethod.payment_link || null,
+              location: editingMethod.location || null,
+              schedule: editingMethod.schedule || null,
+              instructions: editingMethod.instructions || null,
+            }
+          });
+        });
+      } else {
+        updateMethod.mutate({ id: editingMethod.id, updates: methodData });
+      }
     } else {
       createMethod.mutate(methodData);
     }
@@ -686,23 +828,25 @@ export function PaymentMethodsSettings() {
     if (!editingMethod) return null;
 
     const { subtype } = editingMethod;
+    const isOtroBank = editingMethod.bank_select_value === 'Otro';
 
     // Bank transfer / deposit fields
     if (subtype === 'bank_transfer' || subtype === 'bank_deposit') {
-      const isOtroBank = editingMethod.bank_name && !BANK_NAMES.includes(editingMethod.bank_name);
-      
       return (
         <>
           <div className="space-y-2">
             <Label>Banco</Label>
             <Select 
-              value={isOtroBank ? 'Otro' : editingMethod.bank_name || ''} 
+              value={editingMethod.bank_select_value || ''} 
               onValueChange={handleBankSelect}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona un banco">
-                  {editingMethod.bank_name && !isOtroBank && (
-                    <BankSelectItem bankName={editingMethod.bank_name} />
+                  {editingMethod.bank_select_value && editingMethod.bank_select_value !== 'Otro' && (
+                    <BankSelectItem bankName={editingMethod.bank_select_value} />
+                  )}
+                  {editingMethod.bank_select_value === 'Otro' && (
+                    <span>Otro banco</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
@@ -714,22 +858,28 @@ export function PaymentMethodsSettings() {
                 ))}
               </SelectContent>
             </Select>
-            {editingMethod.bank_name && !isOtroBank && (
+            
+            {/* Show preview for predefined banks */}
+            {editingMethod.bank_select_value && editingMethod.bank_select_value !== 'Otro' && (
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm text-muted-foreground">Vista previa:</span>
-                <BankBadge bankName={editingMethod.bank_name} size="md" />
+                <BankBadge bankName={editingMethod.bank_select_value} size="md" />
               </div>
             )}
-            {(isOtroBank || (editingMethod.bank_name === '' && customBankName)) && (
-              <Input
-                placeholder="Nombre del banco"
-                value={customBankName}
-                onChange={(e) => {
-                  setCustomBankName(e.target.value);
-                  setEditingMethod(prev => prev ? { ...prev, bank_name: e.target.value } : null);
-                }}
-                className="mt-2"
-              />
+            
+            {/* Show input for custom bank name when "Otro" is selected */}
+            {isOtroBank && (
+              <div className="mt-2">
+                <Input
+                  placeholder="Nombre del banco"
+                  value={editingMethod.bank_name}
+                  onChange={(e) => setEditingMethod(prev => prev ? { ...prev, bank_name: e.target.value } : null)}
+                  className={validationErrors.bank_name ? 'border-destructive' : ''}
+                />
+                {validationErrors.bank_name && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.bank_name}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -818,11 +968,17 @@ export function PaymentMethodsSettings() {
 
           <div className="space-y-2">
             <Label>Banco de la Tarjeta (opcional)</Label>
-            <Select value={editingMethod.bank_name || ''} onValueChange={(v) => setEditingMethod({ ...editingMethod, bank_name: v })}>
+            <Select 
+              value={editingMethod.bank_select_value || ''} 
+              onValueChange={handleBankSelect}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona un banco">
-                  {editingMethod.bank_name && (
-                    <BankSelectItem bankName={editingMethod.bank_name} />
+                  {editingMethod.bank_select_value && editingMethod.bank_select_value !== 'Otro' && (
+                    <BankSelectItem bankName={editingMethod.bank_select_value} />
+                  )}
+                  {editingMethod.bank_select_value === 'Otro' && (
+                    <span>Otro banco</span>
                   )}
                 </SelectValue>
               </SelectTrigger>
@@ -834,6 +990,20 @@ export function PaymentMethodsSettings() {
                 ))}
               </SelectContent>
             </Select>
+            
+            {isOtroBank && (
+              <div className="mt-2">
+                <Input
+                  placeholder="Nombre del banco"
+                  value={editingMethod.bank_name}
+                  onChange={(e) => setEditingMethod(prev => prev ? { ...prev, bank_name: e.target.value } : null)}
+                  className={validationErrors.bank_name ? 'border-destructive' : ''}
+                />
+                {validationErrors.bank_name && (
+                  <p className="text-xs text-destructive mt-1">{validationErrors.bank_name}</p>
+                )}
+              </div>
+            )}
           </div>
         </>
       );
@@ -949,10 +1119,7 @@ export function PaymentMethodsSettings() {
                   {methodsCount}/{MAX_METHODS} métodos configurados
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {enabledCount > 0 
-                    ? `${enabledCount} activo${enabledCount > 1 ? 's' : ''}, ${methodsCount - enabledCount} inactivo${methodsCount - enabledCount !== 1 ? 's' : ''}`
-                    : 'Agrega al menos un método de pago para recibir pagos'
-                  }
+                  {groupedMethods.length} cuenta{groupedMethods.length !== 1 ? 's' : ''} • {enabledCount} activo{enabledCount !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -970,47 +1137,40 @@ export function PaymentMethodsSettings() {
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
-            <CardTitle className="text-lg">Métodos de Pago</CardTitle>
+            <CardTitle>Métodos de Pago</CardTitle>
             <CardDescription>
-              Configura cómo los compradores pueden pagarte. Arrastra para reordenar.
+              Configura cómo tus compradores pueden pagarte
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={methods.length >= 20} className="shadow-sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar Método
+          <Button 
+            onClick={() => setShowAddDialog(true)} 
+            disabled={methods.length >= 20}
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {methods.length === 0 ? (
+          {groupedMethods.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No tienes métodos de pago configurados</p>
-              <p className="text-sm">Agrega al menos un método para recibir pagos</p>
+              <p className="text-sm">Agrega al menos uno para empezar a recibir pagos</p>
             </div>
           ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={methods.map(m => m.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-4">
-                  {methods.map((method) => (
-                    <SortableMethodCard
-                      key={method.id}
-                      method={method}
-                      onEdit={handleEditMethod}
-                      onDelete={setDeleteConfirmId}
-                      onToggle={handleToggle}
-                      isToggling={toggleMethod.isPending}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+            <div className="space-y-4">
+              {groupedMethods.map((group, index) => (
+                <AccountCard
+                  key={group.groupId || `ungrouped-${index}`}
+                  group={group}
+                  onEdit={handleEditMethod}
+                  onDelete={(groupId, methodIds) => setDeleteConfirmData({ groupId, methodIds })}
+                  onToggle={handleToggle}
+                  isToggling={toggleMethod.isPending}
+                />
+              ))}
+            </div>
           )}
           {methods.length >= 20 && (
             <p className="text-sm text-muted-foreground text-center">
@@ -1029,9 +1189,9 @@ export function PaymentMethodsSettings() {
           {addDialogStep === 'select' ? (
             <>
               <DialogHeader>
-                <DialogTitle>Agregar Métodos de Pago</DialogTitle>
+                <DialogTitle>Crear Cuenta de Pago</DialogTitle>
                 <DialogDescription>
-                  Paso 1 de 2: Selecciona los métodos que deseas agregar
+                  Paso 1 de 2: Selecciona los métodos que soporta esta cuenta
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -1181,9 +1341,9 @@ export function PaymentMethodsSettings() {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Configurar Datos de Pago</DialogTitle>
+                <DialogTitle>Configurar Datos de la Cuenta</DialogTitle>
                 <DialogDescription>
-                  Paso 2 de 2: Ingresa los datos para {selectedSubtypes.length === 1 ? 'el método seleccionado' : `los ${selectedSubtypes.length} métodos seleccionados`}
+                  Paso 2 de 2: Ingresa los datos de tu cuenta
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -1203,7 +1363,7 @@ export function PaymentMethodsSettings() {
                 {/* Dynamic fields based on selected categories */}
                 {(() => {
                   const { hasBank, hasStore, hasPaypal, hasMercadoPago, hasCash } = getFieldCategories(selectedSubtypes);
-                  const isOtroBank = newMethodData.bank_name && !BANK_NAMES.includes(newMethodData.bank_name);
+                  const isOtroBank = newMethodData.bank_select_value === 'Otro';
                   
                   return (
                     <>
@@ -1213,13 +1373,16 @@ export function PaymentMethodsSettings() {
                           <div className="space-y-2">
                             <Label>Banco</Label>
                             <Select 
-                              value={isOtroBank ? 'Otro' : newMethodData.bank_name || ''} 
+                              value={newMethodData.bank_select_value || ''} 
                               onValueChange={handleNewMethodBankSelect}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecciona un banco">
-                                  {newMethodData.bank_name && !isOtroBank && (
-                                    <BankSelectItem bankName={newMethodData.bank_name} />
+                                  {newMethodData.bank_select_value && newMethodData.bank_select_value !== 'Otro' && (
+                                    <BankSelectItem bankName={newMethodData.bank_select_value} />
+                                  )}
+                                  {newMethodData.bank_select_value === 'Otro' && (
+                                    <span>Otro banco</span>
                                   )}
                                 </SelectValue>
                               </SelectTrigger>
@@ -1231,22 +1394,28 @@ export function PaymentMethodsSettings() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            {newMethodData.bank_name && !isOtroBank && (
+                            
+                            {/* Show preview for predefined banks */}
+                            {newMethodData.bank_select_value && newMethodData.bank_select_value !== 'Otro' && (
                               <div className="flex items-center gap-2 mt-2">
                                 <span className="text-sm text-muted-foreground">Vista previa:</span>
-                                <BankBadge bankName={newMethodData.bank_name} size="md" />
+                                <BankBadge bankName={newMethodData.bank_select_value} size="md" />
                               </div>
                             )}
-                            {(isOtroBank || (newMethodData.bank_name === '' && customBankName)) && (
-                              <Input
-                                placeholder="Nombre del banco"
-                                value={customBankName}
-                                onChange={(e) => {
-                                  setCustomBankName(e.target.value);
-                                  setNewMethodData(prev => ({ ...prev, bank_name: e.target.value }));
-                                }}
-                                className="mt-2"
-                              />
+                            
+                            {/* Show input for custom bank name when "Otro" is selected */}
+                            {isOtroBank && (
+                              <div className="mt-2">
+                                <Input
+                                  placeholder="Nombre del banco"
+                                  value={newMethodData.bank_name || ''}
+                                  onChange={(e) => setNewMethodData(prev => ({ ...prev, bank_name: e.target.value }))}
+                                  className={validationErrors.bank_name ? 'border-destructive' : ''}
+                                />
+                                {validationErrors.bank_name && (
+                                  <p className="text-xs text-destructive mt-1">{validationErrors.bank_name}</p>
+                                )}
+                              </div>
                             )}
                           </div>
 
@@ -1357,7 +1526,7 @@ export function PaymentMethodsSettings() {
                       {/* Mercado Pago fields */}
                       {hasMercadoPago && (
                         <div className="space-y-2">
-                          <Label>Link de Pago de Mercado Pago</Label>
+                          <Label>Link de Pago Mercado Pago</Label>
                           <Input
                             value={newMethodData.payment_link || ''}
                             onChange={(e) => setNewMethodData(prev => ({ ...prev, payment_link: e.target.value }))}
@@ -1399,14 +1568,14 @@ export function PaymentMethodsSettings() {
                         </>
                       )}
 
-                      {/* Instructions - always shown */}
+                      {/* Instructions for all */}
                       <div className="space-y-2">
-                        <Label>Instrucciones para el Comprador (opcional)</Label>
+                        <Label>Instrucciones Adicionales (opcional)</Label>
                         <Textarea
                           value={newMethodData.instructions || ''}
                           onChange={(e) => setNewMethodData(prev => ({ ...prev, instructions: e.target.value }))}
-                          placeholder="Describe cómo deben realizar el pago..."
-                          rows={3}
+                          placeholder="Ej: Enviar comprobante por WhatsApp después del pago"
+                          rows={2}
                         />
                       </div>
                     </>
@@ -1414,19 +1583,12 @@ export function PaymentMethodsSettings() {
                 })()}
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setAddDialogStep('select')} className="mr-auto">
+                <Button variant="outline" onClick={() => setAddDialogStep('select')}>
                   Atrás
                 </Button>
-                <Button variant="outline" onClick={handleCloseAddDialog}>
-                  Cancelar
-                </Button>
                 <Button onClick={handleSaveNewMethods} disabled={createMethod.isPending}>
-                  {createMethod.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 h-4 w-4" />
-                  )}
-                  Guardar {selectedSubtypes.length > 1 ? `(${selectedSubtypes.length} métodos)` : ''}
+                  {createMethod.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Guardar
                 </Button>
               </DialogFooter>
             </>
@@ -1438,19 +1600,18 @@ export function PaymentMethodsSettings() {
       <Dialog open={!!editingMethod} onOpenChange={() => { setEditingMethod(null); setValidationErrors({}); }}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {editingMethod && getIcon(editingMethod.subtype)}
-              {editingMethod?.id ? "Editar" : "Nuevo"} {editingMethod && getSubtypeLabel(editingMethod.subtype)}
-            </DialogTitle>
+            <DialogTitle>Editar Método de Pago</DialogTitle>
+            <DialogDescription>
+              Modifica los datos de {editingMethod?.name}
+            </DialogDescription>
           </DialogHeader>
           {editingMethod && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Nombre del Método</Label>
+                <Label>Nombre</Label>
                 <Input
                   value={editingMethod.name}
                   onChange={(e) => setEditingMethod({ ...editingMethod, name: e.target.value })}
-                  placeholder={getSubtypeLabel(editingMethod.subtype)}
                   className={validationErrors.name ? 'border-destructive' : ''}
                 />
                 {validationErrors.name && (
@@ -1458,34 +1619,25 @@ export function PaymentMethodsSettings() {
                 )}
               </div>
 
-              {/* Dynamic fields based on subtype */}
               {renderDynamicFields()}
 
               <div className="space-y-2">
-                <Label>Instrucciones para el Comprador</Label>
+                <Label>Instrucciones Adicionales (opcional)</Label>
                 <Textarea
                   value={editingMethod.instructions}
                   onChange={(e) => setEditingMethod({ ...editingMethod, instructions: e.target.value })}
-                  placeholder="Describe cómo deben realizar el pago..."
-                  rows={3}
+                  placeholder="Ej: Enviar comprobante por WhatsApp después del pago"
+                  rows={2}
                 />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setEditingMethod(null); setValidationErrors({}); }}>
-              <X className="mr-2 h-4 w-4" />
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={createMethod.isPending || updateMethod.isPending || !editingMethod?.name}
-            >
-              {(createMethod.isPending || updateMethod.isPending) ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
+            <Button onClick={handleSave} disabled={updateMethod.isPending || createMethod.isPending}>
+              {(updateMethod.isPending || createMethod.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Guardar
             </Button>
           </DialogFooter>
@@ -1493,22 +1645,21 @@ export function PaymentMethodsSettings() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+      <AlertDialog open={!!deleteConfirmData} onOpenChange={() => setDeleteConfirmData(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar método de pago?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar cuenta de pago?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Los compradores ya no verán este método de pago.
+              {deleteConfirmData?.methodIds.length === 1 
+                ? 'Esta acción eliminará este método de pago. No podrás recuperarlo.'
+                : `Esta acción eliminará ${deleteConfirmData?.methodIds.length} métodos de pago asociados a esta cuenta. No podrás recuperarlos.`
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteMethod.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Eliminar"
-              )}
+            <AlertDialogAction onClick={handleDeleteGroup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

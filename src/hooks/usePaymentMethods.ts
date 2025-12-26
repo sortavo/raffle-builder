@@ -13,6 +13,7 @@ export interface PaymentMethod {
   name: string;
   instructions: string | null;
   bank_name: string | null;
+  bank_select_value: string | null;
   account_number: string | null;
   clabe: string | null;
   account_holder: string | null;
@@ -22,6 +23,7 @@ export interface PaymentMethod {
   payment_link: string | null;
   location: string | null;
   schedule: string | null;
+  group_id: string | null;
   created_at: string;
   updated_at: string;
 }
