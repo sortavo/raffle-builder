@@ -54,6 +54,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
   const [jumpToPage, setJumpToPage] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [highlightedTicket, setHighlightedTicket] = useState<string | null>(null);
+  const [showProofImage, setShowProofImage] = useState(false);
   const ticketRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const { useTicketsList, useTicketStats, approveTicket, rejectTicket, extendReservation } = useTickets(raffleId);
@@ -394,16 +395,25 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                   </div>
                 )}
                 {selectedTicket.payment_proof_url && (
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                    <a 
-                      href={selectedTicket.payment_proof_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline text-sm"
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => setShowProofImage(true)}
+                      className="flex items-center gap-2 text-primary hover:underline text-sm"
                     >
+                      <ImageIcon className="h-4 w-4" />
                       Ver comprobante de pago
-                    </a>
+                    </button>
+                    {/* Thumbnail preview */}
+                    <button
+                      onClick={() => setShowProofImage(true)}
+                      className="block w-full max-w-[200px] rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary transition-all"
+                    >
+                      <img 
+                        src={selectedTicket.payment_proof_url} 
+                        alt="Comprobante de pago"
+                        className="w-full h-auto object-cover"
+                      />
+                    </button>
                   </div>
                 )}
                 {selectedTicket.payment_reference && (
@@ -523,6 +533,32 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Proof Image Modal */}
+      <Dialog open={showProofImage} onOpenChange={setShowProofImage}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Comprobante de pago</DialogTitle>
+          </DialogHeader>
+          {selectedTicket?.payment_proof_url && (
+            <div className="relative">
+              <img 
+                src={selectedTicket.payment_proof_url} 
+                alt="Comprobante de pago"
+                className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+              />
+              <a
+                href={selectedTicket.payment_proof_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm text-sm px-3 py-1.5 rounded-lg border hover:bg-background transition-colors"
+              >
+                Abrir en nueva pestaña
+              </a>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
