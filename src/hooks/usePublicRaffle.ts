@@ -20,6 +20,15 @@ export interface RaffleWithStats extends Raffle {
     email: string;
     brand_color: string | null;
     slug: string | null;
+    description: string | null;
+    whatsapp_number: string | null;
+    facebook_url: string | null;
+    instagram_url: string | null;
+    tiktok_url: string | null;
+    website_url: string | null;
+    city: string | null;
+    verified: boolean | null;
+    created_at: string | null;
   };
   packages?: {
     id: string;
@@ -40,7 +49,11 @@ export function usePublicRaffle(slug: string | undefined) {
         .from('raffles')
         .select(`
           *,
-          organizations (id, name, logo_url, phone, email, brand_color, slug)
+          organizations (
+            id, name, logo_url, phone, email, brand_color, slug,
+            description, whatsapp_number, facebook_url, instagram_url,
+            tiktok_url, website_url, city, verified, created_at
+          )
         `)
         .eq('slug', slug)
         .eq('status', 'active')
