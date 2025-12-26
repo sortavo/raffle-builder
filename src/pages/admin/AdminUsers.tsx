@@ -188,16 +188,104 @@ export default function AdminUsers() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="rounded-lg border border-border overflow-hidden">
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {profilesLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-40" />
+                      <div className="flex gap-1.5">
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-14" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-md flex-shrink-0" />
+                  </div>
+                </Card>
+              ))
+            ) : filteredProfiles?.length === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">
+                No se encontraron usuarios
+              </Card>
+            ) : (
+              filteredProfiles?.map((profile) => {
+                const role = getRoleForUser(profile.id);
+                const tier = profile.organizations?.subscription_tier;
+                const status = profile.organizations?.subscription_status;
+                
+                return (
+                  <Card key={profile.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarImage src={profile.avatar_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(profile.full_name, profile.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {profile.full_name || "Sin nombre"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {profile.email}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {role && (
+                            <Badge variant="outline" className={`${roleColors[role]} text-xs`}>
+                              {roleLabels[role]}
+                            </Badge>
+                          )}
+                          {tier && (
+                            <Badge 
+                              variant="outline" 
+                              className={`${status === "trial" ? tierColors.trial : tierColors[tier]} text-xs`}
+                            >
+                              {tier === "premium" && <Crown className="h-3 w-3 mr-1" />}
+                              {status === "trial" ? "Trial" : tierLabels[tier]}
+                            </Badge>
+                          )}
+                        </div>
+                        {profile.organizations && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5">
+                            <Building2 className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{profile.organizations.name}</span>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedUser(profile);
+                          setSimulateModalOpen(true);
+                        }}
+                        className="h-8 w-8 flex-shrink-0"
+                        disabled={!profile.organization_id}
+                        title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-lg border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuario</TableHead>
-                  <TableHead className="hidden md:table-cell">Organización</TableHead>
+                  <TableHead>Organización</TableHead>
                   <TableHead>Rol</TableHead>
-                  <TableHead className="hidden sm:table-cell">Plan</TableHead>
-                  <TableHead className="hidden lg:table-cell">Registrado</TableHead>
+                  <TableHead className="hidden lg:table-cell">Plan</TableHead>
+                  <TableHead className="hidden xl:table-cell">Registrado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -214,16 +302,16 @@ export default function AdminUsers() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
+                      <TableCell className="hidden xl:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredProfiles?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       No se encontraron usuarios
                     </TableCell>
                   </TableRow>
@@ -243,22 +331,22 @@ export default function AdminUsers() {
                                 {getInitials(profile.full_name, profile.email)}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <div className="font-medium">
+                            <div className="min-w-0">
+                              <div className="font-medium truncate max-w-[200px]">
                                 {profile.full_name || "Sin nombre"}
                               </div>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Mail className="h-3 w-3" />
-                                {profile.email}
+                                <Mail className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate max-w-[180px]">{profile.email}</span>
                               </div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell>
                           {profile.organizations ? (
                             <div className="flex items-center gap-1.5">
-                              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-sm">{profile.organizations.name}</span>
+                              <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate max-w-[150px]">{profile.organizations.name}</span>
                             </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
@@ -273,7 +361,7 @@ export default function AdminUsers() {
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">
+                        <TableCell className="hidden lg:table-cell">
                           {tier ? (
                             <div className="flex items-center gap-1">
                               {tier === "premium" && <Crown className="h-3 w-3 text-amber-500" />}
@@ -288,7 +376,7 @@ export default function AdminUsers() {
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
+                        <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">
                           {profile.created_at
                             ? format(new Date(profile.created_at), "d MMM yyyy", { locale: es })
                             : "-"}
@@ -306,7 +394,7 @@ export default function AdminUsers() {
                             title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            Simular
+                            <span className="hidden lg:inline">Simular</span>
                           </Button>
                         </TableCell>
                       </TableRow>
