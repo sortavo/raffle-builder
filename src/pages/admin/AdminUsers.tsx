@@ -40,13 +40,19 @@ interface UserRole {
   role: "owner" | "admin" | "member";
 }
 
+interface PlatformAdmin {
+  user_id: string;
+}
+
 const roleColors: Record<string, string> = {
-  owner: "bg-purple-100 text-purple-700 border-purple-200",
-  admin: "bg-blue-100 text-blue-700 border-blue-200",
-  member: "bg-slate-100 text-slate-700 border-slate-200",
+  platform_admin: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+  owner: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700",
+  admin: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+  member: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600",
 };
 
 const roleLabels: Record<string, string> = {
+  platform_admin: "Super Admin",
   owner: "Propietario",
   admin: "Admin",
   member: "Miembro",
@@ -91,7 +97,27 @@ export default function AdminUsers() {
     },
   });
 
+  const { data: platformAdmins } = useQuery({
+    queryKey: ["admin-platform-admins"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("platform_admins")
+        .select("user_id");
+
+      if (error) throw error;
+      return data as PlatformAdmin[];
+    },
+  });
+
+  const isPlatformAdmin = (userId: string) => {
+    return platformAdmins?.some((pa) => pa.user_id === userId) ?? false;
+  };
+
   const getRoleForUser = (userId: string) => {
+    // Platform admin takes priority
+    if (isPlatformAdmin(userId)) {
+      return "platform_admin";
+    }
     return userRoles?.find((r) => r.user_id === userId)?.role;
   };
 
