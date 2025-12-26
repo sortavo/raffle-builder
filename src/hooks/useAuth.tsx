@@ -16,6 +16,7 @@ interface Organization {
   name: string;
   email: string;
   phone: string | null;
+  slug: string | null;
   subscription_tier: string | null;
   subscription_status: string | null;
   subscription_period: string | null;

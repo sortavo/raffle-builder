@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2 } from "lucide-react";
+import { Loader2, Upload, Building2, Link as LinkIcon, Check, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl } from "@/lib/url-utils";
 
 const organizationSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -22,6 +23,7 @@ const organizationSchema = z.object({
   currency_code: z.string().min(3, "Selecciona una moneda"),
   timezone: z.string().min(1, "Selecciona una zona horaria"),
   brand_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color inválido"),
+  slug: z.string().optional(),
 });
 
 type OrganizationFormData = z.infer<typeof organizationSchema>;
@@ -58,6 +60,9 @@ export function OrganizationSettings() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [slugInput, setSlugInput] = useState(organization?.slug || "");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationSchema),
@@ -69,11 +74,60 @@ export function OrganizationSettings() {
       currency_code: organization?.currency_code || "MXN",
       timezone: organization?.timezone || "America/Mexico_City",
       brand_color: organization?.brand_color || "#2563EB",
+      slug: organization?.slug || "",
     },
   });
 
+  // Check slug availability with debounce
+  useEffect(() => {
+    if (!slugInput || slugInput === organization?.slug) {
+      setSlugAvailable(null);
+      return;
+    }
+
+    if (!isValidSlug(slugInput)) {
+      setSlugAvailable(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingSlug(true);
+      try {
+        const { data, error } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", slugInput)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking slug:", error);
+          setSlugAvailable(null);
+        } else {
+          setSlugAvailable(!data);
+        }
+      } catch (err) {
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [slugInput, organization?.slug]);
+
   const onSubmit = async (data: OrganizationFormData) => {
     if (!organization?.id) return;
+
+    // Validate slug if provided
+    if (slugInput && !isValidSlug(slugInput)) {
+      toast.error("El slug solo puede contener letras minúsculas, números y guiones");
+      return;
+    }
+
+    if (slugInput && slugAvailable === false) {
+      toast.error("Este slug ya está en uso");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -87,6 +141,7 @@ export function OrganizationSettings() {
           currency_code: data.currency_code,
           timezone: data.timezone,
           brand_color: data.brand_color,
+          slug: slugInput || null,
         })
         .eq("id", organization.id);
 
@@ -95,7 +150,11 @@ export function OrganizationSettings() {
       toast.success("Organización actualizada correctamente");
       queryClient.invalidateQueries({ queryKey: ["auth"] });
     } catch (error: any) {
-      toast.error("Error al actualizar: " + error.message);
+      if (error.message?.includes("duplicate key")) {
+        toast.error("Este slug ya está en uso por otra organización");
+      } else {
+        toast.error("Error al actualizar: " + error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -187,6 +246,64 @@ export function OrganizationSettings() {
               PNG, JPG o GIF. Máximo 2MB.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Public URL / Slug Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="h-5 w-5" />
+            URL Pública de la Organización
+          </CardTitle>
+          <CardDescription>
+            Configura una URL personalizada para tu página de sorteos
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="slug">Identificador único (slug)</Label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  id="slug"
+                  value={slugInput}
+                  onChange={(e) => setSlugInput(normalizeToSlug(e.target.value))}
+                  placeholder="mi-organizacion"
+                  className="pr-10"
+                />
+                {isCheckingSlug && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+                {!isCheckingSlug && slugAvailable === true && slugInput && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                )}
+                {!isCheckingSlug && slugAvailable === false && slugInput && (
+                  <X className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Solo letras minúsculas, números y guiones. Ejemplo: mi-organizacion
+            </p>
+            {slugAvailable === false && slugInput && !isCheckingSlug && (
+              <p className="text-sm text-destructive">
+                Este slug ya está en uso
+              </p>
+            )}
+          </div>
+
+          {slugInput && isValidSlug(slugInput) && (
+            <div className="p-4 bg-muted rounded-lg space-y-2">
+              <p className="text-sm font-medium">Preview de tu URL pública:</p>
+              <code className="text-sm text-primary break-all">
+                {getOrganizationPublicUrl(slugInput)}
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                Tus sorteos estarán disponibles en: {getOrganizationPublicUrl(slugInput)}/nombre-del-sorteo
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

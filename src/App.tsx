@@ -29,6 +29,7 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import Coupons from "./pages/dashboard/Coupons";
 import Marketing from "./pages/dashboard/Marketing";
 import HelpCenter from "./pages/HelpCenter";
+import OrganizationHome from "./pages/OrganizationHome";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,10 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/help" element={<HelpCenter />} />
+              {/* Organization-based public routes */}
+              <Route path="/org/:orgSlug" element={<OrganizationHome />} />
+              <Route path="/org/:orgSlug/:slug" element={<PublicRaffle />} />
+              {/* Legacy raffle routes */}
               <Route path="/r/:slug" element={<PublicRaffle />} />
               <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
               <Route path="/my-tickets" element={<MyTickets />} />

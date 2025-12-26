@@ -213,6 +213,7 @@ export type Database = {
           name: string
           onboarding_completed: boolean | null
           phone: string | null
+          slug: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_period:
@@ -244,6 +245,7 @@ export type Database = {
           name: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_period?:
@@ -275,6 +277,7 @@ export type Database = {
           name?: string
           onboarding_completed?: boolean | null
           phone?: string | null
+          slug?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_period?:
