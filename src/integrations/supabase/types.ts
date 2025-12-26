@@ -202,11 +202,16 @@ export type Database = {
       organizations: {
         Row: {
           brand_color: string | null
+          city: string | null
           country_code: string | null
+          cover_image_url: string | null
           created_at: string | null
           currency_code: string | null
+          description: string | null
           email: string
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           logo_url: string | null
           max_active_raffles: number | null
           max_tickets_per_raffle: number | null
@@ -227,18 +232,26 @@ export type Database = {
             | null
           suspended: boolean | null
           templates_available: number | null
+          tiktok_url: string | null
           timezone: string | null
           trial_ends_at: string | null
           updated_at: string | null
           verified: boolean | null
+          website_url: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           brand_color?: string | null
+          city?: string | null
           country_code?: string | null
+          cover_image_url?: string | null
           created_at?: string | null
           currency_code?: string | null
+          description?: string | null
           email: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           max_active_raffles?: number | null
           max_tickets_per_raffle?: number | null
@@ -259,18 +272,26 @@ export type Database = {
             | null
           suspended?: boolean | null
           templates_available?: number | null
+          tiktok_url?: string | null
           timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
+          website_url?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           brand_color?: string | null
+          city?: string | null
           country_code?: string | null
+          cover_image_url?: string | null
           created_at?: string | null
           currency_code?: string | null
+          description?: string | null
           email?: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
           max_active_raffles?: number | null
           max_tickets_per_raffle?: number | null
@@ -291,10 +312,13 @@ export type Database = {
             | null
           suspended?: boolean | null
           templates_available?: number | null
+          tiktok_url?: string | null
           timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
+          website_url?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }

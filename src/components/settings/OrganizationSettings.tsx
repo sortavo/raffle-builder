@@ -8,15 +8,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles, Eye } from "lucide-react";
+import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalLink, AlertTriangle, Sparkles, Eye, Facebook, Instagram, Globe, MessageCircle, MapPin, Image } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { OrganizationPreview } from "./OrganizationPreview";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
+
+// TikTok icon component
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
 
 const organizationSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -27,6 +35,13 @@ const organizationSchema = z.object({
   timezone: z.string().min(1, "Selecciona una zona horaria"),
   brand_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color inválido"),
   slug: z.string().optional(),
+  description: z.string().optional(),
+  city: z.string().optional(),
+  website_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  facebook_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  instagram_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  tiktok_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  whatsapp_number: z.string().optional(),
 });
 
 type OrganizationFormData = z.infer<typeof organizationSchema>;
@@ -63,6 +78,7 @@ export function OrganizationSettings() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [slugInput, setSlugInput] = useState("");
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -105,8 +121,38 @@ export function OrganizationSettings() {
       timezone: organization?.timezone || "America/Mexico_City",
       brand_color: organization?.brand_color || "#2563EB",
       slug: organization?.slug || "",
+      description: (organization as any)?.description || "",
+      city: (organization as any)?.city || "",
+      website_url: (organization as any)?.website_url || "",
+      facebook_url: (organization as any)?.facebook_url || "",
+      instagram_url: (organization as any)?.instagram_url || "",
+      tiktok_url: (organization as any)?.tiktok_url || "",
+      whatsapp_number: (organization as any)?.whatsapp_number || "",
     },
   });
+
+  // Update form when organization data loads
+  useEffect(() => {
+    if (organization) {
+      form.reset({
+        name: organization.name || "",
+        email: organization.email || "",
+        phone: organization.phone || "",
+        country_code: organization.country_code || "MX",
+        currency_code: organization.currency_code || "MXN",
+        timezone: organization.timezone || "America/Mexico_City",
+        brand_color: organization.brand_color || "#2563EB",
+        slug: organization.slug || "",
+        description: (organization as any)?.description || "",
+        city: (organization as any)?.city || "",
+        website_url: (organization as any)?.website_url || "",
+        facebook_url: (organization as any)?.facebook_url || "",
+        instagram_url: (organization as any)?.instagram_url || "",
+        tiktok_url: (organization as any)?.tiktok_url || "",
+        whatsapp_number: (organization as any)?.whatsapp_number || "",
+      });
+    }
+  }, [organization]);
 
   // Check slug availability with debounce
   useEffect(() => {
@@ -189,6 +235,13 @@ export function OrganizationSettings() {
           timezone: data.timezone,
           brand_color: data.brand_color,
           slug: slugInput || null,
+          description: data.description || null,
+          city: data.city || null,
+          website_url: data.website_url || null,
+          facebook_url: data.facebook_url || null,
+          instagram_url: data.instagram_url || null,
+          tiktok_url: data.tiktok_url || null,
+          whatsapp_number: data.whatsapp_number || null,
         })
         .eq("id", organization.id);
 
@@ -252,46 +305,134 @@ export function OrganizationSettings() {
     }
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !organization?.id) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen de portada debe ser menor a 5MB");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo se permiten imágenes");
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${organization.id}/cover.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("payment-proofs")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("payment-proofs")
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("organizations")
+        .update({ cover_image_url: publicUrl })
+        .eq("id", organization.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Imagen de portada actualizada");
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+    } catch (error: any) {
+      toast.error("Error al subir imagen: " + error.message);
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  const coverImageUrl = (organization as any)?.cover_image_url;
+
   return (
     <div className="space-y-6">
-      {/* Logo Section */}
+      {/* Logo & Cover Section */}
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Logo de la Organización</CardTitle>
+          <CardTitle className="text-lg">Imágenes de la Organización</CardTitle>
           <CardDescription>
-            Este logo aparecerá en tus sorteos públicos
+            Logo y portada que aparecerán en tu página pública
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center gap-6">
-          <Avatar className="h-24 w-24 ring-2 ring-border/50 ring-offset-2 ring-offset-background">
-            <AvatarImage src={organization?.logo_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-              <Building2 className="h-10 w-10" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              disabled={isUploadingLogo}
-              onClick={() => document.getElementById("logo-upload")?.click()}
-              className="shadow-sm"
+        <CardContent className="space-y-6">
+          {/* Logo */}
+          <div className="flex items-center gap-6">
+            <Avatar className="h-24 w-24 ring-2 ring-border/50 ring-offset-2 ring-offset-background">
+              <AvatarImage src={organization?.logo_url || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                <Building2 className="h-10 w-10" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Logo</Label>
+              <Button
+                variant="outline"
+                disabled={isUploadingLogo}
+                onClick={() => document.getElementById("logo-upload")?.click()}
+                className="shadow-sm"
+              >
+                {isUploadingLogo ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                {isUploadingLogo ? "Subiendo..." : "Subir Logo"}
+              </Button>
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <p className="text-xs text-muted-foreground">
+                PNG, JPG o GIF. Máximo 2MB.
+              </p>
+            </div>
+          </div>
+
+          {/* Cover Image */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Imagen de Portada</Label>
+            <div 
+              className="relative h-32 w-full rounded-lg overflow-hidden bg-muted border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => document.getElementById("cover-upload")?.click()}
             >
-              {isUploadingLogo ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {coverImageUrl ? (
+                <img 
+                  src={coverImageUrl} 
+                  alt="Cover" 
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <Upload className="mr-2 h-4 w-4" />
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                  <Image className="h-8 w-8" />
+                  <span className="text-sm">Click para subir imagen de portada</span>
+                </div>
               )}
-              {isUploadingLogo ? "Subiendo..." : "Subir Logo"}
-            </Button>
+              {isUploadingCover && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
             <input
-              id="logo-upload"
+              id="cover-upload"
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={handleLogoUpload}
+              onChange={handleCoverUpload}
             />
             <p className="text-xs text-muted-foreground">
-              PNG, JPG o GIF. Máximo 2MB.
+              Recomendado: 1920x400px. Máximo 5MB.
             </p>
           </div>
         </CardContent>
@@ -559,6 +700,31 @@ export function OrganizationSettings() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="city">
+                  <MapPin className="inline h-4 w-4 mr-1" />
+                  Ciudad / Ubicación
+                </Label>
+                <Input
+                  id="city"
+                  {...form.register("city")}
+                  placeholder="Ciudad de México, MX"
+                />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Textarea
+                  id="description"
+                  {...form.register("description")}
+                  placeholder="Cuéntanos sobre tu organización..."
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Esta descripción aparecerá en tu página pública
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label>País</Label>
                 <Select
                   value={form.watch("country_code")}
@@ -629,6 +795,75 @@ export function OrganizationSettings() {
                     onChange={(e) => form.setValue("brand_color", e.target.value)}
                     placeholder="#2563EB"
                     className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links Section */}
+            <div className="pt-4 border-t">
+              <h3 className="text-sm font-medium mb-4">Redes Sociales y Contacto</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp_number">
+                    <MessageCircle className="inline h-4 w-4 mr-1" />
+                    WhatsApp
+                  </Label>
+                  <Input
+                    id="whatsapp_number"
+                    {...form.register("whatsapp_number")}
+                    placeholder="+52 55 1234 5678"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Incluye el código de país
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="website_url">
+                    <Globe className="inline h-4 w-4 mr-1" />
+                    Sitio Web
+                  </Label>
+                  <Input
+                    id="website_url"
+                    {...form.register("website_url")}
+                    placeholder="https://misitioweb.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="facebook_url">
+                    <Facebook className="inline h-4 w-4 mr-1" />
+                    Facebook
+                  </Label>
+                  <Input
+                    id="facebook_url"
+                    {...form.register("facebook_url")}
+                    placeholder="https://facebook.com/miorganizacion"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="instagram_url">
+                    <Instagram className="inline h-4 w-4 mr-1" />
+                    Instagram
+                  </Label>
+                  <Input
+                    id="instagram_url"
+                    {...form.register("instagram_url")}
+                    placeholder="https://instagram.com/miorganizacion"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tiktok_url">
+                    <TikTokIcon className="inline h-4 w-4 mr-1" />
+                    TikTok
+                  </Label>
+                  <Input
+                    id="tiktok_url"
+                    {...form.register("tiktok_url")}
+                    placeholder="https://tiktok.com/@miorganizacion"
                   />
                 </div>
               </div>
