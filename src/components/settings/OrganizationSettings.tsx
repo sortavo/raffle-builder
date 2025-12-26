@@ -16,6 +16,7 @@ import { Loader2, Upload, Building2, Link as LinkIcon, Check, X, Copy, ExternalL
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { OrganizationPreview } from "./OrganizationPreview";
 import { MultiContactInput } from "./MultiContactInput";
+import { PhoneInputWithCountry } from "./PhoneInputWithCountry";
 import { Badge } from "@/components/ui/badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
@@ -819,23 +820,20 @@ export function OrganizationSettings() {
                   helperText="El primer email será el principal"
                 />
                 
-                <MultiContactInput
+                <PhoneInputWithCountry
                   label="Teléfono"
                   icon={<Phone className="h-4 w-4" />}
                   values={phones}
                   onChange={setPhones}
-                  placeholder="+52 55 1234 5678"
-                  type="tel"
+                  helperText="Solo ingresa los dígitos del número"
                 />
                 
-                <MultiContactInput
+                <PhoneInputWithCountry
                   label="WhatsApp"
                   icon={<MessageCircle className="h-4 w-4" />}
                   values={whatsappNumbers}
                   onChange={setWhatsappNumbers}
-                  placeholder="+52 55 1234 5678"
-                  type="tel"
-                  helperText="Incluye el código de país"
+                  helperText="Solo ingresa los dígitos del número"
                 />
               </div>
             </div>
