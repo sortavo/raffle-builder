@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 import {
   Ticket,
   LayoutDashboard,
@@ -36,6 +37,7 @@ import {
   Megaphone,
   Tag,
   QrCode,
+  Shield,
 } from "lucide-react";
 import { TicketScannerDialog } from "@/components/scanner";
 
@@ -93,6 +95,7 @@ const settingsItems = [
 export function DashboardSidebar() {
   const location = useLocation();
   const { profile, organization, signOut } = useAuth();
+  const { isPlatformAdmin } = useIsPlatformAdmin();
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const getInitials = (name: string | null | undefined) => {
@@ -174,6 +177,28 @@ export function DashboardSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isPlatformAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administración</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname.startsWith('/admin')}
+                    tooltip="Panel Super Admin"
+                  >
+                    <Link to="/admin">
+                      <Shield className="h-4 w-4" />
+                      <span>Panel Super Admin</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
