@@ -87,6 +87,7 @@ export function OrganizationSettings() {
   const [emails, setEmails] = useState<string[]>([]);
   const [phones, setPhones] = useState<string[]>([]);
   const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>([]);
+  const [showPhoneValidation, setShowPhoneValidation] = useState(false);
   
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
@@ -244,6 +245,36 @@ export function OrganizationSettings() {
         setIsSubmitting(false);
         return;
       }
+      
+      // Validate phone numbers have exactly 10 digits
+      const validatePhoneDigits = (phone: string) => {
+        // Extract just the number part (after country code)
+        for (const country of ["+593", "+502", "+503", "+504", "+505", "+506", "+507", "+591", "+595", "+598", "+52", "+34", "+57", "+54", "+56", "+51", "+58", "+1"]) {
+          if (phone.startsWith(country)) {
+            const number = phone.slice(country.length);
+            return number.length === 10;
+          }
+        }
+        return true; // If no country code found, skip validation
+      };
+      
+      const invalidPhones = filteredPhones.filter(p => !validatePhoneDigits(p));
+      if (invalidPhones.length > 0) {
+        setShowPhoneValidation(true);
+        toast.error("Todos los teléfonos deben tener exactamente 10 dígitos");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      const invalidWhatsapps = filteredWhatsapps.filter(w => !validatePhoneDigits(w));
+      if (invalidWhatsapps.length > 0) {
+        setShowPhoneValidation(true);
+        toast.error("Todos los números de WhatsApp deben tener exactamente 10 dígitos");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      setShowPhoneValidation(false);
       
       const { error } = await supabase
         .from("organizations")
@@ -826,6 +857,7 @@ export function OrganizationSettings() {
                   values={phones}
                   onChange={setPhones}
                   helperText="Solo ingresa los dígitos del número"
+                  showValidation={showPhoneValidation}
                 />
                 
                 <PhoneInputWithCountry
@@ -834,6 +866,7 @@ export function OrganizationSettings() {
                   values={whatsappNumbers}
                   onChange={setWhatsappNumbers}
                   helperText="Solo ingresa los dígitos del número"
+                  showValidation={showPhoneValidation}
                 />
               </div>
             </div>
