@@ -14,8 +14,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { 
   Search, 
   Download, 
@@ -28,7 +30,11 @@ import {
   Mail,
   Clock,
   X,
-  Loader2
+  Loader2,
+  Check,
+  Ban,
+  Timer,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { cn } from '@/lib/utils';
@@ -50,7 +56,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
   const [highlightedTicket, setHighlightedTicket] = useState<string | null>(null);
   const ticketRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const { useTicketsList, useTicketStats } = useTickets(raffleId);
+  const { useTicketsList, useTicketStats, approveTicket, rejectTicket, extendReservation } = useTickets(raffleId);
   
   // Debounce search input
   useEffect(() => {
@@ -329,13 +335,10 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
 
       {/* Ticket Detail Modal */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Boleto #{selectedTicket?.ticket_number}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Estado</span>
+            <DialogTitle className="flex items-center gap-2">
+              Boleto #{selectedTicket?.ticket_number}
               <Badge variant={
                 selectedTicket?.status === 'sold' ? 'default' :
                 selectedTicket?.status === 'reserved' ? 'secondary' :
@@ -345,14 +348,17 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                  selectedTicket?.status === 'reserved' ? 'Reservado' :
                  selectedTicket?.status === 'available' ? 'Disponible' : 'Cancelado'}
               </Badge>
-            </div>
-
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Buyer Info */}
             {(selectedTicket?.status === 'sold' || selectedTicket?.status === 'reserved') && (
-              <>
+              <div className="space-y-3">
                 {selectedTicket.buyer_name && (
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedTicket.buyer_name}</span>
+                    <span className="font-medium">{selectedTicket.buyer_name}</span>
                   </div>
                 )}
                 {selectedTicket.buyer_phone && (
@@ -382,11 +388,138 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                 {selectedTicket.reserved_until && selectedTicket.status === 'reserved' && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>
+                    <span className="text-sm">
                       Expira: {new Date(selectedTicket.reserved_until).toLocaleString('es-MX')}
                     </span>
                   </div>
                 )}
+                {selectedTicket.payment_proof_url && (
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    <a 
+                      href={selectedTicket.payment_proof_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline text-sm"
+                    >
+                      Ver comprobante de pago
+                    </a>
+                  </div>
+                )}
+                {selectedTicket.payment_reference && (
+                  <div className="text-sm text-muted-foreground">
+                    Referencia: <span className="font-mono">{selectedTicket.payment_reference}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {selectedTicket?.status === 'reserved' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Acciones rápidas</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={() => {
+                        approveTicket.mutate(selectedTicket.id, {
+                          onSuccess: () => setSelectedTicket(null)
+                        });
+                      }}
+                      disabled={approveTicket.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {approveTicket.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Check className="h-4 w-4 mr-2" />
+                      )}
+                      Aprobar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        rejectTicket.mutate(selectedTicket.id, {
+                          onSuccess: () => setSelectedTicket(null)
+                        });
+                      }}
+                      disabled={rejectTicket.isPending}
+                    >
+                      {rejectTicket.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Ban className="h-4 w-4 mr-2" />
+                      )}
+                      Rechazar
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        extendReservation.mutate({ ticketId: selectedTicket.id, minutes: 15 });
+                      }}
+                      disabled={extendReservation.isPending}
+                    >
+                      <Timer className="h-4 w-4 mr-1" />
+                      +15 min
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        extendReservation.mutate({ ticketId: selectedTicket.id, minutes: 30 });
+                      }}
+                      disabled={extendReservation.isPending}
+                    >
+                      <Timer className="h-4 w-4 mr-1" />
+                      +30 min
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        extendReservation.mutate({ ticketId: selectedTicket.id, minutes: 60 });
+                      }}
+                      disabled={extendReservation.isPending}
+                    >
+                      <Timer className="h-4 w-4 mr-1" />
+                      +1 hr
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Sold ticket - only reject option */}
+            {selectedTicket?.status === 'sold' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Acciones</p>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => {
+                      rejectTicket.mutate(selectedTicket.id, {
+                        onSuccess: () => setSelectedTicket(null)
+                      });
+                    }}
+                    disabled={rejectTicket.isPending}
+                  >
+                    {rejectTicket.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Ban className="h-4 w-4 mr-2" />
+                    )}
+                    Cancelar venta y liberar boleto
+                  </Button>
+                </div>
               </>
             )}
           </div>
