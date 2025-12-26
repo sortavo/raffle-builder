@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Ticket } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { TrialBanner } from "./TrialBanner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -71,7 +72,10 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
           </div>
         </header>
         
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 sm:pb-6 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 sm:pb-6 overflow-x-hidden">
+          <TrialBanner />
+          {children}
+        </main>
         
         {/* Mobile Bottom Navigation */}
         {isMobile && <MobileNav />}
