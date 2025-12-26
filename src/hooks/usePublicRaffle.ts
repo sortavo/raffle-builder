@@ -49,15 +49,28 @@ export function usePublicRaffle(slug: string | undefined) {
       if (error) throw error;
       if (!raffle) return null;
 
-      // Get ticket stats
-      const { data: tickets } = await supabase
-        .from('tickets')
-        .select('status, ticket_number')
-        .eq('raffle_id', raffle.id);
+      // Get ticket counts using count queries (no limit issues)
+      const [soldResult, reservedResult, availableResult] = await Promise.all([
+        supabase
+          .from('tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('raffle_id', raffle.id)
+          .eq('status', 'sold'),
+        supabase
+          .from('tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('raffle_id', raffle.id)
+          .eq('status', 'reserved'),
+        supabase
+          .from('tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('raffle_id', raffle.id)
+          .eq('status', 'available'),
+      ]);
 
-      const ticketsSold = tickets?.filter(t => t.status === 'sold').length || 0;
-      const ticketsReserved = tickets?.filter(t => t.status === 'reserved').length || 0;
-      const ticketsAvailable = tickets?.filter(t => t.status === 'available').length || 0;
+      const ticketsSold = soldResult.count || 0;
+      const ticketsReserved = reservedResult.count || 0;
+      const ticketsAvailable = availableResult.count || 0;
 
       // Get packages
       const { data: packages } = await supabase
@@ -369,6 +382,41 @@ export function useCheckTicketsAvailability() {
       return (data || [])
         .filter(t => t.status === 'available')
         .map(t => t.ticket_number);
+    },
+  });
+}
+
+export function useRepairTickets() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (raffleId: string) => {
+      const { data, error } = await supabase.functions.invoke('generate-tickets', {
+        body: { raffle_id: raffleId, force_rebuild: false },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      return data;
+    },
+    onSuccess: (data, raffleId) => {
+      toast({
+        title: data.rebuilt ? 'Boletos regenerados' : 'Boletos generados',
+        description: `Se generaron ${data.count} boletos correctamente`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['public-tickets', raffleId] });
+      queryClient.invalidateQueries({ queryKey: ['public-raffle'] });
+      queryClient.invalidateQueries({ queryKey: ['raffle', raffleId] });
+      queryClient.invalidateQueries({ queryKey: ['raffles'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error al generar boletos',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 }
