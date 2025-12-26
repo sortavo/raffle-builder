@@ -12,6 +12,7 @@ interface TicketButtonProps {
   luckyNumbers?: string[];
   popularNumbers?: string[];
   isLastFew?: boolean;
+  isHighlighted?: boolean;
 }
 
 export function TicketButton({
@@ -23,6 +24,7 @@ export function TicketButton({
   luckyNumbers = [],
   popularNumbers = [],
   isLastFew = false,
+  isHighlighted = false,
 }: TicketButtonProps) {
   const isAvailable = status === 'available';
   const badgeType = isAvailable ? getNumberBadgeType(ticketNumber, luckyNumbers, popularNumbers, isLastFew) : null;
@@ -39,6 +41,11 @@ export function TicketButton({
         "relative aspect-square rounded-xl font-bold text-sm",
         "transition-all duration-200 touch-manipulation",
         "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2",
+        
+        // Highlighted state (found via search)
+        isHighlighted && [
+          "ring-4 ring-amber-400 ring-offset-2 animate-pulse",
+        ],
         
         // Available - not selected
         isAvailable && !isSelected && [

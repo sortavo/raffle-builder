@@ -31,7 +31,8 @@ import {
   ArrowRight,
   Ticket,
   Trash2,
-  Heart
+  Heart,
+  CornerDownLeft
 } from "lucide-react";
 
 interface Package {
@@ -90,6 +91,8 @@ export function TicketSelector({
   const [isSlotSpinning, setIsSlotSpinning] = useState(false);
   const [pendingNumbers, setPendingNumbers] = useState<string[]>([]);
   const pendingNumbersRef = useRef<string[]>([]);
+  const [highlightedTicket, setHighlightedTicket] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const pageSize = 100;
   const totalPages = Math.ceil(totalTickets / pageSize);
@@ -242,6 +245,63 @@ export function TicketSelector({
   const checkTicketsAvailability = useCallback(async (numbers: string[]): Promise<string[]> => {
     return checkAvailabilityMutation.mutateAsync({ raffleId, ticketNumbers: numbers });
   }, [raffleId, checkAvailabilityMutation]);
+
+  // Navigate to a specific ticket
+  const handleGoToTicket = async () => {
+    if (!manualFilter.trim()) return;
+    
+    setIsNavigating(true);
+    try {
+      // Pad the ticket number to match format
+      const ticketNum = manualFilter.padStart(maxDigits, '0');
+      
+      // Verify the ticket exists
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('ticket_number, status')
+        .eq('raffle_id', raffleId)
+        .eq('ticket_number', ticketNum)
+        .maybeSingle();
+      
+      if (error || !data) {
+        toast.error(`Boleto ${ticketNum} no encontrado`);
+        return;
+      }
+      
+      // Calculate page where ticket is located
+      const ticketIndex = parseInt(ticketNum, 10);
+      const targetPage = Math.ceil(ticketIndex / pageSize);
+      
+      // Navigate to that page
+      setPage(targetPage);
+      
+      // Highlight the ticket
+      setHighlightedTicket(ticketNum);
+      
+      // Clear filter so we see the full page
+      setManualFilter('');
+      
+      toast.success(`Navegando al boleto ${ticketNum}`, {
+        description: data.status === 'available' ? 'Disponible' : 
+                     data.status === 'sold' ? 'Vendido' : 
+                     data.status === 'reserved' ? 'Reservado' : 'No disponible'
+      });
+      
+      // Remove highlight after 4 seconds
+      setTimeout(() => setHighlightedTicket(null), 4000);
+    } catch {
+      toast.error('Error al buscar el boleto');
+    } finally {
+      setIsNavigating(false);
+    }
+  };
+
+  const handleManualKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && manualFilter.trim()) {
+      e.preventDefault();
+      handleGoToTicket();
+    }
+  };
 
   const handleSearchTicket = async () => {
     if (!searchTerm.trim()) return;
@@ -407,24 +467,41 @@ export function TicketSelector({
               </div>
             )}
 
-            {/* Filters */}
+            {/* Go to ticket input */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  placeholder="Filtrar en esta página..."
-                  value={manualFilter}
-                  onChange={(e) => setManualFilter(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="pl-12 h-12 text-lg border-2 focus:border-violet-600 rounded-xl"
-                />
-                {manualFilter && (
-                  <button
-                    onClick={() => setManualFilter('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    ✕
-                  </button>
-                )}
+              <div className="flex-1 flex gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    placeholder="Ir al boleto #..."
+                    value={manualFilter}
+                    onChange={(e) => setManualFilter(e.target.value.replace(/[^0-9]/g, ''))}
+                    onKeyDown={handleManualKeyDown}
+                    className="pl-12 pr-10 h-12 text-lg border-2 focus:border-violet-600 rounded-xl"
+                  />
+                  {manualFilter && (
+                    <button
+                      onClick={() => setManualFilter('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+                <Button
+                  onClick={handleGoToTicket}
+                  disabled={!manualFilter.trim() || isNavigating}
+                  className="h-12 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                >
+                  {isNavigating ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <CornerDownLeft className="w-5 h-5 mr-1" />
+                      Ir
+                    </>
+                  )}
+                </Button>
               </div>
               
               <div className="flex items-center gap-4">
@@ -533,6 +610,7 @@ export function TicketSelector({
                       onClick={() => handleTicketClick(ticket.ticket_number, ticket.status)}
                       disabled={ticket.status !== 'available'}
                       isLastFew={ticket.status === 'available' && manuallyFilteredTickets.filter(t => t.status === 'available').length <= 10}
+                      isHighlighted={highlightedTicket === ticket.ticket_number}
                     />
                   ))}
                 </AnimatePresence>
