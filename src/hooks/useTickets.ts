@@ -58,7 +58,7 @@ export const useTickets = (raffleId: string | undefined) => {
     });
   };
 
-  // Get ticket stats
+  // Get ticket stats using count queries (no 1000 row limit)
   const useTicketStats = () => {
     return useQuery({
       queryKey: ['ticket-stats', raffleId],
@@ -67,29 +67,41 @@ export const useTickets = (raffleId: string | undefined) => {
           return { available: 0, reserved: 0, sold: 0, canceled: 0, total: 0 };
         }
 
-        const { data, error } = await supabase
-          .from('tickets')
-          .select('status')
-          .eq('raffle_id', raffleId);
+        // Use parallel count queries to avoid the 1000 row limit
+        const [availableRes, reservedRes, soldRes, canceledRes, totalRes] = await Promise.all([
+          supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'available'),
+          supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'reserved'),
+          supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'sold'),
+          supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'canceled'),
+          supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId),
+        ]);
 
-        if (error) throw error;
-
-        const stats: TicketStats = {
-          available: 0,
-          reserved: 0,
-          sold: 0,
-          canceled: 0,
-          total: data?.length || 0,
+        return {
+          available: availableRes.count || 0,
+          reserved: reservedRes.count || 0,
+          sold: soldRes.count || 0,
+          canceled: canceledRes.count || 0,
+          total: totalRes.count || 0,
         };
-
-        data?.forEach(ticket => {
-          if (ticket.status === 'available') stats.available++;
-          else if (ticket.status === 'reserved') stats.reserved++;
-          else if (ticket.status === 'sold') stats.sold++;
-          else if (ticket.status === 'canceled') stats.canceled++;
-        });
-
-        return stats;
       },
       enabled: !!raffleId,
     });

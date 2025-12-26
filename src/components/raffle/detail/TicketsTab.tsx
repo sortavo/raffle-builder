@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,9 @@ import {
   User,
   Phone,
   Mail,
-  Clock
+  Clock,
+  X,
+  Loader2
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { cn } from '@/lib/utils';
@@ -41,14 +43,36 @@ const TICKETS_PER_PAGE = 100;
 export function TicketsTab({ raffleId }: TicketsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchNumber, setSearchNumber] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [jumpToPage, setJumpToPage] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [highlightedTicket, setHighlightedTicket] = useState<string | null>(null);
+  const ticketRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const { useTicketsList, useTicketStats } = useTickets(raffleId);
   
-  const { data: ticketsData, isLoading } = useTicketsList({
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      // Reset to page 1 when search changes
+      if (searchInput !== debouncedSearch) {
+        setCurrentPage(1);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset page when status filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  // Pass search to backend query for global search
+  const { data: ticketsData, isLoading, isFetching } = useTicketsList({
     status: statusFilter !== 'all' ? statusFilter : undefined,
+    search: debouncedSearch || undefined,
     page: currentPage,
     pageSize: TICKETS_PER_PAGE,
   });
@@ -56,7 +80,21 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
   const { data: stats } = useTicketStats();
 
   const tickets = ticketsData?.tickets || [];
-  const totalPages = Math.ceil((stats?.total || 0) / TICKETS_PER_PAGE);
+  // Use count from query result for accurate pagination with filters
+  const totalFilteredCount = ticketsData?.count || 0;
+  const totalPages = Math.ceil(totalFilteredCount / TICKETS_PER_PAGE);
+
+  // Highlight effect for found tickets
+  useEffect(() => {
+    if (highlightedTicket && tickets.length > 0) {
+      const ticketElement = ticketRefs.current.get(highlightedTicket);
+      if (ticketElement) {
+        ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const timer = setTimeout(() => setHighlightedTicket(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedTicket, tickets]);
 
   const handleJumpToPage = () => {
     const page = parseInt(jumpToPage);
@@ -66,24 +104,27 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
     }
   };
 
-  const getTicketColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300 hover:bg-green-500/30';
-      case 'reserved':
-        return 'bg-yellow-500/20 border-yellow-500/50 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-500/30';
-      case 'sold':
-        return 'bg-muted border-border text-muted-foreground';
-      case 'canceled':
-        return 'bg-destructive/20 border-destructive/50 text-destructive';
-      default:
-        return 'bg-muted border-border';
-    }
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setDebouncedSearch('');
+    setCurrentPage(1);
   };
 
-  const filteredTickets = searchNumber 
-    ? tickets.filter(t => t.ticket_number.includes(searchNumber))
-    : tickets;
+  const getTicketColor = (status: string, isHighlighted: boolean) => {
+    const baseClasses = isHighlighted ? 'ring-4 ring-amber-400 ring-offset-2 animate-pulse' : '';
+    switch (status) {
+      case 'available':
+        return cn(baseClasses, 'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300 hover:bg-green-500/30');
+      case 'reserved':
+        return cn(baseClasses, 'bg-yellow-500/20 border-yellow-500/50 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-500/30');
+      case 'sold':
+        return cn(baseClasses, 'bg-muted border-border text-muted-foreground');
+      case 'canceled':
+        return cn(baseClasses, 'bg-destructive/20 border-destructive/50 text-destructive');
+      default:
+        return cn(baseClasses, 'bg-muted border-border');
+    }
+  };
 
   // Create a 10x10 grid
   const gridTickets = [];
@@ -91,7 +132,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
     const row = [];
     for (let j = 0; j < 10; j++) {
       const index = i * 10 + j;
-      row.push(filteredTickets[index] || null);
+      row.push(tickets[index] || null);
     }
     gridTickets.push(row);
   }
@@ -126,12 +167,30 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por número..."
-                  value={searchNumber}
-                  onChange={(e) => setSearchNumber(e.target.value)}
-                  className="pl-9"
+                  placeholder="Buscar por número (búsqueda global)..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="pl-9 pr-16"
                 />
+                {(searchInput || isFetching) && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {isFetching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    {searchInput && (
+                      <button
+                        onClick={handleClearSearch}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
+              {debouncedSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {totalFilteredCount} resultado{totalFilteredCount !== 1 ? 's' : ''} para "{debouncedSearch}"
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -159,11 +218,26 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
         <CardHeader className="pb-2 sm:pb-4">
           <CardTitle className="text-base sm:text-lg">
             Boletos (Página {currentPage} de {totalPages || 1})
+            {debouncedSearch && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                — Filtrado por "{debouncedSearch}"
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <TicketGridSkeleton />
+          ) : tickets.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-lg font-medium">No se encontraron boletos</p>
+              {debouncedSearch && (
+                <p className="text-sm mt-1">
+                  No hay boletos que coincidan con "{debouncedSearch}"
+                </p>
+              )}
+            </div>
           ) : (
             <div className="space-y-1.5 sm:space-y-2 overflow-x-auto">
               {gridTickets.map((row, rowIndex) => (
@@ -171,11 +245,15 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                   {row.map((ticket, colIndex) => (
                     <button
                       key={`${rowIndex}-${colIndex}`}
+                      ref={(el) => {
+                        if (ticket && el) ticketRefs.current.set(ticket.ticket_number, el);
+                        else if (ticket) ticketRefs.current.delete(ticket.ticket_number);
+                      }}
                       onClick={() => ticket && setSelectedTicket(ticket)}
                       disabled={!ticket}
                       className={cn(
                         'aspect-square rounded-md border text-[10px] sm:text-xs font-medium flex items-center justify-center transition-colors min-h-[32px] sm:min-h-0',
-                        ticket ? getTicketColor(ticket.status || 'available') : 'bg-muted/50 border-transparent',
+                        ticket ? getTicketColor(ticket.status || 'available', highlightedTicket === ticket.ticket_number) : 'bg-muted/50 border-transparent',
                         ticket && 'cursor-pointer'
                       )}
                     >
@@ -218,7 +296,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
             size="icon"
             className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -227,7 +305,7 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
             size="icon"
             className="h-8 w-8 sm:h-9 sm:w-9"
             onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>
