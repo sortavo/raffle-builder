@@ -29,6 +29,18 @@ const STEPS = [
   { id: 5, title: 'Diseño', description: 'Personalización' },
 ];
 
+// Default customization values for optional features
+const DEFAULT_FEATURE_CUSTOMIZATION = {
+  show_random_picker: true,
+  show_winners_history: true,
+  show_probability_stats: true,
+  show_viewers_count: true,
+  show_purchase_toasts: true,
+  show_urgency_badge: true,
+  show_sticky_banner: true,
+  show_social_proof: true,
+};
+
 export default function RaffleWizard() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -84,6 +96,7 @@ export default function RaffleWizard() {
       auto_publish_result: false,
       template_id: 'modern',
       customization: {
+        ...DEFAULT_FEATURE_CUSTOMIZATION,
         primary_color: organization?.brand_color || '#2563EB',
         secondary_color: '#F97316',
         title_font: 'Inter',
@@ -133,8 +146,16 @@ export default function RaffleWizard() {
         ...raffleData 
       } = existingRaffle;
       
+      // Merge existing customization with default feature flags
+      const existingCustomization = (raffleData.customization || {}) as Record<string, unknown>;
+      const mergedCustomization = {
+        ...DEFAULT_FEATURE_CUSTOMIZATION,
+        ...existingCustomization,
+      };
+      
       form.reset({
         ...raffleData,
+        customization: mergedCustomization,
         packages: [],
       });
     }
