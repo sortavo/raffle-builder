@@ -45,6 +45,7 @@ interface PhoneInputWithCountryProps {
   onChange: (values: string[]) => void;
   helperText?: string;
   maxItems?: number;
+  showValidation?: boolean;
 }
 
 // Parse a full phone number into country code and number
@@ -78,6 +79,7 @@ export function PhoneInputWithCountry({
   onChange,
   helperText,
   maxItems = 5,
+  showValidation = false,
 }: PhoneInputWithCountryProps) {
   // Parse existing values into structured format
   const entries: PhoneEntry[] = values.length > 0 
@@ -116,6 +118,18 @@ export function PhoneInputWithCountry({
     if (digits.length <= 2) return digits;
     if (digits.length <= 6) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
     return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6, 10)}`;
+  };
+
+  // Check if number is valid (exactly 10 digits)
+  const isValidNumber = (number: string): boolean => {
+    const digits = number.replace(/\D/g, '');
+    return digits.length === 10;
+  };
+
+  // Check if number is incomplete (has some digits but not 10)
+  const isIncompleteNumber = (number: string): boolean => {
+    const digits = number.replace(/\D/g, '');
+    return digits.length > 0 && digits.length < 10;
   };
 
   const displayEntries = entries.length === 0 ? [] : entries;
@@ -160,13 +174,20 @@ export function PhoneInputWithCountry({
                 ))}
               </SelectContent>
             </Select>
-            <Input
-              type="tel"
-              value={formatDisplayNumber(entry.number)}
-              onChange={(e) => handleNumberChange(index, e.target.value)}
-              placeholder="55 1234 5678"
-              className="flex-1"
-            />
+            <div className="flex-1 space-y-1">
+              <Input
+                type="tel"
+                value={formatDisplayNumber(entry.number)}
+                onChange={(e) => handleNumberChange(index, e.target.value)}
+                placeholder="55 1234 5678"
+                className={showValidation && isIncompleteNumber(entry.number) ? "border-destructive" : ""}
+              />
+              {showValidation && isIncompleteNumber(entry.number) && (
+                <p className="text-xs text-destructive">
+                  El número debe tener 10 dígitos ({entry.number.length}/10)
+                </p>
+              )}
+            </div>
             <Button
               type="button"
               variant="ghost"
