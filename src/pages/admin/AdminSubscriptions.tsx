@@ -41,16 +41,16 @@ interface Organization {
 }
 
 const tierColors: Record<SubscriptionTier, string> = {
-  basic: "bg-slate-100 text-slate-700 border-slate-200",
-  pro: "bg-blue-100 text-blue-700 border-blue-200",
-  premium: "bg-purple-100 text-purple-700 border-purple-200",
+  basic: "bg-muted text-muted-foreground border-border",
+  pro: "bg-primary/20 text-primary border-primary/30",
+  premium: "bg-accent/20 text-accent border-accent/30",
 };
 
 const statusColors: Record<SubscriptionStatus, string> = {
-  trial: "bg-amber-100 text-amber-700 border-amber-200",
-  active: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  canceled: "bg-red-100 text-red-700 border-red-200",
-  past_due: "bg-orange-100 text-orange-700 border-orange-200",
+  trial: "bg-warning/20 text-warning border-warning/30",
+  active: "bg-success/20 text-success border-success/30",
+  canceled: "bg-destructive/20 text-destructive border-destructive/30",
+  past_due: "bg-warning/20 text-warning border-warning/30",
 };
 
 export default function AdminSubscriptions() {
@@ -196,8 +196,8 @@ export default function AdminSubscriptions() {
                         <TableCell className="hidden md:table-cell">
                           {org.subscription_status === "trial" && trialDays !== null ? (
                             <div className="flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5 text-amber-500" />
-                              <span className={`text-sm ${trialDays <= 3 ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                              <Clock className="h-3.5 w-3.5 text-warning" />
+                              <span className={`text-sm ${trialDays <= 3 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                                 {trialDays} días
                               </span>
                             </div>
@@ -211,7 +211,7 @@ export default function AdminSubscriptions() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {org.stripe_customer_id ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Badge variant="outline" className="bg-success/20 text-success border-success/30">
                               Conectado
                             </Badge>
                           ) : (

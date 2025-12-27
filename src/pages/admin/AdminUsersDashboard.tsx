@@ -30,9 +30,9 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  owner: "bg-purple-600",
-  admin: "bg-blue-600",
-  member: "bg-slate-500",
+  owner: "bg-primary",
+  admin: "bg-success",
+  member: "bg-muted-foreground",
 };
 
 const roleIcons: Record<string, React.ElementType> = {
@@ -149,10 +149,10 @@ export default function AdminUsersDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[
-              { key: "trial", label: "Trial", icon: Sparkles, color: "bg-amber-500" },
-              { key: "basic", label: "Basic", icon: Sparkles, color: "bg-slate-500" },
-              { key: "pro", label: "Pro", icon: Crown, color: "bg-blue-600" },
-              { key: "premium", label: "Premium", icon: Gem, color: "bg-purple-600" },
+              { key: "trial", label: "Trial", icon: Sparkles, color: "bg-warning" },
+              { key: "basic", label: "Basic", icon: Sparkles, color: "bg-muted-foreground" },
+              { key: "pro", label: "Pro", icon: Crown, color: "bg-primary" },
+              { key: "premium", label: "Premium", icon: Gem, color: "bg-accent" },
             ].map(({ key, label, icon: Icon, color }) => {
               const count = stats?.usersByPlan[key as keyof typeof stats.usersByPlan] || 0;
               const percentage = totalByPlan > 0 ? (count / totalByPlan) * 100 : 0;
@@ -183,7 +183,7 @@ export default function AdminUsersDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-emerald-500" />
+              <UserPlus className="h-5 w-5 text-success" />
               Registros Recientes
             </CardTitle>
           </CardHeader>
