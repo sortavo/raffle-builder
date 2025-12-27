@@ -10,7 +10,7 @@ const corsHeaders = {
 interface EmailRequest {
   to: string;
   subject?: string;
-  template: 'reservation' | 'proof_received' | 'approved' | 'approved_bulk' | 'rejected' | 'reminder' | 'winner';
+  template: 'reservation' | 'proof_received' | 'approved' | 'approved_bulk' | 'rejected' | 'reminder' | 'winner' | 'payment_reminder' | 'pending_approvals';
   data: Record<string, any>;
 }
 
@@ -22,6 +22,8 @@ const subjects: Record<string, string> = {
   rejected: '⚠️ Revisión de Pago',
   reminder: '🎊 Recordatorio del Sorteo',
   winner: '🏆 ¡Felicidades, Ganaste!',
+  payment_reminder: '⏰ Tu reservación está por expirar',
+  pending_approvals: '📋 Comprobantes pendientes de aprobar',
 };
 
 const templates: Record<string, (data: any) => string> = {
@@ -352,6 +354,122 @@ const templates: Record<string, (data: any) => string> = {
           <p>El organizador se pondrá en contacto contigo para coordinar la entrega de tu premio.</p>
           
           <p style="font-size: 24px; text-align: center;">¡Felicidades nuevamente! 🎊</p>
+        </div>
+        <div class="footer">
+          <p>Sortavo - Tu plataforma de sorteos</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `,
+
+  payment_reminder: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+        .timer { font-size: 48px; font-weight: bold; color: #d97706; text-align: center; margin: 20px 0; }
+        .tickets { background: #fef3c7; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; }
+        .ticket-number { display: inline-block; background: #f59e0b; color: white; padding: 5px 12px; border-radius: 20px; margin: 3px; font-weight: 600; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+        .button { display: inline-block; background: #f59e0b; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
+        .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin:0;">⏰ ¡Tu reservación está por expirar!</h1>
+        </div>
+        <div class="content">
+          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          
+          <div class="timer">
+            ${data.minutes_remaining} min
+          </div>
+          
+          <p style="text-align: center;">restantes para completar tu pago</p>
+          
+          <div class="tickets">
+            <p style="margin: 0 0 10px 0;">Tus boletos reservados:</p>
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${n}</span>`).join('')}
+          </div>
+          
+          <div class="warning">
+            ⚠️ <strong>Si no subes tu comprobante de pago a tiempo, tus boletos serán liberados</strong> y podrían ser comprados por otra persona.
+          </div>
+          
+          <p><strong>Sorteo:</strong> ${data.raffle_title}</p>
+          
+          <center>
+            <a href="${data.payment_url || '#'}" class="button">Subir Comprobante Ahora</a>
+          </center>
+        </div>
+        <div class="footer">
+          <p>Sortavo - Tu plataforma de sorteos</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `,
+
+  pending_approvals: (data) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+        .count-box { background: #dbeafe; border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+        .count { font-size: 48px; font-weight: bold; color: #1d4ed8; }
+        .raffle-item { background: white; padding: 12px 15px; border-radius: 8px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .raffle-name { font-weight: 600; }
+        .pending-badge { background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
+        .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin:0;">📋 Comprobantes Pendientes</h1>
+        </div>
+        <div class="content">
+          <p>Hola,</p>
+          <p>Tienes comprobantes de pago esperando tu aprobación en <strong>${data.org_name}</strong>:</p>
+          
+          <div class="count-box">
+            <div class="count">${data.total_pending}</div>
+            <div>comprobantes pendientes</div>
+          </div>
+          
+          ${(data.raffles || []).map((r: any) => `
+            <div class="raffle-item">
+              <span class="raffle-name">🎟️ ${r.title}</span>
+              <span class="pending-badge">${r.count} pendiente${r.count > 1 ? 's' : ''}</span>
+            </div>
+          `).join('')}
+          
+          ${data.waiting_hours >= 2 ? `
+            <div class="warning">
+              ⏰ El comprobante más antiguo lleva <strong>${data.waiting_hours} horas</strong> esperando aprobación.
+            </div>
+          ` : ''}
+          
+          <p>Tus compradores están esperando la confirmación de sus boletos. Una aprobación rápida mejora su experiencia.</p>
+          
+          <center>
+            <a href="${data.dashboard_url || '#'}" class="button">Revisar Comprobantes</a>
+          </center>
         </div>
         <div class="footer">
           <p>Sortavo - Tu plataforma de sorteos</p>
