@@ -1,5 +1,8 @@
 project_id = "hctrnfkowqgcwnotosai"
 
+[functions.auto-draw]
+verify_jwt = false
+
 [functions.cleanup-notifications]
 verify_jwt = false
 
