@@ -26,11 +26,11 @@ interface MobileCardProps {
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  active: { label: "Activo", className: "bg-green-500 text-white" },
-  draft: { label: "Borrador", className: "bg-gray-500 text-white" },
-  paused: { label: "Pausado", className: "bg-yellow-500 text-white" },
-  completed: { label: "Completado", className: "bg-blue-500 text-white" },
-  canceled: { label: "Cancelado", className: "bg-red-500 text-white" },
+  active: { label: "Activo", className: "bg-success text-white" },
+  draft: { label: "Borrador", className: "bg-muted-foreground text-white" },
+  paused: { label: "Pausado", className: "bg-warning text-white" },
+  completed: { label: "Completado", className: "bg-primary text-white" },
+  canceled: { label: "Cancelado", className: "bg-destructive text-white" },
 };
 
 export function MobileCard({ raffle, onClick, onMenuClick }: MobileCardProps) {
@@ -114,8 +114,8 @@ export function MobileCard({ raffle, onClick, onMenuClick }: MobileCardProps) {
               className={cn(
                 "h-full rounded-full",
                 progress >= 75 
-                  ? "bg-gradient-to-r from-green-500 to-emerald-500" 
-                  : "bg-gradient-to-r from-violet-600 to-indigo-600"
+                  ? "bg-gradient-to-r from-success to-success/80" 
+                  : "bg-gradient-to-r from-primary to-accent"
               )}
             />
           </div>

@@ -44,11 +44,11 @@ export function AdminSidebarContent({ onNavigate }: AdminSidebarContentProps) {
       {/* Header */}
       <div className="p-4 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent flex items-center justify-center shadow-lg shadow-primary/25">
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+            <h2 className="font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Super Admin
             </h2>
             <p className="text-xs text-muted-foreground">Panel de Plataforma</p>
@@ -67,8 +67,8 @@ export function AdminSidebarContent({ onNavigate }: AdminSidebarContentProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 isActive(item.url)
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
-                  : "text-muted-foreground hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600"
+                  ? "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25"
+                  : "text-muted-foreground hover:bg-primary/10 dark:hover:bg-primary/20 hover:text-primary"
               )}
             >
               <item.icon className={cn(
@@ -86,7 +86,7 @@ export function AdminSidebarContent({ onNavigate }: AdminSidebarContentProps) {
         <Button 
           variant="ghost" 
           size="sm" 
-          className="w-full justify-start hover:bg-violet-50 dark:hover:bg-violet-900/20 text-muted-foreground hover:text-violet-600 transition-colors" 
+          className="w-full justify-start hover:bg-primary/10 dark:hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" 
           asChild
         >
           <Link to="/dashboard" onClick={onNavigate}>

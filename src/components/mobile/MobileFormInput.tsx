@@ -26,18 +26,18 @@ export const MobileFormInput = forwardRef<HTMLInputElement, MobileFormInputProps
             ref={ref}
             className={cn(
               "w-full h-14 px-4 rounded-xl border-2 border-border bg-background text-foreground text-base",
-              "focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/20",
+              "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
               "transition-all duration-200",
               "touch-manipulation",
               icon && "pl-12",
-              error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+              error && "border-destructive focus:border-destructive focus:ring-destructive/20",
               className
             )}
             {...props}
           />
         </div>
         {error && (
-          <p className="text-sm text-red-500">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         )}
       </div>
     );
@@ -66,9 +66,9 @@ export function MobileFormButton({
   className,
 }: MobileFormButtonProps) {
   const variants = {
-    primary: "bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 shadow-lg",
+    primary: "bg-gradient-to-r from-primary to-accent text-white hover:from-primary/90 hover:to-accent/90 shadow-lg",
     secondary: "bg-muted text-foreground hover:bg-muted/80",
-    outline: "bg-background border-2 border-border text-foreground hover:border-violet-600 hover:text-violet-600",
+    outline: "bg-background border-2 border-border text-foreground hover:border-primary hover:text-primary",
   };
 
   return (

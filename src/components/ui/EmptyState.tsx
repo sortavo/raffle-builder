@@ -28,10 +28,10 @@ export function EmptyState({
       {/* Premium Icon Container */}
       <div className="relative mb-6">
         {/* Glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-400 to-indigo-400 rounded-full blur-2xl opacity-20 scale-150"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-full blur-2xl opacity-20 scale-150"></div>
         
         {/* Icon */}
-        <div className="relative w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-xl">
+        <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-xl">
           <div className="text-white [&>svg]:w-10 [&>svg]:h-10">
             {icon}
           </div>
@@ -39,10 +39,10 @@ export function EmptyState({
       </div>
 
       {/* Text */}
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+      <h3 className="text-xl font-semibold text-foreground mb-2">
         {title}
       </h3>
-      <p className="text-gray-500 max-w-md mb-8">
+      <p className="text-muted-foreground max-w-md mb-8">
         {description}
       </p>
 
@@ -51,7 +51,7 @@ export function EmptyState({
         <Button 
           size="lg"
           onClick={action.onClick}
-          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-xl shadow-violet-500/30"
+          className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-xl shadow-primary/30"
         >
           <Plus className="w-5 h-5 mr-2" />
           {action.label}

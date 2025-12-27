@@ -335,10 +335,10 @@ export const Step5Design = ({ form }: Step5Props) => {
       </Card>
 
       {/* Buyer Experience - Ticket Selector Features */}
-      <Card className="border-violet-200 bg-gradient-to-br from-violet-50/50 to-indigo-50/50">
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-violet-600" />
+            <Sparkles className="w-5 h-5 text-primary" />
             Experiencia del Comprador - Selector de Boletos
           </CardTitle>
           <CardDescription>
@@ -353,16 +353,16 @@ export const Step5Design = ({ form }: Step5Props) => {
             return (
               <div 
                 key={feature.id} 
-                className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-violet-300 transition-colors"
+                className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isEnabled ? "bg-violet-100" : "bg-gray-100"
+                    isEnabled ? "bg-primary/10" : "bg-muted"
                   )}>
                     <Icon className={cn(
                       "w-5 h-5",
-                      isEnabled ? "text-violet-600" : "text-gray-400"
+                      isEnabled ? "text-primary" : "text-muted-foreground"
                     )} />
                   </div>
                   <div>
@@ -384,15 +384,15 @@ export const Step5Design = ({ form }: Step5Props) => {
           })}
           
           {/* Lucky Numbers - already exists as separate field */}
-          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-violet-300 transition-colors">
+          <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
             <div className="flex items-center gap-3">
               <div className={cn(
                 "w-10 h-10 rounded-lg flex items-center justify-center",
-                form.watch('lucky_numbers_enabled') ? "bg-pink-100" : "bg-gray-100"
+                form.watch('lucky_numbers_enabled') ? "bg-accent/10" : "bg-muted"
               )}>
                 <Heart className={cn(
                   "w-5 h-5",
-                  form.watch('lucky_numbers_enabled') ? "text-pink-600" : "text-gray-400"
+                  form.watch('lucky_numbers_enabled') ? "text-accent" : "text-muted-foreground"
                 )} />
               </div>
               <div>
@@ -414,10 +414,10 @@ export const Step5Design = ({ form }: Step5Props) => {
       </Card>
 
       {/* Marketing & Urgency Features */}
-      <Card className="border-orange-200 bg-gradient-to-br from-orange-50/50 to-amber-50/50">
+      <Card className="border-warning/20 bg-gradient-to-br from-warning/5 to-warning/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-orange-600" />
+            <Megaphone className="w-5 h-5 text-warning" />
             Marketing y Urgencia
           </CardTitle>
           <CardDescription>
@@ -432,16 +432,16 @@ export const Step5Design = ({ form }: Step5Props) => {
             return (
               <div 
                 key={feature.id} 
-                className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition-colors"
+                className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-warning/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isEnabled ? "bg-orange-100" : "bg-gray-100"
+                    isEnabled ? "bg-warning/10" : "bg-muted"
                   )}>
                     <Icon className={cn(
                       "w-5 h-5",
-                      isEnabled ? "text-orange-600" : "text-gray-400"
+                      isEnabled ? "text-warning" : "text-muted-foreground"
                     )} />
                   </div>
                   <div>

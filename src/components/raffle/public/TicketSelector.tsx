@@ -545,10 +545,10 @@ export function TicketSelector({
                     size="lg"
                     onClick={() => setRandomCount(pkg.quantity)}
                     className={cn(
-                      "relative border-2 transition-all",
+                    "relative border-2 transition-all",
                       selectedTickets.length === pkg.quantity 
-                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 border-transparent" 
-                        : "hover:border-violet-600 hover:text-violet-600"
+                        ? "bg-gradient-to-r from-primary to-accent border-transparent" 
+                        : "hover:border-primary hover:text-primary"
                     )}
                   >
                     {pkg.quantity} boletos - {formatCurrency(pkg.price, currencyCode)}
@@ -597,7 +597,7 @@ export function TicketSelector({
                 <Button
                   onClick={handleGoToTicket}
                   disabled={!manualFilter.trim() || isNavigating}
-                  className="h-12 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                  className="h-12 px-4 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 >
                   {isNavigating ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -739,7 +739,7 @@ export function TicketSelector({
                 
                 <Button 
                   variant="outline"
-                  className="border-2 hover:border-violet-600 hover:text-violet-600 h-12"
+                  className="border-2 hover:border-primary hover:text-primary h-12"
                   onClick={handleRandomGenerate}
                   disabled={randomMutation.isPending}
                 >
@@ -756,7 +756,7 @@ export function TicketSelector({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl border-2 border-violet-200 dark:border-violet-800"
+                  className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 rounded-xl border-2 border-primary/20 dark:border-primary/30"
                 >
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -764,15 +764,15 @@ export function TicketSelector({
                         key={selectedTickets.length}
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center"
+                        className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
                       >
                         <span className="text-white font-bold">{selectedTickets.length}</span>
                       </motion.div>
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        <p className="font-semibold text-foreground">
                           Boletos seleccionados
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {selectedTickets.slice(0, 5).join(', ')}
                           {selectedTickets.length > 5 && ` +${selectedTickets.length - 5} más`}
                         </p>
@@ -791,7 +791,7 @@ export function TicketSelector({
                       </Button>
                       <Button
                         size="lg"
-                        className="flex-1 sm:flex-initial bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg"
+                        className="flex-1 sm:flex-initial bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg"
                         onClick={() => onContinue(selectedTickets)}
                       >
                         {formatCurrency(calculateTotal(), currencyCode)}
@@ -806,7 +806,7 @@ export function TicketSelector({
             {/* Premium ticket grid */}
             {isLoading ? (
               <div className="flex justify-center py-16">
-                <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
               </div>
             ) : (
               <motion.div 
@@ -898,16 +898,16 @@ export function TicketSelector({
                 <span className="text-gray-600">Disponible</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600" />
-                <span className="text-gray-600">Seleccionado</span>
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent" />
+                <span className="text-muted-foreground">Seleccionado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-yellow-50 border-2 border-yellow-300" />
-                <span className="text-gray-600">Reservado</span>
+                <div className="w-6 h-6 rounded-lg bg-warning/20 border-2 border-warning/50" />
+                <span className="text-muted-foreground">Reservado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-gray-100 border-2 border-gray-200" />
-                <span className="text-gray-600">Vendido</span>
+                <div className="w-6 h-6 rounded-lg bg-muted border-2 border-border" />
+                <span className="text-muted-foreground">Vendido</span>
               </div>
             </div>
           </TabsContent>
@@ -939,11 +939,11 @@ export function TicketSelector({
                       exit={{ opacity: 0, y: -10 }}
                       className="text-center"
                     >
-                      <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Shuffle className="w-8 h-8 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Máquina de la Suerte</h3>
-                      <p className="text-gray-600">¡Gira y deja que la suerte elija tus números!</p>
+                      <h3 className="text-xl font-bold text-foreground mb-2">Máquina de la Suerte</h3>
+                      <p className="text-muted-foreground">¡Gira y deja que la suerte elija tus números!</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -980,7 +980,7 @@ export function TicketSelector({
                               onClick={() => setRandomCount(pkg.quantity)}
                               className={cn(
                                 "border-2",
-                                randomCount === pkg.quantity && "bg-gradient-to-r from-violet-600 to-indigo-600"
+                                randomCount === pkg.quantity && "bg-gradient-to-r from-primary to-accent"
                               )}
                             >
                               {pkg.label || `${pkg.quantity} boletos`}
@@ -1005,8 +1005,8 @@ export function TicketSelector({
                       </Button>
 
                       {generatedNumbers.length > 0 && !isSlotSpinning && (
-                        <div className="space-y-4 p-4 bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl">
-                          <p className="font-medium text-center text-gray-900">Tus números de la suerte:</p>
+                        <div className="space-y-4 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl">
+                          <p className="font-medium text-center text-foreground">Tus números de la suerte:</p>
                           <div className="flex flex-wrap gap-2 justify-center">
                             {generatedNumbers.map((num, index) => (
                               <motion.div
@@ -1016,7 +1016,7 @@ export function TicketSelector({
                                 transition={{ delay: index * 0.1, type: "spring" }}
                               >
                                 <Badge 
-                                  className="text-lg px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600"
+                                  className="text-lg px-4 py-2 bg-gradient-to-r from-primary to-accent"
                                 >
                                   {num}
                                 </Badge>
@@ -1060,11 +1060,11 @@ export function TicketSelector({
             <Card className="border-2">
               <CardContent className="pt-6 space-y-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Buscar Número</h3>
-                  <p className="text-gray-600">Busca todos los boletos que contengan ciertos dígitos</p>
+                  <h3 className="text-xl font-bold text-foreground mb-2">Buscar Número</h3>
+                  <p className="text-muted-foreground">Busca todos los boletos que contengan ciertos dígitos</p>
                 </div>
 
                 <div className="relative">
@@ -1136,15 +1136,15 @@ export function TicketSelector({
                                 disabled={!isAvailable}
                                 className={cn(
                                   "relative p-2 rounded-lg text-xs font-mono font-bold transition-all border-2",
-                                  isAvailable && !isSelected && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer",
-                                  isAvailable && isSelected && "bg-green-500 border-green-600 text-white ring-2 ring-green-400 ring-offset-1",
+                                  isAvailable && !isSelected && "bg-success/10 border-success/50 text-success hover:bg-success/20 cursor-pointer",
+                                  isAvailable && isSelected && "bg-success border-success text-white ring-2 ring-success/50 ring-offset-1",
                                   !isAvailable && "bg-muted border-muted text-muted-foreground cursor-not-allowed opacity-60"
                                 )}
                               >
                                 {ticket.ticket_number}
                                 {isSelected && (
                                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-green-600" />
+                                    <Check className="w-3 h-3 text-success" />
                                   </span>
                                 )}
                               </motion.button>

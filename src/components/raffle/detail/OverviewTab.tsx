@@ -114,7 +114,7 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
       title: 'Tiempo Restante',
       value: timeRemaining || 'Sin fecha',
       icon: Clock,
-      color: 'text-purple-500',
+      color: 'text-accent',
     },
   ];
 

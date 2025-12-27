@@ -83,7 +83,7 @@ export function ReferralProgram() {
               <p className="text-sm text-muted-foreground">Invitados</p>
             </div>
             <div className="text-center p-4 bg-background rounded-lg border">
-              <p className="text-2xl font-bold text-blue-500">{stats.completed}</p>
+              <p className="text-2xl font-bold text-primary">{stats.completed}</p>
               <p className="text-sm text-muted-foreground">Registrados</p>
             </div>
             <div className="text-center p-4 bg-background rounded-lg border">

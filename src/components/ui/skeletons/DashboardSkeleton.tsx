@@ -4,7 +4,7 @@ export function DashboardSkeleton() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Premium Welcome Banner Skeleton */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 p-8">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 p-8">
         <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-3">
@@ -20,7 +20,7 @@ export function DashboardSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <div 
             key={i} 
-            className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 p-6"
+            className="relative overflow-hidden bg-card rounded-2xl border border-border p-6"
           >
             {/* Shimmer overlay */}
             <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
@@ -42,7 +42,7 @@ export function DashboardSkeleton() {
       {/* Content Grid Skeleton */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Active Raffles Skeleton */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-6">
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
           
           <div className="flex items-center justify-between mb-6">
@@ -62,7 +62,7 @@ export function DashboardSkeleton() {
         </div>
 
         {/* Recent Activity Skeleton */}
-        <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-6">
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
           
           <div className="flex items-center justify-between mb-6">
