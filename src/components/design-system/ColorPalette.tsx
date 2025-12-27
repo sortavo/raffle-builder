@@ -50,13 +50,14 @@ const ColorSwatch = ({ name, variable, className, textClassName = "text-foregrou
   );
 };
 
-interface ColorSectionProps {
+interface SectionProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  columns?: string;
 }
 
-const ColorSection = ({ title, description, children }: ColorSectionProps) => (
+const Section = ({ title, description, children, columns = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6" }: SectionProps) => (
   <div className="space-y-4">
     <div>
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
@@ -64,11 +65,77 @@ const ColorSection = ({ title, description, children }: ColorSectionProps) => (
         <p className="text-sm text-muted-foreground">{description}</p>
       )}
     </div>
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div className={cn("grid gap-4", columns)}>
       {children}
     </div>
   </div>
 );
+
+interface TypographySampleProps {
+  name: string;
+  className: string;
+  tailwindClass: string;
+  sampleText?: string;
+}
+
+const TypographySample = ({ name, className, tailwindClass, sampleText = "Sortavo" }: TypographySampleProps) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(tailwindClass);
+    setCopied(true);
+    toast.success(`Copiado: ${tailwindClass}`);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div 
+      className="group cursor-pointer p-4 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-muted/50 transition-all"
+      onClick={copyToClipboard}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground">{name}</span>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          {copied ? (
+            <Check className="w-3 h-3 text-success" />
+          ) : (
+            <Copy className="w-3 h-3 text-muted-foreground" />
+          )}
+        </div>
+      </div>
+      <p className={cn("text-foreground truncate", className)}>{sampleText}</p>
+      <p className="text-xs text-muted-foreground font-mono mt-2">{tailwindClass}</p>
+    </div>
+  );
+};
+
+interface FontWeightSampleProps {
+  weight: string;
+  className: string;
+  tailwindClass: string;
+}
+
+const FontWeightSample = ({ weight, className, tailwindClass }: FontWeightSampleProps) => {
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(tailwindClass);
+    setCopied(true);
+    toast.success(`Copiado: ${tailwindClass}`);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div 
+      className="group cursor-pointer p-3 rounded-lg border border-border/50 hover:border-primary/50 hover:bg-muted/50 transition-all"
+      onClick={copyToClipboard}
+    >
+      <p className={cn("text-lg text-foreground", className)}>Aa</p>
+      <p className="text-xs text-muted-foreground mt-1">{weight}</p>
+      <p className="text-xs text-muted-foreground font-mono">{tailwindClass}</p>
+    </div>
+  );
+};
 
 export const ColorPalette = () => {
   return (
@@ -80,12 +147,118 @@ export const ColorPalette = () => {
             Sistema de Diseño
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl">
-            Paleta de colores "Negro & Esmeralda" de Sortavo. Haz clic en cualquier color para copiar su clase de Tailwind.
+            Paleta de colores y tipografía "Negro & Esmeralda" de Sortavo. Haz clic en cualquier elemento para copiar su clase de Tailwind.
           </p>
         </div>
 
+        {/* Typography - Font Families */}
+        <Section 
+          title="Tipografía - Familias" 
+          description="Fuentes utilizadas en el sistema de diseño"
+          columns="grid-cols-1 md:grid-cols-2"
+        >
+          <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sans (Predeterminada)</span>
+              <span className="text-xs text-muted-foreground font-mono">font-sans</span>
+            </div>
+            <p className="text-3xl font-sans text-foreground">Inter</p>
+            <p className="text-sm text-muted-foreground font-sans">
+              ABCDEFGHIJKLMNOPQRSTUVWXYZ<br />
+              abcdefghijklmnopqrstuvwxyz<br />
+              0123456789
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Fuente principal para todo el contenido. Optimizada para legibilidad en pantalla.
+            </p>
+          </div>
+          <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Display</span>
+              <span className="text-xs text-muted-foreground font-mono">font-display</span>
+            </div>
+            <p className="text-3xl font-display text-foreground">Inter</p>
+            <p className="text-sm text-muted-foreground font-display">
+              ABCDEFGHIJKLMNOPQRSTUVWXYZ<br />
+              abcdefghijklmnopqrstuvwxyz<br />
+              0123456789
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Fuente para títulos y encabezados destacados.
+            </p>
+          </div>
+        </Section>
+
+        {/* Typography - Font Weights */}
+        <Section 
+          title="Tipografía - Pesos" 
+          description="Variaciones de peso disponibles"
+          columns="grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9"
+        >
+          <FontWeightSample weight="Thin" className="font-thin" tailwindClass="font-thin" />
+          <FontWeightSample weight="Extra Light" className="font-extralight" tailwindClass="font-extralight" />
+          <FontWeightSample weight="Light" className="font-light" tailwindClass="font-light" />
+          <FontWeightSample weight="Normal" className="font-normal" tailwindClass="font-normal" />
+          <FontWeightSample weight="Medium" className="font-medium" tailwindClass="font-medium" />
+          <FontWeightSample weight="Semibold" className="font-semibold" tailwindClass="font-semibold" />
+          <FontWeightSample weight="Bold" className="font-bold" tailwindClass="font-bold" />
+          <FontWeightSample weight="Extra Bold" className="font-extrabold" tailwindClass="font-extrabold" />
+          <FontWeightSample weight="Black" className="font-black" tailwindClass="font-black" />
+        </Section>
+
+        {/* Typography - Font Sizes */}
+        <Section 
+          title="Tipografía - Tamaños" 
+          description="Escala tipográfica del sistema"
+          columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <TypographySample name="2XS (10px)" className="text-2xs" tailwindClass="text-2xs" />
+          <TypographySample name="XS (12px)" className="text-xs" tailwindClass="text-xs" />
+          <TypographySample name="SM (14px)" className="text-sm" tailwindClass="text-sm" />
+          <TypographySample name="Base (16px)" className="text-base" tailwindClass="text-base" />
+          <TypographySample name="LG (18px)" className="text-lg" tailwindClass="text-lg" />
+          <TypographySample name="XL (20px)" className="text-xl" tailwindClass="text-xl" />
+          <TypographySample name="2XL (24px)" className="text-2xl" tailwindClass="text-2xl" />
+          <TypographySample name="3XL (30px)" className="text-3xl" tailwindClass="text-3xl" />
+          <TypographySample name="4XL (36px)" className="text-4xl" tailwindClass="text-4xl" />
+          <TypographySample name="5XL (48px)" className="text-5xl" tailwindClass="text-5xl" />
+          <TypographySample name="6XL (60px)" className="text-6xl" tailwindClass="text-6xl" />
+          <TypographySample name="7XL (72px)" className="text-7xl" tailwindClass="text-7xl" />
+        </Section>
+
+        {/* Typography Examples */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-foreground">Ejemplos de Tipografía</h3>
+          <div className="p-6 rounded-xl border border-border bg-card space-y-6">
+            <div className="space-y-2">
+              <p className="text-5xl font-bold tracking-tight text-foreground">Título Principal</p>
+              <p className="text-xs text-muted-foreground font-mono">text-5xl font-bold tracking-tight</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-3xl font-semibold text-foreground">Subtítulo de Sección</p>
+              <p className="text-xs text-muted-foreground font-mono">text-3xl font-semibold</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xl font-medium text-foreground">Encabezado de Componente</p>
+              <p className="text-xs text-muted-foreground font-mono">text-xl font-medium</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-base text-foreground">Texto de párrafo normal con tamaño base para contenido general y descripciones.</p>
+              <p className="text-xs text-muted-foreground font-mono">text-base</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Texto secundario o de ayuda con menor énfasis visual.</p>
+              <p className="text-xs text-muted-foreground font-mono">text-sm text-muted-foreground</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground/70">Caption o texto muy pequeño para etiquetas y metadata.</p>
+              <p className="text-xs text-muted-foreground font-mono">text-xs text-muted-foreground/70</p>
+            </div>
+          </div>
+        </div>
+
         {/* Base Colors */}
-        <ColorSection 
+        <Section 
           title="Colores Base" 
           description="Fondos y texto principales de la aplicación"
         >
@@ -125,10 +298,10 @@ export const ColorPalette = () => {
             className="bg-muted-foreground"
             description="Texto secundario"
           />
-        </ColorSection>
+        </Section>
 
         {/* Brand Colors */}
-        <ColorSection 
+        <Section 
           title="Colores de Marca" 
           description="Esmeralda como color primario, dorado como acento"
         >
@@ -168,10 +341,10 @@ export const ColorPalette = () => {
             className="bg-secondary-foreground"
             description="Texto sobre secondary"
           />
-        </ColorSection>
+        </Section>
 
         {/* Primary Opacities */}
-        <ColorSection 
+        <Section 
           title="Primary con Opacidades" 
           description="Variaciones del color primario para diferentes contextos"
         >
@@ -205,10 +378,10 @@ export const ColorPalette = () => {
             variable="bg-primary/10"
             className="bg-primary/10"
           />
-        </ColorSection>
+        </Section>
 
         {/* Semantic States */}
-        <ColorSection 
+        <Section 
           title="Estados Semánticos" 
           description="Colores para estados de éxito, advertencia, error e información"
         >
@@ -260,10 +433,10 @@ export const ColorPalette = () => {
             className="bg-info/20"
             description="Fondo de info"
           />
-        </ColorSection>
+        </Section>
 
         {/* Borders & Rings */}
-        <ColorSection 
+        <Section 
           title="Bordes y Anillos" 
           description="Colores para bordes, separadores y estados de focus"
         >
@@ -285,10 +458,10 @@ export const ColorPalette = () => {
             className="bg-ring"
             description="Anillos de focus"
           />
-        </ColorSection>
+        </Section>
 
         {/* Gradients */}
-        <ColorSection 
+        <Section 
           title="Gradientes de Marca" 
           description="Combinaciones de gradientes predefinidas"
         >
@@ -319,11 +492,11 @@ export const ColorPalette = () => {
             <p className="mt-2 text-sm font-medium">Gradiente Sutil</p>
             <p className="text-xs text-muted-foreground font-mono">bg-gradient-to-r from-background via-muted to-background</p>
           </div>
-        </ColorSection>
+        </Section>
 
         {/* Usage Examples */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Ejemplos de Uso</h3>
+          <h3 className="text-lg font-semibold text-foreground">Ejemplos de Componentes</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Button Examples */}
             <div className="p-6 rounded-xl border border-border bg-card space-y-4">
