@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import sortavoLogo from "@/assets/sortavo-logo.png";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -128,8 +129,8 @@ export function Footer() {
 
             {/* Logo */}
             <div className="mt-6">
-              <Link to="/" className="text-2xl font-bold text-foreground">
-                Sortavo
+              <Link to="/" className="block">
+                <img src={sortavoLogo} alt="Sortavo" className="h-8 w-auto" />
               </Link>
             </div>
           </div>

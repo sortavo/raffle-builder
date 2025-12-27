@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TicketScannerDialog } from "@/components/scanner";
+import sortavoLogo from "@/assets/sortavo-logo.png";
 
 const menuItems = [
   {
@@ -124,12 +125,7 @@ export function DashboardSidebar() {
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="border-b border-border/50 px-4 py-4">
         <Link to="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent flex items-center justify-center shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">
-            <Trophy className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-extrabold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
-            SORTAVO
-          </span>
+          <img src={sortavoLogo} alt="Sortavo" className="h-8 w-auto" />
         </Link>
         {isSimulating && (
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-warning/10 to-warning/5 px-3 py-2 border border-warning/20">

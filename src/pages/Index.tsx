@@ -25,6 +25,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
+import sortavoLogo from "@/assets/sortavo-logo.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -149,15 +150,11 @@ const Index = () => {
           <div className="flex justify-between items-center h-16 lg:h-20">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative w-10 h-10 lg:w-12 lg:h-12">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 rounded-xl rotate-6 group-hover:rotate-12 transition-transform duration-300" />
-                <div className="relative w-full h-full bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center shadow-lg shadow-primary/25">
-                  <Trophy className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
-                </div>
-              </div>
-              <span className="text-xl lg:text-2xl font-bold tracking-tight text-foreground">
-                SORTAVO
-              </span>
+              <img 
+                src={sortavoLogo} 
+                alt="Sortavo" 
+                className="h-8 lg:h-10 w-auto"
+              />
             </Link>
 
             {/* Desktop Navigation */}
