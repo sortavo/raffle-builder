@@ -3,7 +3,7 @@ import Settings from "./pages/dashboard/Settings";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SimulationProvider } from "@/contexts/SimulationContext";
@@ -96,6 +96,13 @@ const App = () => (
               {/* Legal Routes */}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              {/* Redirects for common reserved slugs */}
+              <Route path="/login" element={<Navigate to="/auth" replace />} />
+              <Route path="/signup" element={<Navigate to="/auth" replace />} />
+              <Route path="/register" element={<Navigate to="/auth" replace />} />
+              <Route path="/settings" element={<Navigate to="/dashboard/settings" replace />} />
+              <Route path="/account" element={<Navigate to="/dashboard/settings" replace />} />
+              <Route path="/billing" element={<Navigate to="/dashboard/subscription" replace />} />
               {/* Organization-based public routes - MUST be last before catch-all */}
               <Route path="/:orgSlug" element={<OrganizationHome />} />
               <Route path="/:orgSlug/:slug" element={<PublicRaffle />} />
