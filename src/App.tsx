@@ -103,6 +103,9 @@ const App = () => (
               <Route path="/settings" element={<Navigate to="/dashboard/settings" replace />} />
               <Route path="/account" element={<Navigate to="/dashboard/settings" replace />} />
               <Route path="/billing" element={<Navigate to="/dashboard/subscription" replace />} />
+              <Route path="/profile" element={<Navigate to="/dashboard/settings" replace />} />
+              <Route path="/support" element={<Navigate to="/help" replace />} />
+              <Route path="/faq" element={<Navigate to="/help" replace />} />
               {/* Organization-based public routes - MUST be last before catch-all */}
               <Route path="/:orgSlug" element={<OrganizationHome />} />
               <Route path="/:orgSlug/:slug" element={<PublicRaffle />} />
