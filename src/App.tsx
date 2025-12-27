@@ -85,6 +85,7 @@ const App = () => (
               <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               {/* Public Routes */}
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/help" element={<HelpCenter />} />
               {/* Legacy raffle routes */}
               <Route path="/r/:slug" element={<PublicRaffle />} />
