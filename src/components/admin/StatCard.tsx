@@ -18,11 +18,11 @@ interface StatCardProps {
 
 const colorClasses = {
   primary: "bg-primary/10 text-primary",
-  success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  purple: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  purple: "bg-accent/10 text-accent",
+  blue: "bg-primary/10 text-primary",
+  amber: "bg-warning/10 text-warning",
 };
 
 export function StatCard({
@@ -35,7 +35,7 @@ export function StatCard({
   trend,
 }: StatCardProps) {
   const TrendIcon = trend ? (trend.value > 0 ? TrendingUp : trend.value < 0 ? TrendingDown : Minus) : null;
-  const trendColor = trend ? (trend.value > 0 ? "text-emerald-600" : trend.value < 0 ? "text-red-500" : "text-muted-foreground") : "";
+  const trendColor = trend ? (trend.value > 0 ? "text-success" : trend.value < 0 ? "text-destructive" : "text-muted-foreground") : "";
 
   return (
     <Card>

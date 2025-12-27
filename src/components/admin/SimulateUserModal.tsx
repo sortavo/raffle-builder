@@ -112,7 +112,7 @@ export function SimulateUserModal({ open, onOpenChange, user }: SimulateUserModa
               <RadioGroupItem value="readonly" id="readonly" className="mt-1" />
               <Label htmlFor="readonly" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2 font-medium">
-                  <Eye className="h-4 w-4 text-amber-600" />
+                  <Eye className="h-4 w-4 text-warning" />
                   Solo Lectura
                   <span className="text-xs font-normal text-muted-foreground">(Recomendado)</span>
                 </div>
@@ -126,7 +126,7 @@ export function SimulateUserModal({ open, onOpenChange, user }: SimulateUserModa
               <RadioGroupItem value="full_access" id="full_access" className="mt-1" />
               <Label htmlFor="full_access" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2 font-medium">
-                  <Edit className="h-4 w-4 text-red-600" />
+                  <Edit className="h-4 w-4 text-destructive" />
                   Acceso Completo
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -137,9 +137,9 @@ export function SimulateUserModal({ open, onOpenChange, user }: SimulateUserModa
           </RadioGroup>
 
           {mode === "full_access" && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-700 dark:text-red-300">
+            <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">
                 Las acciones que realices afectarán la cuenta real del usuario y quedarán
                 registradas en el log de auditoría.
               </p>
