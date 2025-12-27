@@ -122,10 +122,10 @@ export function CheckoutModal({
   const [reservedTickets, setReservedTickets] = useState<{ id: string; ticket_number: string }[]>([]);
   const [reservedUntil, setReservedUntil] = useState<string>('');
   const [referenceCode, setReferenceCode] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false); // Prevent double-click
   
   const reserveTickets = useReserveTickets();
   const { sendReservationEmail } = useEmails();
-
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -176,6 +176,10 @@ export function CheckoutModal({
   };
 
   const handleCompleteReservation = async () => {
+    // Prevent double-click
+    if (isProcessing || reserveTickets.isPending) return;
+    setIsProcessing(true);
+
     const data = form.getValues();
     const cleanPhone = data.phone.replace(/\D/g, '');
 
@@ -244,6 +248,8 @@ export function CheckoutModal({
       setCurrentStep(3);
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -697,9 +703,9 @@ export function CheckoutModal({
                   <Button
                     className="flex-1 bg-violet-600 hover:bg-violet-700"
                     onClick={handleCompleteReservation}
-                    disabled={reserveTickets.isPending}
+                    disabled={isProcessing || reserveTickets.isPending}
                   >
-                    {reserveTickets.isPending ? (
+                    {isProcessing || reserveTickets.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Procesando...

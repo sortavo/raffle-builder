@@ -176,33 +176,53 @@ export function useReserveTickets() {
 
       // Generate unique reference code for this reservation group
       const referenceCode = generateReferenceCode();
-      const reservedTickets: Ticket[] = [];
 
-      // Reserve each ticket atomically
-      for (const ticketNumber of ticketNumbers) {
-        const { data: ticket, error } = await supabase
-          .from('tickets')
-          .update({
-            status: 'reserved',
-            buyer_name: buyerData.name,
-            buyer_email: buyerData.email,
-            buyer_phone: buyerData.phone,
-            buyer_city: buyerData.city || null,
-            reserved_at: new Date().toISOString(),
-            reserved_until: reservedUntil.toISOString(),
-            payment_reference: referenceCode,
-          })
-          .eq('raffle_id', raffleId)
-          .eq('ticket_number', ticketNumber)
-          .eq('status', 'available')
-          .select()
-          .maybeSingle();
+      // ATOMIC OPERATION: Use a single update with .in() to reserve all tickets at once
+      // This prevents race conditions where some tickets get reserved by other users
+      const { data: reservedTickets, error } = await supabase
+        .from('tickets')
+        .update({
+          status: 'reserved',
+          buyer_name: buyerData.name,
+          buyer_email: buyerData.email,
+          buyer_phone: buyerData.phone,
+          buyer_city: buyerData.city || null,
+          reserved_at: new Date().toISOString(),
+          reserved_until: reservedUntil.toISOString(),
+          payment_reference: referenceCode,
+        })
+        .eq('raffle_id', raffleId)
+        .eq('status', 'available') // Only update available tickets
+        .in('ticket_number', ticketNumbers)
+        .select();
 
-        if (error) throw error;
-        if (!ticket) {
-          throw new Error(`El boleto ${ticketNumber} ya no está disponible`);
+      if (error) throw error;
+
+      // Verify ALL requested tickets were reserved (atomic validation)
+      if (!reservedTickets || reservedTickets.length !== ticketNumbers.length) {
+        // ROLLBACK: Release any tickets that were partially reserved
+        if (reservedTickets && reservedTickets.length > 0) {
+          await supabase
+            .from('tickets')
+            .update({
+              status: 'available',
+              buyer_name: null,
+              buyer_email: null,
+              buyer_phone: null,
+              buyer_city: null,
+              reserved_at: null,
+              reserved_until: null,
+              payment_reference: null,
+            })
+            .eq('raffle_id', raffleId)
+            .eq('payment_reference', referenceCode);
         }
-        reservedTickets.push(ticket);
+
+        const reservedCount = reservedTickets?.length || 0;
+        const failedCount = ticketNumbers.length - reservedCount;
+        throw new Error(
+          `${failedCount} boleto(s) ya no estaban disponibles. Por favor, selecciona otros boletos.`
+        );
       }
 
       return {

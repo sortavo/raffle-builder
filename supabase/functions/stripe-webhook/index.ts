@@ -47,14 +47,21 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const isProduction = Deno.env.get("ENVIRONMENT") === "production" || 
+                         !Deno.env.get("ENVIRONMENT"); // Default to production-like behavior
     
     if (!stripeKey) {
       logStep("ERROR: STRIPE_SECRET_KEY not configured");
       throw new Error("STRIPE_SECRET_KEY is not set");
     }
     
-    if (!webhookSecret) {
-      logStep("WARNING: STRIPE_WEBHOOK_SECRET not configured - signature verification disabled");
+    // CRITICAL: In production, webhook secret is MANDATORY
+    if (!webhookSecret && isProduction) {
+      logStep("CRITICAL: STRIPE_WEBHOOK_SECRET not configured in production - rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
@@ -63,8 +70,16 @@ serve(async (req) => {
 
     let event: Stripe.Event;
 
-    // Verify webhook signature if secret is available
-    if (webhookSecret && signature) {
+    // CRITICAL: Always verify webhook signature in production
+    if (webhookSecret) {
+      if (!signature) {
+        logStep("ERROR: Missing stripe-signature header");
+        return new Response(JSON.stringify({ error: "Missing signature" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       try {
         event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
         logStep("Webhook signature verified", { eventType: event.type });
@@ -77,9 +92,9 @@ serve(async (req) => {
         });
       }
     } else {
-      // Parse without verification (for testing)
+      // Only allow unverified webhooks in development
+      logStep("WARNING: Processing webhook without signature verification (development mode only)");
       event = JSON.parse(body);
-      logStep("Webhook received without signature verification", { eventType: event.type });
     }
 
     // Check for duplicate events

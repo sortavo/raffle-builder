@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +50,51 @@ const SUBTYPE_CONFIG = {
   cash_in_person: { label: 'Efectivo en persona', icon: HandCoins, color: 'text-emerald-600' },
 } as const;
 
+// localStorage key for persisting reservation state
+const RESERVATION_STORAGE_KEY = 'sortavo_reservation_state';
+
+interface ReservationState {
+  tickets: { id: string; ticket_number: string }[];
+  reservedUntil: string;
+  raffleId: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  slug: string;
+}
+
+function getPersistedReservation(slug: string): ReservationState | null {
+  try {
+    const stored = localStorage.getItem(RESERVATION_STORAGE_KEY);
+    if (!stored) return null;
+    const data = JSON.parse(stored) as ReservationState;
+    // Only return if same raffle and not expired
+    if (data.slug === slug && new Date(data.reservedUntil) > new Date()) {
+      return data;
+    }
+    // Clean up expired reservation
+    localStorage.removeItem(RESERVATION_STORAGE_KEY);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistReservation(state: ReservationState) {
+  try {
+    localStorage.setItem(RESERVATION_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    console.error('Failed to persist reservation state');
+  }
+}
+
+function clearPersistedReservation() {
+  try {
+    localStorage.removeItem(RESERVATION_STORAGE_KEY);
+  } catch {
+    console.error('Failed to clear reservation state');
+  }
+}
+
 export default function PaymentInstructions() {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
@@ -58,13 +103,32 @@ export default function PaymentInstructions() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { sendProofReceivedEmail } = useEmails();
 
-  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail } = (location.state as {
+  // Try to get state from location first, then from localStorage
+  const locationState = location.state as {
     tickets: { id: string; ticket_number: string }[];
     reservedUntil: string;
     raffleId: string;
     buyerName?: string;
     buyerEmail?: string;
-  }) || { tickets: [], reservedUntil: '', raffleId: '' };
+  } | null;
+
+  const persistedState = !locationState ? getPersistedReservation(slug || '') : null;
+  
+  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail } = locationState || 
+    persistedState || 
+    { tickets: [], reservedUntil: '', raffleId: '' };
+
+  // Persist state on mount if coming from location
+  React.useEffect(() => {
+    if (locationState && locationState.tickets.length > 0 && slug) {
+      persistReservation({ ...locationState, slug });
+    }
+  }, [locationState, slug]);
+
+  // Clear persisted state when reservation expires or payment is uploaded
+  const handleReservationComplete = React.useCallback(() => {
+    clearPersistedReservation();
+  }, []);
 
   const { data: raffle, isLoading: isLoadingRaffle } = usePublicRaffle(slug);
   const { data: paymentMethods, isLoading: isLoadingMethods } = usePublicPaymentMethods(raffle?.organization?.id);

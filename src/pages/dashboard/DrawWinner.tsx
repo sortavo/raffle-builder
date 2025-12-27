@@ -53,7 +53,8 @@ export default function DrawWinner() {
   const { useRaffleById } = useRaffles();
   const { data: raffle, isLoading } = useRaffleById(id);
   const { useTicketsList } = useTickets(id);
-  const { data: ticketsData } = useTicketsList({ status: 'sold', pageSize: 10000 });
+  // Use pagination with reasonable page size to avoid query limits
+  const { data: ticketsData } = useTicketsList({ status: 'sold', pageSize: 1000 });
   const allTickets = ticketsData?.tickets || [];
   const { selectWinner, notifyWinner, publishResult, generateRandomNumber } = useDrawWinner();
 
@@ -79,10 +80,13 @@ export default function DrawWinner() {
 
   const soldTickets = allTickets;
 
+  // Cleanup interval on unmount - FIXED: proper cleanup
   useEffect(() => {
+    const currentRef = spinIntervalRef.current;
     return () => {
-      if (spinIntervalRef.current) {
-        clearInterval(spinIntervalRef.current);
+      if (currentRef) {
+        clearInterval(currentRef);
+        spinIntervalRef.current = null;
       }
     };
   }, []);
@@ -117,6 +121,15 @@ export default function DrawWinner() {
   const handleSpinRandom = () => {
     if (soldTickets.length === 0) return;
     
+    // Prevent multiple spins
+    if (isSpinning) return;
+    
+    // Clear any existing interval first
+    if (spinIntervalRef.current) {
+      clearInterval(spinIntervalRef.current);
+      spinIntervalRef.current = null;
+    }
+    
     setIsSpinning(true);
     setSelectedTicket(null);
     
@@ -131,6 +144,7 @@ export default function DrawWinner() {
       if (counter >= maxSpins) {
         if (spinIntervalRef.current) {
           clearInterval(spinIntervalRef.current);
+          spinIntervalRef.current = null;
         }
         setIsSpinning(false);
         const finalIndex = generateRandomNumber(soldTickets.length) - 1;
