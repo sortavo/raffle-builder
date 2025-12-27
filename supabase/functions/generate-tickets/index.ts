@@ -11,6 +11,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[GENERATE-TICKETS] ${step}${detailsStr}`);
 };
 
+const BATCH_SIZE = 50000; // Optimal batch size for PostgreSQL
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,6 +27,41 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    const url = new URL(req.url);
+    const jobIdParam = url.searchParams.get("job_id");
+
+    // If job_id is provided, return job status
+    if (jobIdParam) {
+      logStep("Fetching job status", { job_id: jobIdParam });
+      const { data: job, error: jobError } = await supabaseClient
+        .from("ticket_generation_jobs")
+        .select("*")
+        .eq("id", jobIdParam)
+        .single();
+
+      if (jobError) throw jobError;
+      if (!job) throw new Error("Job not found");
+
+      const progress = job.total_tickets > 0 
+        ? Math.round((job.generated_count / job.total_tickets) * 100) 
+        : 0;
+
+      const estimatedTimeRemaining = job.status === 'running' && job.generated_count > 0
+        ? Math.round(((job.total_tickets - job.generated_count) / job.generated_count) * 
+            ((Date.now() - new Date(job.started_at).getTime()) / 1000))
+        : null;
+
+      return new Response(
+        JSON.stringify({ 
+          ...job, 
+          progress,
+          estimated_time_remaining: estimatedTimeRemaining
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Parse request body for new job
     const { raffle_id, force_rebuild = false } = await req.json();
     if (!raffle_id) throw new Error("raffle_id is required");
     logStep("Processing raffle", { raffle_id, force_rebuild });
@@ -63,11 +100,29 @@ serve(async (req) => {
       );
     }
 
-    // If there are existing tickets but count doesn't match, check if we can rebuild
-    if (existingCount && existingCount > 0 && existingCount !== totalTickets) {
-      logStep("Ticket count mismatch, checking if rebuild is safe", { existingCount, totalTickets });
+    // Check for existing running job
+    const { data: existingJob } = await supabaseClient
+      .from("ticket_generation_jobs")
+      .select("id, status")
+      .eq("raffle_id", raffle_id)
+      .in("status", ["pending", "running"])
+      .single();
 
-      // Check if any tickets are not available (sold or reserved)
+    if (existingJob) {
+      logStep("Job already in progress", { job_id: existingJob.id });
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          job_id: existingJob.id, 
+          message: "Job already in progress",
+          status: existingJob.status
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Check if any tickets are sold/reserved before rebuild
+    if (existingCount && existingCount > 0 && existingCount !== totalTickets) {
       const { count: nonAvailableCount, error: nonAvailableError } = await supabaseClient
         .from("tickets")
         .select("*", { count: "exact", head: true })
@@ -88,84 +143,88 @@ serve(async (req) => {
         );
       }
 
-      // Delete all existing tickets to rebuild
-      logStep("Deleting existing tickets to rebuild");
+      // Delete existing tickets for rebuild
+      logStep("Deleting existing tickets for rebuild");
       const { error: deleteError } = await supabaseClient
         .from("tickets")
         .delete()
         .eq("raffle_id", raffle_id);
 
-      if (deleteError) {
-        logStep("Error deleting tickets", { error: deleteError.message });
-        throw deleteError;
-      }
-      logStep("Deleted existing tickets successfully");
+      if (deleteError) throw deleteError;
+      logStep("Deleted existing tickets");
     }
 
-    // Generate ticket numbers
-    const batchSize = 10000;
-    const batches = Math.ceil(totalTickets / batchSize);
-    const digits = Math.max(3, totalTickets.toString().length);
+    // Calculate batches
+    const totalBatches = Math.ceil(totalTickets / BATCH_SIZE);
 
-    logStep("Starting ticket generation", { totalTickets, format, batches, digits });
+    // For small raffles (<= 50K), use synchronous generation
+    if (totalTickets <= BATCH_SIZE) {
+      logStep("Small raffle - using synchronous generation", { totalTickets });
+      
+      const { data: count, error: genError } = await supabaseClient.rpc(
+        'generate_ticket_batch',
+        {
+          p_raffle_id: raffle_id,
+          p_start_number: 1,
+          p_end_number: totalTickets,
+          p_format: format,
+          p_prefix: format === 'prefixed' ? 'TKT' : null
+        }
+      );
 
-    let ticketNumbers: string[] = [];
+      if (genError) throw genError;
 
-    if (format === "random") {
-      // Generate random unique numbers
-      const numbers = new Set<number>();
-      const max = totalTickets * 10;
-      while (numbers.size < totalTickets) {
-        numbers.add(Math.floor(Math.random() * max) + 1);
-      }
-      ticketNumbers = Array.from(numbers)
-        .sort((a, b) => a - b)
-        .map(n => n.toString().padStart(digits, "0"));
-    } else if (format === "prefixed") {
-      // Use organization prefix or default
-      const prefix = "TKT";
-      for (let i = 1; i <= totalTickets; i++) {
-        ticketNumbers.push(`${prefix}-${i.toString().padStart(digits, "0")}`);
-      }
-    } else {
-      // Sequential
-      for (let i = 1; i <= totalTickets; i++) {
-        ticketNumbers.push(i.toString().padStart(digits, "0"));
-      }
+      logStep("Synchronous generation complete", { count });
+      return new Response(
+        JSON.stringify({ success: true, count, async: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
     }
 
-    // Insert in batches
-    let insertedCount = 0;
-    for (let batch = 0; batch < batches; batch++) {
-      const start = batch * batchSize;
-      const end = Math.min(start + batchSize, totalTickets);
-      const batchNumbers = ticketNumbers.slice(start, end);
+    // For large raffles, create async job
+    logStep("Large raffle - creating async job", { totalTickets, totalBatches });
 
-      const tickets = batchNumbers.map(ticketNumber => ({
+    const { data: job, error: jobError } = await supabaseClient
+      .from("ticket_generation_jobs")
+      .insert({
         raffle_id,
-        ticket_number: ticketNumber,
-        status: "available",
-      }));
+        total_tickets: totalTickets,
+        total_batches: totalBatches,
+        batch_size: BATCH_SIZE,
+        ticket_format: format,
+        ticket_prefix: format === 'prefixed' ? 'TKT' : null,
+        status: 'running',
+        started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
 
-      const { error: insertError } = await supabaseClient
-        .from("tickets")
-        .insert(tickets);
+    if (jobError) throw jobError;
 
-      if (insertError) {
-        logStep("Batch insert error", { batch, error: insertError.message });
-        throw insertError;
-      }
+    logStep("Job created", { job_id: job.id });
 
-      insertedCount += batchNumbers.length;
-      logStep("Batch inserted", { batch: batch + 1, of: batches, inserted: insertedCount });
-    }
-
-    logStep("Ticket generation complete", { total: insertedCount });
-
-    return new Response(
-      JSON.stringify({ success: true, count: insertedCount, rebuilt: existingCount !== null && existingCount > 0 }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+    // Start processing first batches in background
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(
+      processJobBatches(supabaseUrl, supabaseKey, job.id, raffle_id, totalTickets, format, BATCH_SIZE)
     );
+
+    // Return immediately with job ID (202 Accepted)
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        job_id: job.id, 
+        async: true,
+        message: "Ticket generation started",
+        total_tickets: totalTickets,
+        estimated_time_seconds: Math.ceil(totalTickets / 50000) * 2
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 }
+    );
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
@@ -175,3 +234,117 @@ serve(async (req) => {
     );
   }
 });
+
+// Background job processor
+async function processJobBatches(
+  supabaseUrl: string,
+  supabaseKey: string,
+  jobId: string,
+  raffleId: string,
+  totalTickets: number,
+  format: string,
+  batchSize: number
+) {
+  const logJob = (msg: string, details?: Record<string, unknown>) => {
+    console.log(`[JOB:${jobId}] ${msg}`, details ? JSON.stringify(details) : '');
+  };
+
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+  try {
+    logJob("Background processing started");
+
+    const totalBatches = Math.ceil(totalTickets / batchSize);
+    let generatedCount = 0;
+
+    for (let batch = 0; batch < totalBatches; batch++) {
+      const startNumber = batch * batchSize + 1;
+      const endNumber = Math.min((batch + 1) * batchSize, totalTickets);
+
+      logJob(`Processing batch ${batch + 1}/${totalBatches}`, { startNumber, endNumber });
+
+      // Use SQL function for massive insertion via direct fetch
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          p_raffle_id: raffleId,
+          p_start_number: startNumber,
+          p_end_number: endNumber,
+          p_format: format,
+          p_prefix: format === 'prefixed' ? 'TKT' : null
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logJob("Batch generation error", { error: errorText });
+        throw new Error(errorText);
+      }
+
+      const count = await response.json();
+
+      generatedCount += count || (endNumber - startNumber + 1);
+
+      // Update job progress via REST API
+      await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          generated_count: generatedCount,
+          current_batch: batch + 1
+        })
+      });
+
+      logJob(`Batch ${batch + 1} complete`, { generatedCount, total: totalTickets });
+    }
+
+    // Mark job as completed via REST API
+    await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        status: 'completed',
+        generated_count: generatedCount,
+        completed_at: new Date().toISOString()
+      })
+    });
+
+    logJob("Job completed successfully", { generatedCount });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logJob("Job failed", { error: errorMessage });
+
+    // Mark job as failed via REST API
+    await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        status: 'failed',
+        error_message: errorMessage,
+        completed_at: new Date().toISOString()
+      })
+    });
+  }
+}

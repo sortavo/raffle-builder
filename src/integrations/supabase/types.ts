@@ -778,6 +778,68 @@ export type Database = {
           },
         ]
       }
+      ticket_generation_jobs: {
+        Row: {
+          batch_size: number
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          current_batch: number
+          error_message: string | null
+          generated_count: number
+          id: string
+          raffle_id: string
+          started_at: string | null
+          status: string
+          ticket_format: string
+          ticket_prefix: string | null
+          total_batches: number
+          total_tickets: number
+        }
+        Insert: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_batch?: number
+          error_message?: string | null
+          generated_count?: number
+          id?: string
+          raffle_id: string
+          started_at?: string | null
+          status?: string
+          ticket_format?: string
+          ticket_prefix?: string | null
+          total_batches: number
+          total_tickets: number
+        }
+        Update: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_batch?: number
+          error_message?: string | null
+          generated_count?: number
+          id?: string
+          raffle_id?: string
+          started_at?: string | null
+          status?: string
+          ticket_format?: string
+          ticket_prefix?: string | null
+          total_batches?: number
+          total_tickets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_generation_jobs_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           approved_at: string | null
@@ -900,6 +962,16 @@ export type Database = {
     }
     Functions: {
       generate_reference_code: { Args: never; Returns: string }
+      generate_ticket_batch: {
+        Args: {
+          p_end_number: number
+          p_format?: string
+          p_prefix?: string
+          p_raffle_id: string
+          p_start_number: number
+        }
+        Returns: number
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
