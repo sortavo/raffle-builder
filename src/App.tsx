@@ -35,6 +35,8 @@ import OrganizationHome from "./pages/OrganizationHome";
 import Buyers from "./pages/dashboard/Buyers";
 import Analytics from "./pages/dashboard/Analytics";
 import Subscription from "./pages/dashboard/Subscription";
+import Contact from "./pages/Contact";
+import SystemStatus from "./pages/SystemStatus";
 
 // Admin pages
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -96,6 +98,8 @@ const App = () => (
               {/* Legal Routes */}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/status" element={<SystemStatus />} />
               {/* Redirects for common reserved slugs */}
               <Route path="/login" element={<Navigate to="/auth" replace />} />
               <Route path="/signup" element={<Navigate to="/auth" replace />} />
@@ -106,6 +110,8 @@ const App = () => (
               <Route path="/profile" element={<Navigate to="/dashboard/settings" replace />} />
               <Route path="/support" element={<Navigate to="/help" replace />} />
               <Route path="/faq" element={<Navigate to="/help" replace />} />
+              <Route path="/contacto" element={<Navigate to="/contact" replace />} />
+              <Route path="/estado" element={<Navigate to="/status" replace />} />
               {/* Organization-based public routes - MUST be last before catch-all */}
               <Route path="/:orgSlug" element={<OrganizationHome />} />
               <Route path="/:orgSlug/:slug" element={<PublicRaffle />} />

@@ -333,6 +333,73 @@ export default function TermsOfService() {
                   <p className="text-gray-700"><strong>Dirección:</strong> Ciudad de México, México</p>
                 </div>
               </section>
+
+              <section id="legal-notice" className="scroll-mt-20 pt-8 border-t border-violet-200 mt-8">
+                <h2 className="text-xl font-semibold text-gray-900 border-b border-violet-100 pb-2 mb-4">
+                  Aviso Legal
+                </h2>
+                
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Identificación del Responsable</h3>
+                    <div className="bg-violet-50 rounded-xl p-4 space-y-2">
+                      <p className="text-gray-700"><strong>Razón Social:</strong> Sortavo Technologies S.A. de C.V.</p>
+                      <p className="text-gray-700"><strong>RFC:</strong> STE240101XXX</p>
+                      <p className="text-gray-700"><strong>Domicilio Fiscal:</strong> Av. Paseo de la Reforma 250, Col. Juárez, Alcaldía Cuauhtémoc, C.P. 06600, Ciudad de México, México</p>
+                      <p className="text-gray-700"><strong>Representante Legal:</strong> Director General</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Registro Mercantil</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Sortavo Technologies S.A. de C.V. está debidamente constituida conforme a las leyes de los Estados Unidos Mexicanos, 
+                      inscrita en el Registro Público de Comercio con número de folio mercantil electrónico correspondiente.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Cumplimiento Normativo</h3>
+                    <p className="text-gray-600 leading-relaxed mb-4">
+                      Esta plataforma cumple con las siguientes disposiciones legales aplicables:
+                    </p>
+                    <ul className="list-disc list-inside text-gray-600 space-y-2 ml-4">
+                      <li>Ley Federal de Protección de Datos Personales en Posesión de Particulares (LFPDPPP)</li>
+                      <li>Ley Federal de Protección al Consumidor (LFPC)</li>
+                      <li>Ley Federal del Derecho de Autor (LFDA)</li>
+                      <li>Código de Comercio</li>
+                      <li>NOM-151-SCFI-2016 sobre comercio electrónico</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Propiedad Industrial</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      La marca "Sortavo", el logotipo y todos los elementos distintivos son propiedad exclusiva de Sortavo Technologies S.A. de C.V. 
+                      y están protegidos por la Ley de la Propiedad Industrial. Queda prohibida su reproducción, distribución o uso sin autorización 
+                      expresa por escrito.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Autoridad Competente</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Para cualquier controversia derivada del uso de esta plataforma, las partes se someten expresamente a la jurisdicción 
+                      de los tribunales competentes de la Ciudad de México, renunciando a cualquier otro fuero que pudiera corresponderles 
+                      por razón de su domicilio presente o futuro.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Contacto Legal</h3>
+                    <div className="bg-violet-50 rounded-xl p-4 space-y-2">
+                      <p className="text-gray-700"><strong>Departamento Legal:</strong> legal@sortavo.com</p>
+                      <p className="text-gray-700"><strong>ARCO (Derechos de Datos):</strong> privacidad@sortavo.com</p>
+                      <p className="text-gray-700"><strong>Teléfono:</strong> +52 55 1234 5678</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>

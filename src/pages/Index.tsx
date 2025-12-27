@@ -312,7 +312,7 @@ const Index = () => {
       </section>
 
       {/* Premium Features Section */}
-      <section className="py-24 bg-white relative">
+      <section id="features" className="py-24 bg-white relative scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -346,6 +346,96 @@ const Index = () => {
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/0 to-indigo-500/0 group-hover:from-violet-500/5 group-hover:to-indigo-500/5 transition-all duration-300 pointer-events-none"></div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Section */}
+      <section id="demo" className="py-24 bg-gradient-to-br from-slate-900 to-indigo-900 relative overflow-hidden scroll-mt-20">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Content */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-6">
+                <Play className="w-4 h-4 text-violet-300" />
+                <span className="text-sm font-medium text-white/80">Demo Interactiva</span>
+              </div>
+              
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+                Mira cómo funciona
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400">
+                  en acción
+                </span>
+              </h2>
+              
+              <p className="text-xl text-white/70 mb-8 max-w-lg">
+                Descubre lo fácil que es crear y gestionar sorteos profesionales con Sortavo. 
+                Sin complicaciones, sin curva de aprendizaje.
+              </p>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3 text-white/80">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span>Crea tu sorteo en menos de 5 minutos</span>
+                </div>
+                <div className="flex items-center gap-3 text-white/80">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span>Comparte fácilmente por WhatsApp y redes sociales</span>
+                </div>
+                <div className="flex items-center gap-3 text-white/80">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span>Recibe pagos de forma segura</span>
+                </div>
+                <div className="flex items-center gap-3 text-white/80">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span>Sortea ganadores de forma transparente</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  size="lg" 
+                  className="text-lg px-8 py-6 bg-white text-violet-600 hover:bg-gray-100 shadow-xl group"
+                  onClick={() => navigate('/auth')}
+                >
+                  Probar Gratis
+                  <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Video/Demo Preview */}
+            <div className="relative">
+              <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-2 shadow-2xl">
+                <div className="aspect-video bg-gradient-to-br from-violet-900/50 to-indigo-900/50 rounded-xl flex items-center justify-center relative overflow-hidden">
+                  {/* Placeholder for demo video */}
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+                  
+                  {/* Play button overlay */}
+                  <button className="relative z-10 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform group">
+                    <Play className="w-8 h-8 text-violet-600 ml-1 group-hover:text-violet-700" />
+                  </button>
+                  
+                  {/* Floating elements */}
+                  <div className="absolute top-4 left-4 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-white">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      En vivo
+                    </span>
+                  </div>
+                  
+                  <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-white">
+                    2:34
+                  </div>
+                </div>
+              </div>
+              
+              {/* Decorative elements */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-violet-500/20 rounded-full blur-xl"></div>
+              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-indigo-500/20 rounded-full blur-xl"></div>
+            </div>
           </div>
         </div>
       </section>

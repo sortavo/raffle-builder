@@ -73,12 +73,13 @@ export function getOrganizationRelativePath(organizationSlug: string): string {
 export const RESERVED_SLUGS = [
   // App routes (exact matches only)
   "auth", "dashboard", "onboarding", "pricing", "help", "my-tickets", "ticket", "invite",
-  "terms", "privacy", "r",
+  "terms", "privacy", "r", "contact", "status",
   // System/reserved
   "admin", "api", "login", "logout", "signup", "register", "settings", "config",
   "app", "www", "mail", "email", "support", "billing", "account", "org", "organization",
   "user", "users", "static", "assets", "public", "private", "internal", "system",
   "root", "null", "undefined", "new", "edit", "delete", "create", "update",
+  "faq", "profile", "contacto", "estado",
   // Common tech paths
   "cdn", "media", "images", "files", "uploads", "downloads", "docs", "blog",
   "news", "about", "contact", "faq", "search", "sitemap", "robots", "favicon",

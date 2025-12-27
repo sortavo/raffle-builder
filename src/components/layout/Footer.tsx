@@ -62,24 +62,24 @@ export function Footer() {
             <h3 className="text-white font-semibold mb-4">Soporte</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link to="/help" className="hover:text-white transition-colors">
                   Centro de Ayuda
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link to="/help#faq" className="hover:text-white transition-colors">
                   Preguntas Frecuentes
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="mailto:soporte@sortavo.com" className="hover:text-white transition-colors">
+                <Link to="/contact" className="hover:text-white transition-colors">
                   Contacto
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link to="/status" className="hover:text-white transition-colors">
                   Estado del Sistema
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
