@@ -62,9 +62,9 @@ interface TeamMember {
 }
 
 const ROLE_LABELS = {
-  owner: { label: "Propietario", icon: Crown, color: "bg-yellow-500/10 text-yellow-600" },
-  admin: { label: "Administrador", icon: Shield, color: "bg-blue-500/10 text-blue-600" },
-  member: { label: "Miembro", icon: User, color: "bg-gray-500/10 text-gray-600" },
+  owner: { label: "Propietario", icon: Crown, color: "bg-accent/10 text-accent" },
+  admin: { label: "Administrador", icon: Shield, color: "bg-primary/10 text-primary" },
+  member: { label: "Miembro", icon: User, color: "bg-muted text-muted-foreground" },
 };
 
 export function TeamSettings() {

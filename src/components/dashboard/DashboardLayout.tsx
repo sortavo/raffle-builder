@@ -57,14 +57,14 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
         <DashboardSidebar />
       </div>
       
-      <SidebarInset className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-violet-950/20">
+      <SidebarInset className="flex flex-col min-h-screen bg-gradient-to-br from-background via-background to-primary/5 dark:from-background dark:via-background dark:to-primary/10">
         {/* Mobile Header */}
-        <header className="md:hidden flex h-14 items-center justify-between border-b border-border/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl px-4 safe-area-top">
+        <header className="md:hidden flex h-14 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 safe-area-top">
           <Link to="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary via-primary/80 to-accent flex items-center justify-center shadow-lg shadow-primary/25">
               <Trophy className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-extrabold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-lg font-extrabold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
               SORTAVO
             </span>
           </Link>
@@ -73,7 +73,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="h-7 text-xs gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-900/30"
+                className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
                 onClick={() => navigate('/admin/users')}
               >
                 <Users className="h-3 w-3" />
@@ -81,9 +81,9 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               </Button>
             )}
             {isSimulating && simulatedUser && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 border border-amber-300 dark:border-amber-700">
-                <Eye className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                <span className="text-xs font-medium text-amber-800 dark:text-amber-300 truncate max-w-16">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-warning/20 to-warning/10 border border-warning/30">
+                <Eye className="h-3 w-3 text-warning" />
+                <span className="text-xs font-medium text-warning truncate max-w-16">
                   {simulatedUser.full_name?.split(' ')[0] || simulatedUser.email.split('@')[0]}
                 </span>
               </div>
@@ -93,8 +93,8 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden md:flex h-14 items-center gap-4 border-b border-border/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl px-4 lg:px-6">
-          <SidebarTrigger className="-ml-1 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors" />
+        <header className="hidden md:flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 lg:px-6">
+          <SidebarTrigger className="-ml-1 hover:bg-primary/10 transition-colors" />
           <Separator orientation="vertical" className="h-6 bg-border/50" />
           {breadcrumbs && breadcrumbs.length > 0 && (
             <Breadcrumb>
@@ -103,7 +103,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
                   <BreadcrumbItem key={index}>
                     {index > 0 && <BreadcrumbSeparator />}
                     {crumb.href ? (
-                      <BreadcrumbLink href={crumb.href} className="text-muted-foreground hover:text-violet-600 transition-colors">{crumb.label}</BreadcrumbLink>
+                      <BreadcrumbLink href={crumb.href} className="text-muted-foreground hover:text-primary transition-colors">{crumb.label}</BreadcrumbLink>
                     ) : (
                       <BreadcrumbPage className="font-medium">{crumb.label}</BreadcrumbPage>
                     )}
@@ -118,7 +118,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
             <Button 
               size="sm" 
               variant="outline" 
-              className="ml-2 gap-2 border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-900/30 transition-all"
+              className="ml-2 gap-2 border-primary/30 text-primary hover:bg-primary/10 transition-all"
               onClick={() => navigate('/admin/users')}
             >
               <Users className="h-4 w-4" />
@@ -126,14 +126,14 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
             </Button>
           )}
           {isSimulating && simulatedUser && (
-            <div className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 border border-amber-300 dark:border-amber-700">
-              <Eye className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <div className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-warning/20 to-warning/10 border border-warning/30">
+              <Eye className="h-4 w-4 text-warning" />
               <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-[10px] bg-gradient-to-br from-amber-200 to-orange-200 dark:from-amber-800 dark:to-orange-800 text-amber-800 dark:text-amber-200">
+                <AvatarFallback className="text-[10px] bg-gradient-to-br from-warning/30 to-warning/20 text-warning">
                   {getInitials(simulatedUser.full_name, simulatedUser.email)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-300 max-w-32 truncate">
+              <span className="text-sm font-medium text-warning max-w-32 truncate">
                 {simulatedUser.full_name || simulatedUser.email}
               </span>
               <Badge 
@@ -141,8 +141,8 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
                 className={cn(
                   "text-[10px] px-1.5 py-0 cursor-pointer transition-colors",
                   mode === 'readonly' 
-                    ? "border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800" 
-                    : "border-red-500 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+                    ? "border-warning text-warning hover:bg-warning/20" 
+                    : "border-destructive text-destructive bg-destructive/10 hover:bg-destructive/20"
                 )}
                 onClick={toggleMode}
                 title="Clic para cambiar modo"
@@ -152,10 +152,10 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
               <Button 
                 size="sm" 
                 variant="ghost" 
-                className="h-6 w-6 p-0 hover:bg-amber-200 dark:hover:bg-amber-800"
+                className="h-6 w-6 p-0 hover:bg-warning/20"
                 onClick={handleExitSimulation}
               >
-                <LogOut className="h-3 w-3 text-amber-700 dark:text-amber-300" />
+                <LogOut className="h-3 w-3 text-warning" />
               </Button>
             </div>
           )}

@@ -24,25 +24,25 @@ import { formatCurrency } from "@/lib/currency-utils";
 const STATUS_CONFIG = {
   sold: {
     label: 'Confirmado',
-    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+    color: 'bg-success/10 text-success border-success/30',
     icon: CheckCircle2,
     description: 'Pago confirmado - Boleto válido'
   },
   reserved: {
     label: 'Pendiente',
-    color: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+    color: 'bg-warning/10 text-warning border-warning/30',
     icon: Hourglass,
     description: 'Pago pendiente de confirmación'
   },
   available: {
     label: 'Disponible',
-    color: 'bg-slate-500/10 text-slate-600 border-slate-500/30',
+    color: 'bg-muted text-muted-foreground border-border',
     icon: Ticket,
     description: 'Boleto disponible'
   },
   canceled: {
     label: 'Cancelado',
-    color: 'bg-red-500/10 text-red-600 border-red-500/30',
+    color: 'bg-destructive/10 text-destructive border-destructive/30',
     icon: AlertCircle,
     description: 'Boleto cancelado'
   }
@@ -205,22 +205,22 @@ export default function MyTickets() {
                   onClick={() => setStatusFilter('sold')}
                   className={`text-center py-4 rounded-lg border transition-all ${
                     statusFilter === 'sold' 
-                      ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/10' 
-                      : 'border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10'
+                      ? 'ring-2 ring-success border-success bg-success/10' 
+                      : 'border-success/30 bg-success/5 hover:bg-success/10'
                   }`}
                 >
-                  <p className="text-2xl font-bold text-emerald-600">{overallStats.confirmed}</p>
+                  <p className="text-2xl font-bold text-success">{overallStats.confirmed}</p>
                   <p className="text-xs text-muted-foreground">Confirmados</p>
                 </button>
                 <button
                   onClick={() => setStatusFilter('reserved')}
                   className={`text-center py-4 rounded-lg border transition-all ${
                     statusFilter === 'reserved' 
-                      ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-500/10' 
-                      : 'border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10'
+                      ? 'ring-2 ring-warning border-warning bg-warning/10' 
+                      : 'border-warning/30 bg-warning/5 hover:bg-warning/10'
                   }`}
                 >
-                  <p className="text-2xl font-bold text-amber-600">{overallStats.pending}</p>
+                  <p className="text-2xl font-bold text-warning">{overallStats.pending}</p>
                   <p className="text-xs text-muted-foreground">Pendientes</p>
                 </button>
               </div>
@@ -376,13 +376,13 @@ export default function MyTickets() {
                             {stats.total} boleto{stats.total !== 1 ? 's' : ''}
                           </span>
                           {stats.confirmed > 0 && (
-                            <span className="text-emerald-600 flex items-center gap-1">
+                            <span className="text-success flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
                               {stats.confirmed} confirmado{stats.confirmed !== 1 ? 's' : ''}
                             </span>
                           )}
                           {stats.pending > 0 && (
-                            <span className="text-amber-600 flex items-center gap-1">
+                            <span className="text-warning flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {stats.pending} pendiente{stats.pending !== 1 ? 's' : ''}
                             </span>

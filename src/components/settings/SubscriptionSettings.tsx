@@ -40,10 +40,10 @@ export function SubscriptionSettings() {
   const PlanIcon = PLAN_ICONS[currentTier] || Rocket;
 
   const statusLabels = {
-    active: { label: "Activa", color: "bg-green-500/10 text-green-600" },
-    trial: { label: "Prueba", color: "bg-yellow-500/10 text-yellow-600" },
-    past_due: { label: "Pago pendiente", color: "bg-red-500/10 text-red-600" },
-    canceled: { label: "Cancelada", color: "bg-gray-500/10 text-gray-600" },
+    active: { label: "Activa", color: "bg-success/10 text-success" },
+    trial: { label: "Prueba", color: "bg-warning/10 text-warning" },
+    past_due: { label: "Pago pendiente", color: "bg-destructive/10 text-destructive" },
+    canceled: { label: "Cancelada", color: "bg-muted text-muted-foreground" },
   };
 
   const status = statusLabels[organization?.subscription_status || "trial"];

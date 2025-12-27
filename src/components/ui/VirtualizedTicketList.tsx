@@ -13,22 +13,22 @@ import { es } from 'date-fns/locale';
 const STATUS_CONFIG = {
   sold: {
     label: 'Confirmado',
-    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+    color: 'bg-success/10 text-success border-success/30',
     icon: CheckCircle2,
   },
   reserved: {
     label: 'Pendiente',
-    color: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+    color: 'bg-warning/10 text-warning border-warning/30',
     icon: Hourglass,
   },
   available: {
     label: 'Disponible',
-    color: 'bg-slate-500/10 text-slate-600 border-slate-500/30',
+    color: 'bg-muted text-muted-foreground border-border',
     icon: Ticket,
   },
   canceled: {
     label: 'Cancelado',
-    color: 'bg-red-500/10 text-red-600 border-red-500/30',
+    color: 'bg-destructive/10 text-destructive border-destructive/30',
     icon: AlertCircle,
   }
 };

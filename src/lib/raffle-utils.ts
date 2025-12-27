@@ -104,10 +104,10 @@ export const RAFFLE_CATEGORIES = [
 
 export const RAFFLE_STATUS_CONFIG = {
   draft: { label: 'Borrador', color: 'bg-muted text-muted-foreground' },
-  active: { label: 'Activo', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' },
-  paused: { label: 'Pausado', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' },
-  completed: { label: 'Completado', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' },
-  canceled: { label: 'Cancelado', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' },
+  active: { label: 'Activo', color: 'bg-success/20 text-success' },
+  paused: { label: 'Pausado', color: 'bg-warning/20 text-warning' },
+  completed: { label: 'Completado', color: 'bg-primary/20 text-primary' },
+  canceled: { label: 'Cancelado', color: 'bg-destructive/20 text-destructive' },
 };
 
 export const CLOSE_SALE_OPTIONS = [

@@ -124,21 +124,21 @@ export function DashboardSidebar() {
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="border-b border-border/50 px-4 py-4">
         <Link to="/dashboard" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:shadow-violet-500/40 transition-shadow">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent flex items-center justify-center shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">
             <Trophy className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="text-xl font-extrabold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
             SORTAVO
           </span>
         </Link>
         {isSimulating && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-3 py-2 border border-amber-500/20">
-            <Eye className="h-3.5 w-3.5 text-amber-600" />
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-warning/10 to-warning/5 px-3 py-2 border border-warning/20">
+            <Eye className="h-3.5 w-3.5 text-warning" />
             <div className="flex flex-col min-w-0">
-              <span className="text-[10px] font-medium text-amber-600 uppercase tracking-wider">
+              <span className="text-[10px] font-medium text-warning uppercase tracking-wider">
                 Simulando
               </span>
-              <span className="text-xs text-amber-700 truncate">
+              <span className="text-xs text-warning truncate">
                 {simulatedUser?.full_name || simulatedUser?.email}
               </span>
             </div>
@@ -146,7 +146,7 @@ export function DashboardSidebar() {
               variant="outline" 
               className={`ml-auto text-[9px] px-1.5 py-0.5 ${
                 simulationMode === 'readonly' 
-                  ? 'border-amber-500 text-amber-600 bg-amber-500/10' 
+                  ? 'border-warning text-warning bg-warning/10' 
                   : 'border-destructive text-destructive bg-destructive/10'
               }`}
             >
@@ -171,13 +171,13 @@ export function DashboardSidebar() {
                     tooltip={item.title}
                     className={`group transition-all duration-200 ${
                       isActive(item.url) 
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40' 
-                        : 'hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                        ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-primary/40' 
+                        : 'hover:bg-primary/10'
                     }`}
                   >
                     <Link to={item.url}>
-                      <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-violet-600'}`} />
-                      <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-violet-600'}>{item.title}</span>
+                      <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-primary'}>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -186,10 +186,10 @@ export function DashboardSidebar() {
                 <SidebarMenuButton
                   onClick={() => setScannerOpen(true)}
                   tooltip="Escanear QR"
-                  className="group transition-all duration-200 hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                  className="group transition-all duration-200 hover:bg-primary/10"
                 >
-                  <QrCode className="h-4 w-4 text-muted-foreground group-hover:text-violet-600" />
-                  <span className="group-hover:text-violet-600">Escanear QR</span>
+                  <QrCode className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                  <span className="group-hover:text-primary">Escanear QR</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -210,13 +210,13 @@ export function DashboardSidebar() {
                     tooltip={item.title}
                     className={`group transition-all duration-200 ${
                       isActive(item.url) 
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25' 
-                        : 'hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                        ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25' 
+                        : 'hover:bg-primary/10'
                     }`}
                   >
                     <Link to={item.url}>
-                      <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-violet-600'}`} />
-                      <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-violet-600'}>{item.title}</span>
+                      <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-primary'}`} />
+                      <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-primary'}>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -239,13 +239,13 @@ export function DashboardSidebar() {
                     tooltip="Panel Super Admin"
                     className={`group transition-all duration-200 ${
                       location.pathname.startsWith('/admin')
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25' 
-                        : 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                        ? 'bg-gradient-to-r from-accent to-primary text-white shadow-lg shadow-accent/25' 
+                        : 'hover:bg-accent/10'
                     }`}
                   >
                     <Link to="/admin">
-                      <Shield className={`h-4 w-4 ${location.pathname.startsWith('/admin') ? 'text-white' : 'text-muted-foreground group-hover:text-purple-600'}`} />
-                      <span className={location.pathname.startsWith('/admin') ? 'font-medium' : 'group-hover:text-purple-600'}>Panel Super Admin</span>
+                      <Shield className={`h-4 w-4 ${location.pathname.startsWith('/admin') ? 'text-white' : 'text-muted-foreground group-hover:text-accent'}`} />
+                      <span className={location.pathname.startsWith('/admin') ? 'font-medium' : 'group-hover:text-accent'}>Panel Super Admin</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -260,10 +260,10 @@ export function DashboardSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-auto py-3 px-3 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all duration-200 rounded-xl">
-                  <Avatar className="h-9 w-9 ring-2 ring-violet-500/20">
+                <SidebarMenuButton className="h-auto py-3 px-3 hover:bg-primary/10 transition-all duration-200 rounded-xl">
+                  <Avatar className="h-9 w-9 ring-2 ring-primary/20">
                     <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white text-xs font-medium">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xs font-medium">
                       {getInitials(profile?.full_name)}
                     </AvatarFallback>
                   </Avatar>
@@ -281,13 +281,13 @@ export function DashboardSidebar() {
               <DropdownMenuContent side="top" align="start" className="w-56 rounded-xl shadow-xl border-border/50">
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mi Cuenta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg">
+                <DropdownMenuItem asChild className="cursor-pointer hover:bg-primary/10 rounded-lg">
                   <Link to="/dashboard/settings" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4 text-muted-foreground" />
                     Configuración
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg">
+                <DropdownMenuItem asChild className="cursor-pointer hover:bg-primary/10 rounded-lg">
                   <Link to="/dashboard/subscription" className="flex items-center">
                     <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" />
                     Suscripción
