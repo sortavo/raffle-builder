@@ -5,6 +5,67 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function generateImage(apiKey: string, prompt: string, attempt: number = 1): Promise<{ imageUrl: string; description: string }> {
+  console.log(`Attempt ${attempt}: Generating logo with prompt`);
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash-image-preview',
+      messages: [
+        {
+          role: 'user',
+          content: `Generate an image: ${prompt}. IMPORTANT: You MUST generate an actual image, not just describe it.`
+        }
+      ],
+      modalities: ['image', 'text']
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('AI Gateway error:', response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT');
+    }
+    if (response.status === 402) {
+      throw new Error('PAYMENT_REQUIRED');
+    }
+    
+    throw new Error(`AI Gateway error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('AI Gateway response received, checking for image...');
+
+  const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  const textContent = data.choices?.[0]?.message?.content;
+
+  if (!imageUrl) {
+    console.log('No image in response, text content:', textContent);
+    
+    // Retry up to 3 times if no image generated
+    if (attempt < 3) {
+      console.log(`Retrying... attempt ${attempt + 1}`);
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return generateImage(apiKey, prompt, attempt + 1);
+    }
+    
+    throw new Error('No image generated after multiple attempts');
+  }
+
+  return {
+    imageUrl,
+    description: textContent || 'Logo generated successfully'
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,73 +82,38 @@ The logo should feature:
 - Clean geometric sans-serif typography spelling "Sortavo"
 - Multicolor vibrant palette with gradient effect across the letters
 - Professional, tech-savvy aesthetic
-- White or transparent background
+- White or light gray background
 - High resolution with clean vector-style edges
 - The word "Sortavo" should be the only element, pure typography
-- Modern and sleek design suitable for a tech startup`;
+- Modern and sleek design suitable for a tech startup
+- Make sure to generate an actual image of the logo`;
 
-    console.log('Generating logo with prompt:', prompt);
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        modalities: ['image', 'text']
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('AI Gateway response received');
-
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const textContent = data.choices?.[0]?.message?.content;
-
-    if (!imageUrl) {
-      console.error('No image in response:', JSON.stringify(data));
-      throw new Error('No image generated');
-    }
+    const result = await generateImage(LOVABLE_API_KEY, prompt);
 
     return new Response(
-      JSON.stringify({ 
-        imageUrl,
-        description: textContent || 'Logo generated successfully'
-      }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error generating logo:', error);
+    
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate logo';
+    
+    if (errorMessage === 'RATE_LIMIT') {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (errorMessage === 'PAYMENT_REQUIRED') {
+      return new Response(
+        JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
