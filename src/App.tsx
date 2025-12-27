@@ -9,8 +9,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { SimulationProvider } from "@/contexts/SimulationContext";
 import { SimulationBanner } from "@/components/admin/SimulationBanner";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
-
-import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -62,7 +60,6 @@ const App = () => (
               <ScrollToTop />
               <SimulationBanner />
               
-              <InstallPrompt />
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
