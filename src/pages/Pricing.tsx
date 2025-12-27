@@ -24,7 +24,7 @@ export default function Pricing() {
       badge: 'Para Empezar',
       badgeVariant: 'secondary' as const,
       popular: false,
-      gradient: 'from-emerald-400 to-teal-500',
+      gradient: 'from-primary to-primary/80',
       features: [
         { text: '2 sorteos activos simultáneos', included: true },
         { text: 'Hasta 2,000 boletos por sorteo', included: true },
@@ -46,7 +46,7 @@ export default function Pricing() {
       badge: 'Más Popular',
       badgeVariant: 'default' as const,
       popular: true,
-      gradient: 'from-violet-500 to-indigo-600',
+      gradient: 'from-primary to-accent',
       features: [
         { text: '15 sorteos activos simultáneos', included: true },
         { text: 'Hasta 30,000 boletos por sorteo', included: true },
@@ -69,7 +69,7 @@ export default function Pricing() {
       badge: 'Empresas',
       badgeVariant: 'outline' as const,
       popular: false,
-      gradient: 'from-amber-400 to-orange-500',
+      gradient: 'from-secondary to-warning',
       features: [
         { text: 'Sorteos ilimitados', included: true },
         { text: 'Hasta 100,000 boletos por sorteo', included: true },
@@ -122,16 +122,16 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted">
       {/* Premium Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 SORTAVO
               </span>
             </Link>
@@ -142,7 +142,7 @@ export default function Pricing() {
                 <Link 
                   key={link.label}
                   to={link.href} 
-                  className="text-gray-600 hover:text-violet-600 font-medium transition-colors"
+                  className="text-muted-foreground hover:text-primary font-medium transition-colors"
                 >
                   {link.label}
                 </Link>
@@ -151,12 +151,12 @@ export default function Pricing() {
 
             <div className="hidden md:flex items-center gap-3">
               <Link to="/auth">
-                <Button variant="ghost" className="text-gray-700 hover:text-violet-600 hover:bg-violet-50">
+                <Button variant="ghost" className="text-foreground hover:text-primary hover:bg-primary/10">
                   Iniciar Sesión
                 </Button>
               </Link>
               <Link to="/auth?tab=signup">
-                <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25">
+                <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25">
                   Crear Cuenta
                 </Button>
               </Link>
@@ -175,18 +175,18 @@ export default function Pricing() {
                     <Link 
                       key={link.label}
                       to={link.href} 
-                      className="text-lg font-medium text-gray-700 hover:text-violet-600"
+                      className="text-lg font-medium text-foreground hover:text-primary"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {link.label}
                     </Link>
                   ))}
-                  <hr className="border-gray-200" />
+                  <hr className="border-border" />
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full">Iniciar Sesión</Button>
                   </Link>
                   <Link to="/auth?tab=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full bg-gradient-to-r from-violet-600 to-indigo-600">
+                    <Button className="w-full bg-gradient-to-r from-primary to-accent">
                       Crear Cuenta
                     </Button>
                   </Link>
@@ -200,39 +200,39 @@ export default function Pricing() {
       {/* Hero Section */}
       <section className="pt-32 pb-16 relative overflow-hidden">
         {/* Background Blobs */}
-        <div className="absolute top-20 -left-20 w-96 h-96 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute top-40 -right-20 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+        <div className="absolute top-20 -left-20 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+        <div className="absolute top-40 -right-20 w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
         
         <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-4 bg-violet-100 text-violet-700 border-violet-200 hover:bg-violet-100">
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
             Sin comisiones por venta
           </Badge>
           <h1 className="mb-4 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
               Precios Simples
             </span>
             <br />
-            <span className="text-gray-900">y Transparentes</span>
+            <span className="text-foreground">y Transparentes</span>
           </h1>
-          <p className="mb-8 text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mb-8 text-lg text-muted-foreground max-w-2xl mx-auto">
             Elige el plan perfecto para tu negocio de sorteos. Sin sorpresas, sin costos ocultos.
           </p>
 
           {/* Billing Toggle */}
-          <div className="mb-12 flex items-center justify-center gap-4 bg-white/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-violet-500/10 border border-violet-100">
-            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-violet-700' : 'text-gray-500'}`}>
+          <div className="mb-12 flex items-center justify-center gap-4 bg-card/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-primary/10 border border-border">
+            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-primary' : 'text-muted-foreground'}`}>
               Mensual
             </span>
             <Switch 
               checked={isAnnual} 
               onCheckedChange={setIsAnnual}
-              className="data-[state=checked]:bg-violet-600"
+              className="data-[state=checked]:bg-primary"
             />
-            <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-violet-700' : 'text-gray-500'}`}>
+            <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-primary' : 'text-muted-foreground'}`}>
               Anual
             </span>
             {isAnnual && (
-              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
+              <Badge className="bg-gradient-to-r from-success to-success/80 text-success-foreground border-0">
                 Ahorra 16%
               </Badge>
             )}
@@ -250,14 +250,14 @@ export default function Pricing() {
                   key={plan.key} 
                   className={`relative flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
                     plan.popular 
-                      ? 'border-2 border-violet-500 shadow-xl shadow-violet-500/20 scale-105 z-10' 
-                      : 'border-gray-200 hover:border-violet-300 hover:shadow-violet-500/10'
+                      ? 'border-2 border-primary shadow-xl shadow-primary/20 scale-105 z-10' 
+                      : 'border-border hover:border-primary/30 hover:shadow-primary/10'
                   }`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {plan.popular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-1 shadow-lg">
+                      <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-4 py-1 shadow-lg">
                         {plan.badge}
                       </Badge>
                     </div>
@@ -273,15 +273,15 @@ export default function Pricing() {
                     )}
                     <CardTitle className="text-2xl">{planData.name}</CardTitle>
                     <div className="mt-4">
-                      <span className="text-5xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                      <span className="text-5xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                         ${price.toLocaleString()}
                       </span>
-                      <span className="text-gray-500 ml-1">
+                      <span className="text-muted-foreground ml-1">
                         USD/{isAnnual ? 'año' : 'mes'}
                       </span>
                     </div>
                     {isAnnual && (
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         ${Math.round(price / 12).toLocaleString()} USD/mes
                       </p>
                     )}
@@ -291,11 +291,11 @@ export default function Pricing() {
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           {feature.included === true ? (
-                            <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                            <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
                           ) : (
-                            <X className="h-5 w-5 text-gray-300 shrink-0 mt-0.5" />
+                            <X className="h-5 w-5 text-muted-foreground/50 shrink-0 mt-0.5" />
                           )}
-                          <span className={`text-sm ${feature.included === 'partial' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <span className={`text-sm ${feature.included === 'partial' ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
                             {feature.text}
                           </span>
                         </li>
@@ -307,8 +307,8 @@ export default function Pricing() {
                       asChild 
                       className={`w-full transition-all duration-300 ${
                         plan.popular 
-                          ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25' 
-                          : 'bg-gray-900 hover:bg-gray-800'
+                          ? 'bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25' 
+                          : 'bg-foreground hover:bg-foreground/90'
                       }`}
                     >
                       <Link to={plan.ctaLink}>
@@ -325,24 +325,24 @@ export default function Pricing() {
       </section>
 
       {/* Feature Comparison Table */}
-      <section className="py-16 bg-white/50 backdrop-blur-sm">
+      <section className="py-16 bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <h2 className="mb-8 text-center text-3xl font-bold">
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Comparación de Planes
             </span>
           </h2>
           <div className="overflow-x-auto">
-            <table className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl shadow-violet-500/5 overflow-hidden">
-              <thead className="bg-gradient-to-r from-violet-50 to-indigo-50">
+            <table className="w-full max-w-4xl mx-auto bg-card rounded-2xl shadow-xl shadow-primary/5 overflow-hidden">
+              <thead className="bg-gradient-to-r from-primary/10 to-accent/10">
                 <tr>
-                  <th className="py-4 px-6 text-left font-medium text-gray-600">Característica</th>
-                  <th className="py-4 px-6 text-center font-medium text-gray-900">Básico</th>
-                  <th className="py-4 px-6 text-center font-medium text-violet-700 bg-violet-100/50">Pro</th>
-                  <th className="py-4 px-6 text-center font-medium text-gray-900">Premium</th>
+                  <th className="py-4 px-6 text-left font-medium text-muted-foreground">Característica</th>
+                  <th className="py-4 px-6 text-center font-medium text-foreground">Básico</th>
+                  <th className="py-4 px-6 text-center font-medium text-primary bg-primary/10">Pro</th>
+                  <th className="py-4 px-6 text-center font-medium text-foreground">Premium</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {[
                   ['Sorteos activos', '2', '15', 'Ilimitados'],
                   ['Boletos por sorteo', '2,000', '30,000', '100,000'],
@@ -353,21 +353,21 @@ export default function Pricing() {
                   ['Soporte WhatsApp', false, true, true],
                   ['Account Manager', false, false, true],
                 ].map(([feature, basic, pro, premium], idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 text-gray-600">{feature}</td>
+                  <tr key={idx} className="hover:bg-muted/50 transition-colors">
+                    <td className="py-4 px-6 text-muted-foreground">{feature}</td>
                     <td className="py-4 px-6 text-center">
                       {typeof basic === 'boolean' ? (
-                        basic ? <Check className="h-5 w-5 mx-auto text-green-500" /> : <X className="h-5 w-5 mx-auto text-gray-300" />
+                        basic ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
                       ) : basic}
                     </td>
-                    <td className="py-4 px-6 text-center bg-violet-50/30">
+                    <td className="py-4 px-6 text-center bg-primary/5">
                       {typeof pro === 'boolean' ? (
-                        pro ? <Check className="h-5 w-5 mx-auto text-green-500" /> : <X className="h-5 w-5 mx-auto text-gray-300" />
-                      ) : <span className="font-medium text-violet-700">{pro}</span>}
+                        pro ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
+                      ) : <span className="font-medium text-primary">{pro}</span>}
                     </td>
                     <td className="py-4 px-6 text-center">
                       {typeof premium === 'boolean' ? (
-                        premium ? <Check className="h-5 w-5 mx-auto text-green-500" /> : <X className="h-5 w-5 mx-auto text-gray-300" />
+                        premium ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
                       ) : premium}
                     </td>
                   </tr>
@@ -378,85 +378,89 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="mb-8 text-center text-3xl font-bold">
-          <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-            Preguntas Frecuentes
-          </span>
-        </h2>
-        <Accordion type="single" collapsible className="max-w-2xl mx-auto space-y-4">
-          {faqs.map((faq, idx) => (
-            <AccordionItem 
-              key={idx} 
-              value={`faq-${idx}`}
-              className="bg-white rounded-xl border border-gray-200 px-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <AccordionTrigger className="text-left hover:no-underline py-4">
-                <span className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                    <HelpCircle className="h-4 w-4 text-violet-600" />
-                  </div>
-                  <span className="font-medium text-gray-900">{faq.question}</span>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="text-gray-600 pb-4 pl-11">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </section>
-
-      {/* Trust Indicators */}
-      <section className="py-12 bg-gradient-to-r from-violet-600 to-indigo-600">
+      {/* Trust Badges */}
+      <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4 text-center">
+          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { icon: Shield, title: '100% Seguro', desc: 'Pagos con Stripe' },
-              { icon: MessageCircle, title: 'Soporte en Español', desc: 'Atención personalizada' },
-              { icon: Check, title: 'Sin Comisiones', desc: 'Recibe el 100%' },
-              { icon: X, title: 'Cancela Cuando Quieras', desc: 'Sin penalizaciones' },
+              { icon: Shield, title: 'Pago Seguro', desc: 'Transacciones encriptadas con Stripe' },
+              { icon: MessageCircle, title: 'Soporte Humano', desc: 'Equipo real que responde en menos de 24h' },
+              { icon: HelpCircle, title: 'Sin Letra Pequeña', desc: 'Precios claros, sin costos ocultos' },
             ].map((item, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-2 text-white">
-                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                  <item.icon className="h-6 w-6" />
+              <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+                  <item.icon className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <p className="font-semibold">{item.title}</p>
-                <p className="text-sm text-white/70">{item.desc}</p>
+                <div>
+                  <h3 className="font-semibold text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="py-16 bg-card/50">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 className="mb-8 text-center text-3xl font-bold">
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Preguntas Frecuentes
+            </span>
+          </h2>
+          <Accordion type="single" collapsible className="space-y-4">
+            {faqs.map((faq, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`faq-${index}`}
+                className="bg-card border border-border rounded-xl px-6 hover:border-primary/30 transition-colors"
+              >
+                <AccordionTrigger className="text-left text-foreground hover:no-underline py-4">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-4">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <h2 className="mb-4 text-3xl font-bold text-gray-900">
-          ¿Tienes dudas? <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Contáctanos</span>
-        </h2>
-        <p className="mb-8 text-gray-600">
-          Estamos aquí para ayudarte a elegir el plan perfecto
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Button variant="outline" asChild className="border-violet-200 hover:bg-violet-50 hover:border-violet-300">
-            <a href="mailto:hola@sortavo.com">
-              <Mail className="mr-2 h-4 w-4 text-violet-600" />
-              hola@sortavo.com
-            </a>
-          </Button>
-          <Button variant="outline" asChild className="border-violet-200 hover:bg-violet-50 hover:border-violet-300">
-            <a href="https://wa.me/5215512345678" target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="mr-2 h-4 w-4 text-violet-600" />
-              WhatsApp
-            </a>
-          </Button>
-          <Button variant="outline" asChild className="border-violet-200 hover:bg-violet-50 hover:border-violet-300">
-            <a href="tel:+5215512345678">
-              <Phone className="mr-2 h-4 w-4 text-violet-600" />
-              Llamar
-            </a>
-          </Button>
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-accent"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.3),rgba(255,255,255,0))]"></div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+            ¿Listo para empezar?
+          </h2>
+          <p className="text-primary-foreground/90 text-lg mb-8 max-w-2xl mx-auto">
+            Únete a miles de organizadores que ya confían en Sortavo para sus sorteos
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/auth?tab=signup">
+              <Button 
+                size="lg"
+                className="bg-background text-primary hover:bg-background/90 shadow-xl"
+              >
+                Crear cuenta gratis
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/contact">
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <Mail className="mr-2 h-5 w-5" />
+                Contactar ventas
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 

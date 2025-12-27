@@ -156,26 +156,26 @@ export default function Onboarding() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted relative overflow-hidden">
       {/* Background Blobs */}
-      <div className="absolute top-0 -left-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob" />
-      <div className="absolute bottom-0 -right-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000" />
+      <div className="absolute top-0 -left-20 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob" />
+      <div className="absolute bottom-0 -right-20 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000" />
 
       {/* Header */}
-      <header className="relative z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+      <header className="relative z-10 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
-              <Trophy className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg shadow-primary/25">
+              <Trophy className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-extrabold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               SORTAVO
             </span>
           </Link>
@@ -192,10 +192,10 @@ export default function Onboarding() {
                   className={cn(
                     "flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all duration-300",
                     currentStep === step.id
-                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
+                      ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25"
                       : currentStep > step.id
-                      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
-                      : "bg-white text-gray-400 border border-gray-200"
+                      ? "bg-gradient-to-r from-success to-success/80 text-success-foreground shadow-lg shadow-success/25"
+                      : "bg-card text-muted-foreground border border-border"
                   )}
                 >
                   {currentStep > step.id ? (
@@ -210,8 +210,8 @@ export default function Onboarding() {
                     className={cn(
                       "mx-3 h-0.5 w-8 sm:w-16 rounded-full transition-colors",
                       currentStep > step.id 
-                        ? "bg-gradient-to-r from-green-500 to-emerald-500" 
-                        : "bg-gray-200"
+                        ? "bg-gradient-to-r from-success to-success/80" 
+                        : "bg-border"
                     )}
                   />
                 )}
@@ -222,9 +222,9 @@ export default function Onboarding() {
 
         {/* Step 1: Business Info */}
         {currentStep === 1 && (
-          <Card className="backdrop-blur-sm bg-white/80 border-white/40 shadow-2xl shadow-violet-500/10">
+          <Card className="backdrop-blur-sm bg-card/80 border-border/40 shadow-2xl shadow-primary/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+              <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Información de tu negocio
               </CardTitle>
               <CardDescription>
@@ -240,7 +240,7 @@ export default function Onboarding() {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   className={cn(
-                    "bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500",
+                    "bg-background/50 border-border focus:border-primary focus:ring-primary",
                     errors.businessName && "border-destructive"
                   )}
                 />
@@ -263,7 +263,7 @@ export default function Onboarding() {
                 <Button 
                   onClick={handleStep1Submit} 
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5"
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Continuar
@@ -276,9 +276,9 @@ export default function Onboarding() {
 
         {/* Step 2: Payment Methods */}
         {currentStep === 2 && (
-          <Card className="backdrop-blur-sm bg-white/80 border-white/40 shadow-2xl shadow-violet-500/10">
+          <Card className="backdrop-blur-sm bg-card/80 border-border/40 shadow-2xl shadow-primary/10">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+              <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Métodos de pago
               </CardTitle>
               <CardDescription>
@@ -293,7 +293,7 @@ export default function Onboarding() {
                   placeholder="BBVA, Banorte, Santander..."
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
+                  className="bg-background/50 border-border focus:border-primary focus:ring-primary"
                 />
               </div>
               
@@ -304,7 +304,7 @@ export default function Onboarding() {
                   placeholder="Juan Pérez García"
                   value={accountHolder}
                   onChange={(e) => setAccountHolder(e.target.value)}
-                  className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
+                  className="bg-background/50 border-border focus:border-primary focus:ring-primary"
                 />
               </div>
 
@@ -316,7 +316,7 @@ export default function Onboarding() {
                     placeholder="1234567890"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
-                    className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
+                    className="bg-background/50 border-border focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
@@ -326,12 +326,12 @@ export default function Onboarding() {
                     placeholder="012345678901234567"
                     value={clabeNumber}
                     onChange={(e) => setClabeNumber(e.target.value)}
-                    className="bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500"
+                    className="bg-background/50 border-border focus:border-primary focus:ring-primary"
                   />
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground bg-violet-50 p-3 rounded-lg">
+              <p className="text-sm text-muted-foreground bg-primary/10 p-3 rounded-lg">
                 Esta información se mostrará a tus compradores para que realicen transferencias.
                 Puedes configurarla más tarde desde ajustes.
               </p>
@@ -340,14 +340,14 @@ export default function Onboarding() {
                 <Button 
                   variant="outline" 
                   onClick={() => setCurrentStep(1)}
-                  className="border-violet-200 hover:bg-violet-50"
+                  className="border-border hover:bg-muted"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Atrás
                 </Button>
                 <Button 
                   onClick={handleStep2Submit}
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5"
                 >
                   Continuar
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -361,7 +361,7 @@ export default function Onboarding() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <div className="text-center">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Elige tu plan
               </h1>
               <p className="text-muted-foreground mt-1">
@@ -370,14 +370,14 @@ export default function Onboarding() {
             </div>
 
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 bg-white/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-violet-500/10 border border-violet-100">
+            <div className="flex items-center justify-center gap-4 bg-card/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-primary/10 border border-border">
               <button
                 onClick={() => setBillingPeriod("monthly")}
                 className={cn(
                   "rounded-full px-4 py-2 text-sm font-medium transition-all",
                   billingPeriod === "monthly"
-                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 Mensual
@@ -387,16 +387,16 @@ export default function Onboarding() {
                 className={cn(
                   "rounded-full px-4 py-2 text-sm font-medium transition-all flex items-center gap-2",
                   billingPeriod === "annual"
-                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 Anual
                 <span className={cn(
                   "rounded-full px-2 py-0.5 text-xs",
                   billingPeriod === "annual" 
-                    ? "bg-white/20 text-white" 
-                    : "bg-green-100 text-green-700"
+                    ? "bg-white/20 text-primary-foreground" 
+                    : "bg-success/20 text-success"
                 )}>
                   -16%
                 </span>
@@ -412,36 +412,42 @@ export default function Onboarding() {
                     className={cn(
                       "relative cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl backdrop-blur-sm",
                       selectedPlan === key 
-                        ? "ring-2 ring-violet-500 shadow-lg shadow-violet-500/20 bg-white" 
-                        : "bg-white/80 hover:bg-white",
-                      "popular" in plan && plan.popular && "border-violet-500"
+                        ? "ring-2 ring-primary shadow-lg shadow-primary/20 bg-card" 
+                        : "bg-card/80 hover:bg-card",
+                      "popular" in plan && plan.popular && "border-primary"
                     )}
                     onClick={() => setSelectedPlan(key)}
                   >
                     {"popular" in plan && plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-1 text-xs font-medium text-white shadow-lg">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary to-accent px-4 py-1 text-xs font-medium text-primary-foreground shadow-lg">
                         Más popular
                       </div>
                     )}
                     <CardHeader>
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                        <span className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                           ${billingPeriod === "annual" ? plan.annualPrice : plan.monthlyPrice}
                         </span>
-                        <span className="text-muted-foreground">
-                          USD/{billingPeriod === "annual" ? "año" : "mes"}
+                        <span className="text-sm text-muted-foreground">
+                          /{billingPeriod === "annual" ? "año" : "mes"}
                         </span>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm">
-                            <Check className="h-4 w-4 shrink-0 text-green-500 mt-0.5" />
-                            <span className="text-gray-600">{feature}</span>
-                          </li>
-                        ))}
+                      <ul className="space-y-2 text-sm">
+                        {plan.limits && (
+                          <>
+                            <li className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-success" />
+                              <span>{plan.limits.maxActiveRaffles} sorteos activos</span>
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-success" />
+                              <span>{plan.limits.maxTicketsPerRaffle.toLocaleString()} boletos/sorteo</span>
+                            </li>
+                          </>
+                        )}
                       </ul>
                     </CardContent>
                   </Card>
@@ -450,33 +456,33 @@ export default function Onboarding() {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+            <div className="flex flex-col gap-4 pt-4">
               <Button 
-                variant="outline" 
-                onClick={() => setCurrentStep(2)}
-                className="border-violet-200 hover:bg-violet-50"
+                onClick={handlePlanSelect}
+                disabled={isSubmitting}
+                size="lg"
+                className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Atrás
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    Continuar con {STRIPE_PLANS[selectedPlan].name}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
               </Button>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button 
-                  variant="ghost" 
-                  onClick={handleSkipTrial} 
-                  disabled={isSubmitting}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  Continuar con prueba gratuita
-                </Button>
-                <Button 
-                  onClick={handlePlanSelect} 
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5"
-                >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Suscribirme a {STRIPE_PLANS[selectedPlan].name}
-                </Button>
-              </div>
+              
+              <button
+                onClick={handleSkipTrial}
+                disabled={isSubmitting}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Continuar con prueba gratuita de 14 días
+              </button>
             </div>
           </div>
         )}

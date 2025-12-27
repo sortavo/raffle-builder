@@ -125,8 +125,8 @@ export default function Dashboard() {
       title: "Sorteos Activos",
       value: stats?.activeRaffles?.toString() || "0",
       icon: Ticket,
-      gradient: "from-violet-500 to-purple-600",
-      bgGradient: "from-violet-50 to-purple-50",
+      gradient: "from-primary to-primary/80",
+      bgGradient: "from-primary/10 to-primary/5",
       change: "+12%",
       changeType: "increase" as const
     },
@@ -134,8 +134,8 @@ export default function Dashboard() {
       title: "Ingresos Totales",
       value: formatCurrency(stats?.totalRevenue || 0),
       icon: DollarSign,
-      gradient: "from-emerald-500 to-green-600",
-      bgGradient: "from-emerald-50 to-green-50",
+      gradient: "from-secondary to-secondary/80",
+      bgGradient: "from-secondary/10 to-secondary/5",
       change: "+23%",
       changeType: "increase" as const
     },
@@ -143,8 +143,8 @@ export default function Dashboard() {
       title: "Boletos Vendidos",
       value: stats?.ticketsSold?.toString() || "0",
       icon: TrendingUp,
-      gradient: "from-blue-500 to-cyan-600",
-      bgGradient: "from-blue-50 to-cyan-50",
+      gradient: "from-accent to-accent/80",
+      bgGradient: "from-accent/10 to-accent/5",
       change: "+8%",
       changeType: "increase" as const
     },
@@ -152,8 +152,8 @@ export default function Dashboard() {
       title: "Conversión",
       value: `${stats?.conversionRate || 0}%`,
       icon: Target,
-      gradient: "from-orange-500 to-amber-600",
-      bgGradient: "from-orange-50 to-amber-50",
+      gradient: "from-warning to-warning/80",
+      bgGradient: "from-warning/10 to-warning/5",
       change: "+5%",
       changeType: "increase" as const
     }
@@ -163,15 +163,15 @@ export default function Dashboard() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'ticket_sold':
-        return { icon: Ticket, gradient: "from-violet-500 to-purple-600" };
+        return { icon: Ticket, gradient: "from-primary to-primary/80" };
       case 'payment_approved':
-        return { icon: CreditCard, gradient: "from-emerald-500 to-green-600" };
+        return { icon: CreditCard, gradient: "from-success to-success/80" };
       case 'raffle_created':
-        return { icon: Calendar, gradient: "from-blue-500 to-cyan-600" };
+        return { icon: Calendar, gradient: "from-accent to-accent/80" };
       case 'ticket_reserved':
-        return { icon: Clock, gradient: "from-orange-500 to-amber-600" };
+        return { icon: Clock, gradient: "from-warning to-warning/80" };
       default:
-        return { icon: Ticket, gradient: "from-gray-500 to-gray-600" };
+        return { icon: Ticket, gradient: "from-muted to-muted/80" };
     }
   };
 
@@ -184,17 +184,17 @@ export default function Dashboard() {
       ) : (
         <div className="space-y-8">
           {/* Premium Welcome Banner */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 p-4 sm:p-6 lg:p-8">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-4 sm:p-6 lg:p-8">
             {/* Decorative elements - hidden on mobile */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl hidden sm:block"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl hidden sm:block"></div>
             
             <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
               <div className="space-y-1 sm:space-y-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary-foreground">
                   ¡Bienvenido, {profile?.full_name?.split(" ")[0] || "Usuario"}! 👋
                 </h1>
-                <p className="text-white/90 text-sm sm:text-base lg:text-lg">
+                <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg">
                   {stats?.ticketsSold && stats.ticketsSold > 0 
                     ? `Has vendido ${stats.ticketsSold} boletos con ingresos de ${formatCurrency(stats.totalRevenue || 0)}`
                     : "Aquí está un resumen de tus sorteos y actividad reciente"
@@ -205,7 +205,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-4">
                 <Button 
                   size="default"
-                  className="bg-white text-violet-600 hover:bg-white/90 shadow-xl w-full sm:w-auto"
+                  className="bg-background text-primary hover:bg-background/90 shadow-xl w-full sm:w-auto"
                   onClick={() => navigate('/dashboard/raffles/new')}
                 >
                   <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -220,7 +220,7 @@ export default function Dashboard() {
             {statCards.map((stat, index) => (
               <div
                 key={index}
-                className="group relative overflow-hidden rounded-2xl bg-white border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-2xl bg-card border border-border hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
                 {/* Background gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
@@ -235,8 +235,8 @@ export default function Dashboard() {
                     {/* Change indicator - hidden on small mobile */}
                     <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                       stat.changeType === 'increase' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-success/10 text-success' 
+                        : 'bg-destructive/10 text-destructive'
                     }`}>
                       <ArrowUp className="w-3 h-3" />
                       {stat.change}
@@ -245,10 +245,10 @@ export default function Dashboard() {
 
                   {/* Value */}
                   <div className="space-y-0.5 sm:space-y-1">
-                    <p className="text-lg sm:text-xl lg:text-3xl font-bold text-gray-900 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-violet-600 group-hover:to-indigo-600 transition-all duration-300 truncate">
+                    <p className="text-lg sm:text-xl lg:text-3xl font-bold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-primary group-hover:to-accent transition-all duration-300 truncate">
                       {stat.value}
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
                       {stat.title}
                     </p>
                   </div>
@@ -264,7 +264,7 @@ export default function Dashboard() {
           <div className="space-y-4">
             {/* Date Range Picker */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Análisis de Ventas</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground">Análisis de Ventas</h2>
               <DateRangePicker 
                 dateRange={dateRange}
                 onDateRangeChange={setDateRange}
@@ -290,11 +290,11 @@ export default function Dashboard() {
           {/* Content Grid */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Active Raffles */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-card rounded-2xl border border-border p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Sorteos Activos</h3>
-                  <p className="text-sm text-gray-500">
+                  <h3 className="text-lg font-semibold text-foreground">Sorteos Activos</h3>
+                  <p className="text-sm text-muted-foreground">
                     {stats?.activeRaffles && stats.activeRaffles > 0 
                       ? `${stats.activeRaffles} sorteo${stats.activeRaffles > 1 ? 's' : ''} en curso`
                       : "Tus sorteos en curso"
@@ -304,7 +304,7 @@ export default function Dashboard() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                  className="text-primary hover:text-primary/80 hover:bg-primary/10"
                   onClick={() => navigate('/dashboard/raffles')}
                 >
                   Ver todo
@@ -314,14 +314,14 @@ export default function Dashboard() {
               
               {stats?.activeRaffles && stats.activeRaffles > 0 ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
                         <Ticket className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{stats.activeRaffles} sorteo{stats.activeRaffles > 1 ? 's' : ''} activo{stats.activeRaffles > 1 ? 's' : ''}</p>
-                        <p className="text-sm text-gray-500">{stats.ticketsSold} de {stats.totalTickets} boletos vendidos</p>
+                        <p className="font-medium text-foreground">{stats.activeRaffles} sorteo{stats.activeRaffles > 1 ? 's' : ''} activo{stats.activeRaffles > 1 ? 's' : ''}</p>
+                        <p className="text-sm text-muted-foreground">{stats.ticketsSold} de {stats.totalTickets} boletos vendidos</p>
                       </div>
                     </div>
                     <Button 
@@ -337,21 +337,21 @@ export default function Dashboard() {
                 <div className="flex flex-col items-center justify-center py-12">
                   {/* Premium Empty State */}
                   <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-400 to-indigo-400 rounded-full blur-2xl opacity-20 scale-150"></div>
-                    <div className="relative w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-accent/40 rounded-full blur-2xl opacity-20 scale-150"></div>
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-xl">
                       <Gift className="w-10 h-10 text-white" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+                  <h3 className="text-xl font-semibold text-foreground mb-2 text-center">
                     No tienes sorteos activos
                   </h3>
-                  <p className="text-gray-500 text-center max-w-md mb-8">
+                  <p className="text-muted-foreground text-center max-w-md mb-8">
                     Crea tu primer sorteo y comienza a vender boletos hoy mismo
                   </p>
                   <Button 
                     size="lg"
                     onClick={() => navigate('/dashboard/raffles/new')}
-                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-xl shadow-violet-500/30"
+                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-xl shadow-primary/30"
                   >
                     <Plus className="w-5 h-5 mr-2" />
                     Crear mi primer sorteo
@@ -361,14 +361,14 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
+            <div className="bg-card rounded-2xl border border-border p-6 hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Actividad Reciente</h3>
-                  <p className="text-sm text-gray-500">Últimas acciones en tu cuenta</p>
+                  <h3 className="text-lg font-semibold text-foreground">Actividad Reciente</h3>
+                  <p className="text-sm text-muted-foreground">Últimas acciones en tu cuenta</p>
                 </div>
                 {stats?.pendingApprovals && stats.pendingApprovals > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 text-warning rounded-full text-sm font-medium">
                     <Clock className="w-4 h-4" />
                     {stats.pendingApprovals} pendiente{stats.pendingApprovals > 1 ? 's' : ''}
                   </div>
@@ -382,7 +382,7 @@ export default function Dashboard() {
                     return (
                       <div 
                         key={index}
-                        className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                        className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group"
                       >
                         {/* Icon */}
                         <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
@@ -391,16 +391,16 @@ export default function Dashboard() {
                         
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {activity.title}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {activity.description}
                           </p>
                         </div>
                         
                         {/* Time */}
-                        <div className="text-xs text-gray-400 flex-shrink-0">
+                        <div className="text-xs text-muted-foreground flex-shrink-0">
                           {activity.time}
                         </div>
                       </div>
@@ -408,9 +408,9 @@ export default function Dashboard() {
                   })
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Clock className="w-12 h-12 text-gray-300 mb-4" />
-                    <p className="text-gray-500">Sin actividad reciente</p>
-                    <p className="text-sm text-gray-400">Las ventas y reservas aparecerán aquí</p>
+                    <Clock className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">Sin actividad reciente</p>
+                    <p className="text-sm text-muted-foreground/70">Las ventas y reservas aparecerán aquí</p>
                   </div>
                 )}
               </div>
@@ -419,26 +419,26 @@ export default function Dashboard() {
 
           {/* Subscription Banner */}
           {organization?.subscription_status === "trial" && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/30 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-secondary/10 to-warning/10 border border-secondary/20 p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
               
               <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <Gift className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-secondary to-warning rounded-xl flex items-center justify-center shadow-lg">
+                    <Gift className="w-6 h-6 text-secondary-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-foreground">
                       Estás en el plan de prueba
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Actualiza a un plan de pago para desbloquear todas las funcionalidades
                     </p>
                   </div>
                 </div>
                 <Button 
                   onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg"
+                  className="bg-gradient-to-r from-secondary to-warning hover:from-secondary/90 hover:to-warning/90 text-secondary-foreground shadow-lg"
                 >
                   Ver planes
                   <ArrowRight className="ml-2 h-4 w-4" />

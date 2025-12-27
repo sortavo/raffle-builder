@@ -137,8 +137,8 @@ export default function Auth() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -146,12 +146,12 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       {/* Premium Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-white to-indigo-50" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted" />
       
       {/* Animated Blobs */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob" />
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000" />
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000" />
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/20 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob" />
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-secondary/20 rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-blob animation-delay-4000" />
 
       {/* Back to Home */}
       <Link 
@@ -165,21 +165,21 @@ export default function Auth() {
       <div className="relative z-10 w-full max-w-md px-4">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/25">
-            <Trophy className="h-7 w-7 text-white" />
+          <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-xl shadow-primary/25">
+            <Trophy className="h-7 w-7 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="text-2xl font-extrabold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             SORTAVO
           </span>
         </div>
 
-        <Card className="backdrop-blur-sm bg-white/80 border-white/40 shadow-2xl shadow-violet-500/10">
+        <Card className="backdrop-blur-sm bg-card/80 border-border/40 shadow-2xl shadow-primary/10">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 bg-violet-50/50">
-              <TabsTrigger value="login" className="data-[state=active]:bg-white data-[state=active]:text-violet-700 data-[state=active]:shadow-sm">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+              <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm">
                 Iniciar Sesión
               </TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-white data-[state=active]:text-violet-700 data-[state=active]:shadow-sm">
+              <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm">
                 Crear Cuenta
               </TabsTrigger>
             </TabsList>
@@ -187,7 +187,7 @@ export default function Auth() {
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <CardHeader className="text-center">
-                  <CardTitle className="text-xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                  <CardTitle className="text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                     Bienvenido de vuelta
                   </CardTitle>
                   <CardDescription>
@@ -203,7 +203,7 @@ export default function Auth() {
                       placeholder="tu@correo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 ${errors.email ? "border-destructive" : ""}`}
+                      className={`bg-background/50 border-border focus:border-primary focus:ring-primary ${errors.email ? "border-destructive" : ""}`}
                     />
                     {errors.email && (
                       <p className="text-sm text-destructive">{errors.email}</p>
@@ -218,7 +218,7 @@ export default function Auth() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 pr-10 ${errors.password ? "border-destructive" : ""}`}
+                        className={`bg-background/50 border-border focus:border-primary focus:ring-primary pr-10 ${errors.password ? "border-destructive" : ""}`}
                       />
                       <button
                         type="button"
@@ -236,7 +236,7 @@ export default function Auth() {
                 <CardFooter className="flex flex-col gap-4">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5" 
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -251,7 +251,7 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("reset")}
-                    className="text-sm text-muted-foreground hover:text-violet-600 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -262,7 +262,7 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp}>
                 <CardHeader className="text-center">
-                  <CardTitle className="text-xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                  <CardTitle className="text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                     Crea tu cuenta
                   </CardTitle>
                   <CardDescription>
@@ -278,7 +278,7 @@ export default function Auth() {
                       placeholder="Juan Pérez"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 ${errors.fullName ? "border-destructive" : ""}`}
+                      className={`bg-background/50 border-border focus:border-primary focus:ring-primary ${errors.fullName ? "border-destructive" : ""}`}
                     />
                     {errors.fullName && (
                       <p className="text-sm text-destructive">{errors.fullName}</p>
@@ -292,7 +292,7 @@ export default function Auth() {
                       placeholder="tu@correo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 ${errors.email ? "border-destructive" : ""}`}
+                      className={`bg-background/50 border-border focus:border-primary focus:ring-primary ${errors.email ? "border-destructive" : ""}`}
                     />
                     {errors.email && (
                       <p className="text-sm text-destructive">{errors.email}</p>
@@ -307,7 +307,7 @@ export default function Auth() {
                         placeholder="Mínimo 8 caracteres"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 pr-10 ${errors.password ? "border-destructive" : ""}`}
+                        className={`bg-background/50 border-border focus:border-primary focus:ring-primary pr-10 ${errors.password ? "border-destructive" : ""}`}
                       />
                       <button
                         type="button"
@@ -325,7 +325,7 @@ export default function Auth() {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5" 
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -344,7 +344,7 @@ export default function Auth() {
             <TabsContent value="reset">
               <form onSubmit={handleResetPassword}>
                 <CardHeader className="text-center">
-                  <CardTitle className="text-xl bg-gradient-to-r from-violet-700 to-indigo-700 bg-clip-text text-transparent">
+                  <CardTitle className="text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                     Restablecer contraseña
                   </CardTitle>
                   <CardDescription>
@@ -360,7 +360,7 @@ export default function Auth() {
                       placeholder="tu@correo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`bg-white/50 border-violet-200 focus:border-violet-500 focus:ring-violet-500 ${errors.email ? "border-destructive" : ""}`}
+                      className={`bg-background/50 border-border focus:border-primary focus:ring-primary ${errors.email ? "border-destructive" : ""}`}
                     />
                     {errors.email && (
                       <p className="text-sm text-destructive">{errors.email}</p>
@@ -370,7 +370,7 @@ export default function Auth() {
                 <CardFooter className="flex flex-col gap-4">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 transition-all duration-300 hover:-translate-y-0.5" 
+                    className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -385,7 +385,7 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("login")}
-                    className="text-sm text-muted-foreground hover:text-violet-600 transition-colors"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
                     Volver a iniciar sesión
                   </button>
@@ -397,7 +397,7 @@ export default function Auth() {
 
         <p className="mt-8 text-center text-sm text-muted-foreground">
           ¿Necesitas ayuda?{" "}
-          <a href="mailto:soporte@sortavo.com" className="text-violet-600 hover:text-violet-700 font-medium hover:underline transition-colors">
+          <a href="mailto:soporte@sortavo.com" className="text-primary hover:text-primary/80 font-medium hover:underline transition-colors">
             Contáctanos
           </a>
         </p>
