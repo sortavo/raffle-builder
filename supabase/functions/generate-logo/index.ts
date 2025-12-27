@@ -77,17 +77,17 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const prompt = `Create a futuristic tech-style typographic logo for "Sortavo" - a digital raffle platform.
+    const prompt = `Create a monochromatic tech-style typographic logo for "Sortavo" - a digital raffle platform.
 The logo should feature:
 - Sharp, geometric, futuristic sans-serif typography spelling "Sortavo"
-- Neon blue and electric cyan gradient effect with subtle glow
-- Dark background (dark navy or black) to make the text pop
-- Tech/digital aesthetic with clean edges
-- Subtle tech elements like slight glow effect or digital feel
+- MONOCHROMATIC color scheme: pure black or dark charcoal/graphite gray text
+- TRANSPARENT background (no background color, just the text)
+- Clean, minimal, corporate tech aesthetic
 - High resolution with crisp vector-style edges
-- The word "Sortavo" should be the main element, pure typography
-- Inspired by tech companies like Stripe, Vercel, or Linear
-- Make sure to generate an actual image of the logo`;
+- The word "Sortavo" should be the only element, pure typography
+- Inspired by tech companies like Apple, Uber, or Airbnb logos
+- Very clean and professional, no gradients or colors
+- Make sure to generate an actual image of the logo with transparent background`;
 
     const result = await generateImage(LOVABLE_API_KEY, prompt);
 
