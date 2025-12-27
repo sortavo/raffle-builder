@@ -60,7 +60,7 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
       {/* Ticket Visual */}
       <div
         ref={ticketRef}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 p-1"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent p-1"
       >
         <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl overflow-hidden">
           {/* Header */}
@@ -75,8 +75,8 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center">
-                    <Ticket className="w-4 h-4 text-violet-400" />
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Ticket className="w-4 h-4 text-primary" />
                   </div>
                 )}
                 <span className="text-sm text-slate-400 font-medium">
@@ -97,7 +97,7 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
             </h2>
             
             {/* Prize */}
-            <div className="flex items-center gap-2 text-violet-300">
+            <div className="flex items-center gap-2 text-emerald-300">
               <Trophy className="w-4 h-4" />
               <span className="text-sm font-medium">{raffle.prize_name}</span>
             </div>
@@ -161,8 +161,8 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
           </div>
 
           {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-transparent rounded-bl-full" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-tr-full" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-bl-full" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-amber-500/10 to-transparent rounded-tr-full" />
         </div>
       </div>
 

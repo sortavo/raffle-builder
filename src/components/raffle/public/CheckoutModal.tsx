@@ -293,7 +293,7 @@ export function CheckoutModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[95vw] max-w-lg sm:w-full p-0 overflow-hidden">
         {/* Premium header with gradient */}
-        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white">
+        <div className="bg-gradient-to-r from-primary to-accent p-6 text-primary-foreground">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Finalizar Compra</h2>
             <Button
@@ -315,8 +315,8 @@ export function CheckoutModal({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all",
                       currentStep >= item.step
-                        ? "bg-white text-violet-600"
-                        : "bg-white/20 text-white/60"
+                        ? "bg-primary-foreground text-primary"
+                        : "bg-primary-foreground/20 text-primary-foreground/60"
                     )}
                   >
                     {currentStep > item.step ? (
@@ -328,7 +328,7 @@ export function CheckoutModal({
                   <span
                     className={cn(
                       "text-xs mt-1 font-medium",
-                      currentStep >= item.step ? "text-white" : "text-white/60"
+                      currentStep >= item.step ? "text-primary-foreground" : "text-primary-foreground/60"
                     )}
                   >
                     {item.label}
@@ -339,7 +339,7 @@ export function CheckoutModal({
                   <div
                     className={cn(
                       "w-12 h-0.5 mx-2 transition-all",
-                      currentStep > item.step ? "bg-white" : "bg-white/20"
+                      currentStep > item.step ? "bg-primary-foreground" : "bg-primary-foreground/20"
                     )}
                   />
                 )}
@@ -362,11 +362,11 @@ export function CheckoutModal({
                 className="space-y-4"
               >
                 {/* Selected tickets summary */}
-                <div className="p-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl border border-violet-100 dark:border-violet-800">
+                <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl border border-primary/20 dark:border-primary/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center">
-                        <Ticket className="h-5 w-5 text-white" />
+                      <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <Ticket className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">
@@ -378,7 +378,7 @@ export function CheckoutModal({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold text-violet-600">
+                      <p className="text-xl font-bold text-primary">
                         {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
                       </p>
                     </div>

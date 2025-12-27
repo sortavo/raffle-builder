@@ -120,12 +120,12 @@ export default function MyTickets() {
   }, { total: 0, confirmed: 0, pending: 0 }) || { total: 0, confirmed: 0, pending: 0 };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 relative overflow-hidden">
       {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-        <div className="absolute top-1/2 left-1/3 w-60 h-60 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-60 h-60 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       </div>
 
       <div className="container mx-auto px-4 max-w-3xl space-y-6 relative z-10">
@@ -135,13 +135,13 @@ export default function MyTickets() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 mb-2 shadow-lg shadow-violet-500/25">
-            <Ticket className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-accent mb-2 shadow-lg shadow-primary/25">
+            <Ticket className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
             Mis Boletos
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Consulta tu historial de compras y descarga tus boletos
           </p>
         </motion.div>
@@ -152,24 +152,24 @@ export default function MyTickets() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="overflow-hidden shadow-lg shadow-violet-500/10 border-violet-100 bg-white/80 backdrop-blur-sm">
+          <Card className="overflow-hidden shadow-lg shadow-primary/10 border-primary/20 bg-card/80 backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                   <Input
                     type="email"
                     placeholder="Ingresa tu email..."
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="h-12 pl-10 border-violet-200 focus:border-violet-400 focus:ring-violet-400"
+                    className="h-12 pl-10 border-primary/20 focus:border-primary focus:ring-primary"
                   />
                 </div>
                 <Button 
                   onClick={handleSearch} 
                   size="lg" 
-                  className="px-6 gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25"
+                  className="px-6 gap-2 bg-gradient-to-r from-primary via-primary/80 to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25"
                 >
                   <Search className="h-4 w-4" />
                   <span className="hidden sm:inline">Buscar</span>

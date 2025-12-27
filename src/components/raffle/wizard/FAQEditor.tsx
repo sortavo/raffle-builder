@@ -95,10 +95,10 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
   };
 
   return (
-    <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-cyan-50/50">
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-blue-600" />
+          <HelpCircle className="w-5 h-5 text-primary" />
           Preguntas Frecuentes
         </CardTitle>
         <CardDescription>
@@ -111,11 +111,11 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
           <div className="flex items-center gap-3">
             <div className={cn(
               "w-10 h-10 rounded-lg flex items-center justify-center",
-              showFaqSection ? "bg-blue-100" : "bg-gray-100"
+              showFaqSection ? "bg-primary/10" : "bg-muted"
             )}>
               <HelpCircle className={cn(
                 "w-5 h-5",
-                showFaqSection ? "text-blue-600" : "text-gray-400"
+                showFaqSection ? "text-primary" : "text-muted-foreground"
               )} />
             </div>
             <div>
@@ -246,7 +246,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
 
               {/* Add new FAQ form */}
               {isAdding ? (
-                <div className="bg-white rounded-lg border border-blue-200 p-4 space-y-3">
+                <div className="bg-card rounded-lg border border-primary/20 p-4 space-y-3">
                   <Input
                     placeholder="Escribe la pregunta..."
                     value={newQuestion}

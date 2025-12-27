@@ -116,10 +116,10 @@ export default function PublicRaffle() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto" />
-          <p className="text-gray-600">Cargando sorteo...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Cargando sorteo...</p>
         </div>
       </div>
     );
@@ -127,15 +127,15 @@ export default function PublicRaffle() {
 
   if (error || !raffle) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-violet-50 via-white to-indigo-50 px-4">
-        <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-xl">
-          <Trophy className="w-10 h-10 text-white" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-background to-primary/5 px-4">
+        <div className="w-20 h-20 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-xl">
+          <Trophy className="w-10 h-10 text-primary-foreground" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Sorteo no encontrado</h1>
-        <p className="text-gray-600 text-center">Este sorteo no existe o ya no está activo.</p>
+        <h1 className="text-2xl font-bold text-foreground">Sorteo no encontrado</h1>
+        <p className="text-muted-foreground text-center">Este sorteo no existe o ya no está activo.</p>
         <Button 
           onClick={() => navigate("/")}
-          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+          className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
         >
           Volver al inicio
         </Button>
@@ -248,10 +248,10 @@ export default function PublicRaffle() {
         {showPurchaseToasts && <PurchaseToast raffleId={raffle.id} />}
 
         {/* Premium Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-indigo-50">
+        <div className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
           {/* Background pattern */}
           <div className="absolute inset-0 opacity-50" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgb(139 92 246 / 0.1) 1px, transparent 0)`,
+            backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.1) 1px, transparent 0)`,
             backgroundSize: '24px 24px'
           }}></div>
           
