@@ -5,6 +5,14 @@ export interface Prize {
   currency?: string | null;
 }
 
+export type PrizeDisplayMode = 'hierarchical' | 'equal' | 'numbered';
+
+export const PRIZE_DISPLAY_MODES = [
+  { value: 'hierarchical' as const, label: '🏆 Con jerarquía', description: '1°, 2°, 3° lugar' },
+  { value: 'equal' as const, label: '🎁 Todos iguales', description: 'Sin orden de importancia' },
+  { value: 'numbered' as const, label: '🔢 Numerados', description: 'Premio 1, 2, 3...' },
+] as const;
+
 export const createEmptyPrize = (): Prize => ({
   id: crypto.randomUUID(),
   name: '',

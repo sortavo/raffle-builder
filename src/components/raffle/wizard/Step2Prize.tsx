@@ -29,7 +29,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Prize, createEmptyPrize, parsePrizes } from '@/types/prize';
+import { Prize, createEmptyPrize, parsePrizes, PRIZE_DISPLAY_MODES } from '@/types/prize';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { verticalListSortingStrategy } from '@dnd-kit/sortable';
 
@@ -554,6 +554,42 @@ export const Step2Prize = ({ form }: Step2Props) => {
             El valor y la moneda son opcionales. Puedes agregar tantos premios como desees.
           </FormDescription>
         </div>
+
+        {/* Prize Display Mode - Only show if more than 1 prize */}
+        {prizes.length > 1 && (
+          <FormField
+            control={form.control}
+            name="prize_display_mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>¿Cómo quieres mostrar los premios?</FormLabel>
+                <Select 
+                  value={field.value || 'hierarchical'} 
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un modo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PRIZE_DISPLAY_MODES.map((mode) => (
+                      <SelectItem key={mode.value} value={mode.value}>
+                        <span className="flex items-center gap-2">
+                          {mode.label}
+                          <span className="text-muted-foreground text-xs">({mode.description})</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Elige cómo se verán los premios en la página pública del sorteo
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Prize Images */}
         <FormField

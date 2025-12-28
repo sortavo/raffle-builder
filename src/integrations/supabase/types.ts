@@ -595,6 +595,7 @@ export type Database = {
           max_tickets_per_person: number | null
           max_tickets_per_purchase: number | null
           organization_id: string
+          prize_display_mode: string | null
           prize_images: string[] | null
           prize_name: string
           prize_terms: string | null
@@ -638,6 +639,7 @@ export type Database = {
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
           organization_id: string
+          prize_display_mode?: string | null
           prize_images?: string[] | null
           prize_name: string
           prize_terms?: string | null
@@ -681,6 +683,7 @@ export type Database = {
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
           organization_id?: string
+          prize_display_mode?: string | null
           prize_images?: string[] | null
           prize_name?: string
           prize_terms?: string | null
