@@ -60,6 +60,7 @@ interface ReservationState {
   buyerName?: string;
   buyerEmail?: string;
   slug: string;
+  totalAmount?: number;
 }
 
 function getPersistedReservation(slug: string): ReservationState | null {
@@ -110,11 +111,12 @@ export default function PaymentInstructions() {
     raffleId: string;
     buyerName?: string;
     buyerEmail?: string;
+    totalAmount?: number;
   } | null;
 
   const persistedState = !locationState ? getPersistedReservation(slug || '') : null;
   
-  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail } = locationState || 
+  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail, totalAmount: passedTotalAmount } = locationState || 
     persistedState || 
     { tickets: [], reservedUntil: '', raffleId: '' };
 
@@ -175,7 +177,8 @@ export default function PaymentInstructions() {
     );
   }
 
-  const totalAmount = tickets.length * Number(raffle!.ticket_price);
+  // Use passed totalAmount (with package discount) or fallback to recalculating
+  const totalAmount = passedTotalAmount ?? tickets.length * Number(raffle!.ticket_price);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

@@ -123,7 +123,8 @@ export default function PublicRaffle() {
   const handleReservationComplete = (
     tickets: { id: string; ticket_number: string }[],
     reservedUntil: string,
-    buyerData: { name: string; email: string }
+    buyerData: { name: string; email: string },
+    totalAmount: number
   ) => {
     setCheckoutOpen(false);
     // Navigate to payment page, preserving organization context
@@ -131,7 +132,7 @@ export default function PublicRaffle() {
       ? `/${orgSlug}/${slug}/payment`
       : `/r/${slug}/payment`;
     navigate(paymentPath, {
-      state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email },
+      state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email, totalAmount },
     });
   };
 

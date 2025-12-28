@@ -81,6 +81,7 @@ export function CountdownTimer({
 
   if (variant === 'compact') {
     const isUrgent = timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes < 5;
+    const showHours = timeLeft.days > 0 || timeLeft.hours > 0;
     
     return (
       <div className={cn(
@@ -88,6 +89,12 @@ export function CountdownTimer({
         isUrgent && "text-destructive animate-pulse",
         className
       )}>
+        {showHours && (
+          <>
+            <span>{timeLeft.days > 0 ? `${timeLeft.days}d ` : ''}{pad(timeLeft.hours)}</span>
+            <span>:</span>
+          </>
+        )}
         <span>{pad(timeLeft.minutes)}</span>
         <span>:</span>
         <span>{pad(timeLeft.seconds)}</span>
