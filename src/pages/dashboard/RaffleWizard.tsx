@@ -85,7 +85,6 @@ export default function RaffleWizard() {
       ticket_price: 100,
       currency_code: organization?.currency_code || 'MXN',
       ticket_number_format: 'sequential' as 'sequential' | 'prefixed' | 'random',
-      allow_individual_sale: true,
       reservation_time_minutes: 15,
       max_tickets_per_purchase: 0,
       max_tickets_per_person: 0,
