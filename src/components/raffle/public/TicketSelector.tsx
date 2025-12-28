@@ -939,7 +939,87 @@ export function TicketSelector({
               <CardContent className="pt-6 space-y-6">
                 {/* Slot Machine Animation - shown when spinning or has numbers */}
                 <AnimatePresence mode="wait">
-                  {(isSlotSpinning || pendingNumbers.length > 0) ? (
+                  {/* Loading state - shown when fetching from server */}
+                  {randomMutation.isPending && !isSlotSpinning && pendingNumbers.length === 0 ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="py-8 space-y-6"
+                    >
+                      <div className="text-center">
+                        <motion.div 
+                          className="w-20 h-20 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/30"
+                          animate={{ 
+                            rotate: [0, 10, -10, 0],
+                            scale: [1, 1.05, 1]
+                          }}
+                          transition={{ 
+                            duration: 0.8, 
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        >
+                          <Sparkles className="w-10 h-10 text-amber-950" />
+                        </motion.div>
+                        <h3 className="text-xl font-bold text-foreground mb-2">
+                          Generando {randomCount.toLocaleString()} boletos...
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          La suerte está trabajando para ti
+                        </p>
+                      </div>
+                      
+                      {/* Animated progress bar */}
+                      <div className="max-w-xs mx-auto space-y-2">
+                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 rounded-full"
+                            initial={{ width: "0%" }}
+                            animate={{ 
+                              width: ["0%", "30%", "60%", "85%", "95%"],
+                            }}
+                            transition={{ 
+                              duration: randomCount > 1000 ? 4 : 2,
+                              ease: "easeOut",
+                              times: [0, 0.2, 0.5, 0.8, 1]
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Seleccionando...</span>
+                          <motion.span
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            {randomCount > 100 ? 'Procesando en servidor' : 'Casi listo'}
+                          </motion.span>
+                        </div>
+                      </div>
+                      
+                      {/* Floating numbers animation */}
+                      <div className="flex justify-center gap-2">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <motion.div
+                            key={i}
+                            className="w-10 h-10 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center font-mono font-bold text-primary"
+                            animate={{
+                              y: [0, -8, 0],
+                              opacity: [0.5, 1, 0.5],
+                            }}
+                            transition={{
+                              duration: 0.8,
+                              repeat: Infinity,
+                              delay: i * 0.15,
+                            }}
+                          >
+                            ?
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : (isSlotSpinning || pendingNumbers.length > 0) ? (
                     <motion.div
                       key="slot-machine"
                       initial={{ opacity: 0, scale: 0.9 }}
