@@ -22,6 +22,7 @@ import { VirtualizedTicketGrid } from "./VirtualizedTicketGrid";
 import { LargeRaffleNotice, LARGE_RAFFLE_THRESHOLD } from "./LargeRaffleNotice";
 import { toast } from "sonner";
 import { LoadMoreTrigger } from "@/components/ui/LoadMoreTrigger";
+import confetti from "canvas-confetti";
 import { 
   Loader2, 
   Search, 
@@ -333,7 +334,38 @@ export function TicketSelector({
     if (numbers.length > 0) {
       setGeneratedNumbers(numbers);
       setSelectedTickets(numbers);
-      toast.success(`${numbers.length} boletos aleatorios seleccionados`);
+      
+      // Trigger confetti for large batches (>100 tickets)
+      if (numbers.length > 100) {
+        // Fire confetti from both sides
+        const fireConfetti = () => {
+          // Left side
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { x: 0.1, y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#4169E1'],
+          });
+          // Right side
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { x: 0.9, y: 0.6 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#4169E1'],
+          });
+        };
+        
+        // Fire twice for more impact
+        fireConfetti();
+        setTimeout(fireConfetti, 300);
+        
+        toast.success(`🎉 ¡Increíble! ${numbers.length.toLocaleString()} boletos seleccionados`, {
+          description: '¡Buena suerte en el sorteo!',
+          duration: 5000,
+        });
+      } else {
+        toast.success(`${numbers.length} boletos aleatorios seleccionados`);
+      }
     }
   }, []);
 
