@@ -374,13 +374,45 @@ export function useRandomAvailableTickets() {
     mutationFn: async ({
       raffleId,
       count,
+      excludeNumbers = [],
     }: {
       raffleId: string;
       count: number;
+      excludeNumbers?: string[];
     }) => {
-      // For large raffles, use a smarter approach:
-      // 1. Get total count of available tickets
-      // 2. Generate random offsets and fetch tickets at those positions
+      // For large quantities (>100), use the edge function for better performance
+      if (count > 100) {
+        console.log(`Using edge function for ${count} random tickets`);
+        
+        const { data, error } = await supabase.functions.invoke('select-random-tickets', {
+          body: {
+            raffle_id: raffleId,
+            quantity: count,
+            exclude_numbers: excludeNumbers,
+          },
+        });
+
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error('Error al generar boletos aleatorios');
+        }
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        if (!data.selected || data.selected.length === 0) {
+          throw new Error('No hay boletos disponibles');
+        }
+
+        if (data.selected.length < count) {
+          console.warn(`Only ${data.selected.length} tickets available, requested ${count}`);
+        }
+
+        return data.selected as string[];
+      }
+
+      // For small counts (<=100), use client-side approach
       const { count: availableCount, error: countError } = await supabase
         .from('tickets')
         .select('*', { count: 'exact', head: true })
@@ -392,74 +424,32 @@ export function useRandomAvailableTickets() {
         throw new Error(`Solo hay ${availableCount || 0} boletos disponibles`);
       }
 
-      // For small counts (< 10000 available), use the original approach
-      if (availableCount <= 10000) {
-        const { data, error } = await supabase
-          .from('tickets')
-          .select('ticket_number')
-          .eq('raffle_id', raffleId)
-          .eq('status', 'available')
-          .limit(count * 3);
+      // Fetch enough tickets to shuffle
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('ticket_number')
+        .eq('raffle_id', raffleId)
+        .eq('status', 'available')
+        .limit(Math.min(count * 3, 1000));
 
-        if (error) throw error;
-        if (!data || data.length < count) {
-          throw new Error(`Solo hay ${data?.length || 0} boletos disponibles`);
-        }
-
-        const shuffled = secureShuffleArray(data);
-        return shuffled.slice(0, count).map(t => t.ticket_number);
+      if (error) throw error;
+      if (!data || data.length < count) {
+        throw new Error(`Solo hay ${data?.length || 0} boletos disponibles`);
       }
 
-      // For large raffles (> 10000 available), generate random offsets
-      // and fetch individual tickets to avoid loading too much data
-      const selectedNumbers: string[] = [];
-      const usedOffsets = new Set<number>();
-      const maxAttempts = count * 5;
-      let attempts = 0;
-
-      while (selectedNumbers.length < count && attempts < maxAttempts) {
-        // Generate a batch of random offsets
-        const batchSize = Math.min(count - selectedNumbers.length, 50);
-        const offsets: number[] = [];
-        
-        for (let i = 0; i < batchSize * 2; i++) {
-          const offset = secureRandomInt(availableCount);
-          if (!usedOffsets.has(offset)) {
-            usedOffsets.add(offset);
-            offsets.push(offset);
-            if (offsets.length >= batchSize) break;
-          }
-        }
-
-        // Fetch tickets at these random offsets
-        const promises = offsets.map(offset =>
-          supabase
-            .from('tickets')
-            .select('ticket_number')
-            .eq('raffle_id', raffleId)
-            .eq('status', 'available')
-            .order('ticket_number', { ascending: true })
-            .range(offset, offset)
-            .single()
-        );
-
-        const results = await Promise.all(promises);
-        
-        for (const result of results) {
-          if (result.data && !selectedNumbers.includes(result.data.ticket_number)) {
-            selectedNumbers.push(result.data.ticket_number);
-            if (selectedNumbers.length >= count) break;
-          }
-        }
-
-        attempts += batchSize;
+      // Filter out excluded numbers
+      let filtered = data;
+      if (excludeNumbers.length > 0) {
+        const excludeSet = new Set(excludeNumbers);
+        filtered = data.filter(t => !excludeSet.has(t.ticket_number));
       }
 
-      if (selectedNumbers.length < count) {
-        throw new Error(`No se pudieron seleccionar suficientes boletos aleatorios`);
+      if (filtered.length < count) {
+        throw new Error(`Solo hay ${filtered.length} boletos disponibles después de excluir los seleccionados`);
       }
 
-      return selectedNumbers;
+      const shuffled = secureShuffleArray(filtered);
+      return shuffled.slice(0, count).map(t => t.ticket_number);
     },
   });
 }

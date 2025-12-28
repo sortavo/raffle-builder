@@ -981,14 +981,29 @@ export function TicketSelector({
                     >
                       <div className="space-y-3">
                         <Label className="text-base">¿Cuántos boletos quieres?</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={maxPerPurchase || 100}
-                          value={randomCount}
-                          onChange={(e) => setRandomCount(parseInt(e.target.value) || 1)}
-                          className="h-12 text-lg border-2 text-center"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={10000}
+                            value={randomCount}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 1;
+                              setRandomCount(Math.min(10000, Math.max(1, value)));
+                            }}
+                            className="h-12 text-lg border-2 text-center flex-1"
+                          />
+                          {randomCount > 100 && (
+                            <Badge variant="outline" className="h-12 px-3 flex items-center border-amber-500 text-amber-600">
+                              Lote grande
+                            </Badge>
+                          )}
+                        </div>
+                        {randomCount > 100 && (
+                          <p className="text-xs text-amber-600 text-center">
+                            Para {randomCount.toLocaleString()} boletos, la generación puede tomar unos segundos
+                          </p>
+                        )}
                       </div>
 
                       {/* Package quick select */}
@@ -1028,23 +1043,48 @@ export function TicketSelector({
 
                       {generatedNumbers.length > 0 && !isSlotSpinning && (
                         <div className="space-y-4 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl">
-                          <p className="font-medium text-center text-foreground">Tus números de la suerte:</p>
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {generatedNumbers.map((num, index) => (
-                              <motion.div
-                                key={num}
-                                initial={{ scale: 0, rotate: -180 }}
-                                animate={{ scale: 1, rotate: 0 }}
-                                transition={{ delay: index * 0.1, type: "spring" }}
-                              >
-                                <Badge 
-                                  className="text-lg px-4 py-2 bg-gradient-to-r from-primary to-accent"
-                                >
-                                  {num}
+                          <p className="font-medium text-center text-foreground">
+                            Tus {generatedNumbers.length.toLocaleString()} números de la suerte:
+                          </p>
+                          
+                          {/* For many numbers, show summary instead of all badges */}
+                          {generatedNumbers.length > 20 ? (
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {generatedNumbers.slice(0, 10).map((num) => (
+                                  <Badge 
+                                    key={num}
+                                    className="text-sm px-3 py-1 bg-gradient-to-r from-primary to-accent"
+                                  >
+                                    {num}
+                                  </Badge>
+                                ))}
+                                <Badge variant="outline" className="text-sm px-3 py-1">
+                                  +{(generatedNumbers.length - 10).toLocaleString()} más
                                 </Badge>
-                              </motion.div>
-                            ))}
-                          </div>
+                              </div>
+                              <p className="text-xs text-center text-muted-foreground">
+                                Rango: {generatedNumbers[0]} - {generatedNumbers[generatedNumbers.length - 1]}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              {generatedNumbers.map((num, index) => (
+                                <motion.div
+                                  key={num}
+                                  initial={{ scale: 0, rotate: -180 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  transition={{ delay: Math.min(index * 0.1, 1), type: "spring" }}
+                                >
+                                  <Badge 
+                                    className="text-lg px-4 py-2 bg-gradient-to-r from-primary to-accent"
+                                  >
+                                    {num}
+                                  </Badge>
+                                </motion.div>
+                              ))}
+                            </div>
+                          )}
                           
                           {regenerateCount < 3 && (
                             <Button
