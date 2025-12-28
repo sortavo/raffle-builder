@@ -15,6 +15,10 @@ export interface RaffleWithStats extends Raffle {
   tickets_available: number;
   tickets_reserved: number;
   total_revenue: number;
+  organization?: {
+    name: string;
+    logo_url: string | null;
+  };
 }
 
 export interface RaffleFilters {
@@ -78,12 +82,15 @@ export const useRaffles = () => {
 
         const { data: raffle, error: raffleError } = await supabase
           .from('raffles')
-          .select('*')
+          .select('*, organizations:organization_id(name, logo_url)')
           .eq('id', raffleId)
           .maybeSingle();
 
         if (raffleError) throw raffleError;
         if (!raffle) return null;
+
+        // Extract organization data
+        const organization = raffle.organizations as { name: string; logo_url: string | null } | null;
 
         // Get ticket stats using aggregation to avoid Supabase 1000 row limit
         // Count tickets by status using separate count queries for accuracy
@@ -112,7 +119,14 @@ export const useRaffles = () => {
           total_revenue: (soldResult.count || 0) * raffle.ticket_price,
         };
 
-        return { ...raffle, ...stats } as RaffleWithStats;
+        // Remove the organizations field from raffle and add organization
+        const { organizations: _, ...raffleWithoutOrg } = raffle;
+
+        return { 
+          ...raffleWithoutOrg, 
+          ...stats, 
+          organization: organization || undefined 
+        } as RaffleWithStats;
       },
       enabled: !!raffleId,
     });

@@ -25,26 +25,53 @@ import {
   Mail,
   ChevronLeft,
   ChevronRight,
-  Users
+  Users,
+  Eye,
+  Ticket
 } from 'lucide-react';
-import { useBuyers } from '@/hooks/useBuyers';
+import { useBuyers, Buyer } from '@/hooks/useBuyers';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { TicketDetailDialog } from './TicketDetailDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface BuyersTabProps {
   raffleId: string;
+  raffleTitle?: string;
+  raffleSlug?: string;
+  prizeName?: string;
+  prizeImages?: string[];
+  drawDate?: string | null;
+  ticketPrice?: number;
+  currencyCode?: string;
+  organizationName?: string;
+  organizationLogo?: string | null;
 }
 
 const BUYERS_PER_PAGE = 20;
 
-export function BuyersTab({ raffleId }: BuyersTabProps) {
+export function BuyersTab({ 
+  raffleId,
+  raffleTitle = '',
+  raffleSlug = '',
+  prizeName = '',
+  prizeImages = [],
+  drawDate,
+  ticketPrice = 0,
+  currencyCode = 'MXN',
+  organizationName = '',
+  organizationLogo,
+}: BuyersTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [cityFilter, setCityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { useBuyersList, useCities, exportBuyers, getWhatsAppLink, getMailtoLink } = useBuyers(raffleId);
@@ -217,6 +244,18 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setSelectedBuyer(buyer);
+                              setTicketDialogOpen(true);
+                            }}
+                            title="Ver boletos"
+                          >
+                            <Eye className="h-4 w-4 text-primary" />
+                          </Button>
                           {buyer.phone && (
                             <Button
                               variant="ghost"
@@ -284,6 +323,37 @@ export function BuyersTab({ raffleId }: BuyersTabProps) {
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
+      )}
+
+      {/* Ticket Detail Dialog */}
+      {selectedBuyer && (
+        <TicketDetailDialog
+          open={ticketDialogOpen}
+          onOpenChange={setTicketDialogOpen}
+          tickets={selectedBuyer.tickets.map((ticketNumber, idx) => ({
+            id: `${selectedBuyer.id}-${idx}`,
+            ticket_number: ticketNumber,
+            buyer_name: selectedBuyer.name,
+            buyer_email: selectedBuyer.email,
+            buyer_phone: selectedBuyer.phone,
+            buyer_city: selectedBuyer.city,
+            status: selectedBuyer.status,
+          }))}
+          raffle={{
+            id: raffleId,
+            title: raffleTitle,
+            slug: raffleSlug,
+            prize_name: prizeName,
+            prize_images: prizeImages,
+            draw_date: drawDate || null,
+            ticket_price: ticketPrice,
+            currency_code: currencyCode,
+          }}
+          organization={{
+            name: organizationName,
+            logo_url: organizationLogo,
+          }}
+        />
       )}
     </div>
   );
