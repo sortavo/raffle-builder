@@ -106,28 +106,15 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
       </div>
       
       {/* Preview Content - Scaled down version of public page */}
-      <div className={cn(
-        "flex justify-center bg-muted/50 overflow-hidden",
-        isMobile ? "p-4" : "p-2"
-      )}>
-        {/* Desktop scaling container */}
-        {!isMobile && (
-          <div className="absolute top-12 right-3 z-10">
-            <Badge variant="outline" className="text-[10px] bg-background/80 backdrop-blur-sm">
-              Vista al 50%
-            </Badge>
-          </div>
-        )}
+      <div className="flex justify-center bg-muted/50 p-3">
         <div 
           className={cn(
             "bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300",
-            isMobile ? "w-[320px]" : "w-[800px] origin-top"
+            isMobile ? "w-[320px]" : "w-full max-w-[400px]"
           )}
           style={{
-            maxHeight: isMobile ? '600px' : '1200px',
-            overflowY: 'auto',
-            transform: isMobile ? 'none' : 'scale(0.5)',
-            marginBottom: isMobile ? '0' : '-300px'
+            maxHeight: '600px',
+            overflowY: 'auto'
           }}
         >
           {/* Device Frame for Mobile */}
@@ -163,12 +150,12 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
           </div>
 
           {/* Hero Section */}
-          <div className={cn("space-y-4", isMobile ? "p-4" : "p-6")}>
-            {/* Desktop: Two column layout */}
+          <div className="space-y-3 p-3">
+            {/* Desktop: Compact two column layout */}
             {!isMobile ? (
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Left: Image */}
-                <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
+                <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
                   <img 
                     src={mainImage} 
                     alt={prizeName}
@@ -178,72 +165,51 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                   
                   {prizeValue > 0 && (
                     <div 
-                      className="absolute bottom-3 left-3 px-4 py-2 rounded-lg shadow text-white"
+                      className="absolute bottom-2 left-2 px-2 py-1 rounded-md shadow text-white"
                       style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
                     >
-                      <p className="text-[10px] opacity-80">Valor del Premio</p>
-                      <p className="text-lg font-bold">{formatCurrency(Number(prizeValue), currency)}</p>
+                      <p className="text-[8px] opacity-80">Valor</p>
+                      <p className="text-xs font-bold">{formatCurrency(Number(prizeValue), currency)}</p>
                     </div>
                   )}
                 </div>
                 
                 {/* Right: Info */}
-                <div className="space-y-4">
+                <div className="space-y-2 flex flex-col">
                   <Badge 
-                    className="text-xs text-white"
+                    className="text-[10px] text-white w-fit"
                     style={{ backgroundColor: primaryColor }}
                   >
-                    <Zap className="w-3 h-3 mr-1" />
-                    Sorteo Activo
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                    Activo
                   </Badge>
                   
-                  {headline && <p className="text-sm text-muted-foreground">{headline}</p>}
-                  <h2 className="text-xl font-bold text-gray-900">{prizeName}</h2>
-                  <p className="text-base text-gray-600">{title}</p>
+                  <h2 className="text-sm font-bold text-gray-900 leading-tight">{prizeName}</h2>
+                  <p className="text-[10px] text-gray-600 line-clamp-1">{title}</p>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-gray-50 rounded-lg border">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded flex items-center justify-center"
-                          style={{ backgroundColor: `${primaryColor}20` }}
-                        >
-                          <Ticket className="w-4 h-4" style={{ color: primaryColor }} />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Precio</p>
-                          <p className="text-base font-bold">{formatCurrency(Number(ticketPrice), currency)}</p>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-1.5 flex-1">
+                    <div className="p-1.5 bg-gray-50 rounded border">
+                      <p className="text-[8px] text-gray-500">Precio</p>
+                      <p className="text-[10px] font-bold">{formatCurrency(Number(ticketPrice), currency)}</p>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg border">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-8 h-8 rounded flex items-center justify-center"
-                          style={{ backgroundColor: `${primaryColor}20` }}
-                        >
-                          <Calendar className="w-4 h-4" style={{ color: primaryColor }} />
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Sorteo</p>
-                          <p className="text-base font-bold">
-                            {drawDate ? format(new Date(drawDate), 'dd MMM', { locale: es }) : 'Por definir'}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="p-1.5 bg-gray-50 rounded border">
+                      <p className="text-[8px] text-gray-500">Sorteo</p>
+                      <p className="text-[10px] font-bold">
+                        {drawDate ? format(new Date(drawDate), 'dd MMM', { locale: es }) : 'Por definir'}
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-medium">{ticketsSold} de {totalTickets} vendidos</span>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[8px]">
+                      <span className="font-medium">{ticketsSold}/{totalTickets}</span>
                       <span>{Math.round(progress)}%</span>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress value={progress} className="h-1.5" />
                   </div>
                   
-                  <Button className="w-full text-white" style={{ backgroundColor: primaryColor }}>
-                    <ShoppingCart className="w-4 h-4 mr-2" />
+                  <Button size="sm" className="w-full text-white text-[10px] h-7" style={{ backgroundColor: primaryColor }}>
+                    <ShoppingCart className="w-3 h-3 mr-1" />
                     {ctaText}
                   </Button>
                 </div>
@@ -362,10 +328,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
             {/* Countdown Preview */}
             {drawDate && (
-              <Card className={cn("bg-gradient-to-r from-gray-50 to-gray-100 border", isMobile ? "p-3" : "p-4")}>
-                <div className={cn("flex items-center justify-center gap-2 text-gray-600", isMobile ? "text-xs" : "text-sm")}>
-                  <Clock className={cn(isMobile ? "w-3.5 h-3.5" : "w-4 h-4")} />
-                  <span>Termina en: </span>
+              <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border p-2">
+                <div className="flex items-center justify-center gap-1.5 text-gray-600 text-[10px]">
+                  <Clock className="w-3 h-3" />
+                  <span>Termina: </span>
                   <span className="font-mono font-bold text-gray-900">
                     {format(new Date(drawDate), 'dd/MM/yyyy HH:mm', { locale: es })}
                   </span>
@@ -374,39 +340,38 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
             )}
 
             {/* Ticket Grid Preview */}
-            <div className="space-y-2">
-              <h3 className={cn("font-semibold text-gray-900 flex items-center gap-2", isMobile ? "text-sm" : "text-base")}>
-                <Trophy className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} style={{ color: primaryColor }} />
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-1.5 text-xs">
+                <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                 Selecciona tus Boletos
               </h3>
-              <div className={cn("grid gap-1", isMobile ? "grid-cols-5" : "grid-cols-8")}>
-                {Array.from({ length: isMobile ? 15 : 24 }).map((_, i) => (
+              <div className="grid grid-cols-8 gap-0.5">
+                {Array.from({ length: 16 }).map((_, i) => (
                   <div 
                     key={i}
                     className={cn(
-                      "aspect-square rounded font-medium flex items-center justify-center",
-                      isMobile ? "text-[9px]" : "text-xs",
-                      i < (isMobile ? 5 : 8) ? "bg-gray-200 text-gray-400" : "bg-green-100 text-green-700 border border-green-200"
+                      "aspect-square rounded text-[7px] font-medium flex items-center justify-center",
+                      i < 5 ? "bg-gray-200 text-gray-400" : "bg-green-100 text-green-700 border border-green-200"
                     )}
                   >
                     {String(i + 1).padStart(3, '0')}
                   </div>
                 ))}
               </div>
-              <p className={cn("text-center text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+              <p className="text-center text-muted-foreground text-[8px]">
                 Vista previa de boletos
               </p>
             </div>
 
             {/* FAQ Preview */}
-            <div className="space-y-2">
-              <h3 className={cn("font-semibold text-gray-900", isMobile ? "text-sm" : "text-base")}>Preguntas Frecuentes</h3>
+            <div className="space-y-1">
+              <h3 className="font-semibold text-gray-900 text-xs">Preguntas Frecuentes</h3>
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="1" className="border rounded-lg px-3">
-                  <AccordionTrigger className={cn("py-2 hover:no-underline", isMobile ? "text-xs" : "text-sm")}>
+                <AccordionItem value="1" className="border rounded-lg px-2">
+                  <AccordionTrigger className="py-1.5 hover:no-underline text-[10px]">
                     ¿Cómo funciona el sorteo?
                   </AccordionTrigger>
-                  <AccordionContent className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs")}>
+                  <AccordionContent className="text-muted-foreground text-[9px]">
                     Selecciona tus boletos favoritos y completa el pago...
                   </AccordionContent>
                 </AccordionItem>
