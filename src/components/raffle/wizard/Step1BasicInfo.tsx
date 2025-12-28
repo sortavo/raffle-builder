@@ -1,5 +1,6 @@
 import { UseFormReturn } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { useState } from 'react';
+import { useEffectiveAuth } from '@/hooks/useEffectiveAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { getRaffleRelativePath } from '@/lib/url-utils';
 
 interface Step1Props {
   form: UseFormReturn<any>;
@@ -18,6 +22,23 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   const { id } = useParams();
   const isEditing = !!id;
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const { organization: authOrg } = useEffectiveAuth();
+
+  const { data: organization } = useQuery({
+    queryKey: ['organization-slug', authOrg?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('organizations')
+        .select('slug')
+        .eq('id', authOrg!.id)
+        .single();
+      return data;
+    },
+    enabled: !!authOrg?.id,
+  });
+
+  const raffleSlug = form.watch('slug') || 'tu-sorteo';
+  const displayUrl = `sortavo.com${getRaffleRelativePath(raffleSlug, organization?.slug)}`;
 
   const handleTitleChange = (value: string) => {
     form.setValue('title', value);
@@ -71,7 +92,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                 />
               </FormControl>
               <FormDescription>
-                URL: sortavo.com/r/{form.watch('slug') || 'tu-sorteo'}
+                URL: {displayUrl}
               </FormDescription>
               {titleError && (
                 <p className="text-sm font-medium text-destructive">{titleError}</p>
