@@ -35,8 +35,11 @@ import {
   Calendar,
   Ticket,
   DollarSign,
-  X
+  X,
+  Link2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { getRafflePublicUrl } from '@/lib/url-utils';
 import { useRaffles, type RaffleFilters as RaffleFiltersType } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { RaffleStatusBadge } from '@/components/raffle/RaffleStatusBadge';
@@ -52,7 +55,7 @@ import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 export default function RafflesList() {
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, organization } = useAuth();
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     dateRange: [null, null],
@@ -68,6 +71,12 @@ export default function RafflesList() {
     deleteRaffle, 
     duplicateRaffle 
   } = useRaffles();
+
+  const copyUrl = (url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(url);
+    toast.success('URL copiada al portapapeles');
+  };
   
   // Build the query filters
   const queryFilters: RaffleFiltersType = {
@@ -212,7 +221,7 @@ export default function RafflesList() {
                         <RaffleStatusBadge status={raffle.status || 'draft'} />
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           {raffle.draw_date 
@@ -228,6 +237,25 @@ export default function RafflesList() {
                           <DollarSign className="h-4 w-4" />
                           {formatCurrency(raffle.ticket_price, raffle.currency_code || 'MXN')}
                         </div>
+                        {raffle.status === 'active' && (
+                          <div 
+                            className="flex items-center gap-1.5 text-primary hover:text-primary/80 cursor-pointer group"
+                            onClick={(e) => copyUrl(
+                              getRafflePublicUrl(raffle.slug, organization?.slug),
+                              e
+                            )}
+                            title="Clic para copiar URL"
+                          >
+                            <Link2 className="h-4 w-4" />
+                            <span className="max-w-[120px] sm:max-w-[180px] truncate text-xs">
+                              {organization?.slug 
+                                ? `/${organization.slug}/${raffle.slug}` 
+                                : `/r/${raffle.slug}`
+                              }
+                            </span>
+                            <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        )}
                       </div>
                     </div>
 
