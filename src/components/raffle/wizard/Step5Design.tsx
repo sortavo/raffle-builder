@@ -1,4 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +9,24 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart, AlertCircle, Settings } from 'lucide-react';
 import { RAFFLE_TEMPLATES, GOOGLE_FONTS_TITLES, GOOGLE_FONTS_BODY, DESIGN_SECTIONS } from '@/lib/raffle-utils';
 import { cn } from '@/lib/utils';
 import { FAQEditor } from './FAQEditor';
 import { ValidationSummary } from './ValidationSummary';
 import type { StepValidation } from '@/hooks/useWizardValidation';
 
+interface OrganizationInfo {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}
+
 interface Step5Props {
   form: UseFormReturn<any>;
+  organization?: OrganizationInfo | null;
   stepValidations?: StepValidation[];
   canPublish?: boolean;
   hasPaymentMethods?: boolean;
@@ -88,6 +98,7 @@ const MARKETING_FEATURES = [
 
 export const Step5Design = ({ 
   form, 
+  organization,
   stepValidations, 
   canPublish, 
   hasPaymentMethods,
@@ -290,15 +301,40 @@ export const Step5Design = ({
             <ImagePlus className="w-5 h-5" />
             Logo
           </CardTitle>
-          <CardDescription>Sube tu logo y elige su posición</CardDescription>
+          <CardDescription>Tu logo se hereda de la configuración de tu organización</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-            <ImagePlus className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Arrastra tu logo aquí o haz clic para seleccionar
-            </p>
-          </div>
+          {organization?.logo_url ? (
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={organization.logo_url} alt="Logo" />
+                <AvatarFallback>{organization.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Logo de {organization.name}</p>
+                <p className="text-xs text-muted-foreground mb-2">Este logo aparecerá en tu sorteo</p>
+                <Link 
+                  to="/dashboard/settings" 
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Settings className="w-3 h-3" />
+                  Cambiar en Configuración
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Sin logo configurado</AlertTitle>
+              <AlertDescription>
+                Agrega un logo en{' '}
+                <Link to="/dashboard/settings" className="font-medium underline hover:no-underline">
+                  Configuración
+                </Link>{' '}
+                para que aparezca en tus rifas.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <FormItem>
             <FormLabel>Posición del Logo</FormLabel>

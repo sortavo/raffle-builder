@@ -412,7 +412,8 @@ export default function RaffleWizard() {
       case 5:
         return (
           <Step5Design 
-            form={form} 
+            form={form}
+            organization={organization}
             stepValidations={stepValidations}
             canPublish={canPublish}
             hasPaymentMethods={hasEnabledPaymentMethods}
