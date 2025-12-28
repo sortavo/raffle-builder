@@ -358,26 +358,37 @@ export function useUploadPaymentProof() {
   });
 }
 
-export function useMyTickets(email: string | undefined) {
+export function useMyTickets(
+  searchValue: string | undefined, 
+  searchType: 'email' | 'reference' = 'email'
+) {
   return useQuery({
-    queryKey: ['my-tickets', email],
+    queryKey: ['my-tickets', searchValue, searchType],
     queryFn: async () => {
-      if (!email) return [];
+      if (!searchValue) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('tickets')
         .select(`
           *,
           raffles (id, title, slug, prize_name, prize_images, draw_date, status, ticket_price, currency_code)
         `)
-        .eq('buyer_email', email)
         .in('status', ['reserved', 'sold'])
         .order('reserved_at', { ascending: false });
+
+      if (searchType === 'email') {
+        query = query.eq('buyer_email', searchValue.toLowerCase());
+      } else {
+        // Search by payment reference (reservation code) - case insensitive
+        query = query.eq('payment_reference', searchValue.toUpperCase());
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!email,
+    enabled: !!searchValue,
   });
 }
 

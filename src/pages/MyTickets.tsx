@@ -10,10 +10,11 @@ import { useMyTickets } from "@/hooks/usePublicRaffle";
 import { useAuth } from "@/hooks/useAuth";
 import { TicketQRCode } from "@/components/ticket/TicketQRCode";
 import { DownloadableTicket } from "@/components/ticket/DownloadableTicket";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Loader2, Ticket, Search, QrCode, ChevronRight, Calendar, Trophy, 
   Clock, CheckCircle2, AlertCircle, Download, Eye, Mail, User, MapPin,
-  Hourglass
+  Hourglass, Hash
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -49,26 +50,36 @@ const STATUS_CONFIG = {
 };
 
 type StatusFilter = 'all' | 'sold' | 'reserved';
+type SearchType = 'email' | 'reference';
 
 export default function MyTickets() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(user?.email || '');
-  const [searchEmail, setSearchEmail] = useState(user?.email || '');
+  const [searchInput, setSearchInput] = useState(user?.email || '');
+  const [searchValue, setSearchValue] = useState(user?.email || '');
+  const [searchType, setSearchType] = useState<SearchType>('email');
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [ticketSearch, setTicketSearch] = useState('');
 
-  const { data: tickets, isLoading } = useMyTickets(searchEmail);
+  const { data: tickets, isLoading } = useMyTickets(searchValue, searchType);
 
   const handleSearch = () => {
-    setSearchEmail(email.trim().toLowerCase());
+    const trimmed = searchInput.trim();
+    if (!trimmed) return;
+    setSearchValue(searchType === 'email' ? trimmed.toLowerCase() : trimmed.toUpperCase());
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const handleSearchTypeChange = (value: string) => {
+    setSearchType(value as SearchType);
+    setSearchInput('');
+    setSearchValue('');
   };
 
   // Filter tickets based on status and ticket number search
@@ -146,42 +157,70 @@ export default function MyTickets() {
           </p>
         </motion.div>
 
-        {/* Email Search */}
+        {/* Search Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Card className="overflow-hidden shadow-lg shadow-primary/10 border-primary/20 bg-card/80 backdrop-blur-sm">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 space-y-4">
+              {/* Search Type Tabs */}
+              <Tabs value={searchType} onValueChange={handleSearchTypeChange} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="email" className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger value="reference" className="gap-2">
+                    <Hash className="h-4 w-4" />
+                    Clave de Reserva
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Search Input */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                  {searchType === 'email' ? (
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                  ) : (
+                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                  )}
                   <Input
-                    type="email"
-                    placeholder="Ingresa tu email..."
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type={searchType === 'email' ? 'email' : 'text'}
+                    placeholder={searchType === 'email' ? 'ejemplo@correo.com' : 'Ej: GYEP6CE8'}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="h-12 pl-10 border-primary/20 focus:border-primary focus:ring-primary"
+                    className="h-12 pl-10 border-primary/20 focus:border-primary focus:ring-primary uppercase-placeholder"
+                    style={searchType === 'reference' ? { textTransform: 'uppercase' } : undefined}
                   />
                 </div>
                 <Button 
                   onClick={handleSearch} 
                   size="lg" 
                   className="px-6 gap-2 bg-gradient-to-r from-primary via-primary/80 to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25"
+                  disabled={!searchInput.trim()}
                 >
                   <Search className="h-4 w-4" />
                   <span className="hidden sm:inline">Buscar</span>
                 </Button>
               </div>
+
+              {/* Helper text */}
+              <p className="text-xs text-muted-foreground text-center">
+                {searchType === 'email' 
+                  ? '¿No recuerdas tu email? Usa la clave de reserva que recibiste al comprar.'
+                  : 'Ingresa la clave de 8 caracteres que recibiste al reservar tus boletos.'}
+              </p>
             </CardContent>
           </Card>
         </motion.div>
 
         {/* Stats Summary & Filters */}
         <AnimatePresence>
-          {searchEmail && tickets && tickets.length > 0 && (
+          {searchValue && tickets && tickets.length > 0 && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -283,15 +322,19 @@ export default function MyTickets() {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="text-muted-foreground">Buscando tus boletos...</p>
           </div>
-        ) : !searchEmail ? (
+        ) : !searchValue ? (
           <Card className="border-dashed">
             <CardContent className="py-16 text-center">
               <Ticket className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
               <p className="text-lg font-medium text-muted-foreground">
-                Ingresa tu email para ver tus boletos
+                {searchType === 'email' 
+                  ? 'Ingresa tu email para ver tus boletos'
+                  : 'Ingresa tu clave de reserva para ver tus boletos'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Usaremos el email con el que realizaste tus compras
+                {searchType === 'email'
+                  ? 'Usaremos el email con el que realizaste tus compras'
+                  : 'Es el código de 8 caracteres que recibiste al reservar'}
               </p>
             </CardContent>
           </Card>
@@ -301,14 +344,16 @@ export default function MyTickets() {
               <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-lg font-medium">No se encontraron boletos</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Verifica que el email <strong>{searchEmail}</strong> sea correcto
+                {searchType === 'email' 
+                  ? <>Verifica que el email <strong>{searchValue}</strong> sea correcto</>
+                  : <>Verifica que la clave <strong>{searchValue}</strong> sea correcta</>}
               </p>
               <Button 
                 variant="outline" 
                 className="mt-4"
-                onClick={() => setEmail('')}
+                onClick={() => setSearchInput('')}
               >
-                Intentar con otro email
+                {searchType === 'email' ? 'Intentar con otro email' : 'Intentar con otra clave'}
               </Button>
             </CardContent>
           </Card>
