@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -21,6 +22,19 @@ interface TicketData {
     ticket_price: number;
     currency_code: string | null;
   } | null;
+}
+
+// Generate QR code as data URL
+async function generateQRDataURL(text: string): Promise<string> {
+  return QRCode.toDataURL(text, {
+    width: 120,
+    margin: 1,
+    color: {
+      dark: '#1a1a2e',
+      light: '#ffffff',
+    },
+    errorCorrectionLevel: 'H',
+  });
 }
 
 export function useBulkTicketDownload() {
@@ -163,22 +177,25 @@ export function useBulkTicketDownload() {
             pdf.text(`Ref: ${ticket.payment_reference}`, margin + 6, contentY + 36);
           }
 
-          // QR Code placeholder (text-based since jsPDF doesn't have native QR)
+          // Generate real QR Code
           const qrX = pageWidth - margin - 35;
           const qrY = contentY - 5;
-          pdf.setFillColor(255, 255, 255);
-          pdf.roundedRect(qrX, qrY, 30, 30, 2, 2, 'F');
-
-          // QR content - verification URL
-          pdf.setTextColor(26, 26, 46);
-          pdf.setFontSize(6);
-          pdf.text('Escanea para', qrX + 2, qrY + 10);
-          pdf.text('verificar', qrX + 2, qrY + 14);
-
-          // Ticket ID short
-          pdf.setFontSize(5);
-          pdf.text(ticket.id.substring(0, 8), qrX + 2, qrY + 20);
-          pdf.text('sortavo.com', qrX + 2, qrY + 25);
+          const qrSize = 30;
+          
+          const verificationUrl = `${window.location.origin}/ticket/${ticket.id}`;
+          try {
+            const qrDataUrl = await generateQRDataURL(verificationUrl);
+            pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+          } catch (qrError) {
+            // Fallback: draw white box with text if QR fails
+            console.error('QR generation failed:', qrError);
+            pdf.setFillColor(255, 255, 255);
+            pdf.roundedRect(qrX, qrY, qrSize, qrSize, 2, 2, 'F');
+            pdf.setTextColor(26, 26, 46);
+            pdf.setFontSize(6);
+            pdf.text('Verificar en:', qrX + 2, qrY + 12);
+            pdf.text('sortavo.com', qrX + 2, qrY + 18);
+          }
 
           // Footer with ticket ID
           pdf.setTextColor(100, 116, 139);
