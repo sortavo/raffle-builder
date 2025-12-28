@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Hash, Settings2, Eye, ChevronDown, Shuffle, ListOrdered, FileSpreadsheet, Wand2, Sparkles, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface NumberingConfig {
   mode: 'sequential' | 'random_permutation' | 'custom_list' | 'template';
@@ -211,6 +212,8 @@ function generatePreviewNumbers(config: NumberingConfig, totalTickets: number, c
 export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPanelProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string>('simple');
+  const prevTotalTicketsRef = useRef<number>(totalTickets);
+  const hasInitializedRef = useRef<boolean>(false);
   
   // Get current config from form - default to simple (consecutivo)
   const currentConfig: NumberingConfig = form.watch('numbering_config') || NUMBERING_PRESETS[0].config;
@@ -268,7 +271,44 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
       form.setValue('numbering_config', NUMBERING_PRESETS[0].config);
       form.setValue('ticket_number_format', 'sequential');
     }
+    hasInitializedRef.current = true;
   }, []);
+
+  // Show toast when totalTickets changes and recommendation changes
+  useEffect(() => {
+    // Skip on initial mount
+    if (!hasInitializedRef.current) return;
+    
+    const prevTotal = prevTotalTicketsRef.current;
+    const prevRecommended = getRecommendedPreset(prevTotal);
+    
+    // Only show toast if:
+    // 1. The quantity actually changed
+    // 2. The recommendation changed
+    // 3. The current selection is NOT the new recommendation
+    if (
+      prevTotal !== totalTickets && 
+      prevRecommended.id !== recommendedPreset.id && 
+      selectedPreset !== recommendedPreset.id
+    ) {
+      const recommendedPresetData = NUMBERING_PRESETS.find(p => p.id === recommendedPreset.id);
+      
+      toast.info('¿Cambiar formato de numeración?', {
+        description: `Para ${totalTickets.toLocaleString()} boletos te sugerimos "${recommendedPresetData?.name}". ${recommendedPreset.reason}`,
+        duration: 8000,
+        action: {
+          label: 'Aplicar',
+          onClick: () => applyPreset(recommendedPreset.id),
+        },
+        cancel: {
+          label: 'Mantener',
+          onClick: () => {},
+        },
+      });
+    }
+    
+    prevTotalTicketsRef.current = totalTickets;
+  }, [totalTickets, recommendedPreset.id, selectedPreset]);
   return (
     <Card className="border-dashed">
       <CardHeader className="pb-3">
