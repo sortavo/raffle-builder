@@ -258,87 +258,78 @@ export function useUploadPaymentProof() {
       ticketIds,
       file,
       buyerName,
+      buyerEmail,
       referenceCode,
     }: {
       raffleId: string;
       ticketIds: string[];
       file: File;
       buyerName?: string;
+      buyerEmail?: string;
       referenceCode?: string;
     }) => {
+      // CRITICAL: Require referenceCode for reliable association
+      if (!referenceCode) {
+        throw new Error('Falta la clave de reserva. No podemos registrar tu comprobante sin ella.');
+      }
+
       // Get file extension safely
       const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
       const safeExtension = validExtensions.includes(extension) ? extension : 'jpg';
       
-      // Create a clean, simple filename with timestamp
+      // Create a clean filename with referenceCode for organization
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const cleanFileName = `proof_${timestamp}_${randomSuffix}.${safeExtension}`;
       
-      // Build storage path
-      const storagePath = `${raffleId}/${cleanFileName}`;
+      // Include referenceCode in path for better organization and auditability
+      const storagePath = `${raffleId}/${referenceCode}/${cleanFileName}`;
+      
+      console.log('Uploading payment proof:', { raffleId, referenceCode, storagePath });
       
       // Upload file to storage
       const { data: upload, error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(storagePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error('Error al subir el archivo. Intenta de nuevo.');
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('payment-proofs')
         .getPublicUrl(upload.path);
 
-      // If we have a referenceCode, use the edge function for reliable association
-      if (referenceCode) {
-        const { data, error } = await supabase.functions.invoke('submit-payment-proof', {
-          body: { raffleId, referenceCode, publicUrl },
-        });
+      console.log('File uploaded, associating with tickets via edge function:', { publicUrl, referenceCode, buyerEmail });
 
-        if (error) {
-          console.error('Edge function error:', error);
-          throw new Error('No se pudo asociar el comprobante a tu reservación. Contacta al organizador con tu clave: ' + referenceCode);
-        }
+      // ALWAYS use edge function for reliable association with elevated permissions
+      const { data, error } = await supabase.functions.invoke('submit-payment-proof', {
+        body: { 
+          raffleId, 
+          referenceCode, 
+          publicUrl,
+          buyerEmail: buyerEmail?.toLowerCase(),
+        },
+      });
 
-        if (!data?.updatedCount || data.updatedCount === 0) {
-          throw new Error('No se encontraron boletos para esta reservación. Verifica tu clave: ' + referenceCode);
-        }
-
-        return publicUrl;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error('No se pudo registrar el comprobante. Contacta al organizador con tu clave: ' + referenceCode);
       }
 
-      // Fallback: direct update by ticket IDs (legacy support)
-      const { data: updatedTickets, error } = await supabase
-        .from('tickets')
-        .update({ payment_proof_url: publicUrl })
-        .in('id', ticketIds)
-        .select('ticket_number');
-
-      if (error) throw error;
-
-      // Get raffle info to notify the organizer
-      const { data: raffle } = await supabase
-        .from('raffles')
-        .select('title, organization_id, created_by')
-        .eq('id', raffleId)
-        .single();
-
-      if (raffle?.created_by && raffle?.organization_id) {
-        const ticketNumbers = updatedTickets?.map(t => t.ticket_number) || [];
-        
-        // Notify the organizer about new payment proof (non-blocking)
-        notifyPaymentPending(
-          raffle.created_by,
-          raffle.organization_id,
-          raffleId,
-          raffle.title,
-          ticketNumbers,
-          buyerName || 'Comprador'
-        ).catch(console.error);
+      if (!data?.success) {
+        console.error('Edge function returned failure:', data);
+        throw new Error(data?.error || 'Error al asociar el comprobante. Contacta al organizador.');
       }
 
+      if (!data?.updatedCount || data.updatedCount === 0) {
+        throw new Error('No se encontraron boletos para esta reservación. Verifica tu clave: ' + referenceCode);
+      }
+
+      console.log('Payment proof associated successfully:', data);
       return publicUrl;
     },
     onSuccess: () => {
