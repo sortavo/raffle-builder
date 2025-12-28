@@ -263,26 +263,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="allow_individual_sale"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Permitir venta individual</FormLabel>
-                  <FormDescription>
-                    Los participantes pueden comprar boletos uno por uno
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value !== false}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
