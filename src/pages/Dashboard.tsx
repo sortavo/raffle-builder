@@ -120,15 +120,29 @@ export default function Dashboard() {
     }).format(amount);
   };
 
-  const statCards = [
+  // Only show percentage changes when there's actual comparative data
+  const hasRevenueData = (stats?.totalRevenue || 0) > 0;
+  const hasTicketData = (stats?.ticketsSold || 0) > 0;
+
+  const statCards: Array<{
+    title: string;
+    value: string;
+    icon: typeof Ticket;
+    gradient: string;
+    bgGradient: string;
+    change: string;
+    changeType: 'increase' | 'decrease' | 'neutral';
+    showChange: boolean;
+  }> = [
     {
       title: "Sorteos Activos",
       value: stats?.activeRaffles?.toString() || "0",
       icon: Ticket,
       gradient: "from-primary to-primary/80",
       bgGradient: "from-primary/10 to-primary/5",
-      change: "+12%",
-      changeType: "increase" as const
+      change: "0%",
+      changeType: "neutral",
+      showChange: false
     },
     {
       title: "Ingresos Totales",
@@ -136,8 +150,9 @@ export default function Dashboard() {
       icon: DollarSign,
       gradient: "from-secondary to-secondary/80",
       bgGradient: "from-secondary/10 to-secondary/5",
-      change: "+23%",
-      changeType: "increase" as const
+      change: "0%",
+      changeType: "neutral",
+      showChange: hasRevenueData
     },
     {
       title: "Boletos Vendidos",
@@ -145,8 +160,9 @@ export default function Dashboard() {
       icon: TrendingUp,
       gradient: "from-accent to-accent/80",
       bgGradient: "from-accent/10 to-accent/5",
-      change: "+8%",
-      changeType: "increase" as const
+      change: "0%",
+      changeType: "neutral",
+      showChange: hasTicketData
     },
     {
       title: "Conversión",
@@ -154,8 +170,9 @@ export default function Dashboard() {
       icon: Target,
       gradient: "from-warning to-warning/80",
       bgGradient: "from-warning/10 to-warning/5",
-      change: "+5%",
-      changeType: "increase" as const
+      change: "0%",
+      changeType: "neutral",
+      showChange: hasTicketData
     }
   ];
 
@@ -232,15 +249,19 @@ export default function Dashboard() {
                       <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     
-                    {/* Change indicator - hidden on small mobile */}
-                    <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                      stat.changeType === 'increase' 
-                        ? 'bg-success/10 text-success' 
-                        : 'bg-destructive/10 text-destructive'
-                    }`}>
-                      <ArrowUp className="w-3 h-3" />
-                      {stat.change}
-                    </div>
+                    {/* Change indicator - only show when there's comparative data */}
+                    {stat.showChange && (
+                      <div className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        stat.changeType === 'increase' 
+                          ? 'bg-success/10 text-success' 
+                          : stat.changeType === 'decrease'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {stat.changeType !== 'neutral' && <ArrowUp className="w-3 h-3" />}
+                        {stat.change}
+                      </div>
+                    )}
                   </div>
 
                   {/* Value */}
