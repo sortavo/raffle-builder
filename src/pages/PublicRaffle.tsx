@@ -37,6 +37,7 @@ import { HowItWorks } from "@/components/raffle/public/HowItWorks";
 import { OrganizerSection } from "@/components/raffle/public/OrganizerSection";
 import { PrizeShowcase } from "@/components/raffle/public/PrizeShowcase";
 import { FloatingWhatsAppButton } from "@/components/raffle/public/FloatingWhatsAppButton";
+import { PrizeVideoPlayer } from "@/components/raffle/public/PrizeVideoPlayer";
 import { UrgencyBadge } from "@/components/marketing/UrgencyBadge";
 import { SocialProof } from "@/components/marketing/SocialProof";
 import { PurchaseToast } from "@/components/marketing/PurchaseToast";
@@ -345,6 +346,15 @@ export default function PublicRaffle() {
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Prize Video */}
+                {raffle.prize_video_url && (
+                  <PrizeVideoPlayer 
+                    videoUrl={raffle.prize_video_url} 
+                    title={raffle.prize_name}
+                    className="mt-6"
+                  />
                 )}
               </div>
 
