@@ -168,47 +168,75 @@ const SortablePrizeRow = ({
         )}
       </div>
       
+      {/* Labels row - solo visible en desktop */}
+      <div className="hidden md:grid md:grid-cols-[1fr,120px,100px] gap-3 mb-1">
+        <span className="text-xs text-muted-foreground">
+          Nombre del premio {isFirst && <span className="text-destructive">*</span>}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Valor <span className="text-muted-foreground/70">(opcional)</span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Moneda
+        </span>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-[1fr,120px,100px] gap-3">
         {/* Prize Name */}
-        <Input
-          placeholder="Nombre del premio (ej: iPhone 16 Pro Max)"
-          value={prize.name || ''}
-          onChange={(e) => onUpdate(index, 'name', e.target.value)}
-          className={cn(
-            isFirst && !firstPrizeHasName && "border-destructive focus-visible:ring-destructive"
-          )}
-        />
-        
-        {/* Prize Value */}
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-            $
+        <div>
+          <span className="md:hidden text-xs text-muted-foreground mb-1 block">
+            Nombre del premio {isFirst && <span className="text-destructive">*</span>}
           </span>
           <Input
-            type="number"
-            placeholder="Valor"
-            className="pl-7"
-            value={prize.value ?? ''}
-            onChange={(e) => onUpdate(index, 'value', e.target.value ? parseFloat(e.target.value) : null)}
+            placeholder="ej: iPhone 16 Pro Max"
+            value={prize.name || ''}
+            onChange={(e) => onUpdate(index, 'name', e.target.value)}
+            className={cn(
+              isFirst && !firstPrizeHasName && "border-destructive focus-visible:ring-destructive"
+            )}
           />
         </div>
         
+        {/* Prize Value */}
+        <div>
+          <span className="md:hidden text-xs text-muted-foreground mb-1 block">
+            Valor <span className="text-muted-foreground/70">(opcional)</span>
+          </span>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+              $
+            </span>
+            <Input
+              type="number"
+              placeholder="0"
+              className="pl-7"
+              value={prize.value ?? ''}
+              onChange={(e) => onUpdate(index, 'value', e.target.value ? parseFloat(e.target.value) : null)}
+            />
+          </div>
+        </div>
+        
         {/* Currency */}
-        <Select 
-          value={prize.currency || defaultCurrency} 
-          onValueChange={(value) => onUpdate(index, 'currency', value)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CURRENCIES.map((curr) => (
-              <SelectItem key={curr.code} value={curr.code}>
-                {curr.flag} {curr.code}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div>
+          <span className="md:hidden text-xs text-muted-foreground mb-1 block">
+            Moneda
+          </span>
+          <Select 
+            value={prize.currency || defaultCurrency} 
+            onValueChange={(value) => onUpdate(index, 'currency', value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((curr) => (
+                <SelectItem key={curr.code} value={curr.code}>
+                  {curr.flag} {curr.code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
