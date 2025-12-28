@@ -29,9 +29,11 @@ import {
   Timer,
   FileSpreadsheet,
   FileText,
-  Users
+  Users,
+  Trophy
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/currency-utils';
+import { formatCurrency, getCurrency } from '@/lib/currency-utils';
+import { parsePrizes } from '@/types/prize';
 import { RaffleStatusBadge } from '../RaffleStatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -257,6 +259,22 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
     }
   };
 
+  const prizes = parsePrizes(raffle.prizes, raffle.prize_name, raffle.prize_value);
+
+  const getPrizeLabel = (index: number) => {
+    if (index === 0) return { emoji: '🥇', label: 'Premio Principal' };
+    if (index === 1) return { emoji: '🥈', label: '2do Premio' };
+    if (index === 2) return { emoji: '🥉', label: '3er Premio' };
+    return { emoji: '💎', label: `${index + 1}° Premio` };
+  };
+
+  const totalPrizesValue = prizes.reduce((sum, p) => {
+    if (p.value && p.currency === (prizes[0]?.currency || raffle.currency_code)) {
+      return sum + p.value;
+    }
+    return sum;
+  }, 0);
+
   return (
     <div className="space-y-6">
       {/* Hero Section */}
@@ -276,6 +294,68 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
           <RaffleStatusBadge status={raffle.status || 'draft'} />
         </div>
       </div>
+
+      {/* Prizes Section */}
+      {prizes.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Premios del Sorteo
+              {prizes.length > 1 && (
+                <Badge variant="secondary" className="ml-2">
+                  {prizes.length} premios
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {prizes.map((prize, index) => {
+              const { emoji, label } = getPrizeLabel(index);
+              const currency = getCurrency(prize.currency || raffle.currency_code || 'MXN');
+              
+              return (
+                <div 
+                  key={prize.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    index === 0 
+                      ? 'bg-amber-500/10 border-amber-500/30' 
+                      : 'bg-muted/50 border-border'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl flex-shrink-0">{emoji}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className={`font-medium truncate ${index === 0 ? 'text-base' : 'text-sm'}`}>
+                        {prize.name}
+                      </p>
+                    </div>
+                  </div>
+                  {prize.value && prize.value > 0 && (
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                      <span className={`font-semibold ${index === 0 ? 'text-base' : 'text-sm'}`}>
+                        {formatCurrency(prize.value, prize.currency || raffle.currency_code || 'MXN')}
+                      </span>
+                      {currency && <span className="text-sm">{currency.flag}</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Total value summary */}
+            {prizes.length > 1 && totalPrizesValue > 0 && (
+              <div className="flex items-center justify-between pt-3 border-t mt-3">
+                <span className="text-sm text-muted-foreground">Valor total de premios</span>
+                <span className="font-bold text-primary">
+                  {formatCurrency(totalPrizesValue, prizes[0]?.currency || raffle.currency_code || 'MXN')}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2">
