@@ -13,9 +13,9 @@ import { useState, useEffect } from 'react';
 import { useEffectiveAuth } from '@/hooks/useEffectiveAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { validateSlugFormat, normalizeToSlug } from '@/lib/url-utils';
-import { AlertCircle, CheckCircle2, Loader2, Pencil } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
+import { toast } from 'sonner';
 interface Step1Props {
   form: UseFormReturn<any>;
 }
@@ -27,6 +27,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   const { organization: authOrg } = useEffectiveAuth();
   const [debouncedSlug, setDebouncedSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   const { data: organization } = useQuery({
     queryKey: ['organization-slug', authOrg?.id],
@@ -136,6 +137,45 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   };
 
   const titleError = getFieldError('title');
+
+  const handleGenerateDescription = async () => {
+    const title = form.watch('title');
+    if (!title || title.trim().length < 3) {
+      toast.error('Ingresa un título primero para generar la descripción');
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const category = form.watch('category');
+      const prizeName = form.watch('prizeName');
+      const currentDescription = form.watch('description');
+
+      const response = await supabase.functions.invoke('generate-description', {
+        body: {
+          title,
+          category,
+          prizeName,
+          userContext: currentDescription,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Error al generar descripción');
+      }
+
+      const { description } = response.data;
+      if (description) {
+        form.setValue('description', description);
+        toast.success('¡Descripción generada con IA!');
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al generar la descripción');
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   const renderSlugStatus = () => {
     // Show format error first
@@ -266,14 +306,39 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Descripción</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Descripción</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={isGeneratingDescription || !form.watch('title')?.trim()}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  {isGeneratingDescription ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      Generar con IA
+                    </>
+                  )}
+                </Button>
+              </div>
               <FormControl>
                 <Textarea 
-                  placeholder="Describe tu sorteo, las reglas y lo que los participantes pueden ganar..."
+                  placeholder="💡 Para una mejor descripción incluye: qué se rifa, qué hace especial al premio, cómo participar, fechas importantes, y por qué no deberían perdérselo..."
                   className="min-h-[120px]"
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                Tip: Escribe algunos detalles y la IA los usará para crear una descripción más completa
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
