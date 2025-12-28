@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Hash, Settings2, Eye, ChevronDown, Shuffle, ListOrdered, FileSpreadsheet, Wand2 } from 'lucide-react';
+import { Hash, Settings2, Eye, ChevronDown, Shuffle, ListOrdered, FileSpreadsheet, Wand2, Sparkles, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NumberingConfig {
@@ -28,6 +28,23 @@ interface NumberingConfig {
 interface NumberingConfigPanelProps {
   form: UseFormReturn<any>;
   totalTickets: number;
+}
+
+// Función para obtener la recomendación basada en cantidad de boletos
+function getRecommendedPreset(totalTickets: number): { id: string; reason: string } {
+  if (totalTickets <= 99) {
+    return { id: 'simple', reason: 'Ideal para rifas pequeñas, números fáciles de recordar' };
+  }
+  if (totalTickets <= 999) {
+    return { id: 'zeros_auto', reason: 'Mejor legibilidad con 3 dígitos (001, 002...)' };
+  }
+  if (totalTickets <= 9999) {
+    return { id: 'zeros_auto', reason: 'Formato limpio de 4 dígitos (0001, 0002...)' };
+  }
+  if (totalTickets <= 99999) {
+    return { id: 'lottery_7', reason: 'Formato profesional para rifas grandes' };
+  }
+  return { id: 'lottery_7', reason: 'Como boletos de lotería nacional' };
 }
 
 // Presets de numeración
@@ -193,10 +210,13 @@ function generatePreviewNumbers(config: NumberingConfig, totalTickets: number, c
 
 export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPanelProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<string>('zeros_auto');
+  const [selectedPreset, setSelectedPreset] = useState<string>('simple');
   
-  // Get current config from form
-  const currentConfig: NumberingConfig = form.watch('numbering_config') || NUMBERING_PRESETS[1].config;
+  // Get current config from form - default to simple (consecutivo)
+  const currentConfig: NumberingConfig = form.watch('numbering_config') || NUMBERING_PRESETS[0].config;
+  
+  // Get recommendation based on total tickets
+  const recommendedPreset = useMemo(() => getRecommendedPreset(totalTickets), [totalTickets]);
   
   // Generate preview numbers
   const previewNumbers = useMemo(() => {
@@ -243,9 +263,12 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
       } else {
         setSelectedPreset('custom');
       }
+    } else {
+      // Set default config to simple (consecutivo) for new raffles
+      form.setValue('numbering_config', NUMBERING_PRESETS[0].config);
+      form.setValue('ticket_number_format', 'sequential');
     }
   }, []);
-
   return (
     <Card className="border-dashed">
       <CardHeader className="pb-3">
@@ -263,6 +286,7 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
           {NUMBERING_PRESETS.map((preset) => {
             const Icon = preset.icon;
             const isSelected = selectedPreset === preset.id;
+            const isRecommended = recommendedPreset.id === preset.id;
             
             return (
               <Button
@@ -270,14 +294,27 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
                 type="button"
                 variant={isSelected ? "default" : "outline"}
                 className={cn(
-                  "h-auto py-3 px-3 flex flex-col items-start text-left gap-1",
-                  isSelected && "ring-2 ring-primary ring-offset-2"
+                  "h-auto py-3 px-3 flex flex-col items-start text-left gap-1 relative",
+                  isSelected && "ring-2 ring-primary ring-offset-2",
+                  isRecommended && !isSelected && "border-amber-500/50 bg-amber-500/5"
                 )}
                 onClick={() => applyPreset(preset.id)}
               >
                 <div className="flex items-center gap-2 w-full">
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="text-sm font-medium truncate">{preset.name}</span>
+                  {isRecommended && (
+                    <Badge 
+                      variant={isSelected ? "secondary" : "outline"} 
+                      className={cn(
+                        "text-[10px] px-1.5 py-0 h-5 ml-auto shrink-0",
+                        !isSelected && "border-amber-500/50 text-amber-600 dark:text-amber-400"
+                      )}
+                    >
+                      <Sparkles className="w-3 h-3 mr-0.5" />
+                      Sugerido
+                    </Badge>
+                  )}
                 </div>
                 <span className={cn(
                   "text-xs truncate w-full",
@@ -289,6 +326,26 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
             );
           })}
         </div>
+        
+        {/* Recommendation Tip */}
+        {selectedPreset !== recommendedPreset.id && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
+            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-amber-700 dark:text-amber-300">
+              <span className="font-medium">Sugerencia:</span>{' '}
+              Para {totalTickets.toLocaleString()} boletos, {recommendedPreset.reason.toLowerCase()}.
+              <Button 
+                variant="link" 
+                size="sm" 
+                type="button"
+                className="text-amber-600 dark:text-amber-400 h-auto p-0 ml-1"
+                onClick={() => applyPreset(recommendedPreset.id)}
+              >
+                Usar formato sugerido →
+              </Button>
+            </div>
+          </div>
+        )}
         
         {/* Preview Section */}
         <div className="p-3 rounded-lg bg-muted/50 border">
