@@ -19,7 +19,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Zap,
-  Users
+  Users,
+  Gift,
+  Star,
+  Sparkles
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency-utils";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
@@ -366,44 +369,119 @@ export default function PublicRaffle() {
                   />
                 )}
 
-                {/* Title */}
-                <div className="space-y-2 sm:space-y-3">
+                {/* Title - Nombre del Sorteo */}
+                <div className="space-y-4">
                   <h1 
-                    className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight"
+                    className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight"
                     style={{ 
                       fontFamily: `"${fontTitle}", sans-serif`,
                       color: textColor,
                     }}
                   >
-                    {raffle.prize_name}
+                    {raffle.title}
                   </h1>
                   
-                  {/* Show additional prizes from prizes array */}
-                  {Array.isArray((raffle as any).prizes) && (raffle as any).prizes.length > 1 && (
-                    <div className="flex flex-wrap gap-2">
-                      {(raffle as any).prizes.slice(1).map((prize: any, idx: number) => (
-                        <span 
-                          key={prize.id || idx} 
-                          className="text-sm px-3 py-1 rounded-full"
-                          style={{ 
-                            backgroundColor: `${primaryColor}15`,
-                            color: primaryColor,
-                          }}
-                        >
-                          + {prize.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <p 
-                    className="text-base sm:text-lg lg:text-xl"
-                    style={{ color: textMuted }}
-                  >
-                    {raffle.title}
-                  </p>
                   {raffle.description && (
-                    <p className="text-sm sm:text-base" style={{ color: textMuted }}>{raffle.description}</p>
+                    <p className="text-base sm:text-lg" style={{ color: textMuted }}>{raffle.description}</p>
+                  )}
+                </div>
+
+                {/* Premium Prize Showcase */}
+                <div 
+                  className="relative overflow-hidden rounded-2xl border-2 p-4 sm:p-6"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${primaryColor}08 0%, ${accentColor}12 50%, ${primaryColor}08 100%)`,
+                    borderColor: `${primaryColor}30`,
+                  }}
+                >
+                  {/* Decorative sparkles */}
+                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4">
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500 animate-pulse" />
+                  </div>
+                  
+                  {/* Main Prize */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div 
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0"
+                      style={{ 
+                        background: `linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)`,
+                      }}
+                    >
+                      <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p 
+                        className="text-xs sm:text-sm font-bold uppercase tracking-wider mb-1"
+                        style={{ color: '#D97706' }}
+                      >
+                        🏆 Premio Principal
+                      </p>
+                      <h2 
+                        className="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight"
+                        style={{ color: textColor }}
+                      >
+                        {raffle.prize_name}
+                      </h2>
+                      {raffle.prize_value && (
+                        <p 
+                          className="text-base sm:text-lg font-semibold mt-1"
+                          style={{ color: '#D97706' }}
+                        >
+                          Valor: {formatCurrency(Number(raffle.prize_value), currency)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Additional Prizes */}
+                  {Array.isArray((raffle as any).prizes) && (raffle as any).prizes.length > 1 && (
+                    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t" style={{ borderColor: `${primaryColor}20` }}>
+                      <p className="text-xs sm:text-sm font-semibold mb-3 sm:mb-4 flex items-center gap-2" style={{ color: textMuted }}>
+                        <Gift className="w-4 h-4" style={{ color: primaryColor }} />
+                        ¡Y también puedes ganar!
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                        {(raffle as any).prizes.slice(1).map((prize: any, idx: number) => {
+                          const badgeStyles = [
+                            { bg: 'linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)', icon: '🥈', label: '2° Lugar' },
+                            { bg: 'linear-gradient(135deg, #CD7F32 0%, #B87333 100%)', icon: '🥉', label: '3° Lugar' },
+                            { bg: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`, icon: '🎁', label: `${idx + 2}° Premio` },
+                          ];
+                          const style = badgeStyles[Math.min(idx, 2)];
+                          
+                          return (
+                            <div 
+                              key={prize.id || idx}
+                              className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl border shadow-sm"
+                              style={{ 
+                                backgroundColor: isDarkTemplate ? `${cardBg}` : 'rgba(255,255,255,0.8)',
+                                borderColor: `${primaryColor}15`,
+                              }}
+                            >
+                              <div 
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm"
+                                style={{ background: style.bg }}
+                              >
+                                <span className="text-base sm:text-lg">{style.icon}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] sm:text-xs font-medium" style={{ color: textMuted }}>
+                                  {style.label}
+                                </p>
+                                <p className="text-xs sm:text-sm font-semibold truncate" style={{ color: textColor }}>
+                                  {prize.name}
+                                </p>
+                                {prize.value && (
+                                  <p className="text-[10px] sm:text-xs" style={{ color: textMuted }}>
+                                    Valor: {formatCurrency(prize.value, currency)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
 
