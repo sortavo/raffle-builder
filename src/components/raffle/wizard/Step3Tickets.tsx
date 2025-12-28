@@ -524,7 +524,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
               totalTickets={currentTotalTickets || 100} 
             />
           )}
-          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
