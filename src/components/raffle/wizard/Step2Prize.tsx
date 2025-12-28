@@ -217,7 +217,7 @@ interface Step2Props {
   form: UseFormReturn<any>;
 }
 
-const MAX_IMAGES = 10;
+const MAX_IMAGES = 30;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const Step2Prize = ({ form }: Step2Props) => {
