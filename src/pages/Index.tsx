@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
+import { scrollToSection, handleHashScroll } from "@/lib/scroll-utils";
 import { 
   Menu, 
   Sparkles, 
@@ -37,6 +38,7 @@ const Index = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
+    handleHashScroll(); // Handle initial hash scroll
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -159,12 +161,16 @@ const Index = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
-              <Link 
-                to="/#features" 
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
+              <a 
+                href="#features" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('features');
+                }}
+                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10 cursor-pointer"
               >
                 Características
-              </Link>
+              </a>
               <Link 
                 to="/pricing" 
                 className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
@@ -203,13 +209,16 @@ const Index = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] bg-card">
                 <div className="flex flex-col gap-6 mt-8">
-                  <Link 
-                    to="/#features" 
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
+                  <a 
+                    href="#features" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollToSection('features', () => setMobileMenuOpen(false));
+                    }}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
                   >
                     Características
-                  </Link>
+                  </a>
                   <Link 
                     to="/pricing" 
                     className="text-lg font-medium text-foreground hover:text-primary transition-colors"

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import sortavoLogo from "@/assets/sortavo-logo.png";
+import { scrollToSection } from '@/lib/scroll-utils';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -24,14 +25,28 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/#features" className="hover:text-primary transition-colors">
+                <a 
+                  href="#features" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection('features');
+                  }}
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
                   Características
-                </Link>
+                </a>
               </li>
               <li>
-                <Link to="/#demo" className="hover:text-primary transition-colors">
+                <a 
+                  href="#demo" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection('demo');
+                  }}
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
                   Demo
-                </Link>
+                </a>
               </li>
             </ul>
           </div>
