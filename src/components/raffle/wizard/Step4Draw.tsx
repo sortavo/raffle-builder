@@ -97,13 +97,13 @@ export const Step4Draw = ({ form }: Step4Props) => {
   const startDateError = getFieldError('start_date');
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Fechas del Sorteo</CardTitle>
+    <div className="space-y-4 md:space-y-6">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
+          <CardTitle className="text-lg md:text-xl">Fechas del Sorteo</CardTitle>
           <CardDescription>Configura cuándo inicia y termina tu sorteo</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -241,12 +241,12 @@ export const Step4Draw = ({ form }: Step4Props) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Método de Sorteo</CardTitle>
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="text-lg md:text-xl">Método de Sorteo</CardTitle>
           <CardDescription>Elige cómo se seleccionará al ganador</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <FormField
             control={form.control}
             name="draw_method"
@@ -366,12 +366,12 @@ export const Step4Draw = ({ form }: Step4Props) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Transmisión en Vivo</CardTitle>
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="text-lg md:text-xl">Transmisión en Vivo</CardTitle>
           <CardDescription>Opcional: Comparte el link de tu transmisión</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-0 md:px-6 space-y-4">
           <FormField
             control={form.control}
             name="livestream_url"

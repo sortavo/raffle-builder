@@ -252,18 +252,18 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Información Básica</CardTitle>
+    <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
+        <CardTitle className="text-lg md:text-xl">Información Básica</CardTitle>
         <CardDescription>Define el título y descripción de tu sorteo</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                 <FormLabel className="flex items-center gap-1">
                   Título del Sorteo
                   <span className="text-destructive">*</span>
@@ -274,7 +274,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   size="sm"
                   onClick={handleGenerateTitle}
                   disabled={isGeneratingTitle}
-                  className="h-7 gap-1.5 text-xs"
+                  className="h-8 gap-1.5 text-xs w-full sm:w-auto"
                 >
                   {isGeneratingTitle ? (
                     <>
@@ -296,6 +296,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   onChange={(e) => handleTitleChange(e.target.value)}
                   onBlur={() => handleBlur('title')}
                   className={cn(
+                    "h-11 md:h-10",
                     titleError && "border-destructive focus-visible:ring-destructive"
                   )}
                 />
@@ -319,8 +320,8 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <div className="flex items-stretch">
-                  <span className="inline-flex items-center px-3 text-sm text-muted-foreground bg-muted border border-r-0 border-input rounded-l-md whitespace-nowrap">
+                <div className="flex flex-col md:flex-row md:items-stretch gap-2 md:gap-0">
+                  <span className="inline-flex items-center px-3 py-2 text-xs md:text-sm text-muted-foreground bg-muted border border-input rounded-md md:rounded-r-none md:border-r-0 whitespace-nowrap truncate">
                     sortavo.com/{orgSlug}/
                   </span>
                   <Input 
@@ -332,7 +333,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                     disabled={!canEditSlug}
                     maxLength={100}
                     className={cn(
-                      "rounded-l-none",
+                      "h-11 md:h-10 md:rounded-l-none",
                       (slugFormatError || isDuplicateSlug) && "border-destructive focus-visible:ring-destructive"
                     )}
                   />
@@ -346,7 +347,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   </span>
                 ) : (
                   <>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground text-xs md:text-sm">
                       Solo letras minúsculas, números y guiones (3-100 caracteres)
                     </span>
                     {renderSlugStatus()}
@@ -363,7 +364,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                 <FormLabel>Descripción</FormLabel>
                 <Button
                   type="button"
@@ -371,7 +372,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   size="sm"
                   onClick={handleGenerateDescription}
                   disabled={isGeneratingDescription || !form.watch('title')?.trim()}
-                  className="h-7 gap-1.5 text-xs"
+                  className="h-8 gap-1.5 text-xs w-full sm:w-auto"
                 >
                   {isGeneratingDescription ? (
                     <>
@@ -389,11 +390,11 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
               <FormControl>
                 <Textarea 
                   placeholder="💡 Para una mejor descripción incluye: qué se rifa, qué hace especial al premio, cómo participar, fechas importantes, y por qué no deberían perdérselo..."
-                  className="min-h-[120px]"
+                  className="min-h-[100px] md:min-h-[120px] text-base"
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="text-xs md:text-sm">
                 Tip: Escribe algunos detalles y la IA los usará para crear una descripción más completa
               </FormDescription>
               <FormMessage />
@@ -409,7 +410,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
               <FormLabel>Categoría</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11 md:h-10">
                     <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
                 </FormControl>

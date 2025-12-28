@@ -273,13 +273,13 @@ export const Step3Tickets = ({ form }: Step3Props) => {
   }, [ticketRanges, ticketFormat]);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuración de Boletos</CardTitle>
+    <div className="space-y-4 md:space-y-6">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
+          <CardTitle className="text-lg md:text-xl">Configuración de Boletos</CardTitle>
           <CardDescription>Define la cantidad y precio de los boletos</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -636,9 +636,9 @@ export const Step3Tickets = ({ form }: Step3Props) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Sparkles className="w-5 h-5" />
             Paquetes de Boletos
           </CardTitle>
@@ -646,7 +646,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             Crea paquetes con descuentos por volumen o simplemente muestra los precios por cantidad
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <div className="space-y-4">
             {/* Desktop header */}
             <div className="hidden sm:grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">

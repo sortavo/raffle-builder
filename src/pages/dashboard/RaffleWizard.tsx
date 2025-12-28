@@ -566,11 +566,11 @@ export default function RaffleWizard() {
         {/* Main Content with Preview */}
         <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-[1fr,400px]' : ''}`}>
           {/* Left: Form */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()}>
-                <Card>
-                  <CardContent className="pt-6">
+                <Card className="overflow-hidden">
+                  <CardContent className="p-4 md:p-6">
                     {renderStep()}
                   </CardContent>
                 </Card>

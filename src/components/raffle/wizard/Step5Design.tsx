@@ -119,7 +119,7 @@ export const Step5Design = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Validation Summary */}
       {stepValidations && onNavigateToStep && (
         <ValidationSummary 
@@ -129,15 +129,15 @@ export const Step5Design = ({
           onNavigateToStep={onNavigateToStep}
         />
       )}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Layout className="w-5 h-5" />
             Plantilla
           </CardTitle>
           <CardDescription>Selecciona un diseño base para tu sorteo</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <FormField
             control={form.control}
             name="template_id"
@@ -189,15 +189,15 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Palette className="w-5 h-5" />
             Colores
           </CardTitle>
           <CardDescription>Personaliza los colores de tu sorteo</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormItem>
               <FormLabel>Color Primario</FormLabel>
@@ -244,15 +244,15 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Type className="w-5 h-5" />
             Tipografía
           </CardTitle>
           <CardDescription>Elige las fuentes para tu sorteo</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormItem>
               <FormLabel>Fuente de Títulos</FormLabel>
@@ -295,15 +295,15 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <ImagePlus className="w-5 h-5" />
             Logo
           </CardTitle>
           <CardDescription>Tu logo se hereda de la configuración de tu organización</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-0 md:px-6 space-y-4">
           {organization?.logo_url ? (
             <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
               <Avatar className="h-16 w-16">
@@ -360,12 +360,12 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Secciones</CardTitle>
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="text-lg md:text-xl">Secciones</CardTitle>
           <CardDescription>Activa o desactiva las secciones de tu página</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 md:px-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {DESIGN_SECTIONS.map((section) => {
               const sections = customization.sections || {};
@@ -392,17 +392,17 @@ export const Step5Design = ({
       </Card>
 
       {/* Buyer Experience - Ticket Selector Features */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:border-primary/20 md:bg-gradient-to-br md:from-primary/5 md:to-accent/5">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Sparkles className="w-5 h-5 text-primary" />
-            Experiencia del Comprador - Selector de Boletos
+            Experiencia del Comprador
           </CardTitle>
           <CardDescription>
             Configura qué herramientas de selección verán tus compradores
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-0 md:px-6 space-y-4">
           {TICKET_SELECTOR_FEATURES.map((feature) => {
             const Icon = feature.icon;
             const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
@@ -444,9 +444,9 @@ export const Step5Design = ({
       </Card>
 
       {/* Marketing & Urgency Features */}
-      <Card className="border-warning/20 bg-gradient-to-br from-warning/5 to-warning/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Card className="border-0 shadow-none md:border md:border-warning/20 md:bg-gradient-to-br md:from-warning/5 md:to-warning/10">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Megaphone className="w-5 h-5 text-warning" />
             Marketing y Urgencia
           </CardTitle>
@@ -454,7 +454,7 @@ export const Step5Design = ({
             Configura los elementos que incentivan la compra
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-0 md:px-6 space-y-4">
           {MARKETING_FEATURES.map((feature) => {
             const Icon = feature.icon;
             const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
@@ -494,12 +494,12 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Textos Personalizados</CardTitle>
+      <Card className="border-0 shadow-none md:border md:shadow-sm">
+        <CardHeader className="px-0 md:px-6">
+          <CardTitle className="text-lg md:text-xl">Textos Personalizados</CardTitle>
           <CardDescription>Personaliza los textos principales</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="px-0 md:px-6 space-y-4">
           <FormItem>
             <FormLabel>Titular Principal</FormLabel>
             <Input

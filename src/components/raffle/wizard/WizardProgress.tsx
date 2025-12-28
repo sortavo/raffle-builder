@@ -26,8 +26,49 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
 
   return (
     <TooltipProvider>
-      <div className="w-full py-2 sm:py-4">
-        <div className="flex items-center justify-between">
+      <div className="w-full py-2 md:py-4">
+        {/* Mobile: Compact horizontal stepper with current step indicator */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-center gap-1.5 mb-2">
+            {steps.map((_, index) => {
+              const status = getStepStatus(index);
+              const errors = getStepErrors(index);
+              const isCurrent = status === 'current';
+              const hasErrors = errors.length > 0 && !isCurrent;
+
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
+                    status === 'complete' && !hasErrors && 'bg-success text-success-foreground',
+                    status === 'complete' && hasErrors && 'bg-warning text-warning-foreground',
+                    status === 'current' && 'bg-primary text-primary-foreground ring-2 ring-primary/30 scale-110',
+                    status === 'incomplete' && !hasErrors && 'bg-muted text-muted-foreground',
+                    status === 'incomplete' && hasErrors && 'bg-warning/20 text-warning border border-warning'
+                  )}
+                >
+                  {status === 'complete' && !hasErrors ? (
+                    <Check className="w-4 h-4" />
+                  ) : hasErrors ? (
+                    <AlertCircle className="w-4 h-4" />
+                  ) : (
+                    index + 1
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-center text-sm font-medium text-foreground">
+            {steps[currentStep - 1].title}
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            Paso {currentStep} de {steps.length}
+          </p>
+        </div>
+
+        {/* Desktop: Full horizontal stepper */}
+        <div className="hidden md:flex items-center justify-between">
           {steps.map((step, index) => {
             const stepNumber = index + 1;
             const status = getStepStatus(index);
@@ -43,18 +84,18 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
                     <TooltipTrigger asChild>
                       <div
                         className={cn(
-                          'w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all cursor-default',
+                          'w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-default',
                           status === 'complete' && !hasErrors && 'bg-success text-success-foreground',
                           status === 'complete' && hasErrors && 'bg-warning text-warning-foreground',
-                          status === 'current' && 'bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20',
+                          status === 'current' && 'bg-primary text-primary-foreground ring-4 ring-primary/20',
                           status === 'incomplete' && !hasErrors && 'bg-muted text-muted-foreground',
                           status === 'incomplete' && hasErrors && 'bg-warning/20 text-warning border-2 border-warning'
                         )}
                       >
                         {status === 'complete' && !hasErrors ? (
-                          <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                          <Check className="w-5 h-5" />
                         ) : hasErrors ? (
-                          <AlertCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                          <AlertCircle className="w-5 h-5" />
                         ) : (
                           stepNumber
                         )}
@@ -74,7 +115,7 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
                       </TooltipContent>
                     )}
                   </Tooltip>
-                  <div className="mt-1 sm:mt-2 text-center hidden sm:block">
+                  <div className="mt-2 text-center">
                     <p className={cn(
                       'text-sm font-medium',
                       status === 'current' && 'text-foreground',
@@ -93,7 +134,7 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
                 {!isLast && (
                   <div
                     className={cn(
-                      'flex-1 h-0.5 sm:h-1 mx-1 sm:mx-4 rounded',
+                      'flex-1 h-1 mx-4 rounded',
                       status === 'complete' && !hasErrors && 'bg-success',
                       status === 'complete' && hasErrors && 'bg-warning',
                       status !== 'complete' && 'bg-muted'

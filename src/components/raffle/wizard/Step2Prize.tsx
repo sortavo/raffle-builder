@@ -496,12 +496,12 @@ export const Step2Prize = ({ form }: Step2Props) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Configuración de Premios</CardTitle>
+    <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
+        <CardTitle className="text-lg md:text-xl">Configuración de Premios</CardTitle>
         <CardDescription>Define los premios que van a ganar los participantes</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
         {/* Prize Rows */}
         <div className="space-y-4">
           <FormLabel className="flex items-center gap-2">
