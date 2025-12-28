@@ -8,18 +8,57 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: 'Cancelado'
 };
 
-export async function exportTransactionsToExcel(raffleId: string, raffleName: string) {
-  // 1. Query transactions
-  const { data: tickets, error } = await supabase
+const BATCH_SIZE = 1000;
+
+// Helper to fetch transaction tickets in batches to avoid Supabase row limit
+async function fetchTransactionTicketsInBatches(raffleId: string): Promise<any[]> {
+  const allTickets: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('raffle_id', raffleId)
+      .in('status', ['sold', 'reserved'])
+      .order('sold_at', { ascending: true })
+      .range(offset, offset + BATCH_SIZE - 1);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allTickets.push(...data);
+      offset += BATCH_SIZE;
+      hasMore = data.length === BATCH_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allTickets;
+}
+
+export async function exportTransactionsToExcel(
+  raffleId: string, 
+  raffleName: string,
+  onProgress?: (loaded: number, total: number) => void
+) {
+  // 1. Get total count first for progress tracking
+  const { count: totalCount } = await supabase
     .from('tickets')
-    .select('*')
+    .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
-    .in('status', ['sold', 'reserved'])
-    .order('sold_at', { ascending: true });
+    .in('status', ['sold', 'reserved']);
+
+  // 2. Query transactions in batches
+  const tickets = await fetchTransactionTicketsInBatches(raffleId);
   
-  if (error) throw error;
+  if (onProgress) {
+    onProgress(tickets.length, totalCount || tickets.length);
+  }
   
-  // 2. Get raffle info for pricing
+  // 3. Get raffle info for pricing
   const { data: raffle } = await supabase
     .from('raffles')
     .select('ticket_price, currency_code')
@@ -28,7 +67,7 @@ export async function exportTransactionsToExcel(raffleId: string, raffleName: st
   
   const ticketPrice = raffle?.ticket_price || 0;
   
-  // 3. Prepare data for Excel
+  // 4. Prepare data for Excel
   const transactions = tickets.map(ticket => ({
     'Boleto': ticket.ticket_number,
     'Comprador': ticket.buyer_name || '',
@@ -43,13 +82,13 @@ export async function exportTransactionsToExcel(raffleId: string, raffleName: st
     'Fecha Venta': ticket.sold_at ? new Date(ticket.sold_at).toLocaleString('es-MX') : ''
   }));
   
-  // 4. Create workbook
+  // 5. Create workbook
   const wb = XLSX.utils.book_new();
   
-  // 5. Create main sheet
+  // 6. Create main sheet
   const ws = XLSX.utils.json_to_sheet(transactions);
   
-  // 6. Set column widths
+  // 7. Set column widths
   const colWidths = [
     { wch: 12 }, // Boleto
     { wch: 25 }, // Comprador
@@ -65,7 +104,7 @@ export async function exportTransactionsToExcel(raffleId: string, raffleName: st
   ];
   ws['!cols'] = colWidths;
   
-  // 7. Add summary sheet
+  // 8. Add summary sheet
   const soldTickets = tickets.filter(t => t.status === 'sold');
   const reservedTickets = tickets.filter(t => t.status === 'reserved');
   const totalRevenue = soldTickets.length * ticketPrice;
@@ -80,11 +119,11 @@ export async function exportTransactionsToExcel(raffleId: string, raffleName: st
   const summaryWs = XLSX.utils.json_to_sheet(summary);
   summaryWs['!cols'] = [{ wch: 30 }, { wch: 20 }];
   
-  // 8. Add sheets to workbook
+  // 9. Add sheets to workbook
   XLSX.utils.book_append_sheet(wb, ws, 'Transacciones');
   XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
   
-  // 9. Generate file
+  // 10. Generate file
   const fileName = `transacciones-${raffleName.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.xlsx`;
   XLSX.writeFile(wb, fileName);
   

@@ -7,17 +7,70 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: 'Cancelado'
 };
 
-export async function exportTicketsToCSV(raffleId: string, raffleName?: string) {
-  // 1. Query ALL tickets
-  const { data: tickets, error } = await supabase
+const BATCH_SIZE = 1000;
+
+type TicketStatus = 'available' | 'reserved' | 'sold' | 'canceled';
+
+// Helper to fetch all tickets in batches to avoid Supabase row limit
+async function fetchAllTicketsInBatches(
+  raffleId: string, 
+  statusFilter?: TicketStatus | TicketStatus[]
+): Promise<any[]> {
+  const allTickets: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let query = supabase
+      .from('tickets')
+      .select('*')
+      .eq('raffle_id', raffleId)
+      .order('ticket_number', { ascending: true })
+      .range(offset, offset + BATCH_SIZE - 1);
+
+    if (statusFilter) {
+      if (Array.isArray(statusFilter)) {
+        query = query.in('status', statusFilter);
+      } else {
+        query = query.eq('status', statusFilter);
+      }
+    }
+
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allTickets.push(...data);
+      offset += BATCH_SIZE;
+      hasMore = data.length === BATCH_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allTickets;
+}
+
+export async function exportTicketsToCSV(
+  raffleId: string, 
+  raffleName?: string,
+  onProgress?: (loaded: number, total: number) => void
+) {
+  // 1. Get total count first for progress tracking
+  const { count: totalCount } = await supabase
     .from('tickets')
-    .select('*')
-    .eq('raffle_id', raffleId)
-    .order('ticket_number', { ascending: true });
+    .select('*', { count: 'exact', head: true })
+    .eq('raffle_id', raffleId);
+
+  // 2. Query ALL tickets in batches
+  const tickets = await fetchAllTicketsInBatches(raffleId);
   
-  if (error) throw error;
+  if (onProgress) {
+    onProgress(tickets.length, totalCount || tickets.length);
+  }
   
-  // 2. Headers
+  // 3. Headers
   const headers = [
     'Número de Boleto',
     'Estado',
@@ -28,7 +81,7 @@ export async function exportTicketsToCSV(raffleId: string, raffleName?: string) 
     'Fecha de Compra'
   ];
   
-  // 3. Map data
+  // 4. Map data
   const rows = tickets.map(ticket => [
     ticket.ticket_number,
     STATUS_LABELS[ticket.status || 'available'] || ticket.status,
@@ -39,7 +92,7 @@ export async function exportTicketsToCSV(raffleId: string, raffleName?: string) 
     ticket.sold_at ? new Date(ticket.sold_at).toLocaleDateString('es-MX') : '-'
   ]);
   
-  // 4. Generate CSV
+  // 5. Generate CSV
   const csvContent = [
     headers.join(','),
     ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -48,7 +101,7 @@ export async function exportTicketsToCSV(raffleId: string, raffleName?: string) 
   const BOM = '\uFEFF';
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   
-  // 5. Download
+  // 6. Download
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   const fileName = raffleName 
@@ -65,3 +118,6 @@ export async function exportTicketsToCSV(raffleId: string, raffleName?: string) 
   
   return { success: true, count: tickets.length };
 }
+
+// Export helper for other modules
+export { fetchAllTicketsInBatches };

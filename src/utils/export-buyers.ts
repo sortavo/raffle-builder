@@ -1,17 +1,56 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export async function exportBuyersToCSV(raffleId: string, raffleName?: string) {
-  // 1. Query all sold tickets with buyer info
-  const { data: tickets, error } = await supabase
+const BATCH_SIZE = 1000;
+
+// Helper to fetch sold tickets in batches to avoid Supabase row limit
+async function fetchSoldTicketsInBatches(raffleId: string): Promise<any[]> {
+  const allTickets: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('raffle_id', raffleId)
+      .eq('status', 'sold')
+      .order('sold_at', { ascending: true })
+      .range(offset, offset + BATCH_SIZE - 1);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allTickets.push(...data);
+      offset += BATCH_SIZE;
+      hasMore = data.length === BATCH_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allTickets;
+}
+
+export async function exportBuyersToCSV(
+  raffleId: string, 
+  raffleName?: string,
+  onProgress?: (loaded: number, total: number) => void
+) {
+  // 1. Get total count first for progress tracking
+  const { count: totalCount } = await supabase
     .from('tickets')
-    .select('*')
+    .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
-    .eq('status', 'sold')
-    .order('sold_at', { ascending: true });
+    .eq('status', 'sold');
+
+  // 2. Query all sold tickets in batches
+  const tickets = await fetchSoldTicketsInBatches(raffleId);
   
-  if (error) throw error;
+  if (onProgress) {
+    onProgress(tickets.length, totalCount || tickets.length);
+  }
   
-  // 2. Create CSV headers
+  // 3. Create CSV headers
   const headers = [
     'Boleto',
     'Nombre',
@@ -23,7 +62,7 @@ export async function exportBuyersToCSV(raffleId: string, raffleName?: string) {
     'Fecha de Compra'
   ];
   
-  // 3. Convert data to CSV rows
+  // 4. Convert data to CSV rows
   const rows = tickets.map(ticket => [
     ticket.ticket_number,
     ticket.buyer_name || '',
@@ -35,17 +74,17 @@ export async function exportBuyersToCSV(raffleId: string, raffleName?: string) {
     ticket.sold_at ? new Date(ticket.sold_at).toLocaleString('es-MX') : ''
   ]);
   
-  // 4. Generate CSV content
+  // 5. Generate CSV content
   const csvContent = [
     headers.join(','),
     ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
   ].join('\n');
   
-  // 5. Add BOM for proper Excel encoding
+  // 6. Add BOM for proper Excel encoding
   const BOM = '\uFEFF';
   const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
   
-  // 6. Trigger download
+  // 7. Trigger download
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   const fileName = raffleName 
