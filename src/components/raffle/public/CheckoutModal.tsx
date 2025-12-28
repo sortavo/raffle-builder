@@ -96,7 +96,7 @@ interface CheckoutModalProps {
   selectedTickets: string[];
   ticketPrice: number;
   packages?: { quantity: number; price: number }[];
-  onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string, buyerData: { name: string; email: string }, totalAmount: number) => void;
+  onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string, buyerData: { name: string; email: string }, totalAmount: number, referenceCode: string) => void;
 }
 
 const steps = [
@@ -255,12 +255,13 @@ export function CheckoutModal({
 
   const handleClose = () => {
     if (currentStep === 3 && reservedTickets.length > 0) {
-      // Complete the reservation flow before closing - pass totalAmount with discount
+      // Complete the reservation flow before closing - pass totalAmount with discount and referenceCode
       onReservationComplete(
         reservedTickets,
         reservedUntil,
         { name: form.getValues('name'), email: form.getValues('email') },
-        total
+        total,
+        referenceCode
       );
     }
     // Reset state
