@@ -106,15 +106,28 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
       </div>
       
       {/* Preview Content - Scaled down version of public page */}
-      <div className="flex justify-center bg-muted/50 p-4">
+      <div className={cn(
+        "flex justify-center bg-muted/50 overflow-hidden",
+        isMobile ? "p-4" : "p-2"
+      )}>
+        {/* Desktop scaling container */}
+        {!isMobile && (
+          <div className="absolute top-12 right-3 z-10">
+            <Badge variant="outline" className="text-[10px] bg-background/80 backdrop-blur-sm">
+              Vista al 50%
+            </Badge>
+          </div>
+        )}
         <div 
           className={cn(
             "bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300",
-            isMobile ? "w-[320px]" : "w-full"
+            isMobile ? "w-[320px]" : "w-[800px] origin-top"
           )}
           style={{
-            maxHeight: '600px',
-            overflowY: 'auto'
+            maxHeight: isMobile ? '600px' : '1200px',
+            overflowY: 'auto',
+            transform: isMobile ? 'none' : 'scale(0.5)',
+            marginBottom: isMobile ? '0' : '-300px'
           }}
         >
           {/* Device Frame for Mobile */}
