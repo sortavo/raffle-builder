@@ -195,10 +195,12 @@ const templates: Record<string, (data: any) => string> = {
         .success-message { text-align: center; padding: 20px; }
         .success-message .icon { font-size: 40px; margin-bottom: 10px; }
         .success-message p { color: #374151; font-size: 16px; margin: 0; }
-        .button { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 35px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: transform 0.2s; }
-        .button:hover { transform: translateY(-2px); }
+        .button { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 35px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: transform 0.2s; margin: 5px; }
+        .button-secondary { display: inline-block; background: #6366f1; color: white; padding: 14px 35px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); transition: transform 0.2s; margin: 5px; }
+        .button:hover, .button-secondary:hover { transform: translateY(-2px); }
         .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
         .confetti { font-size: 24px; }
+        .buttons-container { text-align: center; margin-top: 25px; }
       </style>
     </head>
     <body>
@@ -232,9 +234,11 @@ const templates: Record<string, (data: any) => string> = {
             <p>Ya estás participando oficialmente.<br><strong>¡Te deseamos mucha suerte!</strong></p>
           </div>
           
-          <center style="margin-top: 25px;">
-            <a href="${data.raffle_url || '#'}" class="button">Ver mi Sorteo</a>
-          </center>
+          <div class="buttons-container">
+            <a href="${data.my_tickets_url || data.raffle_url || '#'}" class="button">📱 Ver y Descargar Boletos</a>
+            <br style="display: block; margin: 10px 0;">
+            <a href="${data.raffle_url || '#'}" class="button-secondary">🎯 Ver Sorteo</a>
+          </div>
         </div>
         <div class="footer">
           <p>Sortavo - Tu plataforma de sorteos</p>

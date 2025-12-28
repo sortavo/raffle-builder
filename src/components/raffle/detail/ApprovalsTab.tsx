@@ -162,23 +162,15 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     const ticketNumbers = order.tickets.map(t => t.ticket_number);
     
     try {
-      await bulkApprove.mutateAsync(ticketIds);
-      toast({ 
-        title: `${ticketIds.length} boletos aprobados`,
-        description: `Pedido ${order.referenceCode}`,
+      // bulkApprove now handles email sending internally
+      await bulkApprove.mutateAsync({ 
+        ticketIds, 
+        raffleTitle, 
+        raffleSlug 
       });
       
-      // Send notification
+      // Send in-app notification if buyer has an account
       if (order.buyerEmail && order.buyerName) {
-        sendBulkApprovedEmail({
-          to: order.buyerEmail,
-          buyerName: order.buyerName,
-          ticketNumbers,
-          raffleTitle,
-          raffleSlug,
-          referenceCode: order.referenceCode,
-        }).catch(console.error);
-        
         const { data: buyerProfile } = await supabase
           .from('profiles')
           .select('id')

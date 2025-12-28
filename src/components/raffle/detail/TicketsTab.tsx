@@ -42,11 +42,13 @@ import { TicketGridSkeleton } from '@/components/ui/skeletons';
 
 interface TicketsTabProps {
   raffleId: string;
+  raffleTitle?: string;
+  raffleSlug?: string;
 }
 
 const TICKETS_PER_PAGE = 100;
 
-export function TicketsTab({ raffleId }: TicketsTabProps) {
+export function TicketsTab({ raffleId, raffleTitle, raffleSlug }: TicketsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
@@ -433,7 +435,11 @@ export function TicketsTab({ raffleId }: TicketsTabProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       onClick={() => {
-                        approveTicket.mutate(selectedTicket.id, {
+                        approveTicket.mutate({ 
+                          ticketId: selectedTicket.id,
+                          raffleTitle,
+                          raffleSlug
+                        }, {
                           onSuccess: () => setSelectedTicket(null)
                         });
                       }}

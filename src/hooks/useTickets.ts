@@ -107,9 +107,9 @@ export const useTickets = (raffleId: string | undefined) => {
     });
   };
 
-  // Approve ticket
+  // Approve ticket and send notification email
   const approveTicket = useMutation({
-    mutationFn: async (ticketId: string) => {
+    mutationFn: async ({ ticketId, raffleTitle, raffleSlug }: { ticketId: string; raffleTitle?: string; raffleSlug?: string }) => {
       const { data, error } = await supabase
         .from('tickets')
         .update({
@@ -122,12 +122,32 @@ export const useTickets = (raffleId: string | undefined) => {
         .single();
 
       if (error) throw error;
+      
+      // Send notification email (non-blocking)
+      if (data?.buyer_email && raffleTitle) {
+        const baseUrl = window.location.origin;
+        supabase.functions.invoke('send-email', {
+          body: {
+            to: data.buyer_email,
+            template: 'approved_bulk',
+            data: {
+              buyer_name: data.buyer_name || 'Participante',
+              ticket_numbers: [data.ticket_number],
+              raffle_title: raffleTitle,
+              reference_code: data.payment_reference,
+              raffle_url: `${baseUrl}/r/${raffleSlug}`,
+              my_tickets_url: `${baseUrl}/my-tickets`,
+            },
+          },
+        }).catch(console.error);
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: 'Boleto aprobado' });
+      toast({ title: 'Boleto aprobado', description: 'Se envió email de confirmación al comprador' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -195,9 +215,9 @@ export const useTickets = (raffleId: string | undefined) => {
     },
   });
 
-  // Bulk approve tickets
+  // Bulk approve tickets and send notification email
   const bulkApprove = useMutation({
-    mutationFn: async (ticketIds: string[]) => {
+    mutationFn: async ({ ticketIds, raffleTitle, raffleSlug }: { ticketIds: string[]; raffleTitle?: string; raffleSlug?: string }) => {
       const { data, error } = await supabase
         .from('tickets')
         .update({
@@ -209,18 +229,55 @@ export const useTickets = (raffleId: string | undefined) => {
         .select();
 
       if (error) throw error;
+      
+      // Group tickets by buyer email and send notifications
+      if (data && raffleTitle) {
+        const baseUrl = window.location.origin;
+        const ticketsByEmail = data.reduce((acc, ticket) => {
+          if (ticket.buyer_email) {
+            if (!acc[ticket.buyer_email]) {
+              acc[ticket.buyer_email] = {
+                buyer_name: ticket.buyer_name,
+                ticket_numbers: [],
+                reference_code: ticket.payment_reference,
+              };
+            }
+            acc[ticket.buyer_email].ticket_numbers.push(ticket.ticket_number);
+          }
+          return acc;
+        }, {} as Record<string, { buyer_name: string | null; ticket_numbers: string[]; reference_code: string | null }>);
+        
+        // Send email to each buyer (non-blocking)
+        Object.entries(ticketsByEmail).forEach(([email, info]) => {
+          supabase.functions.invoke('send-email', {
+            body: {
+              to: email,
+              template: 'approved_bulk',
+              data: {
+                buyer_name: info.buyer_name || 'Participante',
+                ticket_numbers: info.ticket_numbers,
+                raffle_title: raffleTitle,
+                reference_code: info.reference_code,
+                raffle_url: `${baseUrl}/r/${raffleSlug}`,
+                my_tickets_url: `${baseUrl}/my-tickets`,
+              },
+            },
+          }).catch(console.error);
+        });
+      }
+      
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: `${data?.length} boletos aprobados` });
+      toast({ title: `${data?.length} boletos aprobados`, description: 'Se enviaron emails de confirmación' });
     },
   });
 
-  // Approve all tickets by reference code
+  // Approve all tickets by reference code and send notification email
   const approveByReference = useMutation({
-    mutationFn: async (referenceCode: string) => {
+    mutationFn: async ({ referenceCode, raffleTitle, raffleSlug }: { referenceCode: string; raffleTitle?: string; raffleSlug?: string }) => {
       if (!raffleId) throw new Error('Raffle ID required');
       
       const { data, error } = await supabase
@@ -236,12 +293,32 @@ export const useTickets = (raffleId: string | undefined) => {
         .select();
 
       if (error) throw error;
+      
+      // Send notification email (non-blocking)
+      if (data && data.length > 0 && data[0].buyer_email && raffleTitle) {
+        const baseUrl = window.location.origin;
+        supabase.functions.invoke('send-email', {
+          body: {
+            to: data[0].buyer_email,
+            template: 'approved_bulk',
+            data: {
+              buyer_name: data[0].buyer_name || 'Participante',
+              ticket_numbers: data.map(t => t.ticket_number),
+              raffle_title: raffleTitle,
+              reference_code: referenceCode,
+              raffle_url: `${baseUrl}/r/${raffleSlug}`,
+              my_tickets_url: `${baseUrl}/my-tickets`,
+            },
+          },
+        }).catch(console.error);
+      }
+      
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: `${data?.length} boletos aprobados por código de referencia` });
+      toast({ title: `${data?.length} boletos aprobados`, description: 'Se envió email de confirmación al comprador' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
