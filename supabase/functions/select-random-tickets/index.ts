@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fisher-Yates shuffle for true randomness
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -32,92 +42,98 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`Selecting ${quantity} random tickets for raffle ${raffle_id}`);
+    console.log(`[SELECT-RANDOM] Selecting ${quantity} random tickets for raffle ${raffle_id}`);
+    console.log(`[SELECT-RANDOM] Excluding ${exclude_numbers.length} numbers`);
 
-    // Get available tickets efficiently using random ordering in the database
-    // This is much more efficient than fetching all and shuffling client-side
-    let query = supabase
+    // Calculate appropriate limit based on quantity requested
+    // We need to fetch enough tickets to have a good pool for random selection
+    const fetchLimit = Math.max(quantity * 2, 10000);
+
+    // Fetch available tickets with explicit limit
+    const { data: allTickets, error } = await supabase
       .from('tickets')
       .select('ticket_number')
       .eq('raffle_id', raffle_id)
-      .eq('status', 'available');
-
-    // Exclude already selected tickets if provided
-    if (exclude_numbers.length > 0) {
-      query = query.not('ticket_number', 'in', `(${exclude_numbers.join(',')})`);
-    }
-
-    // For large quantities, we need to fetch more and then sample
-    // PostgreSQL's random() is efficient for this
-    const { data: availableTickets, error } = await query
-      .order('random()')  // This won't work directly, need different approach
-      .limit(quantity);
+      .eq('status', 'available')
+      .limit(fetchLimit);
 
     if (error) {
-      console.error('Error fetching tickets:', error);
-      
-      // Fallback: fetch all available and randomly select
-      const { data: allTickets, error: allError } = await supabase
-        .from('tickets')
-        .select('ticket_number')
-        .eq('raffle_id', raffle_id)
-        .eq('status', 'available');
+      console.error('[SELECT-RANDOM] Error fetching tickets:', error);
+      throw error;
+    }
 
-      if (allError) {
-        throw allError;
-      }
-
-      if (!allTickets || allTickets.length === 0) {
-        return new Response(
-          JSON.stringify({ error: 'No available tickets found', selected: [] }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Filter out excluded numbers
-      let filteredTickets = allTickets;
-      if (exclude_numbers.length > 0) {
-        const excludeSet = new Set(exclude_numbers);
-        filteredTickets = allTickets.filter(t => !excludeSet.has(t.ticket_number));
-      }
-
-      // Fisher-Yates shuffle for true randomness
-      const shuffled = [...filteredTickets];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-
-      const selected = shuffled.slice(0, Math.min(quantity, shuffled.length));
-      const ticketNumbers = selected.map(t => t.ticket_number);
-
-      console.log(`Selected ${ticketNumbers.length} tickets`);
-
+    if (!allTickets || allTickets.length === 0) {
+      console.log('[SELECT-RANDOM] No available tickets found');
       return new Response(
         JSON.stringify({ 
-          selected: ticketNumbers,
+          error: 'No available tickets found', 
+          selected: [],
           requested: quantity,
-          available: filteredTickets.length
+          available: 0
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[SELECT-RANDOM] Fetched ${allTickets.length} available tickets`);
+
+    // Filter out excluded numbers if provided
+    let filteredTickets = allTickets;
+    if (exclude_numbers.length > 0) {
+      const excludeSet = new Set(exclude_numbers);
+      filteredTickets = allTickets.filter(t => !excludeSet.has(t.ticket_number));
+      console.log(`[SELECT-RANDOM] After excluding: ${filteredTickets.length} tickets`);
+    }
+
+    // Check if we have enough tickets
+    if (filteredTickets.length === 0) {
+      console.log('[SELECT-RANDOM] No tickets available after filtering');
+      return new Response(
+        JSON.stringify({ 
+          selected: [],
+          requested: quantity,
+          available: 0,
+          warning: 'No hay boletos disponibles después de excluir los ya seleccionados'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const ticketNumbers = availableTickets?.map(t => t.ticket_number) || [];
+    // Shuffle the tickets using Fisher-Yates
+    const shuffled = shuffleArray(filteredTickets);
 
-    console.log(`Selected ${ticketNumbers.length} tickets`);
+    // Select the requested quantity (or all available if less)
+    const selectCount = Math.min(quantity, shuffled.length);
+    const selected = shuffled.slice(0, selectCount);
+    const ticketNumbers = selected.map(t => t.ticket_number);
+
+    console.log(`[SELECT-RANDOM] Selected ${ticketNumbers.length} of ${quantity} requested tickets`);
+
+    // Build response
+    const response: {
+      selected: string[];
+      requested: number;
+      available: number;
+      warning?: string;
+    } = {
+      selected: ticketNumbers,
+      requested: quantity,
+      available: filteredTickets.length
+    };
+
+    // Add warning if we couldn't fulfill the full request
+    if (ticketNumbers.length < quantity) {
+      response.warning = `Solo ${ticketNumbers.length} boletos disponibles de los ${quantity} solicitados`;
+      console.log(`[SELECT-RANDOM] Warning: ${response.warning}`);
+    }
 
     return new Response(
-      JSON.stringify({ 
-        selected: ticketNumbers,
-        requested: quantity,
-        available: ticketNumbers.length
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in select-random-tickets:', error);
+    console.error('[SELECT-RANDOM] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

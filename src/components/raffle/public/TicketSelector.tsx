@@ -314,6 +314,14 @@ export function TicketSelector({
         count: randomCount,
       });
       
+      // Warn user if fewer tickets were returned than requested
+      if (numbers.length < randomCount && numbers.length > 0) {
+        toast.warning(
+          `Solo se encontraron ${numbers.length} boletos disponibles de los ${randomCount} solicitados`,
+          { duration: 4000 }
+        );
+      }
+      
       // Set pending numbers for the animation to reveal - both state and ref
       pendingNumbersRef.current = numbers;
       setPendingNumbers(numbers);
@@ -323,7 +331,7 @@ export function TicketSelector({
       setIsSlotSpinning(false);
       setPendingNumbers([]);
       pendingNumbersRef.current = [];
-      // Error handled by mutation
+      toast.error('Error al generar boletos aleatorios');
     }
   };
 
