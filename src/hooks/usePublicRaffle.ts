@@ -266,23 +266,23 @@ export function useUploadPaymentProof() {
       buyerName?: string;
       referenceCode?: string;
     }) => {
-      // Sanitize filename - remove spaces and special characters
-      const sanitizedName = file.name
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // Remove accents
-        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-        .replace(/_+/g, '_'); // Collapse multiple underscores
+      // Get file extension safely
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      const safeExtension = validExtensions.includes(extension) ? extension : 'jpg';
       
-      // Build storage path - include referenceCode for better organization
-      const basePath = referenceCode 
-        ? `${raffleId}/${referenceCode}` 
-        : raffleId;
-      const fileName = `${basePath}/${Date.now()}-${sanitizedName}`;
+      // Create a clean, simple filename with timestamp
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const cleanFileName = `proof_${timestamp}_${randomSuffix}.${safeExtension}`;
+      
+      // Build storage path
+      const storagePath = `${raffleId}/${cleanFileName}`;
       
       // Upload file to storage
       const { data: upload, error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(fileName, file);
+        .upload(storagePath, file);
 
       if (uploadError) throw uploadError;
 
