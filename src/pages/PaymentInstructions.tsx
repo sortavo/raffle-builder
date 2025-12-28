@@ -787,6 +787,48 @@ export default function PaymentInstructions() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Reference Code - Prominent display */}
+            {referenceCode && (
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Clave de Reserva</p>
+                    <p className="font-mono text-2xl font-bold text-primary tracking-widest mt-1">{referenceCode}</p>
+                  </div>
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    className="h-10 w-10 shrink-0"
+                    onClick={() => copyToClipboard(referenceCode, 'referenceCode')}
+                  >
+                    {copied === 'referenceCode' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Guarda esta clave. La necesitarás si tienes algún problema con tu pago.
+                </p>
+              </div>
+            )}
+
+            {/* Buyer info */}
+            {(buyerName || buyerEmail) && (
+              <div className="flex flex-col gap-1 text-sm">
+                {buyerName && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Nombre:</span>
+                    <span className="font-medium">{buyerName}</span>
+                  </div>
+                )}
+                {buyerEmail && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Email:</span>
+                    <span className="font-medium">{buyerEmail}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Ticket numbers */}
             <div className="flex flex-wrap gap-2">
               {tickets.map(t => (
                 <Badge key={t.id} variant="secondary" className="text-lg px-3 py-1">
@@ -794,6 +836,8 @@ export default function PaymentInstructions() {
                 </Badge>
               ))}
             </div>
+
+            {/* Total */}
             <div className="flex justify-between items-center pt-4 border-t">
               <span className="font-medium">Total a pagar:</span>
               <span className="text-2xl font-bold text-primary">
