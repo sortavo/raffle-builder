@@ -404,33 +404,6 @@ export const Step5Design = ({
             );
           })}
           
-          {/* Lucky Numbers - already exists as separate field */}
-          <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center",
-                form.watch('lucky_numbers_enabled') ? "bg-accent/10" : "bg-muted"
-              )}>
-                <Heart className={cn(
-                  "w-5 h-5",
-                  form.watch('lucky_numbers_enabled') ? "text-accent" : "text-muted-foreground"
-                )} />
-              </div>
-              <div>
-                <Label htmlFor="lucky_numbers" className="font-medium cursor-pointer">
-                  Números de la Suerte
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Permite elegir números por cumpleaños o favoritos
-                </p>
-              </div>
-            </div>
-            <Switch
-              id="lucky_numbers"
-              checked={form.watch('lucky_numbers_enabled') || false}
-              onCheckedChange={(checked) => form.setValue('lucky_numbers_enabled', checked)}
-            />
-          </div>
         </CardContent>
       </Card>
 

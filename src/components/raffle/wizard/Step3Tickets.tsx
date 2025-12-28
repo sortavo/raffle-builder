@@ -629,34 +629,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Números de la Suerte</CardTitle>
-          <CardDescription>Permite a los compradores elegir sus números favoritos</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormField
-            control={form.control}
-            name="lucky_numbers_enabled"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Habilitar números de la suerte</FormLabel>
-                  <FormDescription>
-                    Los compradores podrán seleccionar números específicos
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value === true}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 };

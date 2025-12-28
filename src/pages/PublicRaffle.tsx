@@ -156,7 +156,7 @@ export default function PublicRaffle() {
   // Feature configurations from customization (with sensible defaults)
   const customization = (raffle as any).customization || {};
   const showRandomPicker = customization.show_random_picker !== false;
-  const showLuckyNumbers = (raffle as any).lucky_numbers_enabled || false;
+  const showLuckyNumbers = true; // Always enabled
   const showWinnersHistory = customization.show_winners_history !== false;
   const showProbabilityStats = customization.show_probability_stats !== false;
   const showViewersCount = customization.show_viewers_count !== false;
