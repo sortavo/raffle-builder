@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { compressImage, formatBytes } from '@/lib/image-compression';
 import { Button } from '@/components/ui/button';
 import {
   DndContext,
@@ -359,18 +360,44 @@ export const Step2Prize = ({ form }: Step2Props) => {
     setUploadProgress(0);
 
     const uploadedUrls: string[] = [];
+    let totalOriginalSize = 0;
+    let totalCompressedSize = 0;
     
     for (let i = 0; i < fileArray.length; i++) {
-      const url = await uploadImage(fileArray[i]);
+      // Show compression status
+      toast.loading(`⏳ Optimizando imagen ${i + 1}/${fileArray.length}...`, { id: 'compress-progress' });
+      
+      // Compress the image before uploading
+      const compressionResult = await compressImage(fileArray[i], {
+        maxWidth: 2048,
+        maxHeight: 2048,
+        quality: 0.8,
+      });
+      
+      totalOriginalSize += compressionResult.originalSize;
+      totalCompressedSize += compressionResult.compressedSize;
+      
+      const url = await uploadImage(compressionResult.file);
       if (url) {
         uploadedUrls.push(url);
       }
       setUploadProgress(((i + 1) / fileArray.length) * 100);
     }
 
+    toast.dismiss('compress-progress');
+
     if (uploadedUrls.length > 0) {
       form.setValue('prize_images', [...currentImages, ...uploadedUrls]);
-      toast.success(`${uploadedUrls.length} imagen(es) subida(s)`);
+      
+      // Show success with compression stats
+      const savedBytes = totalOriginalSize - totalCompressedSize;
+      if (savedBytes > 0) {
+        toast.success(
+          `✅ ${uploadedUrls.length} imagen(es) subida(s) (${formatBytes(totalOriginalSize)} → ${formatBytes(totalCompressedSize)})`
+        );
+      } else {
+        toast.success(`${uploadedUrls.length} imagen(es) subida(s)`);
+      }
     }
 
     setIsUploading(false);
