@@ -15,8 +15,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Loader2, Ticket, Search, QrCode, ChevronRight, Calendar, Trophy, 
   Clock, CheckCircle2, AlertCircle, Download, Eye, Mail, User, MapPin,
-  Hourglass, Hash, FileDown
+  Hourglass, Hash, FileDown, Send
 } from "lucide-react";
+import { useEmails } from "@/hooks/useEmails";
+import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,6 +67,60 @@ export default function MyTickets() {
 
   const { data: tickets, isLoading } = useMyTickets(searchValue, searchType);
   const { generatePDF, isGenerating } = useBulkTicketDownload();
+  const { sendReservationEmail } = useEmails();
+  const { toast } = useToast();
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+
+  // Handler to resend confirmation email
+  const handleResendEmail = async () => {
+    if (!selectedTicket || isResendingEmail) return;
+    
+    const ticket = selectedTicket.ticket;
+    const raffle = selectedTicket.raffle;
+    
+    if (!ticket.buyer_email || !raffle) {
+      toast({
+        title: 'Error',
+        description: 'No se puede reenviar el email: información incompleta',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsResendingEmail(true);
+    try {
+      // Get all tickets with the same payment_reference to include in email
+      const relatedTickets = tickets?.filter(t => 
+        t.payment_reference === ticket.payment_reference
+      ) || [ticket];
+
+      await sendReservationEmail({
+        to: ticket.buyer_email,
+        buyerName: ticket.buyer_name || 'Participante',
+        ticketNumbers: relatedTickets.map(t => t.ticket_number),
+        raffleTitle: raffle.title,
+        raffleSlug: raffle.slug,
+        amount: ticket.order_total || (relatedTickets.length * (raffle.ticket_price || 0)),
+        currency: raffle.currency_code || 'MXN',
+        timerMinutes: 0, // Already reserved, no timer
+        referenceCode: ticket.payment_reference || undefined,
+      });
+
+      toast({
+        title: 'Email enviado',
+        description: `Se ha reenviado la confirmación a ${ticket.buyer_email}`,
+      });
+    } catch (error) {
+      console.error('Error resending email:', error);
+      toast({
+        title: 'Error al enviar',
+        description: 'No se pudo reenviar el email. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResendingEmail(false);
+    }
+  };
 
   const handleSearch = () => {
     const trimmed = searchInput.trim();
@@ -585,6 +641,23 @@ export default function MyTickets() {
                       currency_code: selectedTicket.raffle?.currency_code || 'MXN',
                     }}
                   />
+                )}
+
+                {/* Resend email button */}
+                {selectedTicket.ticket.buyer_email && selectedTicket.ticket.payment_reference && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-2"
+                    onClick={handleResendEmail}
+                    disabled={isResendingEmail}
+                  >
+                    {isResendingEmail ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    {isResendingEmail ? 'Enviando...' : 'Reenviar email de confirmación'}
+                  </Button>
                 )}
 
                 {/* View raffle button */}
