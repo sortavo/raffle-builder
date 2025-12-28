@@ -28,6 +28,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   const [debouncedSlug, setDebouncedSlug] = useState('');
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
 
   const { data: organization } = useQuery({
     queryKey: ['organization-slug', authOrg?.id],
@@ -138,6 +139,39 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
 
   const titleError = getFieldError('title');
 
+  const handleGenerateTitle = async () => {
+    setIsGeneratingTitle(true);
+    try {
+      const category = form.watch('category');
+      const prizeName = form.watch('prizeName');
+      const currentTitle = form.watch('title');
+
+      const response = await supabase.functions.invoke('generate-description', {
+        body: {
+          type: 'title',
+          category,
+          prizeName,
+          userContext: currentTitle,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Error al generar título');
+      }
+
+      const { title } = response.data;
+      if (title) {
+        handleTitleChange(title);
+        toast.success('¡Título generado con IA!');
+      }
+    } catch (error) {
+      console.error('Error generating title:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al generar el título');
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  };
+
   const handleGenerateDescription = async () => {
     const title = form.watch('title');
     if (!title || title.trim().length < 3) {
@@ -153,6 +187,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
 
       const response = await supabase.functions.invoke('generate-description', {
         body: {
+          type: 'description',
           title,
           category,
           prizeName,
@@ -228,10 +263,32 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center gap-1">
-                Título del Sorteo
-                <span className="text-destructive">*</span>
-              </FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel className="flex items-center gap-1">
+                  Título del Sorteo
+                  <span className="text-destructive">*</span>
+                </FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateTitle}
+                  disabled={isGeneratingTitle}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  {isGeneratingTitle ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3 w-3" />
+                      Generar con IA
+                    </>
+                  )}
+                </Button>
+              </div>
               <FormControl>
                 <Input 
                   placeholder="Ej: Gran Sorteo de Navidad" 
