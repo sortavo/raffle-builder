@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard, Eye, EyeOff } from 'lucide-react';
 import { useRaffles } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,7 @@ import { Step2Prize } from '@/components/raffle/wizard/Step2Prize';
 import { Step3Tickets } from '@/components/raffle/wizard/Step3Tickets';
 import { Step4Draw } from '@/components/raffle/wizard/Step4Draw';
 import { Step5Design } from '@/components/raffle/wizard/Step5Design';
+import { RafflePreview } from '@/components/raffle/wizard/RafflePreview';
 import { UpgradePlanModal } from '@/components/raffle/UpgradePlanModal';
 import { checkRaffleLimit, checkTicketLimit, getSubscriptionLimits, SubscriptionTier } from '@/lib/subscription-limits';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
@@ -58,6 +59,7 @@ export default function RaffleWizard() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState('');
   const [showPaymentMethodsWarning, setShowPaymentMethodsWarning] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   // Check if there are enabled payment methods
   const enabledPaymentMethods = paymentMethods?.filter(m => m.enabled) || [];
@@ -407,7 +409,7 @@ export default function RaffleWizard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -418,9 +420,20 @@ export default function RaffleWizard() {
               {STEPS[currentStep - 1].description}
             </p>
           </div>
-          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => navigate('/dashboard/raffles')}>
-            Cancelar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowPreview(!showPreview)}
+              className="hidden lg:flex"
+            >
+              {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+              {showPreview ? 'Ocultar Vista Previa' : 'Mostrar Vista Previa'}
+            </Button>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => navigate('/dashboard/raffles')}>
+              Cancelar
+            </Button>
+          </div>
         </div>
 
         {/* Progress */}
@@ -447,62 +460,74 @@ export default function RaffleWizard() {
           </Alert>
         )}
 
-        {/* Step Content */}
-        <Form {...form}>
-          <form onSubmit={(e) => e.preventDefault()}>
-            <Card>
-              <CardContent className="pt-6">
-                {renderStep()}
-              </CardContent>
-            </Card>
-          </form>
-        </Form>
+        {/* Main Content with Preview */}
+        <div className={`grid gap-6 ${showPreview ? 'lg:grid-cols-[1fr,400px]' : ''}`}>
+          {/* Left: Form */}
+          <div className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={(e) => e.preventDefault()}>
+                <Card>
+                  <CardContent className="pt-6">
+                    {renderStep()}
+                  </CardContent>
+                </Card>
+              </form>
+            </Form>
 
-        {/* Navigation */}
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBack}
-            disabled={currentStep === 1}
-            className="w-full sm:w-auto"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Anterior</span>
-            <span className="sm:hidden">Atrás</span>
-          </Button>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveDraft}
-              disabled={createRaffle.isPending || updateRaffle.isPending}
-              className="w-full sm:w-auto"
-            >
-              <Save className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Guardar Borrador</span>
-              <span className="sm:hidden">Guardar</span>
-            </Button>
-
-            {currentStep < 5 ? (
-              <Button onClick={handleNext} size="sm" className="w-full sm:w-auto">
-                Siguiente
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button 
-                onClick={handlePublish}
+            {/* Navigation */}
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <Button
+                variant="outline"
                 size="sm"
-                disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
+                onClick={handleBack}
+                disabled={currentStep === 1}
                 className="w-full sm:w-auto"
               >
-                <Rocket className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Publicar Sorteo</span>
-                <span className="sm:hidden">Publicar</span>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Anterior</span>
+                <span className="sm:hidden">Atrás</span>
               </Button>
-            )}
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveDraft}
+                  disabled={createRaffle.isPending || updateRaffle.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  <Save className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Guardar Borrador</span>
+                  <span className="sm:hidden">Guardar</span>
+                </Button>
+
+                {currentStep < 5 ? (
+                  <Button onClick={handleNext} size="sm" className="w-full sm:w-auto">
+                    Siguiente
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handlePublish}
+                    size="sm"
+                    disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
+                    className="w-full sm:w-auto"
+                  >
+                    <Rocket className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Publicar Sorteo</span>
+                    <span className="sm:hidden">Publicar</span>
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Right: Preview */}
+          {showPreview && (
+            <div className="hidden lg:block sticky top-4 h-fit">
+              <RafflePreview form={form} />
+            </div>
+          )}
         </div>
       </div>
 
