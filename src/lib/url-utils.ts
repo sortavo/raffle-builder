@@ -104,6 +104,42 @@ export function isValidSlug(slug: string): boolean {
 }
 
 /**
+ * Validate slug format and return specific error message if invalid
+ * Returns null if valid, error message string if invalid
+ */
+export function validateSlugFormat(slug: string): string | null {
+  if (!slug || slug.trim() === '') {
+    return 'El slug es requerido';
+  }
+
+  if (slug.length < 3) {
+    return 'Debe tener al menos 3 caracteres';
+  }
+
+  if (slug.length > 100) {
+    return 'Máximo 100 caracteres';
+  }
+
+  if (slug !== slug.toLowerCase()) {
+    return 'Solo letras minúsculas';
+  }
+
+  if (/[^a-z0-9-]/.test(slug)) {
+    return 'Solo letras minúsculas, números y guiones';
+  }
+
+  if (slug.startsWith('-') || slug.endsWith('-')) {
+    return 'No puede empezar ni terminar con guión';
+  }
+
+  if (/--/.test(slug)) {
+    return 'No puede tener guiones consecutivos';
+  }
+
+  return null;
+}
+
+/**
  * Normalize a string to a valid slug
  */
 export function normalizeToSlug(text: string): string {
