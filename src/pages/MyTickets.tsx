@@ -61,6 +61,7 @@ export default function MyTickets() {
   const [searchInput, setSearchInput] = useState(user?.email || '');
   const [searchValue, setSearchValue] = useState(user?.email || '');
   const [searchType, setSearchType] = useState<SearchType>('email');
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [ticketSearch, setTicketSearch] = useState('');
@@ -125,13 +126,37 @@ export default function MyTickets() {
   const handleSearch = () => {
     const trimmed = searchInput.trim();
     if (!trimmed) return;
+    
+    setSearchError(null);
+    
     if (searchType === 'email') {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) {
+        setSearchError('Ingresa un email válido (ej: ejemplo@correo.com)');
+        return;
+      }
       setSearchValue(trimmed.toLowerCase());
     } else if (searchType === 'reference') {
-      setSearchValue(trimmed.toUpperCase());
+      // Reference code validation (8 alphanumeric characters)
+      const cleanRef = trimmed.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (cleanRef.length < 6 || cleanRef.length > 10) {
+        setSearchError('La clave debe tener entre 6 y 10 caracteres');
+        return;
+      }
+      setSearchValue(cleanRef);
     } else if (searchType === 'phone') {
-      // Clean phone for search
-      setSearchValue(trimmed.replace(/\D/g, ''));
+      // Phone validation - at least 10 digits
+      const cleanPhone = trimmed.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        setSearchError('Ingresa al menos 10 dígitos del teléfono');
+        return;
+      }
+      if (cleanPhone.length > 15) {
+        setSearchError('El teléfono no puede tener más de 15 dígitos');
+        return;
+      }
+      setSearchValue(cleanPhone);
     }
   };
 
@@ -145,6 +170,7 @@ export default function MyTickets() {
     setSearchType(value as SearchType);
     setSearchInput('');
     setSearchValue('');
+    setSearchError(null);
   };
 
   // Filter tickets based on status and ticket number search
@@ -286,14 +312,24 @@ export default function MyTickets() {
                 </Button>
               </div>
 
+              {/* Validation error */}
+              {searchError && (
+                <p className="text-xs text-destructive text-center flex items-center justify-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {searchError}
+                </p>
+              )}
+
               {/* Helper text */}
-              <p className="text-xs text-muted-foreground text-center">
-                {searchType === 'email' 
-                  ? '¿No recuerdas tu email? Prueba con tu teléfono o clave de reserva.'
-                  : searchType === 'phone'
-                  ? 'Ingresa el teléfono con el que registraste tus boletos.'
-                  : 'Ingresa la clave de 8 caracteres que recibiste al reservar.'}
-              </p>
+              {!searchError && (
+                <p className="text-xs text-muted-foreground text-center">
+                  {searchType === 'email' 
+                    ? '¿No recuerdas tu email? Prueba con tu teléfono o clave de reserva.'
+                    : searchType === 'phone'
+                    ? 'Ingresa el teléfono con el que registraste tus boletos.'
+                    : 'Ingresa la clave de 8 caracteres que recibiste al reservar.'}
+                </p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
