@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   DollarSign, 
   Ticket, 
@@ -20,12 +26,20 @@ import {
   UserPlus,
   CheckCircle,
   XCircle,
-  Timer
+  Timer,
+  FileSpreadsheet,
+  FileText,
+  Users
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency-utils';
 import { RaffleStatusBadge } from '../RaffleStatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { exportTicketsToCSV } from '@/utils/export-tickets';
+import { exportBuyersToCSV } from '@/utils/export-buyers';
+import { exportTransactionsToExcel } from '@/utils/export-transactions';
+import { exportFinancialReportPDF } from '@/utils/export-financial-pdf';
 import type { RaffleWithStats } from '@/hooks/useRaffles';
 
 interface OverviewTabProps {
@@ -37,6 +51,85 @@ interface OverviewTabProps {
 
 export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }: OverviewTabProps) {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/r/${raffle.slug}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: raffle.title,
+          text: `¡Participa en ${raffle.title}! Premio: ${raffle.prize_name}`,
+          url: url,
+        });
+      } catch (error) {
+        // User cancelled or share failed, fallback to clipboard
+        if ((error as Error).name !== 'AbortError') {
+          await copyToClipboard(url);
+        }
+      }
+    } else {
+      await copyToClipboard(url);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copiado al portapapeles');
+    } catch {
+      toast.error('No se pudo copiar el link');
+    }
+  };
+
+  const handleExportTickets = async () => {
+    setIsExporting(true);
+    try {
+      await exportTicketsToCSV(raffle.id, raffle.title);
+      toast.success('Boletos exportados correctamente');
+    } catch (error) {
+      toast.error('Error al exportar boletos');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportBuyers = async () => {
+    setIsExporting(true);
+    try {
+      await exportBuyersToCSV(raffle.id, raffle.title);
+      toast.success('Compradores exportados correctamente');
+    } catch (error) {
+      toast.error('Error al exportar compradores');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportTransactions = async () => {
+    setIsExporting(true);
+    try {
+      await exportTransactionsToExcel(raffle.id, raffle.title);
+      toast.success('Transacciones exportadas correctamente');
+    } catch (error) {
+      toast.error('Error al exportar transacciones');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportFinancialPDF = async () => {
+    setIsExporting(true);
+    try {
+      await exportFinancialReportPDF(raffle.id, raffle.title);
+      toast.success('Reporte financiero exportado correctamente');
+    } catch (error) {
+      toast.error('Error al exportar reporte financiero');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Fetch activity feed
   const { data: activities } = useQuery({
@@ -208,14 +301,36 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
             </>
           )}
         </Button>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleShare}>
           <Share2 className="h-4 w-4 mr-2" />
           Compartir
         </Button>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isExporting}>
+              <Download className="h-4 w-4 mr-2" />
+              {isExporting ? 'Exportando...' : 'Exportar'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={handleExportTickets}>
+              <Ticket className="h-4 w-4 mr-2" />
+              Boletos (Excel)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportBuyers}>
+              <Users className="h-4 w-4 mr-2" />
+              Compradores (Excel)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportTransactions}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Transacciones (Excel)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportFinancialPDF}>
+              <FileText className="h-4 w-4 mr-2" />
+              Reporte Financiero (PDF)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="outline" size="sm" asChild>
           <a href={`/r/${raffle.slug}`} target="_blank" rel="noopener noreferrer">
             <Eye className="h-4 w-4 mr-2" />
