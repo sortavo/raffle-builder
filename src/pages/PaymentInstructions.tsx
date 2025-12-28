@@ -241,13 +241,28 @@ export default function PaymentInstructions() {
 
   const handleUpload = async () => {
     if (!file) return;
+    
+    // Validate referenceCode is present
+    if (!referenceCode) {
+      toast({
+        title: "Error",
+        description: "No se encontró la clave de reserva. Por favor, vuelve a seleccionar tus boletos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     await uploadProof.mutateAsync({
       raffleId,
       ticketIds: tickets.map(t => t.id),
       file,
       buyerName: buyerName || undefined,
-      referenceCode: referenceCode || undefined,
+      buyerEmail: buyerEmail || undefined,
+      referenceCode,
     });
+
+    // Clear persisted state after successful upload
+    handleReservationComplete();
 
     if (buyerEmail && buyerName) {
       sendProofReceivedEmail({
