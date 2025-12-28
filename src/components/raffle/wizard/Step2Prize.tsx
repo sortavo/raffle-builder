@@ -29,6 +29,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Prize, createEmptyPrize, parsePrizes } from '@/types/prize';
+import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import { verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface SortableImageProps {
   id: string;
@@ -90,6 +92,122 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
       {/* Position indicator */}
       <div className="absolute bottom-1 left-1 h-5 w-5 flex items-center justify-center bg-background/80 rounded text-xs font-medium">
         {index + 1}
+      </div>
+    </div>
+  );
+};
+
+interface SortablePrizeRowProps {
+  prize: Prize;
+  index: number;
+  isFirst: boolean;
+  firstPrizeHasName: boolean;
+  defaultCurrency: string;
+  onUpdate: (index: number, field: keyof Prize, value: string | number | null) => void;
+  onRemove: (index: number) => void;
+}
+
+const SortablePrizeRow = ({ 
+  prize, 
+  index, 
+  isFirst, 
+  firstPrizeHasName, 
+  defaultCurrency, 
+  onUpdate, 
+  onRemove 
+}: SortablePrizeRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: prize.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "grid gap-3 p-4 rounded-lg border bg-muted/30",
+        isFirst && !firstPrizeHasName && "border-destructive/50",
+        isDragging && "z-50 opacity-90 shadow-lg ring-2 ring-primary"
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 -ml-1 hover:bg-muted rounded"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <span className="text-sm font-medium text-muted-foreground">
+            Premio {index + 1} {isFirst && <span className="text-destructive">*</span>}
+          </span>
+        </div>
+        {!isFirst && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(index)}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-[1fr,120px,100px] gap-3">
+        {/* Prize Name */}
+        <Input
+          placeholder="Nombre del premio (ej: iPhone 16 Pro Max)"
+          value={prize.name || ''}
+          onChange={(e) => onUpdate(index, 'name', e.target.value)}
+          className={cn(
+            isFirst && !firstPrizeHasName && "border-destructive focus-visible:ring-destructive"
+          )}
+        />
+        
+        {/* Prize Value */}
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+            $
+          </span>
+          <Input
+            type="number"
+            placeholder="Valor"
+            className="pl-7"
+            value={prize.value ?? ''}
+            onChange={(e) => onUpdate(index, 'value', e.target.value ? parseFloat(e.target.value) : null)}
+          />
+        </div>
+        
+        {/* Currency */}
+        <Select 
+          value={prize.currency || defaultCurrency} 
+          onValueChange={(value) => onUpdate(index, 'currency', value)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CURRENCIES.map((curr) => (
+              <SelectItem key={curr.code} value={curr.code}>
+                {curr.flag} {curr.code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
@@ -196,7 +314,7 @@ export const Step2Prize = ({ form }: Step2Props) => {
     })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleImageDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -206,6 +324,25 @@ export const Step2Prize = ({ form }: Step2Props) => {
       
       const newOrder = arrayMove(currentImages, oldIndex, newIndex);
       form.setValue('prize_images', newOrder);
+    }
+  };
+
+  const handlePrizeDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const currentPrizes = [...(form.getValues('prizes') || [])];
+      const oldIndex = currentPrizes.findIndex(p => p.id === active.id);
+      const newIndex = currentPrizes.findIndex(p => p.id === over.id);
+      
+      const newOrder = arrayMove(currentPrizes, oldIndex, newIndex);
+      form.setValue('prizes', newOrder);
+      
+      // Sync first prize with legacy fields after reorder
+      if (newOrder[0]) {
+        form.setValue('prize_name', newOrder[0].name || '');
+        form.setValue('prize_value', newOrder[0].value ?? null);
+      }
     }
   };
 
@@ -280,77 +417,29 @@ export const Step2Prize = ({ form }: Step2Props) => {
             Premios del Sorteo
           </FormLabel>
           
-          <div className="space-y-3">
-            {prizes.map((prize, index) => (
-              <div 
-                key={prize.id} 
-                className={cn(
-                  "grid gap-3 p-4 rounded-lg border bg-muted/30",
-                  index === 0 && !firstPrizeHasName && "border-destructive/50"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Premio {index + 1} {index === 0 && <span className="text-destructive">*</span>}
-                  </span>
-                  {index > 0 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removePrize(index)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-[1fr,120px,100px] gap-3">
-                  {/* Prize Name */}
-                  <Input
-                    placeholder="Nombre del premio (ej: iPhone 16 Pro Max)"
-                    value={prize.name || ''}
-                    onChange={(e) => updatePrize(index, 'name', e.target.value)}
-                    className={cn(
-                      index === 0 && !firstPrizeHasName && "border-destructive focus-visible:ring-destructive"
-                    )}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handlePrizeDragEnd}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          >
+            <SortableContext items={prizes.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {prizes.map((prize, index) => (
+                  <SortablePrizeRow
+                    key={prize.id}
+                    prize={prize}
+                    index={index}
+                    isFirst={index === 0}
+                    firstPrizeHasName={firstPrizeHasName}
+                    defaultCurrency={defaultCurrency}
+                    onUpdate={updatePrize}
+                    onRemove={removePrize}
                   />
-                  
-                  {/* Prize Value */}
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                      $
-                    </span>
-                    <Input
-                      type="number"
-                      placeholder="Valor"
-                      className="pl-7"
-                      value={prize.value ?? ''}
-                      onChange={(e) => updatePrize(index, 'value', e.target.value ? parseFloat(e.target.value) : null)}
-                    />
-                  </div>
-                  
-                  {/* Currency */}
-                  <Select 
-                    value={prize.currency || defaultCurrency} 
-                    onValueChange={(value) => updatePrize(index, 'currency', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((curr) => (
-                        <SelectItem key={curr.code} value={curr.code}>
-                          {curr.flag} {curr.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Add Prize Button */}
           <Button
@@ -388,7 +477,7 @@ export const Step2Prize = ({ form }: Step2Props) => {
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
+                      onDragEnd={handleImageDragEnd}
                     >
                       <SortableContext items={prizeImages} strategy={rectSortingStrategy}>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
