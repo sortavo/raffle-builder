@@ -5,13 +5,95 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CURRENCIES } from '@/lib/currency-utils';
-import { ImagePlus, Video, X, Loader2 } from 'lucide-react';
+import { ImagePlus, Video, X, Loader2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableImageProps {
+  id: string;
+  url: string;
+  index: number;
+  onRemove: (index: number) => void;
+}
+
+const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative group aspect-square",
+        isDragging && "z-50 opacity-80"
+      )}
+    >
+      <img
+        src={url}
+        alt={`Premio ${index + 1}`}
+        className={cn(
+          "w-full h-full object-cover rounded-lg border",
+          isDragging && "ring-2 ring-primary shadow-lg"
+        )}
+      />
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-1 left-1 h-6 w-6 flex items-center justify-center bg-background/80 rounded cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      {/* Remove button */}
+      <Button
+        type="button"
+        variant="destructive"
+        size="icon"
+        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={() => onRemove(index)}
+      >
+        <X className="h-3 w-3" />
+      </Button>
+      {/* Position indicator */}
+      <div className="absolute bottom-1 left-1 h-5 w-5 flex items-center justify-center bg-background/80 rounded text-xs font-medium">
+        {index + 1}
+      </div>
+    </div>
+  );
+};
 
 interface Step2Props {
   form: UseFormReturn<any>;
@@ -80,6 +162,30 @@ export const Step2Prize = ({ form }: Step2Props) => {
       .getPublicUrl(filePath);
 
     return publicUrl;
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const currentImages = [...(form.getValues('prize_images') || [])];
+      const oldIndex = currentImages.indexOf(active.id as string);
+      const newIndex = currentImages.indexOf(over.id as string);
+      
+      const newOrder = arrayMove(currentImages, oldIndex, newIndex);
+      form.setValue('prize_images', newOrder);
+    }
   };
 
   const handleFilesSelected = useCallback(async (files: FileList | File[]) => {
@@ -228,29 +334,28 @@ export const Step2Prize = ({ form }: Step2Props) => {
             <FormItem>
               <FormLabel>Imágenes del Premio</FormLabel>
               <FormControl>
-                <div className="space-y-4">
-                  {/* Image preview grid */}
+              <div className="space-y-4">
+                  {/* Image preview grid with drag and drop */}
                   {prizeImages.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {prizeImages.map((url: string, index: number) => (
-                        <div key={index} className="relative group aspect-square">
-                          <img
-                            src={url}
-                            alt={`Premio ${index + 1}`}
-                            className="w-full h-full object-cover rounded-lg border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleRemoveImage(index)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext items={prizeImages} strategy={rectSortingStrategy}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {prizeImages.map((url: string, index: number) => (
+                            <SortableImage
+                              key={url}
+                              id={url}
+                              url={url}
+                              index={index}
+                              onRemove={handleRemoveImage}
+                            />
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </SortableContext>
+                    </DndContext>
                   )}
 
                   {/* Upload dropzone */}
