@@ -351,7 +351,7 @@ export function useUploadPaymentProof() {
 
 export function useMyTickets(
   searchValue: string | undefined, 
-  searchType: 'email' | 'reference' = 'email'
+  searchType: 'email' | 'reference' | 'phone' = 'email'
 ) {
   return useQuery({
     queryKey: ['my-tickets', searchValue, searchType],
@@ -369,9 +369,13 @@ export function useMyTickets(
 
       if (searchType === 'email') {
         query = query.eq('buyer_email', searchValue.toLowerCase());
-      } else {
+      } else if (searchType === 'reference') {
         // Search by payment reference (reservation code) - case insensitive
         query = query.eq('payment_reference', searchValue.toUpperCase());
+      } else if (searchType === 'phone') {
+        // Search by phone - strip non-digits and search
+        const cleanPhone = searchValue.replace(/\D/g, '');
+        query = query.ilike('buyer_phone', `%${cleanPhone}%`);
       }
 
       const { data, error } = await query;

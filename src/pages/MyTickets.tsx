@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Loader2, Ticket, Search, QrCode, ChevronRight, Calendar, Trophy, 
   Clock, CheckCircle2, AlertCircle, Download, Eye, Mail, User, MapPin,
-  Hourglass, Hash, FileDown, Send
+  Hourglass, Hash, FileDown, Send, Phone
 } from "lucide-react";
 import { useEmails } from "@/hooks/useEmails";
 import { useToast } from "@/hooks/use-toast";
@@ -53,7 +53,7 @@ const STATUS_CONFIG = {
 };
 
 type StatusFilter = 'all' | 'sold' | 'reserved';
-type SearchType = 'email' | 'reference';
+type SearchType = 'email' | 'reference' | 'phone';
 
 export default function MyTickets() {
   const { user } = useAuth();
@@ -125,7 +125,14 @@ export default function MyTickets() {
   const handleSearch = () => {
     const trimmed = searchInput.trim();
     if (!trimmed) return;
-    setSearchValue(searchType === 'email' ? trimmed.toLowerCase() : trimmed.toUpperCase());
+    if (searchType === 'email') {
+      setSearchValue(trimmed.toLowerCase());
+    } else if (searchType === 'reference') {
+      setSearchValue(trimmed.toUpperCase());
+    } else if (searchType === 'phone') {
+      // Clean phone for search
+      setSearchValue(trimmed.replace(/\D/g, ''));
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -225,14 +232,21 @@ export default function MyTickets() {
             <CardContent className="pt-6 space-y-4">
               {/* Search Type Tabs */}
               <Tabs value={searchType} onValueChange={handleSearchTypeChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="email" className="gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="email" className="gap-1.5 text-xs sm:text-sm">
+                    <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Email</span>
+                    <span className="sm:hidden">Email</span>
                   </TabsTrigger>
-                  <TabsTrigger value="reference" className="gap-2">
-                    <Hash className="h-4 w-4" />
-                    Clave de Reserva
+                  <TabsTrigger value="phone" className="gap-1.5 text-xs sm:text-sm">
+                    <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Teléfono</span>
+                    <span className="sm:hidden">Tel</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="reference" className="gap-1.5 text-xs sm:text-sm">
+                    <Hash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Clave</span>
+                    <span className="sm:hidden">Clave</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -242,16 +256,22 @@ export default function MyTickets() {
                 <div className="relative flex-1">
                   {searchType === 'email' ? (
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                  ) : searchType === 'phone' ? (
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                   ) : (
                     <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                   )}
                   <Input
-                    type={searchType === 'email' ? 'email' : 'text'}
-                    placeholder={searchType === 'email' ? 'ejemplo@correo.com' : 'Ej: GYEP6CE8'}
+                    type={searchType === 'email' ? 'email' : searchType === 'phone' ? 'tel' : 'text'}
+                    placeholder={
+                      searchType === 'email' ? 'ejemplo@correo.com' : 
+                      searchType === 'phone' ? 'Ej: 55 1234 5678' :
+                      'Ej: GYEP6CE8'
+                    }
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    className="h-12 pl-10 border-primary/20 focus:border-primary focus:ring-primary uppercase-placeholder"
+                    className="h-12 pl-10 border-primary/20 focus:border-primary focus:ring-primary"
                     style={searchType === 'reference' ? { textTransform: 'uppercase' } : undefined}
                   />
                 </div>
@@ -269,8 +289,10 @@ export default function MyTickets() {
               {/* Helper text */}
               <p className="text-xs text-muted-foreground text-center">
                 {searchType === 'email' 
-                  ? '¿No recuerdas tu email? Usa la clave de reserva que recibiste al comprar.'
-                  : 'Ingresa la clave de 8 caracteres que recibiste al reservar tus boletos.'}
+                  ? '¿No recuerdas tu email? Prueba con tu teléfono o clave de reserva.'
+                  : searchType === 'phone'
+                  ? 'Ingresa el teléfono con el que registraste tus boletos.'
+                  : 'Ingresa la clave de 8 caracteres que recibiste al reservar.'}
               </p>
             </CardContent>
           </Card>
