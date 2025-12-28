@@ -129,6 +129,9 @@ function SlotReel({
   );
 }
 
+// Maximum reels to display for performance
+const MAX_DISPLAY_REELS = 5;
+
 export function SlotMachineAnimation({ 
   numbers, 
   isSpinning, 
@@ -137,6 +140,14 @@ export function SlotMachineAnimation({
   const [stoppedCount, setStoppedCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const completedRef = useRef(false);
+
+  // For many numbers, only show a subset for animation
+  const displayNumbers = numbers.length > MAX_DISPLAY_REELS 
+    ? [...numbers.slice(0, 2), '...', ...numbers.slice(-2)]
+    : numbers;
+  
+  const totalReels = displayNumbers.filter(n => n !== '...').length;
+  const hiddenCount = numbers.length > MAX_DISPLAY_REELS ? numbers.length - 4 : 0;
 
   useEffect(() => {
     if (isSpinning) {
@@ -147,7 +158,7 @@ export function SlotMachineAnimation({
   }, [isSpinning]);
 
   useEffect(() => {
-    if (stoppedCount === numbers.length && numbers.length > 0 && !completedRef.current) {
+    if (stoppedCount === totalReels && totalReels > 0 && !completedRef.current) {
       completedRef.current = true;
       setShowConfetti(true);
       onComplete?.();
@@ -156,7 +167,7 @@ export function SlotMachineAnimation({
       const timeout = setTimeout(() => setShowConfetti(false), 2000);
       return () => clearTimeout(timeout);
     }
-  }, [stoppedCount, numbers.length, onComplete]);
+  }, [stoppedCount, totalReels, onComplete]);
 
   if (numbers.length === 0 && !isSpinning) {
     return null;
@@ -209,15 +220,25 @@ export function SlotMachineAnimation({
 
         {/* Slot reels container */}
         <div className="flex items-center justify-center gap-2 sm:gap-3 py-4 px-2 bg-slate-950 rounded-xl border-2 border-slate-600 mt-4">
-          {numbers.length > 0 ? (
-            numbers.map((num, index) => (
-              <SlotReel
-                key={`${num}-${index}`}
-                finalNumber={num}
-                isSpinning={isSpinning}
-                delay={index * 200} // Staggered stop effect
-                onStop={() => setStoppedCount(prev => prev + 1)}
-              />
+          {displayNumbers.length > 0 ? (
+            displayNumbers.map((num, index) => (
+              num === '...' ? (
+                <div 
+                  key={`ellipsis-${index}`}
+                  className="flex flex-col items-center justify-center w-16 h-20 sm:w-20 sm:h-24 text-slate-400"
+                >
+                  <span className="text-2xl font-bold">+{hiddenCount}</span>
+                  <span className="text-xs">más</span>
+                </div>
+              ) : (
+                <SlotReel
+                  key={`${num}-${index}`}
+                  finalNumber={num}
+                  isSpinning={isSpinning}
+                  delay={index * 200} // Staggered stop effect
+                  onStop={() => setStoppedCount(prev => prev + 1)}
+                />
+              )
             ))
           ) : (
             // Placeholder slots while spinning without numbers yet
