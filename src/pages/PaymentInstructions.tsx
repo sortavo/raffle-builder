@@ -61,6 +61,7 @@ interface ReservationState {
   buyerEmail?: string;
   slug: string;
   totalAmount?: number;
+  referenceCode?: string;
 }
 
 function getPersistedReservation(slug: string): ReservationState | null {
@@ -112,13 +113,14 @@ export default function PaymentInstructions() {
     buyerName?: string;
     buyerEmail?: string;
     totalAmount?: number;
+    referenceCode?: string;
   } | null;
 
   const persistedState = !locationState ? getPersistedReservation(slug || '') : null;
   
-  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail, totalAmount: passedTotalAmount } = locationState || 
+  const { tickets, reservedUntil, raffleId, buyerName, buyerEmail, totalAmount: passedTotalAmount, referenceCode } = locationState || 
     persistedState || 
-    { tickets: [], reservedUntil: '', raffleId: '' };
+    { tickets: [], reservedUntil: '', raffleId: '', referenceCode: undefined };
 
   // Persist state on mount if coming from location
   React.useEffect(() => {
@@ -380,9 +382,9 @@ export default function PaymentInstructions() {
           <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
             <div>
               <p className="text-sm text-muted-foreground">Concepto / Referencia</p>
-              <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
+              <p className="font-mono font-medium">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
               {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
@@ -461,9 +463,9 @@ export default function PaymentInstructions() {
           <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
             <div>
               <p className="text-sm text-muted-foreground">Referencia</p>
-              <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+              <p className="font-mono font-medium">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
               {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
@@ -530,9 +532,9 @@ export default function PaymentInstructions() {
           <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
             <div>
               <p className="text-sm text-muted-foreground">Nota del pago</p>
-              <p className="font-mono font-medium">Boletos {tickets.map(t => t.ticket_number).join(', ')}</p>
+              <p className="font-mono font-medium">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(`Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
               {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
@@ -584,9 +586,9 @@ export default function PaymentInstructions() {
           <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
             <div>
               <p className="text-sm text-muted-foreground">Referencia</p>
-              <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+              <p className="font-mono font-medium">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
               {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
