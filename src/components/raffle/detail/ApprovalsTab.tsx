@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -13,8 +14,7 @@ import {
   User,
   Phone,
   Mail,
-  Image,
-  AlertCircle,
+  AlertTriangle,
   Timer,
   ShieldAlert,
   Search,
@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   Ticket,
-  ExternalLink
+  ExternalLink,
+  DollarSign
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
@@ -33,11 +34,14 @@ import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyPaymentApproved, notifyPaymentRejected } from '@/lib/notifications';
+import { formatCurrency } from '@/lib/currency-utils';
 
 interface ApprovalsTabProps {
   raffleId: string;
   raffleTitle?: string;
   raffleSlug?: string;
+  ticketPrice?: number;
+  currencyCode?: string;
 }
 
 interface OrderGroup {
@@ -51,7 +55,7 @@ interface OrderGroup {
   proofUrl: string | null;
 }
 
-export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: ApprovalsTabProps) {
+export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', ticketPrice = 0, currencyCode = 'MXN' }: ApprovalsTabProps) {
   const { role } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
@@ -250,34 +254,35 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
     const isExpired = timeRemaining === 'Expirado';
     const isExpanded = expandedOrders.has(order.referenceCode);
     const ticketCount = order.tickets.length;
+    const totalAmount = ticketCount * ticketPrice;
 
     return (
       <Card className={cn(
         'transition-all',
         isExpired && 'border-destructive/50'
       )}>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 space-y-3">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
               <div className={cn(
-                "h-10 w-10 rounded-full flex items-center justify-center",
-                showProof ? "bg-yellow-500/10" : "bg-destructive/10"
+                "h-8 w-8 rounded-lg flex items-center justify-center",
+                showProof ? "bg-amber-500/10" : "bg-muted"
               )}>
                 <Package className={cn(
-                  "h-5 w-5",
-                  showProof ? "text-yellow-600" : "text-destructive"
+                  "h-4 w-4",
+                  showProof ? "text-amber-600" : "text-muted-foreground"
                 )} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold">{order.referenceCode}</span>
-                  <Badge variant="secondary" className="font-mono">
+                  <span className="font-mono font-semibold text-sm">{order.referenceCode}</span>
+                  <Badge variant="outline" className="font-mono text-xs">
                     {ticketCount} boleto{ticketCount !== 1 ? 's' : ''}
                   </Badge>
                 </div>
                 <div className={cn(
-                  'flex items-center gap-1 text-sm',
+                  'flex items-center gap-1 text-xs',
                   isExpired ? 'text-destructive' : 'text-muted-foreground'
                 )}>
                   <Timer className="h-3 w-3" />
@@ -288,7 +293,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
           </div>
 
           {/* Buyer Info */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {order.buyerName && (
               <div className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5 text-muted-foreground" />
@@ -304,7 +309,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
             {order.buyerEmail && (
               <div className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">{order.buyerEmail}</span>
+                <span className="text-muted-foreground truncate max-w-[180px]">{order.buyerEmail}</span>
               </div>
             )}
           </div>
@@ -312,10 +317,10 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
           {/* Ticket Numbers - Collapsible */}
           <Collapsible open={isExpanded} onOpenChange={() => toggleOrderExpanded(order.referenceCode)}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between px-3 py-2 h-auto">
+              <Button variant="ghost" size="sm" className="w-full justify-between px-2 py-1.5 h-auto bg-muted/50 hover:bg-muted">
                 <div className="flex items-center gap-2">
-                  <Ticket className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
+                  <Ticket className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs">
                     {ticketCount <= 6 
                       ? order.tickets.map(t => `#${t.ticket_number}`).join(', ')
                       : `${order.tickets.slice(0, 4).map(t => `#${t.ticket_number}`).join(', ')} +${ticketCount - 4} más`
@@ -323,17 +328,17 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
                   </span>
                 </div>
                 {ticketCount > 6 && (
-                  isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
                 )}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">
-              <div className="flex flex-wrap gap-1.5 px-3">
+              <div className="flex flex-wrap gap-1 px-2">
                 {order.tickets.map(ticket => (
                   <Badge 
                     key={ticket.id} 
                     variant="outline" 
-                    className="font-mono text-xs"
+                    className="font-mono text-xs px-1.5 py-0"
                   >
                     #{ticket.ticket_number}
                   </Badge>
@@ -342,6 +347,16 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
             </CollapsibleContent>
           </Collapsible>
 
+          {/* Total Amount */}
+          {ticketPrice > 0 && (
+            <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">
+                Total: {formatCurrency(totalAmount, currencyCode)}
+              </span>
+            </div>
+          )}
+
           {/* Payment Proof */}
           {showProof && order.proofUrl && (
             <div className="relative">
@@ -349,7 +364,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
                 href={order.proofUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="block relative aspect-video max-h-48 rounded-md overflow-hidden bg-muted group"
+                className="block relative aspect-video max-h-40 rounded-md overflow-hidden bg-muted group"
               >
                 <img 
                   src={order.proofUrl} 
@@ -357,71 +372,79 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <ExternalLink className="h-6 w-6 text-white" />
+                  <ExternalLink className="h-5 w-5 text-white" />
                 </div>
               </a>
             </div>
           )}
 
           {!showProof && (
-            <Alert variant="destructive" className="py-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Sin comprobante de pago
-              </AlertDescription>
-            </Alert>
+            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-lg px-3 py-2 text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Esperando comprobante de pago</span>
+            </div>
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t">
-            <Button 
-              size="sm" 
-              variant="default"
-              onClick={() => handleApproveOrder(order)}
-              disabled={bulkApprove.isPending}
-              className="flex-1"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-1.5" />
-              Aprobar {ticketCount > 1 ? `(${ticketCount})` : ''}
-            </Button>
-            <Button 
-              size="sm" 
-              variant="destructive"
-              onClick={() => handleRejectOrder(order)}
-              disabled={bulkReject.isPending}
-              className="flex-1"
-            >
-              <XCircle className="h-4 w-4 mr-1.5" />
-              Rechazar {ticketCount > 1 ? `(${ticketCount})` : ''}
-            </Button>
-            {order.buyerPhone && (
+          <TooltipProvider>
+            <div className="flex items-center gap-2 pt-2 border-t">
               <Button 
-                size="icon" 
-                variant="outline"
-                asChild
-                className="shrink-0"
+                size="sm" 
+                variant="default"
+                onClick={() => handleApproveOrder(order)}
+                disabled={bulkApprove.isPending}
+                className="flex-1 h-9"
               >
-                <a 
-                  href={getWhatsAppLink(order.buyerPhone)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Contactar por WhatsApp"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </a>
+                <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                Aprobar{ticketCount > 1 ? ` (${ticketCount})` : ''}
               </Button>
-            )}
-            <Button 
-              size="icon" 
-              variant="outline"
-              onClick={() => handleExtendOrder(order)}
-              disabled={extendReservation.isPending}
-              title="Extender reservación 30 min"
-              className="shrink-0"
-            >
-              <Clock className="h-4 w-4" />
-            </Button>
-          </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => handleRejectOrder(order)}
+                disabled={bulkReject.isPending}
+                className="flex-1 h-9 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+              >
+                <XCircle className="h-4 w-4 mr-1.5" />
+                Rechazar
+              </Button>
+              {order.buyerPhone && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="icon" 
+                      variant="outline"
+                      asChild
+                      className="shrink-0 h-9 w-9"
+                    >
+                      <a 
+                        href={getWhatsAppLink(order.buyerPhone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>WhatsApp</TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="icon" 
+                    variant="outline"
+                    onClick={() => handleExtendOrder(order)}
+                    disabled={extendReservation.isPending}
+                    className="shrink-0 h-9 w-9"
+                  >
+                    <Clock className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Extender 30 min</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </CardContent>
       </Card>
     );
@@ -487,10 +510,10 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
         <div className="grid md:grid-cols-2 gap-6">
           {/* Without Proof Column */}
           <div className="space-y-4">
-            <Card className="border-destructive/50">
+            <Card className="border-amber-500/30">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-5 w-5" />
+                <CardTitle className="text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-4 w-4" />
                   Sin Comprobante ({ordersWithoutProof.length})
                 </CardTitle>
               </CardHeader>
@@ -515,10 +538,10 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '' }: Ap
 
           {/* With Proof Column */}
           <div className="space-y-4">
-            <Card className="border-yellow-500/50">
+            <Card className="border-emerald-500/30">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-yellow-600">
-                  <Image className="h-5 w-5" />
+                <CardTitle className="text-base flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
                   Con Comprobante ({ordersWithProof.length})
                 </CardTitle>
               </CardHeader>
