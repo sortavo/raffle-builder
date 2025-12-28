@@ -157,9 +157,10 @@ export const Step3Tickets = ({ form }: Step3Props) => {
       updated[index].price = Math.round(newNormalPrice * (1 - currentDiscount / 100));
     }
     
-    // Si cambia el precio final → recalcular el descuento
+    // Si cambia el precio final → recalcular el descuento (no puede ser mayor al normal)
     if (field === 'price') {
-      const finalPrice = Number(value);
+      const finalPrice = Math.min(Number(value), normalPrice); // Limitar al precio normal
+      updated[index].price = finalPrice;
       if (normalPrice > 0 && finalPrice < normalPrice) {
         updated[index].discount_percent = Math.round(((normalPrice - finalPrice) / normalPrice) * 100);
       } else {
