@@ -281,6 +281,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     // Use saved orderTotal (with discount) if available, otherwise package pricing, otherwise unit pricing
     const totalAmount = order.orderTotal ?? packageTotal;
 
+    return (
       <Card className={cn(
         'transition-all',
         isExpired && 'border-destructive/50'
