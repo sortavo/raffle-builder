@@ -176,7 +176,11 @@ export default function RafflesList() {
         ) : (
           <div className="space-y-4">
             {raffles.map((raffle) => (
-              <Card key={raffle.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={raffle.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/dashboard/raffles/${raffle.id}`)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
                     {/* Thumbnail */}
@@ -198,12 +202,9 @@ export default function RafflesList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <Link 
-                            to={`/dashboard/raffles/${raffle.id}`}
-                            className="font-semibold hover:text-primary transition-colors line-clamp-1"
-                          >
+                          <h3 className="font-semibold hover:text-primary transition-colors line-clamp-1">
                             {raffle.title}
-                          </Link>
+                          </h3>
                           <p className="text-sm text-muted-foreground line-clamp-1">
                             {raffle.prize_name}
                           </p>
@@ -233,31 +234,47 @@ export default function RafflesList() {
                     {/* Actions */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/dashboard/raffles/${raffle.id}`)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/raffles/${raffle.id}`);
+                        }}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver detalles
                         </DropdownMenuItem>
                         {(role === 'owner' || role === 'admin') && (
-                          <DropdownMenuItem onClick={() => navigate(`/dashboard/raffles/${raffle.id}/edit`)}>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/raffles/${raffle.id}/edit`);
+                          }}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => duplicateRaffle.mutate(raffle.id)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateRaffle.mutate(raffle.id);
+                        }}>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicar
                         </DropdownMenuItem>
                         {(raffle.status === 'active' || raffle.status === 'paused') && (
                           <DropdownMenuItem 
-                            onClick={() => toggleRaffleStatus.mutate({ 
-                              id: raffle.id, 
-                              currentStatus: raffle.status! 
-                            })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRaffleStatus.mutate({ 
+                                id: raffle.id, 
+                                currentStatus: raffle.status! 
+                              });
+                            }}
                           >
                             {raffle.status === 'active' ? (
                               <>
@@ -276,7 +293,10 @@ export default function RafflesList() {
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
-                              onClick={() => setDeleteConfirmId(raffle.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(raffle.id);
+                              }}
                               className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
