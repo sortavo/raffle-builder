@@ -220,55 +220,96 @@ export default function PublicRaffle() {
           fontFamily: `"${fontBody}", sans-serif`,
         }}
       >
-        {/* Organization Header - ALWAYS visible */}
+        {/* Premium Organization Header */}
         <header 
-          className="sticky top-0 z-50 border-b backdrop-blur-sm"
+          className="sticky top-0 z-50 backdrop-blur-xl shadow-lg"
           style={{ 
-            backgroundColor: isDarkTemplate ? `${cardBg}f0` : `${bgColor}f0`,
-            borderBottomColor: `${primaryColor}20` 
+            backgroundColor: isDarkTemplate ? `${cardBg}f5` : `${bgColor}f8`,
+            boxShadow: `0 4px 30px -10px ${primaryColor}15`
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+            {/* Row 1: Subtle Navigation */}
+            <div className="flex items-center justify-between h-10 border-b" style={{ borderBottomColor: `${primaryColor}10` }}>
+              {isFromOrganization ? (
+                <Link 
+                  to={`/${orgSlugValue}`}
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all group"
+                >
+                  <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                  <span className="hidden sm:inline">Volver a {orgName}</span>
+                  <span className="sm:hidden">Volver</span>
+                </Link>
+              ) : (
+                <div />
+              )}
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={shareRaffle}
+                className="text-xs text-muted-foreground hover:text-foreground h-8 px-3"
+              >
+                <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                Compartir
+              </Button>
+            </div>
+
+            {/* Row 2: Centered Logo & Brand */}
+            <div className="flex flex-col items-center justify-center py-5 space-y-3">
               <Link 
                 to={orgSlugValue ? `/${orgSlugValue}` : "#"}
-                className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
+                className="flex flex-col items-center gap-3 group"
               >
-                {isFromOrganization && (
-                  <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                )}
-                <Avatar className="h-8 w-8 border-2" style={{ borderColor: primaryColor }}>
-                  <AvatarImage src={orgLogo || undefined} alt={orgName} />
-                  <AvatarFallback 
-                    className="text-xs font-semibold text-white"
+                {/* Logo with glow effect */}
+                <div className="relative">
+                  <div 
+                    className="absolute inset-0 blur-xl opacity-50 group-hover:opacity-70 transition-opacity"
                     style={{ backgroundColor: primaryColor }}
+                  />
+                  <Avatar 
+                    className="relative h-16 w-16 border-[3px] shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl" 
+                    style={{ borderColor: primaryColor }}
                   >
-                    {orgName.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">{orgName}</span>
+                    <AvatarImage src={orgLogo || undefined} alt={orgName} className="object-cover" />
+                    <AvatarFallback 
+                      className="text-xl font-bold text-white"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      {orgName.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                
+                {/* Brand Name */}
+                <div className="text-center space-y-1.5">
+                  <h2 
+                    className="text-lg sm:text-xl font-bold tracking-wider uppercase transition-colors group-hover:opacity-80"
+                    style={{ 
+                      color: textColor,
+                      fontFamily: `"${fontTitle}", sans-serif`
+                    }}
+                  >
+                    {orgName}
+                  </h2>
+                  
+                  {/* Verified Badge */}
                   {org?.verified && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0">
-                      <CheckCircle2 className="w-3 h-3" />
-                    </Badge>
+                    <div className="flex items-center justify-center gap-1.5 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs font-medium text-blue-600">Organizador verificado</span>
+                    </div>
                   )}
                 </div>
               </Link>
-              
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={shareRaffle}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Share2 className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Compartir</span>
-                </Button>
-              </div>
             </div>
           </div>
+          
+          {/* Gradient border at bottom */}
+          <div 
+            className="h-0.5 w-full opacity-60" 
+            style={{ background: gradient }}
+          />
         </header>
 
         {/* Sticky Urgency Banner - conditionally rendered */}
