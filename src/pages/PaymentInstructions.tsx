@@ -1,5 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +37,9 @@ import {
   ArrowRightLeft,
   MapPin,
   Clock,
-  ExternalLink
+  ExternalLink,
+  RefreshCw,
+  ImageIcon
 } from "lucide-react";
 
 // Payment subtype configurations
@@ -141,6 +145,34 @@ export default function PaymentInstructions() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
+
+  // Check if this reservation already has a payment proof
+  const { data: existingProof, refetch: refetchProof } = useQuery({
+    queryKey: ['existing-proof', raffleId, referenceCode],
+    queryFn: async () => {
+      if (!raffleId || !referenceCode) return null;
+      
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('payment_proof_url')
+        .eq('raffle_id', raffleId)
+        .eq('payment_reference', referenceCode)
+        .eq('status', 'reserved')
+        .not('payment_proof_url', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error checking existing proof:', error);
+        return null;
+      }
+      
+      return data?.payment_proof_url || null;
+    },
+    enabled: !!raffleId && !!referenceCode,
+    staleTime: 30000,
+  });
 
   if (!tickets.length || (!isLoadingRaffle && !raffle)) {
     return (
@@ -820,22 +852,120 @@ export default function PaymentInstructions() {
         </Card>
 
         {/* Upload Proof */}
-        <Card>
+        <Card className={existingProof ? "border-green-500" : undefined}>
           <CardHeader>
-            <CardTitle>Subir Comprobante de Pago</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Subir Comprobante de Pago</span>
+              {existingProof && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Comprobante registrado
+                </Badge>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Imagen del comprobante (máx. 5MB)</Label>
-              <Input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} />
-            </div>
-            {preview && (
-              <img src={preview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+            {/* Existing proof indicator */}
+            {existingProof && !showReplaceConfirm && (
+              <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                    <ImageIcon className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-green-800 dark:text-green-300">
+                      Ya subiste un comprobante
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-400 mt-0.5">
+                      El organizador está revisando tu pago. Recibirás confirmación pronto.
+                    </p>
+                    <a 
+                      href={existingProof} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 mt-2 underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ver comprobante actual
+                    </a>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3 w-full border-green-300 text-green-700 hover:bg-green-100"
+                  onClick={() => setShowReplaceConfirm(true)}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reemplazar comprobante
+                </Button>
+              </div>
             )}
-            <Button className="w-full" onClick={handleUpload} disabled={!file || uploadProof.isPending}>
-              {uploadProof.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-              Subir Comprobante
-            </Button>
+
+            {/* Replace confirmation */}
+            {existingProof && showReplaceConfirm && !file && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-300">
+                      ¿Reemplazar comprobante?
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
+                      El comprobante anterior será reemplazado por el nuevo.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setShowReplaceConfirm(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Seleccionar nuevo
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* File upload - show when no existing proof OR when replacing */}
+            {(!existingProof || showReplaceConfirm) && (
+              <>
+                <div className="space-y-2">
+                  <Label>Imagen del comprobante (máx. 5MB)</Label>
+                  <Input 
+                    ref={fileInputRef} 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className={existingProof ? "hidden" : undefined}
+                  />
+                </div>
+                {preview && (
+                  <img src={preview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+                )}
+                <Button 
+                  className="w-full" 
+                  onClick={async () => {
+                    await handleUpload();
+                    setShowReplaceConfirm(false);
+                    refetchProof();
+                  }} 
+                  disabled={!file || uploadProof.isPending}
+                >
+                  {uploadProof.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                  {existingProof ? 'Reemplazar Comprobante' : 'Subir Comprobante'}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 
