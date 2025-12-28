@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -22,9 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ExternalLink, Building2 } from "lucide-react";
+import { Search, ExternalLink, Building2, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 type SubscriptionTier = "basic" | "pro" | "premium";
 type SubscriptionStatus = "trial" | "active" | "canceled" | "past_due";
@@ -38,6 +40,7 @@ interface Organization {
   subscription_status: SubscriptionStatus | null;
   created_at: string | null;
   trial_ends_at: string | null;
+  verified: boolean | null;
 }
 
 const tierColors: Record<SubscriptionTier, string> = {
@@ -54,22 +57,40 @@ const statusColors: Record<SubscriptionStatus, string> = {
 };
 
 export default function AdminOrganizations() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [verifiedFilter, setVerifiedFilter] = useState<string>("all");
 
   const { data: organizations, isLoading } = useQuery({
     queryKey: ["admin-organizations"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("organizations")
-        .select("id, name, email, slug, subscription_tier, subscription_status, created_at, trial_ends_at")
+        .select("id, name, email, slug, subscription_tier, subscription_status, created_at, trial_ends_at, verified")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Organization[];
     },
   });
+
+  const toggleVerification = async (orgId: string, newValue: boolean) => {
+    const { error } = await supabase
+      .from("organizations")
+      .update({ verified: newValue })
+      .eq("id", orgId);
+
+    if (error) {
+      toast.error("Error al actualizar verificación");
+      console.error(error);
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["admin-organizations"] });
+    toast.success(newValue ? "Organización verificada" : "Verificación removida");
+  };
 
   const filteredOrgs = organizations?.filter((org) => {
     const matchesSearch =
@@ -79,8 +100,12 @@ export default function AdminOrganizations() {
 
     const matchesTier = tierFilter === "all" || org.subscription_tier === tierFilter;
     const matchesStatus = statusFilter === "all" || org.subscription_status === statusFilter;
+    const matchesVerified = 
+      verifiedFilter === "all" || 
+      (verifiedFilter === "verified" && org.verified === true) ||
+      (verifiedFilter === "unverified" && (org.verified === false || org.verified === null));
 
-    return matchesSearch && matchesTier && matchesStatus;
+    return matchesSearch && matchesTier && matchesStatus && matchesVerified;
   });
 
   return (
@@ -135,6 +160,26 @@ export default function AdminOrganizations() {
                 <SelectItem value="past_due">Vencida</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={verifiedFilter} onValueChange={setVerifiedFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Verificación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Verificación</SelectItem>
+                <SelectItem value="verified">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                    Verificados
+                  </span>
+                </SelectItem>
+                <SelectItem value="unverified">
+                  <span className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                    Sin verificar
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Table */}
@@ -146,6 +191,7 @@ export default function AdminOrganizations() {
                   <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead>Plan</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead className="text-center">Verificado</TableHead>
                   <TableHead className="hidden lg:table-cell">Creada</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -158,13 +204,14 @@ export default function AdminOrganizations() {
                       <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-12 mx-auto" /></TableCell>
                       <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredOrgs?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                       No se encontraron organizaciones
                     </TableCell>
                   </TableRow>
@@ -172,11 +219,16 @@ export default function AdminOrganizations() {
                   filteredOrgs?.map((org) => (
                     <TableRow key={org.id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{org.name}</div>
-                          {org.slug && (
-                            <div className="text-xs text-muted-foreground">/{org.slug}</div>
+                        <div className="flex items-center gap-2">
+                          {org.verified && (
+                            <CheckCircle2 className="h-4 w-4 text-blue-500 shrink-0" />
                           )}
+                          <div>
+                            <div className="font-medium">{org.name}</div>
+                            {org.slug && (
+                              <div className="text-xs text-muted-foreground">/{org.slug}</div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -203,6 +255,12 @@ export default function AdminOrganizations() {
                              org.subscription_status === "canceled" ? "Cancelada" : "Vencida"}
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={org.verified === true}
+                          onCheckedChange={(checked) => toggleVerification(org.id, checked)}
+                        />
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {org.created_at && format(new Date(org.created_at), "d MMM yyyy", { locale: es })}
