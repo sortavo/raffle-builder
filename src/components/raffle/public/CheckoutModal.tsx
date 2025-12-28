@@ -39,7 +39,6 @@ import {
   Shield,
   Lock,
   BadgeCheck,
-  CreditCard,
   Building2,
   Share2
 } from "lucide-react";
@@ -116,7 +115,7 @@ export function CheckoutModal({
   onReservationComplete,
 }: CheckoutModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'manual'>('manual');
+  // Payment method is always 'manual' (transfer/deposit) - no card payments
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_type: string; discount_value: number } | null>(null);
   const [discount, setDiscount] = useState(0);
   const [reservedTickets, setReservedTickets] = useState<{ id: string; ticket_number: string }[]>([]);
@@ -264,7 +263,7 @@ export function CheckoutModal({
     }
     // Reset state
     setCurrentStep(1);
-    setPaymentMethod('manual');
+    // Reset other state
     setAppliedCoupon(null);
     setDiscount(0);
     form.reset();
@@ -564,96 +563,35 @@ export function CheckoutModal({
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                {/* Payment method selection */}
+                {/* Payment method info - Only manual transfer/deposit */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-foreground">Método de Pago</h3>
 
-                  <div className="space-y-3">
-                    {/* Stripe option */}
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('stripe')}
-                      className={cn(
-                        "w-full p-4 rounded-xl border-2 text-left transition-all",
-                        paymentMethod === 'stripe'
-                          ? "border-violet-600 bg-violet-50 dark:bg-violet-950/30"
-                          : "border-border hover:border-muted-foreground/30"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                              paymentMethod === 'stripe'
-                                ? "border-violet-600"
-                                : "border-muted-foreground/30"
-                            )}
-                          >
-                            {paymentMethod === 'stripe' && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Tarjeta de Crédito/Débito
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Pago instantáneo con Stripe
-                            </p>
-                          </div>
+                  {/* Transfer/deposit info card */}
+                  <div className="p-4 rounded-xl border-2 border-primary bg-primary/5 dark:bg-primary/10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-primary" />
                         </div>
-                        <div className="flex gap-1">
-                          <div className="w-8 h-5 bg-blue-600 rounded text-[10px] text-white font-bold flex items-center justify-center">
-                            V
-                          </div>
-                          <div className="w-8 h-5 bg-red-500 rounded text-[10px] text-white font-bold flex items-center justify-center">
-                            M
-                          </div>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            Transferencia / Depósito
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Recibirás las instrucciones de pago al reservar
+                          </p>
                         </div>
                       </div>
-                    </button>
-
-                    {/* Manual option */}
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('manual')}
-                      className={cn(
-                        "w-full p-4 rounded-xl border-2 text-left transition-all",
-                        paymentMethod === 'manual'
-                          ? "border-violet-600 bg-violet-50 dark:bg-violet-950/30"
-                          : "border-border hover:border-muted-foreground/30"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                              paymentMethod === 'manual'
-                                ? "border-violet-600"
-                                : "border-muted-foreground/30"
-                            )}
-                          >
-                            {paymentMethod === 'manual' && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              Transferencia / Depósito
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Requiere aprobación manual
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          24-48h
-                        </span>
-                      </div>
-                    </button>
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        24-48h
+                      </span>
+                    </div>
                   </div>
+                  
+                  <p className="text-xs text-muted-foreground text-center">
+                    Tu boleto será confirmado una vez verificado el pago
+                  </p>
                 </div>
 
                 {/* Price summary */}
@@ -712,7 +650,7 @@ export function CheckoutModal({
                       </>
                     ) : (
                       <>
-                        {paymentMethod === 'stripe' ? 'Pagar Ahora' : 'Reservar Boletos'}
+                        Reservar Boletos
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
