@@ -57,6 +57,16 @@ export default function PublicRaffle() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Track scroll position for header animation
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   // Detect if we're coming from organization route
   const isFromOrganization = !!orgSlug;
@@ -220,17 +230,28 @@ export default function PublicRaffle() {
           fontFamily: `"${fontBody}", sans-serif`,
         }}
       >
-        {/* Premium Organization Header */}
+        {/* Premium Organization Header with Scroll Animation */}
         <header 
-          className="sticky top-0 z-50 backdrop-blur-xl shadow-lg"
+          className={`sticky top-0 z-50 transition-all duration-500 ease-out ${
+            isScrolled 
+              ? 'backdrop-blur-xl shadow-xl' 
+              : 'backdrop-blur-sm shadow-none'
+          }`}
           style={{ 
-            backgroundColor: isDarkTemplate ? `${cardBg}f5` : `${bgColor}f8`,
-            boxShadow: `0 4px 30px -10px ${primaryColor}15`
+            backgroundColor: isScrolled 
+              ? (isDarkTemplate ? `${cardBg}fa` : `${bgColor}fa`)
+              : (isDarkTemplate ? `${cardBg}40` : `${bgColor}20`),
+            boxShadow: isScrolled ? `0 8px 40px -12px ${primaryColor}25` : 'none'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Row 1: Subtle Navigation */}
-            <div className="flex items-center justify-between h-10 border-b" style={{ borderBottomColor: `${primaryColor}10` }}>
+            {/* Row 1: Subtle Navigation - collapses on scroll */}
+            <div 
+              className={`flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b ${
+                isScrolled ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100'
+              }`}
+              style={{ borderBottomColor: isScrolled ? 'transparent' : `${primaryColor}10` }}
+            >
               {isFromOrganization ? (
                 <Link 
                   to={`/${orgSlugValue}`}
@@ -255,25 +276,37 @@ export default function PublicRaffle() {
               </Button>
             </div>
 
-            {/* Row 2: Centered Logo & Brand */}
-            <div className="flex flex-col items-center justify-center py-5 space-y-3">
+            {/* Row 2: Centered Logo & Brand - compact on scroll */}
+            <div 
+              className={`flex items-center justify-center transition-all duration-500 ease-out ${
+                isScrolled ? 'py-2' : 'py-5'
+              }`}
+            >
               <Link 
                 to={orgSlugValue ? `/${orgSlugValue}` : "#"}
-                className="flex flex-col items-center gap-3 group"
+                className={`flex items-center gap-3 group transition-all duration-500 ${
+                  isScrolled ? 'flex-row' : 'flex-col'
+                }`}
               >
                 {/* Logo with glow effect */}
                 <div className="relative">
                   <div 
-                    className="absolute inset-0 blur-xl opacity-50 group-hover:opacity-70 transition-opacity"
+                    className={`absolute inset-0 blur-xl transition-all duration-500 ${
+                      isScrolled ? 'opacity-30' : 'opacity-50 group-hover:opacity-70'
+                    }`}
                     style={{ backgroundColor: primaryColor }}
                   />
                   <Avatar 
-                    className="relative h-16 w-16 border-[3px] shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl" 
+                    className={`relative border-[3px] shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:shadow-2xl ${
+                      isScrolled ? 'h-10 w-10' : 'h-16 w-16'
+                    }`}
                     style={{ borderColor: primaryColor }}
                   >
                     <AvatarImage src={orgLogo || undefined} alt={orgName} className="object-cover" />
                     <AvatarFallback 
-                      className="text-xl font-bold text-white"
+                      className={`font-bold text-white transition-all duration-500 ${
+                        isScrolled ? 'text-sm' : 'text-xl'
+                      }`}
                       style={{ backgroundColor: primaryColor }}
                     >
                       {orgName.substring(0, 2).toUpperCase()}
@@ -282,9 +315,11 @@ export default function PublicRaffle() {
                 </div>
                 
                 {/* Brand Name */}
-                <div className="text-center space-y-1.5">
+                <div className={`text-center transition-all duration-500 ${isScrolled ? 'space-y-0' : 'space-y-1.5'}`}>
                   <h2 
-                    className="text-lg sm:text-xl font-bold tracking-wider uppercase transition-colors group-hover:opacity-80"
+                    className={`font-bold tracking-wider uppercase transition-all duration-500 group-hover:opacity-80 ${
+                      isScrolled ? 'text-base' : 'text-lg sm:text-xl'
+                    }`}
                     style={{ 
                       color: textColor,
                       fontFamily: `"${fontTitle}", sans-serif`
@@ -293,21 +328,54 @@ export default function PublicRaffle() {
                     {orgName}
                   </h2>
                   
-                  {/* Verified Badge */}
+                  {/* Verified Badge - hidden on scroll */}
                   {org?.verified && (
-                    <div className="flex items-center justify-center gap-1.5 animate-fade-in">
+                    <div 
+                      className={`flex items-center justify-center gap-1.5 transition-all duration-500 overflow-hidden ${
+                        isScrolled ? 'h-0 opacity-0' : 'h-5 opacity-100'
+                      }`}
+                    >
                       <CheckCircle2 className="w-4 h-4 text-blue-500" />
                       <span className="text-xs font-medium text-blue-600">Organizador verificado</span>
                     </div>
                   )}
                 </div>
+
+                {/* Compact verified badge when scrolled */}
+                {org?.verified && isScrolled && (
+                  <CheckCircle2 className="w-4 h-4 text-blue-500 animate-fade-in" />
+                )}
               </Link>
+
+              {/* Share button moves to header when scrolled */}
+              {isScrolled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={shareRaffle}
+                  className="absolute right-4 text-muted-foreground hover:text-foreground h-8 px-3 animate-fade-in"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              )}
+
+              {/* Back button when scrolled */}
+              {isScrolled && isFromOrganization && (
+                <Link 
+                  to={`/${orgSlugValue}`}
+                  className="absolute left-4 flex items-center gap-1 text-muted-foreground hover:text-foreground transition-all group animate-fade-in"
+                >
+                  <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                </Link>
+              )}
             </div>
           </div>
           
-          {/* Gradient border at bottom */}
+          {/* Gradient border at bottom - more visible when scrolled */}
           <div 
-            className="h-0.5 w-full opacity-60" 
+            className={`h-0.5 w-full transition-opacity duration-500 ${
+              isScrolled ? 'opacity-80' : 'opacity-40'
+            }`}
             style={{ background: gradient }}
           />
         </header>
