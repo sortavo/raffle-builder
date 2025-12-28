@@ -176,12 +176,13 @@ export default function RaffleWizard() {
   // Load existing raffle data - filter out calculated fields that don't exist in the database
   useEffect(() => {
     if (existingRaffle) {
-      // Exclude calculated fields from useRaffleById that don't exist in the raffles table
+      // Exclude calculated fields and joined relations from useRaffleById that don't exist in the raffles table
       const { 
         tickets_sold, 
         tickets_available, 
         tickets_reserved, 
         total_revenue,
+        organization,
         ...raffleData 
       } = existingRaffle;
       
