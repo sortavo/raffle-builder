@@ -12,8 +12,9 @@ import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { useState, useEffect } from 'react';
 import { useEffectiveAuth } from '@/hooks/useEffectiveAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { getRaffleRelativePath } from '@/lib/url-utils';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { validateSlugFormat, normalizeToSlug } from '@/lib/url-utils';
+import { AlertCircle, CheckCircle2, Loader2, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Step1Props {
   form: UseFormReturn<any>;
@@ -25,6 +26,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const { organization: authOrg } = useEffectiveAuth();
   const [debouncedSlug, setDebouncedSlug] = useState('');
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
   const { data: organization } = useQuery({
     queryKey: ['organization-slug', authOrg?.id],
@@ -39,8 +41,25 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
     enabled: !!authOrg?.id,
   });
 
+  // Fetch raffle status to determine if slug can be edited
+  const { data: raffleData } = useQuery({
+    queryKey: ['raffle-status', id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('raffles')
+        .select('status')
+        .eq('id', id!)
+        .single();
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const raffleStatus = raffleData?.status;
+  const canEditSlug = !isEditing || raffleStatus === 'draft';
+
   const raffleSlug = form.watch('slug') || 'tu-sorteo';
-  const displayUrl = `sortavo.com${getRaffleRelativePath(raffleSlug, organization?.slug)}`;
+  const orgSlug = organization?.slug || 'org';
 
   // Debounce slug changes for validation
   useEffect(() => {
@@ -85,11 +104,20 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
 
   const handleTitleChange = (value: string) => {
     form.setValue('title', value);
-    // Only auto-generate slug for new raffles, not when editing
-    if (!isEditing) {
+    // Only auto-generate slug if not manually edited and for new raffles
+    if (!isSlugManuallyEdited && !isEditing) {
       form.setValue('slug', generateSlug(value));
     }
   };
+
+  const handleSlugChange = (value: string) => {
+    // Normalize input: convert to lowercase and replace spaces
+    const normalized = normalizeToSlug(value);
+    form.setValue('slug', normalized);
+    setIsSlugManuallyEdited(true);
+  };
+
+  const slugFormatError = validateSlugFormat(raffleSlug === 'tu-sorteo' ? '' : raffleSlug);
 
   const handleBlur = (field: string) => {
     setTouchedFields(prev => ({ ...prev, [field]: true }));
@@ -110,6 +138,16 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   const titleError = getFieldError('title');
 
   const renderSlugStatus = () => {
+    // Show format error first
+    if (slugFormatError && raffleSlug !== 'tu-sorteo') {
+      return (
+        <span className="flex items-center gap-1 text-destructive text-sm font-medium">
+          <AlertCircle className="h-3 w-3" />
+          {slugFormatError}
+        </span>
+      );
+    }
+
     if (!debouncedSlug || debouncedSlug === 'tu-sorteo') return null;
     
     if (isCheckingSlug) {
@@ -125,7 +163,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
       return (
         <span className="flex items-center gap-1 text-destructive text-sm font-medium">
           <AlertCircle className="h-3 w-3" />
-          Esta URL ya está en uso. Cambia el título para generar una diferente.
+          Esta URL ya está en uso
         </span>
       );
     }
@@ -161,17 +199,63 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   onChange={(e) => handleTitleChange(e.target.value)}
                   onBlur={() => handleBlur('title')}
                   className={cn(
-                    (titleError || isDuplicateSlug) && "border-destructive focus-visible:ring-destructive"
+                    titleError && "border-destructive focus-visible:ring-destructive"
                   )}
                 />
               </FormControl>
-              <FormDescription className="flex flex-col gap-1">
-                <span>URL: {displayUrl}</span>
-                {renderSlugStatus()}
-              </FormDescription>
               {titleError && (
                 <p className="text-sm font-medium text-destructive">{titleError}</p>
               )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Slug field - separate from title */}
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center gap-1">
+                URL del Sorteo
+                <span className="text-destructive">*</span>
+              </FormLabel>
+              <FormControl>
+                <div className="flex items-stretch">
+                  <span className="inline-flex items-center px-3 text-sm text-muted-foreground bg-muted border border-r-0 border-input rounded-l-md whitespace-nowrap">
+                    sortavo.com/{orgSlug}/
+                  </span>
+                  <Input 
+                    {...field}
+                    value={field.value || ''}
+                    placeholder="mi-sorteo"
+                    onChange={(e) => handleSlugChange(e.target.value)}
+                    onBlur={() => handleBlur('slug')}
+                    disabled={!canEditSlug}
+                    maxLength={100}
+                    className={cn(
+                      "rounded-l-none",
+                      (slugFormatError || isDuplicateSlug) && "border-destructive focus-visible:ring-destructive"
+                    )}
+                  />
+                </div>
+              </FormControl>
+              <FormDescription className="flex flex-col gap-1">
+                {!canEditSlug ? (
+                  <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                    <AlertCircle className="h-3 w-3" />
+                    La URL no se puede cambiar después de publicar
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground">
+                      Solo letras minúsculas, números y guiones (3-100 caracteres)
+                    </span>
+                    {renderSlugStatus()}
+                  </>
+                )}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
