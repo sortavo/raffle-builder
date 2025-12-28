@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { scrollToSection } from '@/lib/scroll-utils';
 import { Search, Book, MessageCircle, FileText, ChevronRight, ExternalLink, Mail, Phone, Trophy, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -224,13 +225,27 @@ export default function HelpCenter() {
 
             <div className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
-                <Link 
-                  key={link.label}
-                  to={link.href} 
-                  className="text-muted-foreground hover:text-primary font-medium transition-colors"
-                >
-                  {link.label}
-                </Link>
+                link.href.startsWith('/#') ? (
+                  <a 
+                    key={link.label}
+                    href={link.href.replace('/', '')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollToSection(link.href.replace('/#', ''));
+                    }}
+                    className="text-muted-foreground hover:text-primary font-medium transition-colors cursor-pointer"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link 
+                    key={link.label}
+                    to={link.href} 
+                    className="text-muted-foreground hover:text-primary font-medium transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                )
               ))}
             </div>
 
@@ -256,14 +271,28 @@ export default function HelpCenter() {
               <SheetContent side="right" className="w-[300px]">
                 <div className="flex flex-col gap-6 mt-8">
                   {navLinks.map((link) => (
-                    <Link 
-                      key={link.label}
-                      to={link.href} 
-                      className="text-lg font-medium text-foreground hover:text-primary"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
+                    link.href.startsWith('/#') ? (
+                      <a 
+                        key={link.label}
+                        href={link.href.replace('/', '')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          scrollToSection(link.href.replace('/#', ''), () => setMobileMenuOpen(false));
+                        }}
+                        className="text-lg font-medium text-foreground hover:text-primary cursor-pointer"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link 
+                        key={link.label}
+                        to={link.href} 
+                        className="text-lg font-medium text-foreground hover:text-primary"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    )
                   ))}
                   <hr className="border-border" />
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
