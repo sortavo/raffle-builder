@@ -11,6 +11,7 @@ import { useRaffles } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { useWizardValidation } from '@/hooks/useWizardValidation';
 import { WizardProgress } from '@/components/raffle/wizard/WizardProgress';
 import { Step1BasicInfo } from '@/components/raffle/wizard/Step1BasicInfo';
 import { Step2Prize } from '@/components/raffle/wizard/Step2Prize';
@@ -133,6 +134,17 @@ export default function RaffleWizard() {
       }>,
     },
   });
+
+  // Wizard validation hook
+  const { 
+    stepValidations, 
+    canPublish, 
+    validateStep 
+  } = useWizardValidation(form, currentStep);
+
+  // Prepare step statuses and errors for WizardProgress
+  const stepStatuses = stepValidations.map(sv => sv.step === currentStep ? 'current' as const : sv.isValid ? 'complete' as const : 'incomplete' as const);
+  const stepErrors = stepValidations.map(sv => sv.errors);
 
   // Load existing raffle data - filter out calculated fields that don't exist in the database
   useEffect(() => {
@@ -354,6 +366,10 @@ export default function RaffleWizard() {
     }
   };
 
+  const handleNavigateToStep = (step: number) => {
+    setCurrentStep(step);
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -365,7 +381,15 @@ export default function RaffleWizard() {
       case 4:
         return <Step4Draw form={form} />;
       case 5:
-        return <Step5Design form={form} />;
+        return (
+          <Step5Design 
+            form={form} 
+            stepValidations={stepValidations}
+            canPublish={canPublish}
+            hasPaymentMethods={hasEnabledPaymentMethods}
+            onNavigateToStep={handleNavigateToStep}
+          />
+        );
       default:
         return null;
     }
@@ -400,7 +424,12 @@ export default function RaffleWizard() {
         </div>
 
         {/* Progress */}
-        <WizardProgress steps={STEPS} currentStep={currentStep} />
+        <WizardProgress 
+          steps={STEPS} 
+          currentStep={currentStep} 
+          stepStatuses={stepStatuses}
+          stepErrors={stepErrors}
+        />
 
         {/* Payment Methods Warning */}
         {showPaymentMethodsWarning && !hasEnabledPaymentMethods && (
@@ -465,7 +494,7 @@ export default function RaffleWizard() {
               <Button 
                 onClick={handlePublish}
                 size="sm"
-                disabled={publishRaffle.isPending}
+                disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
                 className="w-full sm:w-auto"
               >
                 <Rocket className="h-4 w-4 mr-2" />

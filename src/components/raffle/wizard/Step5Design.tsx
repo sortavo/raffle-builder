@@ -12,9 +12,15 @@ import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCar
 import { RAFFLE_TEMPLATES, GOOGLE_FONTS_TITLES, GOOGLE_FONTS_BODY, DESIGN_SECTIONS } from '@/lib/raffle-utils';
 import { cn } from '@/lib/utils';
 import { FAQEditor } from './FAQEditor';
+import { ValidationSummary } from './ValidationSummary';
+import type { StepValidation } from '@/hooks/useWizardValidation';
 
 interface Step5Props {
   form: UseFormReturn<any>;
+  stepValidations?: StepValidation[];
+  canPublish?: boolean;
+  hasPaymentMethods?: boolean;
+  onNavigateToStep?: (step: number) => void;
 }
 
 // Feature configuration definitions
@@ -80,7 +86,13 @@ const MARKETING_FEATURES = [
   }
 ];
 
-export const Step5Design = ({ form }: Step5Props) => {
+export const Step5Design = ({ 
+  form, 
+  stepValidations, 
+  canPublish, 
+  hasPaymentMethods,
+  onNavigateToStep 
+}: Step5Props) => {
   const selectedTemplate = form.watch('template_id') || 'modern';
   const customization = form.watch('customization') || {};
   const primaryColor = customization.primary_color || '#2563EB';
@@ -97,6 +109,15 @@ export const Step5Design = ({ form }: Step5Props) => {
 
   return (
     <div className="space-y-6">
+      {/* Validation Summary */}
+      {stepValidations && onNavigateToStep && (
+        <ValidationSummary 
+          stepValidations={stepValidations}
+          canPublish={canPublish ?? false}
+          hasPaymentMethods={hasPaymentMethods ?? true}
+          onNavigateToStep={onNavigateToStep}
+        />
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
