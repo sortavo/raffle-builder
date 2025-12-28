@@ -39,13 +39,14 @@ export const TicketButton = forwardRef<HTMLButtonElement, TicketButtonProps>(
         ref={ref}
         onClick={onClick}
         disabled={disabled || !isAvailable}
-        whileHover={isAvailable ? { scale: 1.08, y: -2 } : undefined}
-        whileTap={isAvailable ? { scale: 0.95 } : undefined}
+        whileHover={isAvailable ? { scale: 1.12, y: -4, rotateZ: 1 } : undefined}
+        whileTap={isAvailable ? { scale: 0.92, rotateZ: -1 } : undefined}
         initial={false}
         animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 15 }}
         className={cn(
           "relative aspect-square rounded-xl font-bold text-sm",
-          "transition-all duration-200 touch-manipulation",
+          "transition-all duration-300 touch-manipulation group",
           "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2",
           
           // Highlighted state (found via search)
@@ -57,14 +58,16 @@ export const TicketButton = forwardRef<HTMLButtonElement, TicketButtonProps>(
           isAvailable && !isSelected && [
             "bg-white border-2 border-gray-300",
             "text-gray-900 hover:border-violet-500 hover:text-violet-600",
-            "hover:shadow-lg hover:shadow-violet-500/20",
+            "hover:shadow-xl hover:shadow-violet-500/30",
+            "hover:bg-gradient-to-br hover:from-violet-50 hover:to-white",
           ],
           
           // Available - selected
           isAvailable && isSelected && [
-            "bg-gradient-to-br from-violet-600 to-indigo-600",
+            "bg-gradient-to-br from-violet-600 via-violet-500 to-indigo-600",
             "text-white border-2 border-transparent",
-            "shadow-lg shadow-violet-500/40",
+            "shadow-xl shadow-violet-500/50",
+            "ring-2 ring-violet-400 ring-offset-1",
           ],
           
           // Sold
@@ -114,10 +117,15 @@ export const TicketButton = forwardRef<HTMLButtonElement, TicketButtonProps>(
         {isSelected && (
           <motion.div
             initial={{ scale: 0.5, opacity: 1 }}
-            animate={{ scale: 1.5, opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            animate={{ scale: 2, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="absolute inset-0 bg-violet-400 rounded-xl pointer-events-none"
           />
+        )}
+        
+        {/* Hover glow effect for available tickets */}
+        {isAvailable && !isSelected && (
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/0 to-indigo-500/0 group-hover:from-violet-500/10 group-hover:to-indigo-500/10 transition-all duration-300 pointer-events-none" />
         )}
       </motion.button>
     );

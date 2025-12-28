@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
@@ -546,47 +547,61 @@ export default function PublicRaffle() {
 
                 {/* Key info grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div 
-                    className="p-3 sm:p-4 rounded-xl border shadow-sm"
+                  <motion.div 
+                    className="p-3 sm:p-4 rounded-xl border shadow-sm group cursor-default overflow-hidden relative"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     style={{ 
                       backgroundColor: cardBg,
                       borderColor: `${primaryColor}20`,
                       borderRadius: borderRadius
                     }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div 
+                    {/* Shimmer effect on hover */}
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    <div className="flex items-center gap-3 relative">
+                      <motion.div 
                         className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${primaryColor}20` }}
+                        whileHover={{ rotate: [0, -10, 10, 0] }}
+                        transition={{ duration: 0.5 }}
                       >
-                        <Ticket className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: primaryColor }} />
-                      </div>
+                        <Ticket className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" style={{ color: primaryColor }} />
+                      </motion.div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm" style={{ color: textMuted }}>Precio</p>
-                        <p className="text-base sm:text-lg font-bold truncate" style={{ color: textColor }}>
+                        <p className="text-base sm:text-lg font-bold truncate group-hover:tracking-wide transition-all" style={{ color: textColor }}>
                           {formatCurrency(Number(raffle.ticket_price), currency)}
                         </p>
                       </div>
                     </div>
-                  </div>
-                  <div 
-                    className="p-3 sm:p-4 rounded-xl border shadow-sm"
+                  </motion.div>
+                  <motion.div 
+                    className="p-3 sm:p-4 rounded-xl border shadow-sm group cursor-default overflow-hidden relative"
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     style={{ 
                       backgroundColor: cardBg,
                       borderColor: `${primaryColor}20`,
                       borderRadius: borderRadius
                     }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div 
+                    {/* Shimmer effect on hover */}
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    <div className="flex items-center gap-3 relative">
+                      <motion.div 
                         className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${primaryColor}20` }}
+                        whileHover={{ rotate: [0, -10, 10, 0] }}
+                        transition={{ duration: 0.5 }}
                       >
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: primaryColor }} />
-                      </div>
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" style={{ color: primaryColor }} />
+                      </motion.div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm" style={{ color: textMuted }}>Sorteo</p>
-                        <p className="text-base sm:text-lg font-bold truncate" style={{ color: textColor }}>
+                        <p className="text-base sm:text-lg font-bold truncate group-hover:tracking-wide transition-all" style={{ color: textColor }}>
                           {raffle.draw_date 
                             ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
                             : 'Por definir'
@@ -594,7 +609,7 @@ export default function PublicRaffle() {
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
 
                 {/* Progress bar */}
@@ -630,50 +645,80 @@ export default function PublicRaffle() {
 
                 {/* CTAs */}
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    size="lg"
-                    className="flex-1 text-lg py-6 shadow-xl group text-white"
-                    style={{ 
-                      background: gradient,
-                      borderRadius: borderRadius,
-                    }}
-                    onClick={scrollToTickets}
+                  <motion.div 
+                    className="flex-1"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <Ticket className="w-5 h-5 mr-2" />
-                    Comprar Boletos
-                    <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                    <Button
+                      size="lg"
+                      className="w-full text-lg py-6 shadow-xl group text-white relative overflow-hidden"
+                      style={{ 
+                        background: gradient,
+                        borderRadius: borderRadius,
+                      }}
+                      onClick={scrollToTickets}
+                    >
+                      {/* Animated shine effect */}
+                      <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                      <Ticket className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                      Comprar Boletos
+                      <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+                    </Button>
+                  </motion.div>
                   
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-2 py-6"
-                    style={{ 
-                      borderColor: primaryColor,
-                      color: isDarkTemplate ? '#FFFFFF' : primaryColor,
-                      borderRadius: borderRadius,
-                    }}
-                    onClick={shareRaffle}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <Share2 className="w-5 h-5 mr-2" />
-                    Compartir
-                  </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-2 py-6 group relative overflow-hidden"
+                      style={{ 
+                        borderColor: primaryColor,
+                        color: isDarkTemplate ? '#FFFFFF' : primaryColor,
+                        borderRadius: borderRadius,
+                      }}
+                      onClick={shareRaffle}
+                    >
+                      {/* Subtle glow on hover */}
+                      <span 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300" 
+                        style={{ background: gradient }}
+                      />
+                      <Share2 className="w-5 h-5 mr-2 group-hover:scale-110 group-hover:-rotate-12 transition-transform" />
+                      Compartir
+                    </Button>
+                  </motion.div>
                 </div>
 
                 {/* Trust indicators */}
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                  <motion.div 
+                    className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600 cursor-default"
+                    whileHover={{ scale: 1.05, x: 3 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
                     <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                     <span>Pago Seguro</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                  </motion.div>
+                  <motion.div 
+                    className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600 cursor-default"
+                    whileHover={{ scale: 1.05, x: 3 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                     <span>Verificable</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                  </motion.div>
+                  <motion.div 
+                    className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600 cursor-default"
+                    whileHover={{ scale: 1.05, x: 3 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
                     <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
                     <span>{raffle.ticketsSold}+ participantes</span>
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </div>
