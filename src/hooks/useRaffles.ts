@@ -85,19 +85,31 @@ export const useRaffles = () => {
         if (raffleError) throw raffleError;
         if (!raffle) return null;
 
-        // Get ticket stats
-        const { data: tickets, error: ticketsError } = await supabase
-          .from('tickets')
-          .select('status, ticket_number')
-          .eq('raffle_id', raffleId);
-
-        if (ticketsError) throw ticketsError;
+        // Get ticket stats using aggregation to avoid Supabase 1000 row limit
+        // Count tickets by status using separate count queries for accuracy
+        const [availableResult, soldResult, reservedResult] = await Promise.all([
+          supabase
+            .from('tickets')
+            .select('id', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'available'),
+          supabase
+            .from('tickets')
+            .select('id', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'sold'),
+          supabase
+            .from('tickets')
+            .select('id', { count: 'exact', head: true })
+            .eq('raffle_id', raffleId)
+            .eq('status', 'reserved'),
+        ]);
 
         const stats = {
-          tickets_sold: tickets?.filter(t => t.status === 'sold').length || 0,
-          tickets_available: tickets?.filter(t => t.status === 'available').length || 0,
-          tickets_reserved: tickets?.filter(t => t.status === 'reserved').length || 0,
-          total_revenue: (tickets?.filter(t => t.status === 'sold').length || 0) * raffle.ticket_price,
+          tickets_sold: soldResult.count || 0,
+          tickets_available: availableResult.count || 0,
+          tickets_reserved: reservedResult.count || 0,
+          total_revenue: (soldResult.count || 0) * raffle.ticket_price,
         };
 
         return { ...raffle, ...stats } as RaffleWithStats;
