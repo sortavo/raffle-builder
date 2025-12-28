@@ -264,8 +264,15 @@ export function useUploadPaymentProof() {
       file: File;
       buyerName?: string;
     }) => {
+      // Sanitize filename - remove spaces and special characters
+      const sanitizedName = file.name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+        .replace(/_+/g, '_'); // Collapse multiple underscores
+      
       // Upload file to storage
-      const fileName = `${raffleId}/${Date.now()}-${file.name}`;
+      const fileName = `${raffleId}/${Date.now()}-${sanitizedName}`;
       const { data: upload, error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(fileName, file);
