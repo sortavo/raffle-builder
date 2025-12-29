@@ -1,12 +1,13 @@
 /**
- * Extracts video embed URL from YouTube or Vimeo links
+ * Extracts video embed URL and thumbnail from YouTube or Vimeo links
  */
 export function getVideoEmbedUrl(url: string): { 
   type: 'youtube' | 'vimeo' | null; 
   embedUrl: string | null;
   videoId: string | null;
+  thumbnailUrl: string | null;
 } {
-  if (!url) return { type: null, embedUrl: null, videoId: null };
+  if (!url) return { type: null, embedUrl: null, videoId: null, thumbnailUrl: null };
 
   // YouTube patterns:
   // - https://youtube.com/watch?v=VIDEO_ID
@@ -19,7 +20,8 @@ export function getVideoEmbedUrl(url: string): {
     return { 
       type: 'youtube', 
       embedUrl: `https://www.youtube.com/embed/${videoId}`,
-      videoId 
+      videoId,
+      thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
     };
   }
 
@@ -32,11 +34,13 @@ export function getVideoEmbedUrl(url: string): {
     return { 
       type: 'vimeo', 
       embedUrl: `https://player.vimeo.com/video/${videoId}`,
-      videoId 
+      videoId,
+      // Vimeo thumbnails require API call, use placeholder
+      thumbnailUrl: null
     };
   }
 
-  return { type: null, embedUrl: null, videoId: null };
+  return { type: null, embedUrl: null, videoId: null, thumbnailUrl: null };
 }
 
 /**
