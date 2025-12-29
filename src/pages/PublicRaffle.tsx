@@ -46,6 +46,7 @@ import { MobileHero } from "@/components/raffle/public/MobileHero";
 import { MobileStickyFooter } from "@/components/raffle/public/MobileStickyFooter";
 import { TransparencySection } from "@/components/raffle/public/TransparencySection";
 import { HowToParticipate } from "@/components/raffle/public/HowToParticipate";
+import { FAQSection } from "@/components/raffle/public/FAQSection";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -800,71 +801,30 @@ export default function PublicRaffle() {
         )}
 
         {/* FAQ Section */}
-        {(() => {
-          const sections = customization.sections || {};
-          const faqConfig = customization.faq_config || { show_default_faqs: true, custom_faqs: [] };
-          const showFaqSection = sections.faq !== false;
-          const showDefaultFaqs = faqConfig.show_default_faqs !== false;
-          const customFaqs: { question: string; answer: string }[] = faqConfig.custom_faqs || [];
-          
-          if (!showFaqSection) return null;
-          
-          const defaultFaqs = [
-            {
-              id: 'how',
-              question: '¿Cómo participo?',
-              answer: 'Selecciona tus boletos, completa tus datos, realiza el pago y sube tu comprobante. Una vez verificado tu pago, recibirás la confirmación de tu participación.'
-            },
-            {
-              id: 'winner',
-              question: '¿Cómo sé si gané?',
-              answer: 'Te contactaremos por email y teléfono si resultas ganador. También publicaremos los resultados en nuestras redes sociales.'
-            },
-            {
-              id: 'when',
-              question: '¿Cuándo es el sorteo?',
-              answer: raffle.draw_date 
-                ? format(new Date(raffle.draw_date), "EEEE dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })
-                : 'La fecha será confirmada próximamente'
-            },
-            {
-              id: 'payment',
-              question: '¿Qué métodos de pago aceptan?',
-              answer: 'Aceptamos transferencia bancaria, depósito en OXXO y otros métodos de pago. Verás las opciones disponibles al momento de completar tu compra.'
-            }
-          ];
-          
-          const allFaqs = [
-            ...(showDefaultFaqs ? defaultFaqs : []),
-            ...customFaqs.map((faq, idx) => ({ id: `custom-${idx}`, ...faq }))
-          ];
-          
-          if (allFaqs.length === 0) return null;
-          
-          return (
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-              <div className="text-center mb-8 lg:mb-12">
-                <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-3">Preguntas Frecuentes</h2>
-              </div>
-              <Accordion type="single" collapsible className="w-full space-y-3">
-                {allFaqs.map((faq) => (
-                  <AccordionItem 
-                    key={faq.id} 
-                    value={faq.id} 
-                    className="bg-white rounded-xl border border-border px-5"
-                  >
-                    <AccordionTrigger className="text-left font-semibold hover:no-underline text-sm sm:text-base">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground text-sm">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
-          );
-        })()}
+        <FAQSection 
+          raffle={{
+            ticket_price: Number(raffle.ticket_price),
+            currency_code: raffle.currency_code,
+            draw_date: raffle.draw_date,
+            total_tickets: raffle.total_tickets,
+            max_tickets_per_person: raffle.max_tickets_per_person,
+            prize_name: raffle.prize_name,
+            prize_value: raffle.prize_value ? Number(raffle.prize_value) : undefined,
+            draw_method: raffle.draw_method,
+            lucky_numbers_enabled: raffle.lucky_numbers_enabled,
+            packages: raffle.packages?.map(p => ({ 
+              quantity: p.quantity, 
+              price: Number(p.price),
+              label: p.label 
+            }))
+          }}
+          organization={org ? {
+            name: org.name,
+            whatsapp_number: org.whatsapp_number,
+            email: org.email
+          } : null}
+          customization={customization}
+        />
 
         {/* Terms Section */}
         {raffle.prize_terms && (

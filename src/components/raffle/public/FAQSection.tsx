@@ -1,0 +1,318 @@
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { 
+  HelpCircle, 
+  DollarSign, 
+  Calendar, 
+  Ticket, 
+  Trophy, 
+  CreditCard, 
+  Shuffle,
+  Package,
+  User,
+  MessageCircle
+} from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/currency-utils';
+import { cn } from '@/lib/utils';
+
+interface FAQSectionProps {
+  raffle: {
+    ticket_price: number;
+    currency_code?: string | null;
+    draw_date?: string | null;
+    total_tickets: number;
+    max_tickets_per_person?: number | null;
+    prize_name: string;
+    prize_value?: number | null;
+    draw_method?: string | null;
+    lucky_numbers_enabled?: boolean | null;
+    packages?: Array<{ quantity: number; price: number; label?: string | null }>;
+  };
+  organization?: {
+    name: string;
+    whatsapp_number?: string | null;
+    email?: string | null;
+  } | null;
+  customization?: {
+    sections?: { faq?: boolean };
+    faq_config?: { 
+      show_default_faqs?: boolean; 
+      custom_faqs?: Array<{ question: string; answer: string }>;
+    };
+  };
+  className?: string;
+}
+
+interface SmartFAQ {
+  id: string;
+  question: string;
+  answer: string;
+  icon: React.ReactNode;
+  category: 'auto' | 'custom';
+}
+
+const DRAW_METHOD_LABELS: Record<string, string> = {
+  lottery_nacional: 'Lotería Nacional',
+  manual: 'Sorteo manual en vivo',
+  random_org: 'Random.org (generador aleatorio certificado)',
+};
+
+export function FAQSection({ raffle, organization, customization, className }: FAQSectionProps) {
+  const sections = customization?.sections || {};
+  const faqConfig = customization?.faq_config || { show_default_faqs: true, custom_faqs: [] };
+  const showFaqSection = sections.faq !== false;
+  const showDefaultFaqs = faqConfig.show_default_faqs !== false;
+  const customFaqs: Array<{ question: string; answer: string }> = faqConfig.custom_faqs || [];
+  
+  if (!showFaqSection) return null;
+
+  const currency = raffle.currency_code || 'MXN';
+  const packages = raffle.packages || [];
+
+  // Generate smart FAQs based on raffle data
+  const generateSmartFAQs = (): SmartFAQ[] => {
+    const faqs: SmartFAQ[] = [];
+
+    // Price FAQ
+    let priceAnswer = `Cada boleto tiene un precio de ${formatCurrency(raffle.ticket_price, currency)}.`;
+    if (packages.length > 0) {
+      const packagesList = packages
+        .map(p => `${p.quantity} boletos por ${formatCurrency(p.price, currency)}${p.label ? ` (${p.label})` : ''}`)
+        .join(', ');
+      priceAnswer += ` También ofrecemos paquetes con descuento: ${packagesList}.`;
+    }
+    faqs.push({
+      id: 'price',
+      question: '¿Cuánto cuesta cada boleto?',
+      answer: priceAnswer,
+      icon: <DollarSign className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Draw date FAQ
+    faqs.push({
+      id: 'when',
+      question: '¿Cuándo es el sorteo?',
+      answer: raffle.draw_date 
+        ? `El sorteo se realizará el ${format(new Date(raffle.draw_date), "EEEE dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}.`
+        : 'La fecha del sorteo será confirmada próximamente.',
+      icon: <Calendar className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Total tickets FAQ
+    faqs.push({
+      id: 'total',
+      question: '¿Cuántos boletos hay disponibles?',
+      answer: `Este sorteo cuenta con un total de ${raffle.total_tickets.toLocaleString()} boletos.`,
+      icon: <Ticket className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Prize FAQ
+    let prizeAnswer = `El premio principal es: ${raffle.prize_name}.`;
+    if (raffle.prize_value && raffle.prize_value > 0) {
+      prizeAnswer += ` Con un valor aproximado de ${formatCurrency(raffle.prize_value, currency)}.`;
+    }
+    faqs.push({
+      id: 'prize',
+      question: '¿Cuál es el premio?',
+      answer: prizeAnswer,
+      icon: <Trophy className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Draw method FAQ
+    if (raffle.draw_method) {
+      const methodLabel = DRAW_METHOD_LABELS[raffle.draw_method] || raffle.draw_method;
+      faqs.push({
+        id: 'method',
+        question: '¿Cómo se realizará el sorteo?',
+        answer: `El sorteo se realizará mediante: ${methodLabel}. Esto garantiza transparencia y equidad para todos los participantes.`,
+        icon: <Shuffle className="w-4 h-4" />,
+        category: 'auto'
+      });
+    }
+
+    // Max tickets per person
+    if (raffle.max_tickets_per_person && raffle.max_tickets_per_person > 0) {
+      faqs.push({
+        id: 'max',
+        question: '¿Cuántos boletos puedo comprar?',
+        answer: `Cada participante puede comprar hasta ${raffle.max_tickets_per_person} boleto${raffle.max_tickets_per_person > 1 ? 's' : ''}.`,
+        icon: <User className="w-4 h-4" />,
+        category: 'auto'
+      });
+    }
+
+    // Lucky numbers FAQ
+    if (raffle.lucky_numbers_enabled) {
+      faqs.push({
+        id: 'lucky',
+        question: '¿Puedo elegir mis números de la suerte?',
+        answer: '¡Sí! Este sorteo te permite seleccionar tus números favoritos. Al momento de comprar, podrás elegir los boletos específicos que deseas.',
+        icon: <Ticket className="w-4 h-4" />,
+        category: 'auto'
+      });
+    }
+
+    // Packages FAQ
+    if (packages.length > 0) {
+      faqs.push({
+        id: 'packages',
+        question: '¿Hay descuentos por comprar varios boletos?',
+        answer: `¡Sí! Ofrecemos paquetes con descuento: ${packages.map(p => `${p.quantity} boletos por ${formatCurrency(p.price, currency)}`).join(', ')}.`,
+        icon: <Package className="w-4 h-4" />,
+        category: 'auto'
+      });
+    }
+
+    // How to participate FAQ
+    faqs.push({
+      id: 'how',
+      question: '¿Cómo participo?',
+      answer: 'Selecciona tus boletos, completa tus datos, realiza el pago y sube tu comprobante. Una vez verificado tu pago, recibirás la confirmación de tu participación.',
+      icon: <HelpCircle className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Winner notification FAQ
+    faqs.push({
+      id: 'winner',
+      question: '¿Cómo sé si gané?',
+      answer: `Te contactaremos por email y teléfono si resultas ganador.${organization?.name ? ` También publicaremos los resultados en las redes de ${organization.name}.` : ''}`,
+      icon: <Trophy className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Payment methods FAQ
+    faqs.push({
+      id: 'payment',
+      question: '¿Qué métodos de pago aceptan?',
+      answer: 'Aceptamos transferencia bancaria, depósito en efectivo y otros métodos de pago. Verás las opciones disponibles al momento de completar tu compra.',
+      icon: <CreditCard className="w-4 h-4" />,
+      category: 'auto'
+    });
+
+    // Contact FAQ
+    if (organization?.whatsapp_number || organization?.email) {
+      let contactAnswer = 'Puedes contactar al organizador ';
+      if (organization.whatsapp_number) {
+        contactAnswer += `por WhatsApp`;
+        if (organization.email) {
+          contactAnswer += ` o por correo electrónico a ${organization.email}`;
+        }
+      } else if (organization.email) {
+        contactAnswer += `por correo electrónico a ${organization.email}`;
+      }
+      contactAnswer += '.';
+      
+      faqs.push({
+        id: 'contact',
+        question: '¿Cómo puedo contactar al organizador?',
+        answer: contactAnswer,
+        icon: <MessageCircle className="w-4 h-4" />,
+        category: 'auto'
+      });
+    }
+
+    return faqs;
+  };
+
+  const smartFaqs = showDefaultFaqs ? generateSmartFAQs() : [];
+  
+  // Convert custom FAQs to SmartFAQ format
+  const customFaqsFormatted: SmartFAQ[] = customFaqs.map((faq, idx) => ({
+    id: `custom-${idx}`,
+    question: faq.question,
+    answer: faq.answer,
+    icon: <HelpCircle className="w-4 h-4" />,
+    category: 'custom' as const
+  }));
+
+  const allFaqs = [...smartFaqs, ...customFaqsFormatted];
+  
+  if (allFaqs.length === 0) return null;
+
+  // Separate into auto-generated and custom for visual differentiation
+  const autoFaqs = allFaqs.filter(f => f.category === 'auto');
+  const orgFaqs = allFaqs.filter(f => f.category === 'custom');
+
+  return (
+    <div className={cn("max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16", className)}>
+      <div className="text-center mb-8 lg:mb-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <HelpCircle className="w-4 h-4" />
+          Resolvemos tus dudas
+        </div>
+        <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-3">
+          Preguntas Frecuentes
+        </h2>
+        <p className="text-muted-foreground">
+          Todo lo que necesitas saber sobre este sorteo
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Auto-generated FAQs */}
+        {autoFaqs.length > 0 && (
+          <Accordion type="single" collapsible className="w-full space-y-2">
+            {autoFaqs.map((faq) => (
+              <AccordionItem 
+                key={faq.id} 
+                value={faq.id} 
+                className="bg-card rounded-xl border border-border px-4 sm:px-5 overflow-hidden"
+              >
+                <AccordionTrigger className="text-left font-semibold hover:no-underline text-sm sm:text-base py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      {faq.icon}
+                    </div>
+                    <span>{faq.question}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm pb-4 pl-11">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
+
+        {/* Custom FAQs from organizer */}
+        {orgFaqs.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                Del organizador
+              </Badge>
+            </div>
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              {orgFaqs.map((faq) => (
+                <AccordionItem 
+                  key={faq.id} 
+                  value={faq.id} 
+                  className="bg-accent/50 rounded-xl border border-border px-4 sm:px-5 overflow-hidden"
+                >
+                  <AccordionTrigger className="text-left font-semibold hover:no-underline text-sm sm:text-base py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center">
+                        {faq.icon}
+                      </div>
+                      <span>{faq.question}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground text-sm pb-4 pl-11">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
