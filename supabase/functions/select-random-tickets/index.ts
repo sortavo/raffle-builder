@@ -5,10 +5,61 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============ INLINE RATE LIMITER ============
+interface RateLimitEntry { count: number; windowStart: number; }
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+function checkRateLimit(identifier: string, maxRequests: number, windowMs: number) {
+  const now = Date.now();
+  let entry = rateLimitStore.get(identifier);
+  
+  if (!entry || now - entry.windowStart > windowMs) {
+    entry = { count: 1, windowStart: now };
+    rateLimitStore.set(identifier, entry);
+    return { allowed: true, remaining: maxRequests - 1, retryAfter: 0 };
+  }
+  
+  if (entry.count >= maxRequests) {
+    const retryAfter = Math.ceil((entry.windowStart + windowMs - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfter };
+  }
+  
+  entry.count++;
+  return { allowed: true, remaining: maxRequests - entry.count, retryAfter: 0 };
+}
+
+function getClientIP(req: Request): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+    || req.headers.get('x-real-ip') 
+    || req.headers.get('cf-connecting-ip') 
+    || 'unknown';
+}
+// ============================================
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limit: 30 requests per minute per IP
+  const clientIP = getClientIP(req);
+  const rateLimit = checkRateLimit(`random-tickets:${clientIP}`, 30, 60000);
+  
+  if (!rateLimit.allowed) {
+    console.warn(`[RATE-LIMIT] IP ${clientIP} exceeded limit for select-random-tickets`);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Demasiadas solicitudes. Intenta de nuevo en ' + rateLimit.retryAfter + ' segundos.' 
+      }),
+      { 
+        status: 429, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Retry-After': rateLimit.retryAfter.toString(),
+        } 
+      }
+    );
   }
 
   try {
@@ -21,7 +72,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Maximum limit to prevent memory issues - 100,000 tickets per request
     const MAX_TICKETS = 100000;
     if (quantity > MAX_TICKETS) {
       return new Response(
@@ -34,18 +84,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`[SELECT-RANDOM] Selecting ${quantity} random tickets for raffle ${raffle_id}`);
-    console.log(`[SELECT-RANDOM] Excluding ${exclude_numbers.length} numbers`);
+    console.log(`[SELECT-RANDOM] IP: ${clientIP}, Selecting ${quantity} random tickets for raffle ${raffle_id}`);
 
-    // First, get total count of available tickets (excluding the ones already selected)
-    let countQuery = supabase
+    // Get total count of available tickets
+    const { count: totalAvailable, error: countError } = await supabase
       .from('tickets')
       .select('*', { count: 'exact', head: true })
       .eq('raffle_id', raffle_id)
       .eq('status', 'available');
-    
-    // Note: We can't efficiently exclude in the count query, so we'll handle it below
-    const { count: totalAvailable, error: countError } = await countQuery;
 
     if (countError) {
       console.error('[SELECT-RANDOM] Error counting tickets:', countError);
@@ -53,7 +99,6 @@ Deno.serve(async (req) => {
     }
 
     if (!totalAvailable || totalAvailable === 0) {
-      console.log('[SELECT-RANDOM] No available tickets found');
       return new Response(
         JSON.stringify({ 
           error: 'No available tickets found', 
@@ -65,24 +110,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SELECT-RANDOM] Total available tickets: ${totalAvailable}`);
+    console.log(`[SELECT-RANDOM] Total available: ${totalAvailable}`);
 
-    // Strategy: Use random offset sampling for efficiency with large datasets
-    // Generate multiple random offsets and fetch one ticket at each offset
     const excludeSet = new Set(exclude_numbers);
     const selectedTickets: string[] = [];
-    const maxAttempts = quantity * 3; // Allow retries for excluded numbers
+    const maxAttempts = quantity * 3;
     let attempts = 0;
 
-    // For small quantities relative to total, use random offset method
-    // For larger quantities, fetch a batch and shuffle
     const useOffsetMethod = quantity <= 1000 && totalAvailable > 10000;
 
     if (useOffsetMethod) {
-      console.log(`[SELECT-RANDOM] Using random offset method for ${quantity} tickets`);
-      
       while (selectedTickets.length < quantity && attempts < maxAttempts) {
-        // Generate cryptographically secure random offset
         const randomBytes = new Uint32Array(1);
         crypto.getRandomValues(randomBytes);
         const randomOffset = randomBytes[0] % totalAvailable;
@@ -97,26 +135,15 @@ Deno.serve(async (req) => {
           .single();
 
         attempts++;
-
         if (error || !ticket) continue;
 
         const ticketNum = ticket.ticket_number;
-        
-        // Skip if excluded or already selected
-        if (excludeSet.has(ticketNum) || selectedTickets.includes(ticketNum)) {
-          continue;
-        }
+        if (excludeSet.has(ticketNum) || selectedTickets.includes(ticketNum)) continue;
 
         selectedTickets.push(ticketNum);
       }
     } else {
-      console.log(`[SELECT-RANDOM] Using batch shuffle method for ${quantity} tickets`);
-      
-      // For larger quantities, fetch more tickets and shuffle client-side
-      // But use random starting offset to ensure we're sampling from the whole pool
       const batchSize = Math.min(quantity * 2 + exclude_numbers.length, 50000);
-      
-      // Generate random starting offset for variety
       const randomBytes = new Uint32Array(1);
       crypto.getRandomValues(randomBytes);
       const startOffset = totalAvailable > batchSize 
@@ -131,16 +158,12 @@ Deno.serve(async (req) => {
         .order('ticket_index', { ascending: true })
         .range(startOffset, startOffset + batchSize - 1);
 
-      if (error) {
-        console.error('[SELECT-RANDOM] Error fetching batch:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (tickets && tickets.length > 0) {
-        // Filter out excluded
         const filtered = tickets.filter(t => !excludeSet.has(t.ticket_number));
         
-        // Fisher-Yates shuffle for true randomness
+        // Fisher-Yates shuffle
         for (let i = filtered.length - 1; i > 0; i--) {
           const randomBytes = new Uint32Array(1);
           crypto.getRandomValues(randomBytes);
@@ -148,7 +171,6 @@ Deno.serve(async (req) => {
           [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
         }
         
-        // Take what we need
         const needed = Math.min(quantity, filtered.length);
         for (let i = 0; i < needed; i++) {
           selectedTickets.push(filtered[i].ticket_number);
@@ -156,9 +178,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[SELECT-RANDOM] Selected ${selectedTickets.length} of ${quantity} requested tickets`);
+    console.log(`[SELECT-RANDOM] Selected ${selectedTickets.length} of ${quantity} requested`);
 
-    // Build response
     const response: {
       selected: string[];
       requested: number;
@@ -170,15 +191,19 @@ Deno.serve(async (req) => {
       available: totalAvailable - exclude_numbers.length
     };
 
-    // Add warning if we couldn't fulfill the full request
     if (selectedTickets.length < quantity) {
       response.warning = `Solo ${selectedTickets.length} boletos disponibles de los ${quantity} solicitados`;
-      console.log(`[SELECT-RANDOM] Warning: ${response.warning}`);
     }
 
     return new Response(
       JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        } 
+      }
     );
 
   } catch (error) {

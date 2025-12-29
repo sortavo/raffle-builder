@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +14,20 @@ interface ServiceHealth {
   lastChecked: string;
 }
 
+interface SystemMetrics {
+  database: {
+    ticketCount: number;
+    raffleCount: number;
+    organizationCount: number;
+    activeRaffleCount: number;
+  };
+  performance: {
+    avgDbLatency: number;
+    avgAuthLatency: number;
+    avgStorageLatency: number;
+  };
+}
+
 const measureTime = async <T>(fn: () => Promise<T>): Promise<{ result: T; duration: number }> => {
   const start = performance.now();
   const result = await fn();
@@ -22,15 +35,23 @@ const measureTime = async <T>(fn: () => Promise<T>): Promise<{ result: T; durati
   return { result, duration };
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   const services: ServiceHealth[] = [];
   const now = new Date().toISOString();
+  let dbLatencies: number[] = [];
+  let metrics: SystemMetrics | null = null;
 
-  // 1. Check Database
+  // Parse query params for detailed mode
+  const url = new URL(req.url);
+  const detailed = url.searchParams.get('detailed') === 'true';
+
+  console.log(`[HEALTH-CHECK] Starting health check, detailed=${detailed}`);
+
+  // 1. Check Database with metrics
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -43,6 +64,31 @@ serve(async (req) => {
       if (error) throw error;
       return true;
     });
+    dbLatencies.push(duration);
+
+    // Get system metrics if detailed mode
+    if (detailed) {
+      const [ticketResult, raffleResult, orgResult, activeResult] = await Promise.all([
+        supabase.from('tickets').select('*', { count: 'exact', head: true }),
+        supabase.from('raffles').select('*', { count: 'exact', head: true }),
+        supabase.from('organizations').select('*', { count: 'exact', head: true }),
+        supabase.from('raffles').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      ]);
+
+      metrics = {
+        database: {
+          ticketCount: ticketResult.count || 0,
+          raffleCount: raffleResult.count || 0,
+          organizationCount: orgResult.count || 0,
+          activeRaffleCount: activeResult.count || 0,
+        },
+        performance: {
+          avgDbLatency: 0,
+          avgAuthLatency: 0,
+          avgStorageLatency: 0,
+        },
+      };
+    }
 
     services.push({
       name: "Base de Datos",
@@ -98,31 +144,16 @@ serve(async (req) => {
     });
   }
 
-  // 3. Check Edge Functions (self-check)
-  try {
-    const { duration } = await measureTime(async () => {
-      // Simple self-check - if we got here, edge functions are working
-      return true;
-    });
-
-    services.push({
-      name: "API / Edge Functions",
-      status: "operational",
-      responseTime: duration,
-      lastChecked: now,
-    });
-  } catch (error) {
-    console.error("[HEALTH-CHECK] Edge functions error:", error);
-    services.push({
-      name: "API / Edge Functions",
-      status: "outage",
-      responseTime: 0,
-      message: error instanceof Error ? error.message : "Error",
-      lastChecked: now,
-    });
-  }
+  // 3. Check Edge Functions
+  services.push({
+    name: "API / Edge Functions",
+    status: "operational",
+    responseTime: 1,
+    lastChecked: now,
+  });
 
   // 4. Check Auth Service
+  let authLatency = 0;
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -131,12 +162,11 @@ serve(async (req) => {
     );
 
     const { duration } = await measureTime(async () => {
-      // Check if auth service responds
       const { error } = await supabase.auth.getSession();
-      // No error means auth is responding (session might be null, that's ok)
       if (error && !error.message.includes("session")) throw error;
       return true;
     });
+    authLatency = duration;
 
     services.push({
       name: "Autenticación",
@@ -155,7 +185,7 @@ serve(async (req) => {
     });
   }
 
-  // 5. Check Email Service (Resend) - ping test
+  // 5. Check Email Service (Resend)
   try {
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -200,6 +230,7 @@ serve(async (req) => {
   }
 
   // 6. Check Storage
+  let storageLatency = 0;
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -212,6 +243,7 @@ serve(async (req) => {
       if (error) throw error;
       return true;
     });
+    storageLatency = duration;
 
     services.push({
       name: "Almacenamiento",
@@ -235,12 +267,40 @@ serve(async (req) => {
   const hasDegraded = services.some(s => s.status === "degraded");
   const overallStatus = hasOutage ? "outage" : hasDegraded ? "degraded" : "operational";
 
-  return new Response(JSON.stringify({
+  // Calculate average latencies for metrics
+  if (metrics) {
+    metrics.performance.avgDbLatency = dbLatencies.length > 0 
+      ? Math.round(dbLatencies.reduce((a, b) => a + b, 0) / dbLatencies.length) 
+      : 0;
+    metrics.performance.avgAuthLatency = authLatency;
+    metrics.performance.avgStorageLatency = storageLatency;
+  }
+
+  const response: {
+    status: string;
+    services: ServiceHealth[];
+    checkedAt: string;
+    version: string;
+    metrics?: SystemMetrics;
+  } = {
     status: overallStatus,
     services,
     checkedAt: now,
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    version: "1.1.0",
+  };
+
+  if (detailed && metrics) {
+    response.metrics = metrics;
+  }
+
+  console.log(`[HEALTH-CHECK] Complete. Status: ${overallStatus}, Services: ${services.length}`);
+
+  return new Response(JSON.stringify(response), {
+    headers: { 
+      ...corsHeaders, 
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    },
     status: 200,
   });
 });

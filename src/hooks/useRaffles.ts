@@ -70,6 +70,8 @@ export const useRaffles = () => {
         return data as Raffle[];
       },
       enabled: !!organization?.id,
+      staleTime: 30000, // Cache for 30 seconds
+      gcTime: 120000, // Keep in cache for 2 minutes
     });
   };
 
@@ -156,6 +158,8 @@ export const useRaffles = () => {
         } as RaffleWithStats;
       },
       enabled: !!raffleId,
+      staleTime: 15000, // Cache for 15 seconds
+      gcTime: 60000, // Keep in cache for 1 minute
     });
   };
 

@@ -134,7 +134,8 @@ export function usePublicRaffle(slug: string | undefined) {
       };
     },
     enabled: !!slug,
-    staleTime: 30000,
+    staleTime: 60000, // Cache for 1 minute (was 30s)
+    gcTime: 300000, // Keep in cache for 5 minutes
   });
 }
 

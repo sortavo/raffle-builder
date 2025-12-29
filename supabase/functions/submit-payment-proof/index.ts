@@ -5,16 +5,67 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============ INLINE RATE LIMITER ============
+interface RateLimitEntry { count: number; windowStart: number; }
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+function checkRateLimit(identifier: string, maxRequests: number, windowMs: number) {
+  const now = Date.now();
+  let entry = rateLimitStore.get(identifier);
+  
+  if (!entry || now - entry.windowStart > windowMs) {
+    entry = { count: 1, windowStart: now };
+    rateLimitStore.set(identifier, entry);
+    return { allowed: true, remaining: maxRequests - 1, retryAfter: 0 };
+  }
+  
+  if (entry.count >= maxRequests) {
+    const retryAfter = Math.ceil((entry.windowStart + windowMs - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfter };
+  }
+  
+  entry.count++;
+  return { allowed: true, remaining: maxRequests - entry.count, retryAfter: 0 };
+}
+
+function getClientIP(req: Request): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+    || req.headers.get('x-real-ip') 
+    || req.headers.get('cf-connecting-ip') 
+    || 'unknown';
+}
+// ============================================
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limit: 10 requests per minute per IP (strict for payment submissions)
+  const clientIP = getClientIP(req);
+  const rateLimit = checkRateLimit(`payment-proof:${clientIP}`, 10, 60000);
+  
+  if (!rateLimit.allowed) {
+    console.warn(`[RATE-LIMIT] IP ${clientIP} exceeded limit for submit-payment-proof`);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Demasiadas solicitudes. Intenta de nuevo en ' + rateLimit.retryAfter + ' segundos.' 
+      }),
+      { 
+        status: 429, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Retry-After': rateLimit.retryAfter.toString(),
+        } 
+      }
+    );
   }
 
   try {
     const { raffleId, referenceCode, publicUrl, buyerEmail } = await req.json();
 
-    // Validate required fields
     if (!raffleId || !referenceCode || !publicUrl) {
       console.error('Missing required fields:', { raffleId, referenceCode, publicUrl: !!publicUrl });
       return new Response(
@@ -23,22 +74,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Processing payment proof for raffle ${raffleId}, reference ${referenceCode}, email: ${buyerEmail || 'not provided'}`);
+    console.log(`[PAYMENT-PROOF] Processing for raffle ${raffleId}, reference ${referenceCode}, IP: ${clientIP}`);
 
-    // Create Supabase client with service role for reliable updates
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // First, verify tickets exist for this reference code
-    let query = supabase
+    // Verify tickets exist for this reference code
+    const { data: existingTickets, error: queryError } = await supabase
       .from('tickets')
       .select('id, ticket_number, buyer_email, buyer_name, payment_proof_url')
       .eq('raffle_id', raffleId)
       .eq('payment_reference', referenceCode)
       .eq('status', 'reserved');
-
-    const { data: existingTickets, error: queryError } = await query;
 
     if (queryError) {
       console.error('Error querying tickets:', queryError);
@@ -65,7 +113,6 @@ Deno.serve(async (req) => {
       const ticketEmail = existingTickets[0]?.buyer_email?.toLowerCase();
       if (ticketEmail && ticketEmail !== buyerEmail.toLowerCase()) {
         console.warn('Email mismatch:', { provided: buyerEmail, stored: ticketEmail });
-        // We log but don't block - the reference code is the primary key
       }
     }
 
@@ -92,9 +139,9 @@ Deno.serve(async (req) => {
     }
 
     const updatedCount = updatedTickets?.length || 0;
-    console.log(`Updated ${updatedCount} tickets with payment proof`);
+    console.log(`[PAYMENT-PROOF] Updated ${updatedCount} tickets with payment proof`);
 
-    // Get raffle info to notify the organizer
+    // Notify the organizer
     if (updatedCount > 0) {
       const { data: raffle } = await supabase
         .from('raffles')
@@ -104,11 +151,8 @@ Deno.serve(async (req) => {
 
       if (raffle?.created_by && raffle?.organization_id) {
         const ticketNumbers = updatedTickets.map(t => t.ticket_number);
-        
-        // Get buyer name from one of the existing tickets
         const buyerName = existingTickets[0]?.buyer_name || 'Un comprador';
 
-        // Create notification for organizer
         await supabase.from('notifications').insert({
           user_id: raffle.created_by,
           organization_id: raffle.organization_id,
@@ -134,7 +178,14 @@ Deno.serve(async (req) => {
         ticketNumbers: updatedTickets?.map(t => t.ticket_number) || [],
         replacedPrevious: hadPreviousProof,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        } 
+      }
     );
   } catch (error) {
     console.error('Unexpected error:', error);
