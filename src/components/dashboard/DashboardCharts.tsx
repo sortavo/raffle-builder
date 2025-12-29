@@ -13,7 +13,7 @@ import {
   PieChart,
   Pie
 } from "recharts";
-import { TrendingUp, TrendingDown, BarChart3, PieChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, PieChartIcon, Percent } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +30,8 @@ interface RaffleSales {
   total: number;
   revenue: number;
   color: string;
+  hasDiscounts: boolean;
+  discountAmount: number;
 }
 
 interface RevenueChartProps {
@@ -94,6 +96,12 @@ const SalesTooltip = ({ active, payload }: any) => {
           <p className="text-sm text-muted-foreground">
             Ingresos: <span className="font-semibold text-foreground">{formatCurrency(data?.revenue || 0)}</span>
           </p>
+          {data?.hasDiscounts && (
+            <p className="text-sm text-orange-500 flex items-center gap-1">
+              <Percent className="w-3 h-3" />
+              Descuentos: <span className="font-semibold">-{formatCurrency(data?.discountAmount || 0)}</span>
+            </p>
+          )}
         </div>
       </div>
     );
@@ -308,8 +316,25 @@ export function SalesChart({ data, totalTickets, ticketsChange }: SalesChartProp
               <span className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[80px] sm:max-w-none">
                 {truncateName(item.name, 12)}
               </span>
+              {item.hasDiscounts && (
+                <span className="text-[9px] sm:text-[10px] bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                  <Percent className="w-2.5 h-2.5" />
+                </span>
+              )}
             </div>
           ))}
+        </div>
+      )}
+      
+      {/* Discount indicator summary */}
+      {data.some(item => item.hasDiscounts) && (
+        <div className="mt-3 flex items-center gap-2 text-xs text-orange-500 bg-orange-500/10 px-3 py-2 rounded-lg">
+          <Percent className="w-3.5 h-3.5" />
+          <span>
+            Paquetes con descuento aplicados: <span className="font-semibold">
+              -{formatCurrency(data.reduce((sum, item) => sum + item.discountAmount, 0))}
+            </span>
+          </span>
         </div>
       )}
     </div>

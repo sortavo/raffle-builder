@@ -18,6 +18,8 @@ interface RaffleSales {
   total: number;
   revenue: number;
   color: string;
+  hasDiscounts: boolean;
+  discountAmount: number;
 }
 
 interface ChartData {
@@ -233,7 +235,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
         };
       });
 
-      // Build raffle sales breakdown with correct revenue calculation
+      // Build raffle sales breakdown with correct revenue calculation and discount detection
       const raffleSales: RaffleSales[] = raffles
         ?.filter(r => r.status === "active" || r.status === "completed")
         .map((raffle, index) => {
@@ -244,6 +246,13 @@ export function useDashboardCharts(dateRange?: DateRange) {
 
           // Calculate revenue correctly using order_total grouped by payment_reference
           const raffleRevenue = calculateRevenue(soldTickets, raffles);
+          
+          // Calculate expected revenue without discounts (tickets * price)
+          const expectedRevenue = soldCount * Number(raffle.ticket_price);
+          
+          // Detect if discounts were applied
+          const hasDiscounts = raffleRevenue < expectedRevenue && raffleRevenue > 0;
+          const discountAmount = hasDiscounts ? expectedRevenue - raffleRevenue : 0;
 
           return {
             name: raffle.title.length > 20 ? raffle.title.substring(0, 20) + "..." : raffle.title,
@@ -252,6 +261,8 @@ export function useDashboardCharts(dateRange?: DateRange) {
             total: raffle.total_tickets,
             revenue: raffleRevenue,
             color: CHART_COLORS[index % CHART_COLORS.length],
+            hasDiscounts,
+            discountAmount,
           };
         })
         .sort((a, b) => b.sold - a.sold)
