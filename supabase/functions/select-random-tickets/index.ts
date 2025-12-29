@@ -31,9 +31,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (quantity > 10000) {
+    // Maximum limit to prevent memory issues - 100,000 tickets
+    const MAX_TICKETS = 100000;
+    if (quantity > MAX_TICKETS) {
       return new Response(
-        JSON.stringify({ error: 'Maximum 10,000 tickets per request' }),
+        JSON.stringify({ error: `Máximo ${MAX_TICKETS.toLocaleString()} boletos por solicitud` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -46,9 +48,9 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] Excluding ${exclude_numbers.length} numbers`);
 
     // Calculate appropriate limit based on quantity requested
-    // We need to fetch enough tickets to have a good pool for random selection
-    // IMPORTANT: Supabase has a default limit of 1000 rows, so we must explicitly set a higher limit
-    const fetchLimit = Math.max(quantity * 3, 50000);
+    // Fetch more than requested to have a good pool after filtering exclusions
+    // IMPORTANT: Supabase default limit is 1000, so we MUST set explicit higher limit
+    const fetchLimit = Math.min(Math.max(quantity * 2, 100000), 500000);
 
     console.log(`[SELECT-RANDOM] Fetching up to ${fetchLimit} tickets`);
 
