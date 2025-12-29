@@ -538,8 +538,8 @@ export function TicketSelector({
   }, [showRandomPicker, showLuckyNumbers]);
 
   return (
-    <div className="space-y-6">
-      {/* Probability Stats */}
+    <div className="space-y-6 pb-40 sm:pb-48">
+      {/* Add bottom padding to prevent FloatingCartButton overlap */}
       {showProbabilityStats && (
         <ProbabilityStats
           totalTickets={totalTickets}
@@ -680,8 +680,8 @@ export function TicketSelector({
                   ) : (
                     <>
                       {/* Results summary */}
-                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
-                        <div className="flex items-center gap-3 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-muted/50 rounded-xl">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                           <span className="font-medium">
                             {manualResults.length} encontrados
                           </span>
@@ -715,7 +715,7 @@ export function TicketSelector({
                                 toast.success(`${newTickets.length} boletos agregados`);
                               }
                             }}
-                            className="text-xs"
+                            className="text-xs w-full sm:w-auto sm:ml-auto"
                           >
                             <Check className="w-3 h-3 mr-1" />
                             Seleccionar
@@ -1278,15 +1278,15 @@ export function TicketSelector({
                     ) : (
                       <>
                         {/* Results summary */}
-                        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
-                          <div className="flex items-center gap-4 text-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-xl">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                             <span className="font-medium">
-                              {searchResults.length} boletos encontrados
+                              {searchResults.length} encontrados
                             </span>
                             <span className="text-green-600">
                               ✓ {searchResults.filter(t => t.status === 'available').length} disponibles
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-muted-foreground hidden sm:inline">
                               • {searchResults.filter(t => t.status !== 'available').length} no disponibles
                             </span>
                           </div>
@@ -1295,10 +1295,11 @@ export function TicketSelector({
                               variant="outline"
                               size="sm"
                               onClick={handleSelectAllAvailableResults}
-                              className="text-xs"
+                              className="text-xs w-full sm:w-auto sm:ml-auto"
                             >
                               <Check className="w-3 h-3 mr-1" />
-                              Seleccionar disponibles
+                              <span className="sm:hidden">Seleccionar</span>
+                              <span className="hidden sm:inline">Seleccionar disponibles</span>
                             </Button>
                           )}
                         </div>
