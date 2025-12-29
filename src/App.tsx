@@ -51,17 +51,17 @@ import AdminUsers from "./pages/admin/AdminUsers";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <SimulationProvider>
-              <ScrollToTop />
-              <SimulationBanner />
-              <SentryErrorBoundary>
+  <SentryErrorBoundary>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <SimulationProvider>
+                <ScrollToTop />
+                <SimulationBanner />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
@@ -120,13 +120,13 @@ const App = () => (
                   <Route path="/:orgSlug/:slug/payment" element={<PaymentInstructions />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </SentryErrorBoundary>
-            </SimulationProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+              </SimulationProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </SentryErrorBoundary>
 );
 
 export default App;

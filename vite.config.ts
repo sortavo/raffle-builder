@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins,
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },

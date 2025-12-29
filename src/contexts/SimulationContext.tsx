@@ -50,7 +50,16 @@ const SimulationContext = createContext<SimulationContextType | undefined>(undef
 const SIMULATION_STORAGE_KEY = "admin_simulation";
 
 export function SimulationProvider({ children }: { children: ReactNode }) {
-  const { user: actualUser } = useAuth();
+  // Use try-catch pattern to handle potential context issues during initialization
+  let actualUser = null;
+  try {
+    const auth = useAuth();
+    actualUser = auth?.user ?? null;
+  } catch {
+    // AuthProvider may not be ready yet during initial render
+    console.warn("SimulationProvider: AuthProvider not ready yet");
+  }
+
   const [state, setState] = useState<SimulationState>({
     isSimulating: false,
     simulationId: null,
