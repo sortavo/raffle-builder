@@ -150,13 +150,12 @@ export function TicketSelector({
         setIsManualSearching(true);
         setManualOffset(0);
         try {
-          const { data, error } = await supabase
-            .from('tickets')
-            .select('id, ticket_number, status')
-            .eq('raffle_id', raffleId)
-            .ilike('ticket_number', `%${debouncedManual.trim()}%`)
-            .order('ticket_number', { ascending: true })
-            .range(0, 99);
+          // Use secure RPC function that only returns public fields
+          const { data, error } = await supabase.rpc('search_public_tickets', {
+            p_raffle_id: raffleId,
+            p_search: debouncedManual.trim(),
+            p_limit: 100,
+          });
 
           if (!error && data) {
             setManualResults(data);
@@ -186,18 +185,20 @@ export function TicketSelector({
     const newOffset = manualOffset + 100;
     
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('id, ticket_number, status')
-        .eq('raffle_id', raffleId)
-        .ilike('ticket_number', `%${debouncedManual.trim()}%`)
-        .order('ticket_number', { ascending: true })
-        .range(newOffset, newOffset + 99);
+      // Note: For simplicity, we fetch from beginning with higher limit
+      // The RPC function doesn't support offset directly
+      const { data, error } = await supabase.rpc('search_public_tickets', {
+        p_raffle_id: raffleId,
+        p_search: debouncedManual.trim(),
+        p_limit: newOffset + 100,
+      });
 
       if (!error && data) {
-        setManualResults(prev => [...prev, ...data]);
+        // Only add tickets we haven't seen before
+        const newTickets = data.slice(manualOffset);
+        setManualResults(prev => [...prev, ...newTickets]);
         setManualOffset(newOffset);
-        setHasMoreManual(data.length === 100);
+        setHasMoreManual(newTickets.length === 100);
       }
     } catch {
       // Error handled silently
@@ -215,13 +216,12 @@ export function TicketSelector({
       if (debouncedSearch.trim().length > 0) {
         setIsSearching(true);
         try {
-          const { data, error } = await supabase
-            .from('tickets')
-            .select('id, ticket_number, status')
-            .eq('raffle_id', raffleId)
-            .ilike('ticket_number', `%${debouncedSearch.trim()}%`)
-            .order('ticket_number', { ascending: true })
-            .limit(100);
+          // Use secure RPC function that only returns public fields
+          const { data, error } = await supabase.rpc('search_public_tickets', {
+            p_raffle_id: raffleId,
+            p_search: debouncedSearch.trim(),
+            p_limit: 100,
+          });
 
           if (!error && data) {
             setSearchResults(data);
@@ -405,15 +405,16 @@ export function TicketSelector({
       // Pad the ticket number to match format
       const ticketNum = manualFilter.padStart(maxDigits, '0');
       
-      // Verify the ticket exists
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('ticket_number, status')
-        .eq('raffle_id', raffleId)
-        .eq('ticket_number', ticketNum)
-        .maybeSingle();
+      // Verify the ticket exists using secure RPC
+      const { data, error } = await supabase.rpc('search_public_tickets', {
+        p_raffle_id: raffleId,
+        p_search: ticketNum,
+        p_limit: 1,
+      });
       
-      if (error || !data) {
+      const ticket = data?.[0];
+      
+      if (error || !ticket || ticket.ticket_number !== ticketNum) {
         toast.error(`Boleto ${ticketNum} no encontrado`);
         return;
       }
@@ -432,9 +433,9 @@ export function TicketSelector({
       setPage(targetPage);
       
       toast.success(`Navegando al boleto ${ticketNum}`, {
-        description: data.status === 'available' ? 'Disponible' : 
-                     data.status === 'sold' ? 'Vendido' : 
-                     data.status === 'reserved' ? 'Reservado' : 'No disponible'
+        description: ticket.status === 'available' ? 'Disponible' : 
+                     ticket.status === 'sold' ? 'Vendido' : 
+                     ticket.status === 'reserved' ? 'Reservado' : 'No disponible'
       });
     } catch {
       toast.error('Error al buscar el boleto');
@@ -454,13 +455,12 @@ export function TicketSelector({
     if (!searchTerm.trim()) return;
     
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('id, ticket_number, status')
-        .eq('raffle_id', raffleId)
-        .ilike('ticket_number', `%${searchTerm.trim()}%`)
-        .order('ticket_number', { ascending: true })
-        .limit(100);
+      // Use secure RPC function that only returns public fields
+      const { data, error } = await supabase.rpc('search_public_tickets', {
+        p_raffle_id: raffleId,
+        p_search: searchTerm.trim(),
+        p_limit: 100,
+      });
 
       if (!error && data) {
         setSearchResults(data);

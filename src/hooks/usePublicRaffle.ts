@@ -145,21 +145,28 @@ export function usePublicTickets(raffleId: string | undefined, page: number = 1,
     queryFn: async () => {
       if (!raffleId) return { tickets: [], count: 0 };
 
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
+      // Use secure RPC function that only returns public fields
+      // (id, ticket_number, ticket_index, status, buyer_name, buyer_city)
+      // Protected: buyer_email, buyer_phone, payment_reference, order_total
+      const [ticketsResult, countsResult] = await Promise.all([
+        supabase.rpc('get_public_tickets', {
+          p_raffle_id: raffleId,
+          p_page: page,
+          p_page_size: pageSize,
+        }),
+        supabase.rpc('get_public_ticket_counts', {
+          p_raffle_id: raffleId,
+        }),
+      ]);
 
-      const { data, error, count } = await supabase
-        .from('tickets')
-        .select('id, ticket_number, status, reserved_until', { count: 'exact' })
-        .eq('raffle_id', raffleId)
-        .order('ticket_number', { ascending: true })
-        .range(from, to);
+      if (ticketsResult.error) throw ticketsResult.error;
+      if (countsResult.error) throw countsResult.error;
 
-      if (error) throw error;
+      const counts = countsResult.data?.[0];
 
       return {
-        tickets: data || [],
-        count: count || 0,
+        tickets: ticketsResult.data || [],
+        count: counts?.total_count || 0,
       };
     },
     enabled: !!raffleId,
@@ -589,7 +596,7 @@ export function useSearchTickets() {
     mutationFn: async ({
       raffleId,
       searchTerm,
-      limit = 100,
+      limit = 50,
     }: {
       raffleId: string;
       searchTerm: string;
@@ -599,25 +606,13 @@ export function useSearchTickets() {
 
       const term = searchTerm.trim();
       
-      // Optimize search: use prefix match when possible (much faster with index)
-      // Only use ILIKE with leading wildcard for short search terms
-      let query = supabase
-        .from('tickets')
-        .select('id, ticket_number, status')
-        .eq('raffle_id', raffleId);
-
-      // If the search term looks like a ticket number (padded), use exact or prefix match
-      if (term.length >= 3) {
-        // Use prefix matching for longer terms (faster with btree index)
-        query = query.gte('ticket_number', term).lt('ticket_number', term + 'z');
-      } else {
-        // For short terms, use ILIKE but with suffix match (no leading wildcard = uses index)
-        query = query.like('ticket_number', `%${term}`);
-      }
-
-      const { data, error } = await query
-        .order('ticket_number', { ascending: true })
-        .limit(limit);
+      // Use secure RPC function that only returns public fields
+      // Protected: buyer_email, buyer_phone, payment_reference, order_total
+      const { data, error } = await supabase.rpc('search_public_tickets', {
+        p_raffle_id: raffleId,
+        p_search: term,
+        p_limit: limit,
+      });
 
       if (error) throw error;
       return data || [];

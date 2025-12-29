@@ -1057,6 +1057,26 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_public_ticket_counts: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          reserved_count: number
+          sold_count: number
+          total_count: number
+        }[]
+      }
+      get_public_tickets: {
+        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
+        Returns: {
+          buyer_city: string
+          buyer_name: string
+          id: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
@@ -1087,6 +1107,17 @@ export type Database = {
         }[]
       }
       release_expired_tickets: { Args: never; Returns: undefined }
+      search_public_tickets: {
+        Args: { p_limit?: number; p_raffle_id: string; p_search: string }
+        Returns: {
+          buyer_city: string
+          buyer_name: string
+          id: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
     }
     Enums: {
       app_role: "owner" | "admin" | "member"
