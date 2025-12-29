@@ -1,8 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Ticket = Tables<'tickets'>;
 
 export interface Buyer {
   id: string;
@@ -11,6 +8,7 @@ export interface Buyer {
   phone: string;
   city: string;
   tickets: string[];
+  ticketCount: number;
   status: string;
   date: string;
 }
@@ -26,7 +24,7 @@ export interface BuyerFilters {
 }
 
 export const useBuyers = (raffleId: string | undefined) => {
-  // Get buyers with pagination and filters
+  // Get buyers with server-side pagination using the database function
   const useBuyersList = (filters?: BuyerFilters) => {
     const page = filters?.page || 1;
     const pageSize = filters?.pageSize || 20;
@@ -36,67 +34,36 @@ export const useBuyers = (raffleId: string | undefined) => {
       queryFn: async () => {
         if (!raffleId) return { buyers: [], count: 0 };
 
-        let query = supabase
-          .from('tickets')
-          .select('*', { count: 'exact' })
-          .eq('raffle_id', raffleId)
-          .not('buyer_name', 'is', null)
-          .order('reserved_at', { ascending: false });
-
-        if (filters?.status && filters.status !== 'all') {
-          query = query.eq('status', filters.status as 'available' | 'reserved' | 'sold' | 'canceled');
-        }
-
-        if (filters?.city) {
-          query = query.eq('buyer_city', filters.city);
-        }
-
-        if (filters?.search) {
-          query = query.or(
-            `buyer_name.ilike.%${filters.search}%,buyer_email.ilike.%${filters.search}%,buyer_phone.ilike.%${filters.search}%`
-          );
-        }
-
-        if (filters?.startDate) {
-          query = query.gte('reserved_at', filters.startDate.toISOString());
-        }
-
-        if (filters?.endDate) {
-          query = query.lte('reserved_at', filters.endDate.toISOString());
-        }
-
-        const { data, error, count } = await query;
+        const { data, error } = await supabase.rpc('get_buyers_paginated', {
+          p_raffle_id: raffleId,
+          p_status: filters?.status || null,
+          p_city: filters?.city || null,
+          p_search: filters?.search || null,
+          p_start_date: filters?.startDate?.toISOString() || null,
+          p_end_date: filters?.endDate?.toISOString() || null,
+          p_page: page,
+          p_page_size: pageSize,
+        });
 
         if (error) throw error;
 
-        // Group tickets by buyer
-        const buyerMap = new Map<string, Buyer>();
-        
-        (data as Ticket[])?.forEach(ticket => {
-          const key = ticket.buyer_email || ticket.buyer_phone || ticket.buyer_name;
-          if (!key) return;
+        // Transform the database response to Buyer interface
+        const buyers: Buyer[] = (data || []).map((row: any, index: number) => ({
+          id: `${row.buyer_key}-${index}`,
+          name: row.buyer_name || '',
+          email: row.buyer_email || '',
+          phone: row.buyer_phone || '',
+          city: row.buyer_city || '',
+          tickets: row.ticket_numbers || [],
+          ticketCount: Number(row.ticket_count) || 0,
+          status: row.status || 'reserved',
+          date: row.first_reserved_at || '',
+        }));
 
-          if (buyerMap.has(key)) {
-            const buyer = buyerMap.get(key)!;
-            buyer.tickets.push(ticket.ticket_number);
-          } else {
-            buyerMap.set(key, {
-              id: ticket.id,
-              name: ticket.buyer_name || '',
-              email: ticket.buyer_email || '',
-              phone: ticket.buyer_phone || '',
-              city: ticket.buyer_city || '',
-              tickets: [ticket.ticket_number],
-              status: ticket.status || 'reserved',
-              date: ticket.reserved_at || ticket.created_at || '',
-            });
-          }
-        });
+        // Get total count from first row (all rows have the same total_count)
+        const count = data && data.length > 0 ? Number(data[0].total_count) : 0;
 
-        const buyers = Array.from(buyerMap.values())
-          .slice((page - 1) * pageSize, page * pageSize);
-
-        return { buyers, count: buyerMap.size };
+        return { buyers, count };
       },
       enabled: !!raffleId,
     });
@@ -124,31 +91,68 @@ export const useBuyers = (raffleId: string | undefined) => {
     });
   };
 
-  // Export buyers to CSV
+  // Export buyers to CSV - uses server-side pagination for large datasets
   const exportBuyers = async () => {
     if (!raffleId) return '';
 
-    const { data, error } = await supabase
-      .from('tickets')
-      .select('*')
-      .eq('raffle_id', raffleId)
-      .not('buyer_name', 'is', null)
-      .in('status', ['sold', 'reserved']);
+    // Fetch all buyers using the paginated function but with large page size
+    const allBuyers: Buyer[] = [];
+    let page = 1;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (error) throw error;
+    while (hasMore) {
+      const { data, error } = await supabase.rpc('get_buyers_paginated', {
+        p_raffle_id: raffleId,
+        p_status: null,
+        p_city: null,
+        p_search: null,
+        p_start_date: null,
+        p_end_date: null,
+        p_page: page,
+        p_page_size: pageSize,
+      });
 
-    const headers = ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Boleto', 'Estado', 'Fecha'];
-    const rows = (data as Ticket[]).map(t => [
-      t.buyer_name || '',
-      t.buyer_email || '',
-      t.buyer_phone || '',
-      t.buyer_city || '',
-      t.ticket_number,
-      t.status || '',
-      t.reserved_at ? new Date(t.reserved_at).toLocaleDateString() : '',
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        const buyers = data.map((row: any, index: number) => ({
+          id: `${row.buyer_key}-${index}`,
+          name: row.buyer_name || '',
+          email: row.buyer_email || '',
+          phone: row.buyer_phone || '',
+          city: row.buyer_city || '',
+          tickets: row.ticket_numbers || [],
+          ticketCount: Number(row.ticket_count) || 0,
+          status: row.status || 'reserved',
+          date: row.first_reserved_at || '',
+        }));
+
+        allBuyers.push(...buyers);
+        
+        if (data.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+    }
+
+    const headers = ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Boletos', 'Cantidad', 'Estado', 'Fecha'];
+    const rows = allBuyers.map(buyer => [
+      buyer.name,
+      buyer.email,
+      buyer.phone,
+      buyer.city,
+      buyer.tickets.join('; '),
+      buyer.ticketCount.toString(),
+      buyer.status,
+      buyer.date ? new Date(buyer.date).toLocaleDateString() : '',
     ]);
 
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csv = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell}"`).join(','))].join('\n');
     return csv;
   };
 

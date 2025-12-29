@@ -1033,6 +1033,30 @@ export type Database = {
         }
         Returns: number
       }
+      get_buyers_paginated: {
+        Args: {
+          p_city?: string
+          p_end_date?: string
+          p_page?: number
+          p_page_size?: number
+          p_raffle_id: string
+          p_search?: string
+          p_start_date?: string
+          p_status?: string
+        }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_key: string
+          buyer_name: string
+          buyer_phone: string
+          first_reserved_at: string
+          status: string
+          ticket_count: number
+          ticket_numbers: string[]
+          total_count: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
