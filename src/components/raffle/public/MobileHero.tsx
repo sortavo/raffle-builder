@@ -321,9 +321,10 @@ export function MobileHero({
   );
 }
 
-// Video slide component
+// Video slide component with thumbnail and swipe layers
 function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
-  const { embedUrl } = getVideoEmbedUrl(videoUrl);
+  const [showVideo, setShowVideo] = useState(false);
+  const { embedUrl, thumbnailUrl } = getVideoEmbedUrl(videoUrl);
 
   if (!embedUrl) {
     return (
@@ -333,8 +334,56 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
     );
   }
 
+  // Show thumbnail by default - allows swipe navigation
+  if (!showVideo) {
+    return (
+      <div 
+        className="w-full h-full bg-black relative cursor-pointer"
+        onClick={() => setShowVideo(true)}
+      >
+        {/* Video thumbnail */}
+        <img 
+          src={thumbnailUrl || '/placeholder.svg'}
+          alt={title}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            // Fallback to medium quality thumbnail if maxres fails
+            const target = e.target as HTMLImageElement;
+            if (thumbnailUrl?.includes('maxresdefault')) {
+              target.src = thumbnailUrl.replace('maxresdefault', 'hqdefault');
+            }
+          }}
+        />
+        {/* Play button overlay */}
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl transform hover:scale-105 transition-transform">
+            <Play className="w-10 h-10 text-white fill-white ml-1" />
+          </div>
+        </div>
+        {/* Hint text */}
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <span className="text-white text-sm bg-black/60 px-4 py-2 rounded-full">
+            Toca para ver el video
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Once activated, show the iframe with swipe layers on edges
   return (
-    <div className="w-full h-full bg-black">
+    <div className="w-full h-full bg-black relative">
+      {/* Left swipe layer - allows swiping back */}
+      <div 
+        className="absolute top-0 bottom-0 left-0 w-16 z-10 touch-pan-x"
+        onClick={() => setShowVideo(false)}
+      />
+      {/* Right swipe layer - allows swiping forward */}
+      <div 
+        className="absolute top-0 bottom-0 right-0 w-16 z-10 touch-pan-x"
+        onClick={() => setShowVideo(false)}
+      />
+      
       <iframe
         src={embedUrl}
         title={title || "Video del premio"}
@@ -343,6 +392,15 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
         className="w-full h-full"
         loading="lazy"
       />
+      
+      {/* Close button to return to thumbnail */}
+      <button
+        onClick={() => setShowVideo(false)}
+        className="absolute top-4 right-4 z-20 bg-black/70 text-white rounded-full p-2 hover:bg-black/90 transition-colors"
+        aria-label="Cerrar video"
+      >
+        <ChevronDown className="w-5 h-5" />
+      </button>
     </div>
   );
 }
