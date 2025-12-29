@@ -74,10 +74,10 @@ function SlotReel({
     <div className="relative overflow-hidden">
       <motion.div
         className={`
-          relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl 
+          relative w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 rounded-lg sm:rounded-xl 
           flex items-center justify-center
-          text-xl sm:text-2xl font-bold
-          border-4 transition-all duration-300
+          text-sm sm:text-xl md:text-2xl font-bold
+          border-2 sm:border-4 transition-all duration-300
           ${isStopped 
             ? 'bg-gradient-to-br from-amber-400 via-yellow-400 to-amber-500 border-amber-600 text-amber-900 shadow-lg shadow-amber-500/50' 
             : 'bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 text-white'
@@ -219,16 +219,16 @@ export function SlotMachineAnimation({
         </div>
 
         {/* Slot reels container */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 py-4 px-2 bg-slate-950 rounded-xl border-2 border-slate-600 mt-4">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3 py-3 sm:py-4 px-2 bg-slate-950 rounded-lg sm:rounded-xl border-2 border-slate-600 mt-4 overflow-x-auto">
           {displayNumbers.length > 0 ? (
             displayNumbers.map((num, index) => (
               num === '...' ? (
                 <div 
                   key={`ellipsis-${index}`}
-                  className="flex flex-col items-center justify-center w-16 h-20 sm:w-20 sm:h-24 text-slate-400"
+                  className="flex flex-col items-center justify-center w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 text-slate-400 flex-shrink-0"
                 >
-                  <span className="text-2xl font-bold">+{hiddenCount}</span>
-                  <span className="text-xs">más</span>
+                  <span className="text-lg sm:text-2xl font-bold">+{hiddenCount}</span>
+                  <span className="text-[10px] sm:text-xs">más</span>
                 </div>
               ) : (
                 <SlotReel

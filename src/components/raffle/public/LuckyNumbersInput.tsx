@@ -352,22 +352,23 @@ export function LuckyNumbersInput({
           onClick={handleCheckAndSelect}
           disabled={isChecking || isLoading || (mode === 'birthday' ? !birthdayDate : favoriteNumbers.length === 0)}
           size="lg"
-          className="w-full bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 hover:from-pink-600 hover:via-rose-600 hover:to-pink-600 h-14 text-lg font-bold shadow-lg shadow-pink-500/30"
+          className="w-full bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500 hover:from-pink-600 hover:via-rose-600 hover:to-pink-600 h-12 sm:h-14 text-sm sm:text-lg font-bold shadow-lg shadow-pink-500/30"
         >
           {isChecking ? (
             <>
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="mr-2"
               >
-                <Sparkles className="h-5 w-5 mr-2" />
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </motion.div>
-              Verificando disponibilidad...
+              <span className="truncate">Verificando...</span>
             </>
           ) : (
             <>
-              <Heart className="h-5 w-5 mr-2" />
-              Buscar mis números de la suerte
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+              <span className="truncate">Buscar mis números</span>
             </>
           )}
         </Button>
