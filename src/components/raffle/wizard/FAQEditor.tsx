@@ -8,7 +8,23 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { HelpCircle, Plus, Pencil, Trash2, GripVertical, X, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  HelpCircle, 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  X, 
+  Check,
+  Package,
+  Truck,
+  CreditCard,
+  Clock,
+  MapPin,
+  Gift,
+  Phone,
+  RefreshCw
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FAQItem {
@@ -19,6 +35,66 @@ interface FAQItem {
 interface FAQEditorProps {
   form: UseFormReturn<any>;
 }
+
+// Quick FAQ suggestions that organizers commonly need
+const FAQ_SUGGESTIONS = [
+  {
+    id: 'shipping',
+    label: 'Envío',
+    icon: Truck,
+    question: '¿Hacen envíos?',
+    answer: 'Sí, hacemos envíos a todo el país. El costo y tiempo de envío dependerá de tu ubicación.'
+  },
+  {
+    id: 'delivery-time',
+    label: 'Tiempo',
+    icon: Clock,
+    question: '¿Cuánto tarda el envío?',
+    answer: 'El envío tarda de 3 a 7 días hábiles dependiendo de tu ubicación.'
+  },
+  {
+    id: 'pickup',
+    label: 'Recoger',
+    icon: MapPin,
+    question: '¿Puedo recoger el premio en persona?',
+    answer: 'Sí, puedes recoger el premio en nuestra ubicación previa coordinación.'
+  },
+  {
+    id: 'refund',
+    label: 'Reembolso',
+    icon: RefreshCw,
+    question: '¿Hay reembolsos?',
+    answer: 'Los boletos no son reembolsables una vez comprados, según nuestros términos y condiciones.'
+  },
+  {
+    id: 'payment-deadline',
+    label: 'Plazo pago',
+    icon: CreditCard,
+    question: '¿Cuánto tiempo tengo para pagar?',
+    answer: 'Tienes el tiempo indicado en tu reserva para completar el pago. Si no pagas a tiempo, los boletos quedarán disponibles nuevamente.'
+  },
+  {
+    id: 'prize-exchange',
+    label: 'Cambio',
+    icon: Gift,
+    question: '¿Puedo cambiar el premio por dinero?',
+    answer: 'No, el premio no es canjeable por dinero en efectivo.'
+  },
+  {
+    id: 'contact',
+    label: 'Contacto',
+    icon: Phone,
+    question: '¿Cómo los contacto para dudas?',
+    answer: 'Puedes contactarnos por WhatsApp o por las redes sociales indicadas en esta página.'
+  },
+  {
+    id: 'packages',
+    label: 'Paquetes',
+    icon: Package,
+    question: '¿Hay promociones por varios boletos?',
+    answer: 'Sí, ofrecemos paquetes con descuento. Consulta las opciones disponibles al momento de comprar.'
+  }
+];
 
 export const FAQEditor = ({ form }: FAQEditorProps) => {
   const customization = form.watch('customization') || {};
@@ -60,6 +136,17 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
     setIsAdding(false);
   };
 
+  const handleAddSuggestion = (suggestion: typeof FAQ_SUGGESTIONS[0]) => {
+    // Check if already exists
+    const exists = customFaqs.some(
+      faq => faq.question.toLowerCase() === suggestion.question.toLowerCase()
+    );
+    if (exists) return;
+    
+    const newFaq: FAQItem = { question: suggestion.question, answer: suggestion.answer };
+    updateFaqConfig({ custom_faqs: [...customFaqs, newFaq] });
+  };
+
   const handleEditFaq = (index: number) => {
     setEditingIndex(index);
     setEditQuestion(customFaqs[index].question);
@@ -94,6 +181,17 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
     setNewAnswer('');
   };
 
+  // Check which suggestions are already added
+  const getAddedSuggestionIds = () => {
+    return FAQ_SUGGESTIONS.filter(suggestion =>
+      customFaqs.some(faq => 
+        faq.question.toLowerCase() === suggestion.question.toLowerCase()
+      )
+    ).map(s => s.id);
+  };
+
+  const addedSuggestionIds = getAddedSuggestionIds();
+
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
       <CardHeader>
@@ -107,7 +205,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Main toggle */}
-        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
           <div className="flex items-center gap-3">
             <div className={cn(
               "w-10 h-10 rounded-lg flex items-center justify-center",
@@ -137,7 +235,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
             <Separator />
             
             {/* Include default FAQs */}
-            <div className="flex items-center space-x-3 p-4 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center space-x-3 p-4 bg-card rounded-lg border border-border">
               <Checkbox
                 id="show_default_faqs"
                 checked={showDefaultFaqs}
@@ -145,19 +243,55 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
               />
               <div>
                 <label htmlFor="show_default_faqs" className="text-sm font-medium cursor-pointer">
-                  Incluir preguntas predefinidas
+                  Incluir preguntas automáticas
                 </label>
                 <p className="text-xs text-muted-foreground">
-                  ¿Cómo participo?, ¿Cómo sé si gané?, ¿Cuándo es el sorteo?, ¿Métodos de pago?
+                  Se generan automáticamente basadas en la información de tu sorteo (precio, fecha, métodos de pago, etc.)
                 </p>
               </div>
             </div>
 
+            {/* Quick add suggestions */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Agregar pregunta rápida</Label>
+              <div className="flex flex-wrap gap-2">
+                {FAQ_SUGGESTIONS.map((suggestion) => {
+                  const isAdded = addedSuggestionIds.includes(suggestion.id);
+                  const Icon = suggestion.icon;
+                  return (
+                    <Button
+                      key={suggestion.id}
+                      type="button"
+                      variant={isAdded ? "secondary" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "gap-1.5 text-xs",
+                        isAdded && "opacity-50 cursor-not-allowed"
+                      )}
+                      onClick={() => !isAdded && handleAddSuggestion(suggestion)}
+                      disabled={isAdded}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {suggestion.label}
+                      {isAdded && <Check className="w-3 h-3 ml-1" />}
+                    </Button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click para agregar, luego edita la respuesta según tu caso
+              </p>
+            </div>
+
+            <Separator />
+
             {/* Custom FAQs section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Preguntas personalizadas</Label>
-                <span className="text-xs text-muted-foreground">{customFaqs.length} preguntas</span>
+                <Label className="text-sm font-medium">Tus preguntas personalizadas</Label>
+                <Badge variant="secondary" className="text-xs">
+                  {customFaqs.length} {customFaqs.length === 1 ? 'pregunta' : 'preguntas'}
+                </Badge>
               </div>
 
               {/* Existing custom FAQs */}
@@ -166,7 +300,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                   {customFaqs.map((faq, index) => (
                     <div 
                       key={index} 
-                      className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                      className="bg-card rounded-lg border border-border overflow-hidden"
                     >
                       {editingIndex === index ? (
                         // Edit mode
@@ -209,10 +343,10 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                         <div className="p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
+                              <p className="font-medium text-foreground truncate">
                                 P: {faq.question}
                               </p>
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                 R: {faq.answer}
                               </p>
                             </div>
@@ -224,7 +358,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                                 className="h-8 w-8"
                                 onClick={() => handleEditFaq(index)}
                               >
-                                <Pencil className="w-4 h-4 text-gray-500" />
+                                <Pencil className="w-4 h-4 text-muted-foreground" />
                               </Button>
                               <Button
                                 type="button"
@@ -288,7 +422,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                   onClick={() => setIsAdding(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Agregar Pregunta
+                  Escribir pregunta personalizada
                 </Button>
               )}
             </div>
