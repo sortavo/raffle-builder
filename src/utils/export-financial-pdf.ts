@@ -2,70 +2,105 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 
+// Use aggregated queries instead of loading all tickets
 export async function exportFinancialReportPDF(raffleId: string, raffleName: string) {
-  // 1. Query data
+  // 1. Get raffle info
   const { data: raffle } = await supabase
     .from('raffles')
     .select('*')
     .eq('id', raffleId)
     .single();
-  
-  const { data: tickets } = await supabase
+
+  if (!raffle) throw new Error('Raffle not found');
+
+  // 2. Get aggregated ticket stats using count queries (much faster than loading all)
+  const { count: soldCount } = await supabase
     .from('tickets')
-    .select('*')
+    .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
     .eq('status', 'sold');
-  
-  if (!raffle || !tickets) throw new Error('Data not found');
-  
-  // 2. Calculate metrics
-  const ticketPrice = raffle.ticket_price || 0;
-  const totalRevenue = tickets.length * ticketPrice;
-  const totalTickets = raffle.total_tickets;
-  const soldTickets = tickets.length;
-  const availableTickets = totalTickets - soldTickets;
-  const conversionRate = (soldTickets / totalTickets) * 100;
-  
-  // Payment method breakdown
-  const paymentMethods = tickets.reduce((acc, t) => {
+
+  const { count: reservedCount } = await supabase
+    .from('tickets')
+    .select('*', { count: 'exact', head: true })
+    .eq('raffle_id', raffleId)
+    .eq('status', 'reserved');
+
+  // 3. Get payment method breakdown using aggregation
+  const { data: paymentMethodData } = await supabase
+    .from('tickets')
+    .select('payment_method')
+    .eq('raffle_id', raffleId)
+    .eq('status', 'sold')
+    .not('payment_method', 'is', null);
+
+  const paymentMethods: Record<string, number> = {};
+  paymentMethodData?.forEach(t => {
     const method = t.payment_method || 'No especificado';
-    acc[method] = (acc[method] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // City breakdown
-  const cities = tickets.reduce((acc, t) => {
+    paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+  });
+
+  // 4. Get city breakdown
+  const { data: cityData } = await supabase
+    .from('tickets')
+    .select('buyer_city')
+    .eq('raffle_id', raffleId)
+    .eq('status', 'sold')
+    .not('buyer_city', 'is', null);
+
+  const cities: Record<string, number> = {};
+  cityData?.forEach(t => {
     const city = t.buyer_city || 'No especificado';
-    acc[city] = (acc[city] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // 3. Create PDF
+    cities[city] = (cities[city] || 0) + 1;
+  });
+
+  // 5. Get top buyers using the paginated function (already aggregated)
+  const { data: topBuyersData } = await supabase.rpc('get_buyers_paginated', {
+    p_raffle_id: raffleId,
+    p_status: 'sold',
+    p_city: null,
+    p_search: null,
+    p_start_date: null,
+    p_end_date: null,
+    p_page: 1,
+    p_page_size: 10, // Only top 10
+  });
+
+  // 6. Calculate metrics
+  const ticketPrice = raffle.ticket_price || 0;
+  const soldTickets = soldCount || 0;
+  const totalTickets = raffle.total_tickets;
+  const totalRevenue = soldTickets * ticketPrice;
+  const availableTickets = totalTickets - soldTickets - (reservedCount || 0);
+  const conversionRate = totalTickets > 0 ? (soldTickets / totalTickets) * 100 : 0;
+
+  // 7. Create PDF
   const doc = new jsPDF();
-  
-  // 4. Header
+
+  // 8. Header
   doc.setFontSize(20);
   doc.text('Reporte Financiero', 105, 20, { align: 'center' });
-  
+
   doc.setFontSize(14);
   doc.text(raffleName, 105, 30, { align: 'center' });
-  
+
   doc.setFontSize(10);
   doc.text(`Generado: ${new Date().toLocaleString('es-MX')}`, 105, 38, { align: 'center' });
-  
-  // 5. Summary Section
+
+  // 9. Summary Section
   doc.setFontSize(14);
   doc.text('Resumen Ejecutivo', 20, 55);
-  
+
   const summaryData = [
     ['Ingresos Totales', `$${totalRevenue.toLocaleString('es-MX')}`],
-    ['Boletos Vendidos', `${soldTickets} / ${totalTickets}`],
-    ['Boletos Disponibles', availableTickets.toString()],
+    ['Boletos Vendidos', `${soldTickets.toLocaleString()} / ${totalTickets.toLocaleString()}`],
+    ['Boletos Reservados', (reservedCount || 0).toLocaleString()],
+    ['Boletos Disponibles', availableTickets.toLocaleString()],
     ['Tasa de Conversión', `${conversionRate.toFixed(1)}%`],
     ['Precio por Boleto', `$${ticketPrice.toLocaleString('es-MX')}`],
     ['Valor del Premio', `$${(raffle.prize_value || 0).toLocaleString('es-MX')}`],
   ];
-  
+
   autoTable(doc, {
     startY: 60,
     head: [['Métrica', 'Valor']],
@@ -73,111 +108,93 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
     theme: 'grid',
     headStyles: { fillColor: [37, 99, 235] }
   });
-  
-  // 6. Payment Methods Section
+
+  // 10. Payment Methods Section
   // @ts-ignore - jspdf-autotable adds this property
   let finalY = doc.lastAutoTable?.finalY || 60;
-  
-  doc.setFontSize(14);
-  doc.text('Métodos de Pago', 20, finalY + 15);
-  
-  const paymentData = Object.entries(paymentMethods).map(([method, count]) => [
-    method,
-    count.toString(),
-    `${((count / soldTickets) * 100).toFixed(1)}%`
-  ]);
-  
-  autoTable(doc, {
-    startY: finalY + 20,
-    head: [['Método de Pago', 'Cantidad', 'Porcentaje']],
-    body: paymentData,
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235] }
-  });
-  
-  // 7. Geographic Distribution
-  // @ts-ignore
-  finalY = doc.lastAutoTable?.finalY || finalY + 20;
-  
-  doc.setFontSize(14);
-  doc.text('Distribución Geográfica', 20, finalY + 15);
-  
-  const cityData = Object.entries(cities)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
-    .map(([city, count]) => [
-      city,
-      count.toString(),
-      `${((count / soldTickets) * 100).toFixed(1)}%`
-    ]);
-  
-  autoTable(doc, {
-    startY: finalY + 20,
-    head: [['Ciudad', 'Boletos', 'Porcentaje']],
-    body: cityData,
-    theme: 'striped',
-    headStyles: { fillColor: [37, 99, 235] }
-  });
-  
-  // 8. Top Buyers
-  const buyerTickets = tickets.reduce((acc, t) => {
-    const email = t.buyer_email || 'unknown';
-    if (!acc[email]) {
-      acc[email] = { name: t.buyer_name || 'Sin nombre', count: 0, total: 0 };
-    }
-    acc[email].count += 1;
-    acc[email].total += ticketPrice;
-    return acc;
-  }, {} as Record<string, { name: string; count: number; total: number }>);
-  
-  const topBuyers = Object.entries(buyerTickets)
-    .map(([email, data]) => ({ email, ...data }))
-    .filter(b => b.count > 1)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-  
-  if (topBuyers.length > 0) {
+
+  if (Object.keys(paymentMethods).length > 0) {
+    doc.setFontSize(14);
+    doc.text('Métodos de Pago', 20, finalY + 15);
+
+    const paymentData = Object.entries(paymentMethods)
+      .sort(([, a], [, b]) => b - a)
+      .map(([method, count]) => [
+        method,
+        count.toLocaleString(),
+        soldTickets > 0 ? `${((count / soldTickets) * 100).toFixed(1)}%` : '0%'
+      ]);
+
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [['Método de Pago', 'Cantidad', 'Porcentaje']],
+      body: paymentData,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+
     // @ts-ignore
-    const buyersY = doc.lastAutoTable?.finalY || finalY + 20;
-    
-    // Check if we need a new page
-    if (buyersY > 230) {
-      doc.addPage();
+    finalY = doc.lastAutoTable?.finalY || finalY + 20;
+  }
+
+  // 11. Geographic Distribution
+  if (Object.keys(cities).length > 0) {
+    doc.setFontSize(14);
+    doc.text('Distribución Geográfica', 20, finalY + 15);
+
+    const cityDataSorted = Object.entries(cities)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([city, count]) => [
+        city,
+        count.toLocaleString(),
+        soldTickets > 0 ? `${((count / soldTickets) * 100).toFixed(1)}%` : '0%'
+      ]);
+
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [['Ciudad', 'Boletos', 'Porcentaje']],
+      body: cityDataSorted,
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+
+    // @ts-ignore
+    finalY = doc.lastAutoTable?.finalY || finalY + 20;
+  }
+
+  // 12. Top Buyers (already aggregated from RPC)
+  if (topBuyersData && topBuyersData.length > 0) {
+    const topBuyers = topBuyersData
+      .filter((b: any) => Number(b.ticket_count) > 1)
+      .slice(0, 10);
+
+    if (topBuyers.length > 0) {
+      // Check if we need a new page
+      if (finalY > 230) {
+        doc.addPage();
+        finalY = 10;
+      }
+
       doc.setFontSize(14);
-      doc.text('Top 10 Compradores', 20, 20);
-      
+      doc.text('Top 10 Compradores', 20, finalY + 15);
+
       autoTable(doc, {
-        startY: 25,
+        startY: finalY + 20,
         head: [['Nombre', 'Email', 'Boletos', 'Total']],
-        body: topBuyers.map(b => [
-          b.name,
-          b.email,
-          b.count.toString(),
-          `$${b.total.toLocaleString('es-MX')}`
-        ]),
-        theme: 'striped',
-        headStyles: { fillColor: [37, 99, 235] }
-      });
-    } else {
-      doc.setFontSize(14);
-      doc.text('Top 10 Compradores', 20, buyersY + 15);
-      
-      autoTable(doc, {
-        startY: buyersY + 20,
-        head: [['Nombre', 'Email', 'Boletos', 'Total']],
-        body: topBuyers.map(b => [
-          b.name,
-          b.email,
-          b.count.toString(),
-          `$${b.total.toLocaleString('es-MX')}`
+        body: topBuyers.map((b: any) => [
+          b.buyer_name || 'Sin nombre',
+          b.buyer_email || '-',
+          String(b.ticket_count),
+          `$${(Number(b.ticket_count) * ticketPrice).toLocaleString('es-MX')}`
         ]),
         theme: 'striped',
         headStyles: { fillColor: [37, 99, 235] }
       });
     }
   }
-  
-  // 9. Footer with page numbers
+
+  // 13. Footer with page numbers
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -189,10 +206,10 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
       { align: 'center' }
     );
   }
-  
-  // 10. Save
+
+  // 14. Save
   const fileName = `reporte-financiero-${raffleName.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.pdf`;
   doc.save(fileName);
-  
+
   return { success: true };
 }

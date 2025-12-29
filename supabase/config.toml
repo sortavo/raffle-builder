@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.export-tickets-csv]
 verify_jwt = false
+
+[functions.export-buyers-csv]
+verify_jwt = false
+
+[functions.export-tickets-csv]
+verify_jwt = false
