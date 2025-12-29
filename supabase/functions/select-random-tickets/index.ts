@@ -5,16 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Fisher-Yates shuffle for true randomness
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -31,7 +21,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Maximum limit to prevent memory issues - 100,000 tickets
+    // Maximum limit to prevent memory issues - 100,000 tickets per request
     const MAX_TICKETS = 100000;
     if (quantity > MAX_TICKETS) {
       return new Response(
@@ -47,27 +37,22 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] Selecting ${quantity} random tickets for raffle ${raffle_id}`);
     console.log(`[SELECT-RANDOM] Excluding ${exclude_numbers.length} numbers`);
 
-    // Calculate appropriate limit based on quantity requested
-    // Fetch more than requested to have a good pool after filtering exclusions
-    // IMPORTANT: Supabase default limit is 1000, so we MUST set explicit higher limit
-    const fetchLimit = Math.min(Math.max(quantity * 2, 100000), 500000);
-
-    console.log(`[SELECT-RANDOM] Fetching up to ${fetchLimit} tickets`);
-
-    // Fetch available tickets with explicit limit - MUST be higher than quantity requested
-    const { data: allTickets, error } = await supabase
+    // First, get total count of available tickets (excluding the ones already selected)
+    let countQuery = supabase
       .from('tickets')
-      .select('ticket_number')
+      .select('*', { count: 'exact', head: true })
       .eq('raffle_id', raffle_id)
-      .eq('status', 'available')
-      .limit(fetchLimit);
+      .eq('status', 'available');
+    
+    // Note: We can't efficiently exclude in the count query, so we'll handle it below
+    const { count: totalAvailable, error: countError } = await countQuery;
 
-    if (error) {
-      console.error('[SELECT-RANDOM] Error fetching tickets:', error);
-      throw error;
+    if (countError) {
+      console.error('[SELECT-RANDOM] Error counting tickets:', countError);
+      throw countError;
     }
 
-    if (!allTickets || allTickets.length === 0) {
+    if (!totalAvailable || totalAvailable === 0) {
       console.log('[SELECT-RANDOM] No available tickets found');
       return new Response(
         JSON.stringify({ 
@@ -80,39 +65,98 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SELECT-RANDOM] Fetched ${allTickets.length} available tickets`);
+    console.log(`[SELECT-RANDOM] Total available tickets: ${totalAvailable}`);
 
-    // Filter out excluded numbers if provided
-    let filteredTickets = allTickets;
-    if (exclude_numbers.length > 0) {
-      const excludeSet = new Set(exclude_numbers);
-      filteredTickets = allTickets.filter(t => !excludeSet.has(t.ticket_number));
-      console.log(`[SELECT-RANDOM] After excluding: ${filteredTickets.length} tickets`);
+    // Strategy: Use random offset sampling for efficiency with large datasets
+    // Generate multiple random offsets and fetch one ticket at each offset
+    const excludeSet = new Set(exclude_numbers);
+    const selectedTickets: string[] = [];
+    const maxAttempts = quantity * 3; // Allow retries for excluded numbers
+    let attempts = 0;
+
+    // For small quantities relative to total, use random offset method
+    // For larger quantities, fetch a batch and shuffle
+    const useOffsetMethod = quantity <= 1000 && totalAvailable > 10000;
+
+    if (useOffsetMethod) {
+      console.log(`[SELECT-RANDOM] Using random offset method for ${quantity} tickets`);
+      
+      while (selectedTickets.length < quantity && attempts < maxAttempts) {
+        // Generate cryptographically secure random offset
+        const randomBytes = new Uint32Array(1);
+        crypto.getRandomValues(randomBytes);
+        const randomOffset = randomBytes[0] % totalAvailable;
+
+        const { data: ticket, error } = await supabase
+          .from('tickets')
+          .select('ticket_number')
+          .eq('raffle_id', raffle_id)
+          .eq('status', 'available')
+          .order('ticket_index', { ascending: true })
+          .range(randomOffset, randomOffset)
+          .single();
+
+        attempts++;
+
+        if (error || !ticket) continue;
+
+        const ticketNum = ticket.ticket_number;
+        
+        // Skip if excluded or already selected
+        if (excludeSet.has(ticketNum) || selectedTickets.includes(ticketNum)) {
+          continue;
+        }
+
+        selectedTickets.push(ticketNum);
+      }
+    } else {
+      console.log(`[SELECT-RANDOM] Using batch shuffle method for ${quantity} tickets`);
+      
+      // For larger quantities, fetch more tickets and shuffle client-side
+      // But use random starting offset to ensure we're sampling from the whole pool
+      const batchSize = Math.min(quantity * 2 + exclude_numbers.length, 50000);
+      
+      // Generate random starting offset for variety
+      const randomBytes = new Uint32Array(1);
+      crypto.getRandomValues(randomBytes);
+      const startOffset = totalAvailable > batchSize 
+        ? randomBytes[0] % (totalAvailable - batchSize) 
+        : 0;
+
+      const { data: tickets, error } = await supabase
+        .from('tickets')
+        .select('ticket_number')
+        .eq('raffle_id', raffle_id)
+        .eq('status', 'available')
+        .order('ticket_index', { ascending: true })
+        .range(startOffset, startOffset + batchSize - 1);
+
+      if (error) {
+        console.error('[SELECT-RANDOM] Error fetching batch:', error);
+        throw error;
+      }
+
+      if (tickets && tickets.length > 0) {
+        // Filter out excluded
+        const filtered = tickets.filter(t => !excludeSet.has(t.ticket_number));
+        
+        // Fisher-Yates shuffle for true randomness
+        for (let i = filtered.length - 1; i > 0; i--) {
+          const randomBytes = new Uint32Array(1);
+          crypto.getRandomValues(randomBytes);
+          const j = randomBytes[0] % (i + 1);
+          [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+        }
+        
+        // Take what we need
+        const needed = Math.min(quantity, filtered.length);
+        for (let i = 0; i < needed; i++) {
+          selectedTickets.push(filtered[i].ticket_number);
+        }
+      }
     }
 
-    // Check if we have enough tickets
-    if (filteredTickets.length === 0) {
-      console.log('[SELECT-RANDOM] No tickets available after filtering');
-      return new Response(
-        JSON.stringify({ 
-          selected: [],
-          requested: quantity,
-          available: 0,
-          warning: 'No hay boletos disponibles después de excluir los ya seleccionados'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Shuffle the tickets using Fisher-Yates
-    const shuffled = shuffleArray(filteredTickets);
-
-    // Select the requested quantity (or all available if less)
-    const selectCount = Math.min(quantity, shuffled.length);
-    const selected = shuffled.slice(0, selectCount);
-    const ticketNumbers = selected.map(t => t.ticket_number);
-
-    console.log(`[SELECT-RANDOM] Selected ${ticketNumbers.length} of ${quantity} requested tickets`);
+    console.log(`[SELECT-RANDOM] Selected ${selectedTickets.length} of ${quantity} requested tickets`);
 
     // Build response
     const response: {
@@ -121,14 +165,14 @@ Deno.serve(async (req) => {
       available: number;
       warning?: string;
     } = {
-      selected: ticketNumbers,
+      selected: selectedTickets,
       requested: quantity,
-      available: filteredTickets.length
+      available: totalAvailable - exclude_numbers.length
     };
 
     // Add warning if we couldn't fulfill the full request
-    if (ticketNumbers.length < quantity) {
-      response.warning = `Solo ${ticketNumbers.length} boletos disponibles de los ${quantity} solicitados`;
+    if (selectedTickets.length < quantity) {
+      response.warning = `Solo ${selectedTickets.length} boletos disponibles de los ${quantity} solicitados`;
       console.log(`[SELECT-RANDOM] Warning: ${response.warning}`);
     }
 

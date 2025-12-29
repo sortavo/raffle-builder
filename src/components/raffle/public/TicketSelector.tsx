@@ -19,7 +19,7 @@ import { SlotMachineAnimation } from "./SlotMachineAnimation";
 import { LuckyNumbersInput } from "./LuckyNumbersInput";
 import { ProbabilityStats } from "./ProbabilityStats";
 import { VirtualizedTicketGrid } from "./VirtualizedTicketGrid";
-import { LargeRaffleNotice, LARGE_RAFFLE_THRESHOLD } from "./LargeRaffleNotice";
+import { LargeRaffleNotice, LARGE_RAFFLE_THRESHOLD, MEGA_RAFFLE_THRESHOLD } from "./LargeRaffleNotice";
 import { toast } from "sonner";
 import { LoadMoreTrigger } from "@/components/ui/LoadMoreTrigger";
 import confetti from "canvas-confetti";
@@ -115,6 +115,7 @@ export function TicketSelector({
 
   // Detect large raffle and limit grid display
   const isLargeRaffle = totalTickets > LARGE_RAFFLE_THRESHOLD;
+  const isMegaRaffle = totalTickets > MEGA_RAFFLE_THRESHOLD; // 100K+ hides grid completely
   const maxGridPages = isLargeRaffle ? Math.ceil(100000 / pageSize) : totalPages; // Limit grid to 100K tickets max
   const effectiveTotalPages = Math.min(totalPages, maxGridPages);
 

@@ -210,10 +210,35 @@ export function useDrawWinner() {
     return (array[0] % max) + 1;
   };
 
+  // New: Draw random winner from server for scalability with millions of tickets
+  const drawRandomWinner = async (raffleId: string) => {
+    const { data, error } = await supabase.functions.invoke('draw-random-winner', {
+      body: { raffle_id: raffleId },
+    });
+
+    if (error) {
+      throw new Error('Error al sortear ganador: ' + error.message);
+    }
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    return data.winner as {
+      id: string;
+      ticket_number: string;
+      buyer_name: string | null;
+      buyer_email: string | null;
+      buyer_phone: string | null;
+      buyer_city: string | null;
+    };
+  };
+
   return {
     selectWinner,
     notifyWinner,
     publishResult,
     generateRandomNumber,
+    drawRandomWinner,
   };
 }

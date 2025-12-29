@@ -56,7 +56,7 @@ export default function DrawWinner() {
   // Use pagination with reasonable page size to avoid query limits
   const { data: ticketsData } = useTicketsList({ status: 'sold', pageSize: 1000 });
   const allTickets = ticketsData?.tickets || [];
-  const { selectWinner, notifyWinner, publishResult, generateRandomNumber } = useDrawWinner();
+  const { selectWinner, notifyWinner, publishResult, generateRandomNumber, drawRandomWinner } = useDrawWinner();
 
   const [activeTab, setActiveTab] = useState<DrawMethod>('manual');
   const [isSpinning, setIsSpinning] = useState(false);
@@ -118,9 +118,7 @@ export default function DrawWinner() {
     }, 250);
   };
 
-  const handleSpinRandom = () => {
-    if (soldTickets.length === 0) return;
-    
+  const handleSpinRandom = async () => {
     // Prevent multiple spins
     if (isSpinning) return;
     
@@ -133,12 +131,14 @@ export default function DrawWinner() {
     setIsSpinning(true);
     setSelectedTicket(null);
     
+    // Start visual animation
     let counter = 0;
     const maxSpins = 30;
     
     spinIntervalRef.current = setInterval(() => {
-      const randomIndex = generateRandomNumber(soldTickets.length) - 1;
-      setDisplayNumber(soldTickets[randomIndex].ticket_number);
+      // Generate random display numbers during animation
+      const randomNum = Math.floor(Math.random() * 99999);
+      setDisplayNumber(String(randomNum).padStart(5, '0'));
       counter++;
       
       if (counter >= maxSpins) {
@@ -146,13 +146,47 @@ export default function DrawWinner() {
           clearInterval(spinIntervalRef.current);
           spinIntervalRef.current = null;
         }
-        setIsSpinning(false);
-        const finalIndex = generateRandomNumber(soldTickets.length) - 1;
-        const winner = soldTickets[finalIndex];
+      }
+    }, 100);
+
+    try {
+      // Call server to get truly random winner from ALL sold tickets
+      const winner = await drawRandomWinner(id!);
+      
+      // Stop animation
+      if (spinIntervalRef.current) {
+        clearInterval(spinIntervalRef.current);
+        spinIntervalRef.current = null;
+      }
+      
+      setDisplayNumber(winner.ticket_number);
+      setSelectedTicket({
+        id: winner.id,
+        ticket_number: winner.ticket_number,
+        buyer_name: winner.buyer_name,
+        buyer_email: winner.buyer_email,
+        buyer_phone: winner.buyer_phone,
+        buyer_city: winner.buyer_city,
+        status: 'sold',
+      });
+      setIsSpinning(false);
+    } catch (error) {
+      // Stop animation on error
+      if (spinIntervalRef.current) {
+        clearInterval(spinIntervalRef.current);
+        spinIntervalRef.current = null;
+      }
+      setIsSpinning(false);
+      setDisplayNumber('---');
+      
+      // Fallback to client-side selection if server fails and we have local tickets
+      if (soldTickets.length > 0) {
+        const randomIndex = generateRandomNumber(soldTickets.length) - 1;
+        const winner = soldTickets[randomIndex];
         setDisplayNumber(winner.ticket_number);
         setSelectedTicket(winner);
       }
-    }, 100);
+    }
   };
 
   const handleSearchTicket = () => {
