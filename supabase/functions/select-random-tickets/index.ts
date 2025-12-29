@@ -47,9 +47,12 @@ Deno.serve(async (req) => {
 
     // Calculate appropriate limit based on quantity requested
     // We need to fetch enough tickets to have a good pool for random selection
-    const fetchLimit = Math.max(quantity * 2, 10000);
+    // IMPORTANT: Supabase has a default limit of 1000 rows, so we must explicitly set a higher limit
+    const fetchLimit = Math.max(quantity * 3, 50000);
 
-    // Fetch available tickets with explicit limit
+    console.log(`[SELECT-RANDOM] Fetching up to ${fetchLimit} tickets`);
+
+    // Fetch available tickets with explicit limit - MUST be higher than quantity requested
     const { data: allTickets, error } = await supabase
       .from('tickets')
       .select('ticket_number')
