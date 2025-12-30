@@ -16,10 +16,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Users, Mail, Building2, Eye, Crown } from "lucide-react";
+import { Search, Users, Mail, Building2, Eye, Crown, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useDeleteUser } from "@/hooks/useDeleteUser";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Profile {
   id: string;
@@ -77,6 +89,11 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [simulateModalOpen, setSimulateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
+  
+  const { user: currentUser } = useAuth();
+  const deleteUserMutation = useDeleteUser();
 
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ["admin-profiles"],
@@ -156,6 +173,26 @@ export default function AdminUsers() {
 
     return matchesSearch;
   });
+
+  const canDeleteUser = (userId: string) => {
+    // Cannot delete yourself
+    if (userId === currentUser?.id) return false;
+    // Cannot delete other platform admins
+    if (isPlatformAdmin(userId)) return false;
+    return true;
+  };
+
+  const handleDeleteClick = (profile: Profile) => {
+    setUserToDelete(profile);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    await deleteUserMutation.mutateAsync(userToDelete.id);
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
 
   return (
     <AdminLayout
@@ -256,19 +293,32 @@ export default function AdminUsers() {
                           </div>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedUser(profile);
-                          setSimulateModalOpen(true);
-                        }}
-                        className="h-8 w-8 flex-shrink-0"
-                        disabled={!profile.organization_id}
-                        title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedUser(profile);
+                            setSimulateModalOpen(true);
+                          }}
+                          className="h-8 w-8"
+                          disabled={!profile.organization_id}
+                          title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {canDeleteUser(profile.id) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(profile)}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 );
@@ -382,20 +432,33 @@ export default function AdminUsers() {
                             : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(profile);
-                              setSimulateModalOpen(true);
-                            }}
-                            className="h-8"
-                            disabled={!profile.organization_id}
-                            title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            <span className="hidden lg:inline">Simular</span>
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(profile);
+                                setSimulateModalOpen(true);
+                              }}
+                              className="h-8"
+                              disabled={!profile.organization_id}
+                              title={!profile.organization_id ? "Usuario sin organización" : "Simular usuario"}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              <span className="hidden lg:inline">Simular</span>
+                            </Button>
+                            {canDeleteUser(profile.id) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteClick(profile)}
+                                className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Eliminar usuario"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -412,6 +475,56 @@ export default function AdminUsers() {
         onOpenChange={setSimulateModalOpen}
         user={selectedUser}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              ¿Eliminar usuario permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Estás a punto de eliminar a:
+                </p>
+                {userToDelete && (
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="font-medium">{userToDelete.full_name || "Sin nombre"}</p>
+                    <p className="text-sm text-muted-foreground">{userToDelete.email}</p>
+                    {userToDelete.organizations && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Organización: {userToDelete.organizations.name}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <p className="text-destructive font-medium">
+                  Esta acción es irreversible. El usuario perderá acceso a la plataforma y sus datos de perfil serán eliminados.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteUserMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteUserMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar usuario"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }
