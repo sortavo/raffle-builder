@@ -304,14 +304,20 @@ serve(async (req) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // Get raffle IDs for this organization
+      const { data: raffles } = await supabase
+        .from("raffles")
+        .select("id")
+        .eq("organization_id", conn.organization_id);
+      
+      const raffleIds = raffles?.map(r => r.id) || [];
+
       const { count: todaySales } = await supabase
         .from("tickets")
         .select("*", { count: "exact", head: true })
         .eq("status", "sold")
         .gte("sold_at", today.toISOString())
-        .in("raffle_id", 
-          supabase.from("raffles").select("id").eq("organization_id", conn.organization_id)
-        );
+        .in("raffle_id", raffleIds);
 
       await sendTelegramMessage(
         chatId,
@@ -403,7 +409,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    logStep("Error processing webhook", { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logStep("Error processing webhook", { error: errorMessage });
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -37,7 +37,8 @@ async function sendTelegramMessage(chatId: string, text: string) {
     }
     return true;
   } catch (error) {
-    logStep("Exception sending message", { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logStep("Exception sending message", { error: errorMessage });
     return false;
   }
 }
@@ -82,15 +83,17 @@ serve(async (req) => {
 
     // Handle organizer notifications
     if (organizerNotifications.includes(type) && organizationId) {
-      const prefField = `notify_${type.replace("_uploaded", "_proof")}`;
+      const prefField = `notify_${type.replace("_uploaded", "_proof")}` as const;
       
       const { data: conn } = await supabase
         .from("telegram_connections")
-        .select("telegram_chat_id, " + prefField)
+        .select("*")
         .eq("organization_id", organizationId)
-        .single();
+        .maybeSingle();
 
-      if (conn?.telegram_chat_id && conn[prefField]) {
+      // Type guard for connection
+      const connection = conn as { telegram_chat_id?: string; [key: string]: unknown } | null;
+      if (connection?.telegram_chat_id && connection[prefField]) {
         let message = "";
         
         switch (type) {
@@ -132,7 +135,7 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        sent = await sendTelegramMessage(conn.telegram_chat_id, message);
+        sent = await sendTelegramMessage(connection.telegram_chat_id, message);
         logStep("Organizer notification sent", { type, sent });
       }
     }
@@ -153,11 +156,13 @@ serve(async (req) => {
       
       const { data: link } = await supabase
         .from("telegram_buyer_links")
-        .select("telegram_chat_id, " + prefField)
+        .select("*")
         .eq("buyer_email", buyerEmail)
-        .single();
+        .maybeSingle();
 
-      if (link?.telegram_chat_id && link[prefField]) {
+      // Type guard for buyer link
+      const buyerLink = link as { telegram_chat_id?: string; [key: string]: unknown } | null;
+      if (buyerLink?.telegram_chat_id && buyerLink[prefField]) {
         let message = "";
         
         switch (type) {
@@ -208,7 +213,7 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        sent = await sendTelegramMessage(link.telegram_chat_id, message);
+        sent = await sendTelegramMessage(buyerLink.telegram_chat_id, message);
         logStep("Buyer notification sent", { type, buyerEmail, sent });
       }
     }
@@ -217,8 +222,9 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    logStep("Error processing notification", { error: error.message });
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logStep("Error processing notification", { error: errorMessage });
+    return new Response(JSON.stringify({ success: false, error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

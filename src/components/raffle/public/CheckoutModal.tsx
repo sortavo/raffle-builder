@@ -45,6 +45,7 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 import { CouponInput } from "@/components/marketing/CouponInput";
 import { WhatsAppContactButton } from "./WhatsAppContactButton";
+import { TelegramOptIn } from "./TelegramOptIn";
 import { cn } from "@/lib/utils";
 
 const fireConfetti = () => {
@@ -92,7 +93,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 interface CheckoutModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  raffle: Raffle & { organization?: { phone?: string | null; name?: string; logo_url?: string | null } };
+  raffle: Raffle & { organization?: { phone?: string | null; name?: string; logo_url?: string | null; subscription_tier?: string | null } };
   selectedTickets: string[];
   ticketPrice: number;
   packages?: { quantity: number; price: number }[];
@@ -739,6 +740,12 @@ export function CheckoutModal({
                     variant="button"
                   />
                 )}
+
+                {/* Telegram Opt-In for Premium/Enterprise orgs */}
+                <TelegramOptIn
+                  buyerEmail={form.getValues('email')}
+                  organizationTier={raffle.organization?.subscription_tier}
+                />
 
                 {/* Actions */}
                 <div className="flex gap-3">
