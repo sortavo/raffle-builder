@@ -437,36 +437,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
-          {/* Subscription Banner */}
-          {organization?.subscription_status === "trial" && (
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-secondary/10 to-warning/10 border border-secondary/20 p-6">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
-              
-              <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-secondary to-warning rounded-xl flex items-center justify-center shadow-lg">
-                    <Gift className="w-6 h-6 text-secondary-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      Estás en el plan de prueba
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Actualiza a un plan de pago para desbloquear todas las funcionalidades
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-secondary to-warning hover:from-secondary/90 hover:to-warning/90 text-secondary-foreground shadow-lg"
-                >
-                  Ver planes
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </DashboardLayout>
