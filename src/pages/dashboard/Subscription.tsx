@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { UpgradeConfirmationModal } from "@/components/subscription/UpgradeConfirmationModal";
+import { InvoiceHistory } from "@/components/subscription/InvoiceHistory";
 import { 
   CreditCard, 
   Check, 
@@ -401,6 +402,10 @@ export default function Subscription() {
             )}
           </div>
         </div>
+
+        {/* Invoice History - only show for active subscriptions */}
+        {currentStatus === "active" && <InvoiceHistory />}
+
         {/* Upgrade Confirmation Modal */}
         <UpgradeConfirmationModal
           open={showConfirmModal}
