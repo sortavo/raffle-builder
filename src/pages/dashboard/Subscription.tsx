@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
+import { UpgradeConfirmationModal } from "@/components/subscription/UpgradeConfirmationModal";
 import { 
   CreditCard, 
   Check, 
@@ -25,12 +26,32 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
+interface UpgradePreview {
+  amount_due: number;
+  currency: string;
+  proration_details: {
+    credit: number;
+    debit: number;
+    items: { description: string; amount: number }[];
+  };
+  effective_date: string;
+  next_billing_date: string | null;
+  new_plan_name: string;
+  old_plan_name: string;
+  priceId: string;
+  targetPlan: PlanKey;
+  period: BillingPeriod;
+}
+
 export default function Subscription() {
   const { organization } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [upgradePreview, setUpgradePreview] = useState<UpgradePreview | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const currentTier = organization?.subscription_tier || "basic";
+  const currentTier = (organization?.subscription_tier || "basic") as PlanKey;
   const currentStatus = organization?.subscription_status || "trial";
   const trialEndsAt = organization?.trial_ends_at;
 
@@ -42,27 +63,41 @@ export default function Subscription() {
   };
 
   const handleUpgrade = async (planKey: PlanKey, period: BillingPeriod) => {
-    setIsLoading(true);
-    try {
-      const priceId = getPriceId(planKey, period);
-      
-      // Si ya tiene suscripción activa, hacer upgrade directo vía API
-      if (currentStatus === "active" && organization?.stripe_subscription_id) {
-        const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
-          body: { priceId },
+    const priceId = getPriceId(planKey, period);
+    
+    // Si ya tiene suscripción activa, mostrar preview primero
+    if (currentStatus === "active" && organization?.stripe_subscription_id) {
+      setIsPreviewLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("preview-upgrade", {
+          body: { 
+            priceId,
+            planName: STRIPE_PLANS[planKey].name,
+            currentPlanName: STRIPE_PLANS[currentTier].name,
+          },
         });
         
         if (error) throw error;
         
-        if (data?.success) {
-          toast.success(`¡Plan actualizado a ${STRIPE_PLANS[planKey].name}! Los cambios se reflejarán en unos segundos.`);
-          // Recargar la página para reflejar los cambios del webhook
-          setTimeout(() => window.location.reload(), 2000);
-        }
-        return;
+        setUpgradePreview({
+          ...data,
+          priceId,
+          targetPlan: planKey,
+          period,
+        });
+        setShowConfirmModal(true);
+      } catch (error) {
+        console.error("Preview error:", error);
+        toast.error("Error al obtener preview. Intenta de nuevo.");
+      } finally {
+        setIsPreviewLoading(false);
       }
-      
-      // Si no tiene suscripción (trial o sin plan), crear checkout normal
+      return;
+    }
+    
+    // Si no tiene suscripción (trial o sin plan), crear checkout normal
+    setIsLoading(true);
+    try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId },
       });
@@ -75,6 +110,45 @@ export default function Subscription() {
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Error al procesar. Intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmUpgrade = async () => {
+    if (!upgradePreview) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
+        body: { priceId: upgradePreview.priceId },
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        setShowConfirmModal(false);
+        
+        // Format the amount charged
+        const amountFormatted = data.amount_charged 
+          ? new Intl.NumberFormat("es-MX", {
+              style: "currency",
+              currency: data.currency?.toUpperCase() || "USD",
+            }).format(data.amount_charged / 100)
+          : null;
+        
+        toast.success(
+          `¡Plan actualizado a ${STRIPE_PLANS[upgradePreview.targetPlan].name}!` +
+          (amountFormatted ? ` Se cobró ${amountFormatted}.` : ""),
+          { duration: 5000 }
+        );
+        
+        // Recargar la página para reflejar los cambios
+        setTimeout(() => window.location.reload(), 2000);
+      }
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      toast.error("Error al procesar el cambio. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -299,20 +373,20 @@ export default function Subscription() {
                         <>
                           <Button
                             onClick={() => handleUpgrade(key, "monthly")}
-                            disabled={isLoading}
+                            disabled={isLoading || isPreviewLoading}
                             className="w-full"
                             variant={
                               "popular" in plan && plan.popular ? "default" : "outline"
                             }
                           >
-                            {isLoading ? (
+                            {(isLoading || isPreviewLoading) ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : null}
                             Elegir Mensual
                           </Button>
                           <Button
                             onClick={() => handleUpgrade(key, "annual")}
-                            disabled={isLoading}
+                            disabled={isLoading || isPreviewLoading}
                             variant="ghost"
                             className="w-full text-sm"
                           >
@@ -327,6 +401,16 @@ export default function Subscription() {
             )}
           </div>
         </div>
+        {/* Upgrade Confirmation Modal */}
+        <UpgradeConfirmationModal
+          open={showConfirmModal}
+          onOpenChange={setShowConfirmModal}
+          preview={upgradePreview}
+          isLoading={isLoading}
+          onConfirm={confirmUpgrade}
+          targetPlanPrice={upgradePreview ? STRIPE_PLANS[upgradePreview.targetPlan].monthlyPrice : 0}
+          currentPlanPrice={STRIPE_PLANS[currentTier].monthlyPrice}
+        />
       </div>
     </DashboardLayout>
   );

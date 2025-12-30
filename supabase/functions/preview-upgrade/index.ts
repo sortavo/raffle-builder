@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[UPGRADE-SUBSCRIPTION] ${step}${detailsStr}`);
+  console.log(`[PREVIEW-UPGRADE] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -42,9 +42,9 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Get request body
-    const { priceId } = await req.json();
+    const { priceId, planName, currentPlanName } = await req.json();
     if (!priceId) throw new Error("priceId is required");
-    logStep("Request parsed", { priceId });
+    logStep("Request parsed", { priceId, planName, currentPlanName });
 
     // Get user's organization with subscription info
     const { data: profile, error: profileError } = await supabaseClient
@@ -60,7 +60,7 @@ serve(async (req) => {
 
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
-      .select("stripe_subscription_id, stripe_customer_id")
+      .select("stripe_subscription_id, stripe_customer_id, subscription_tier")
       .eq("id", profile.organization_id)
       .single();
 
@@ -69,72 +69,91 @@ serve(async (req) => {
     }
     logStep("Found organization", { 
       subscriptionId: org.stripe_subscription_id,
-      customerId: org.stripe_customer_id 
+      customerId: org.stripe_customer_id,
+      currentTier: org.subscription_tier
     });
 
-    if (!org.stripe_subscription_id) {
-      throw new Error("No active subscription found. Please create a new subscription.");
+    if (!org.stripe_subscription_id || !org.stripe_customer_id) {
+      throw new Error("No active subscription found");
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
-    // Retrieve current subscription
+    // Retrieve current subscription to get subscription item ID
     const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
     logStep("Retrieved subscription", { 
       subscriptionId: subscription.id,
       status: subscription.status,
-      itemsCount: subscription.items.data.length
+      currentPriceId: subscription.items.data[0]?.price.id
     });
 
-    if (subscription.status !== "active" && subscription.status !== "trialing") {
-      throw new Error(`Subscription is not active. Current status: ${subscription.status}`);
-    }
-
-    // Get the subscription item ID (assuming single item subscription)
     const subscriptionItemId = subscription.items.data[0]?.id;
     if (!subscriptionItemId) {
       throw new Error("No subscription item found");
     }
-    logStep("Found subscription item", { subscriptionItemId });
 
-    // Update the subscription with the new price
-    const updatedSubscription = await stripe.subscriptions.update(org.stripe_subscription_id, {
-      items: [{
+    // Get upcoming invoice preview with the new price
+    const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+      customer: org.stripe_customer_id,
+      subscription: org.stripe_subscription_id,
+      subscription_items: [{
         id: subscriptionItemId,
         price: priceId,
       }],
-      proration_behavior: "always_invoice", // Charge/credit the difference immediately
+      subscription_proration_behavior: "always_invoice",
     });
-    logStep("Subscription updated successfully", { 
-      newStatus: updatedSubscription.status,
-      newPriceId: priceId
+    logStep("Retrieved upcoming invoice", {
+      amountDue: upcomingInvoice.amount_due,
+      currency: upcomingInvoice.currency,
+      linesCount: upcomingInvoice.lines.data.length
     });
 
-    // Get the latest invoice to show what was charged
-    const latestInvoice = await stripe.invoices.list({
-      subscription: org.stripe_subscription_id,
-      limit: 1,
-    });
-    
-    const amountCharged = latestInvoice.data[0]?.amount_paid || 0;
-    const currency = latestInvoice.data[0]?.currency || "usd";
-    const nextBillingDate = updatedSubscription.current_period_end 
-      ? new Date(updatedSubscription.current_period_end * 1000).toISOString()
+    // Parse line items to get proration details
+    let creditAmount = 0;
+    let debitAmount = 0;
+    const prorationItems: { description: string; amount: number }[] = [];
+
+    for (const line of upcomingInvoice.lines.data) {
+      if (line.proration) {
+        if (line.amount < 0) {
+          creditAmount += Math.abs(line.amount);
+        } else {
+          debitAmount += line.amount;
+        }
+        prorationItems.push({
+          description: line.description || "Proration",
+          amount: line.amount,
+        });
+      }
+    }
+
+    // Calculate next billing date
+    const nextBillingDate = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString()
       : null;
 
-    logStep("Fetched invoice details", { amountCharged, currency, nextBillingDate });
+    const response = {
+      amount_due: upcomingInvoice.amount_due, // in cents
+      currency: upcomingInvoice.currency,
+      proration_details: {
+        credit: creditAmount,
+        debit: debitAmount,
+        items: prorationItems,
+      },
+      effective_date: new Date().toISOString(),
+      next_billing_date: nextBillingDate,
+      new_plan_name: planName || "Nuevo Plan",
+      old_plan_name: currentPlanName || org.subscription_tier || "Plan Actual",
+    };
+
+    logStep("Preview calculated successfully", {
+      amountDue: response.amount_due,
+      credit: creditAmount,
+      debit: debitAmount
+    });
 
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        subscription: {
-          id: updatedSubscription.id,
-          status: updatedSubscription.status,
-        },
-        amount_charged: amountCharged,
-        currency: currency,
-        next_billing_date: nextBillingDate,
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
