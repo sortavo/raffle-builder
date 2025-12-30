@@ -34,21 +34,41 @@ import {
   Check,
   Ban,
   Timer,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MapPin
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { cn } from '@/lib/utils';
 import { TicketGridSkeleton } from '@/components/ui/skeletons';
+import { DownloadableTicket } from '@/components/ticket/DownloadableTicket';
 
 interface TicketsTabProps {
   raffleId: string;
   raffleTitle?: string;
   raffleSlug?: string;
+  rafflePrizeName?: string;
+  rafflePrizeImages?: string[];
+  raffleDrawDate?: string | null;
+  raffleTicketPrice?: number;
+  raffleCurrencyCode?: string;
+  organizationName?: string;
+  organizationLogo?: string | null;
 }
 
 const TICKETS_PER_PAGE = 100;
 
-export function TicketsTab({ raffleId, raffleTitle, raffleSlug }: TicketsTabProps) {
+export function TicketsTab({ 
+  raffleId, 
+  raffleTitle, 
+  raffleSlug,
+  rafflePrizeName,
+  rafflePrizeImages,
+  raffleDrawDate,
+  raffleTicketPrice,
+  raffleCurrencyCode,
+  organizationName,
+  organizationLogo
+}: TicketsTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchInput, setSearchInput] = useState('');
@@ -423,7 +443,46 @@ export function TicketsTab({ raffleId, raffleTitle, raffleSlug }: TicketsTabProp
                     Referencia: <span className="font-mono">{selectedTicket.payment_reference}</span>
                   </div>
                 )}
+                {selectedTicket.buyer_city && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{selectedTicket.buyer_city}</span>
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Visual Ticket with QR */}
+            {(selectedTicket?.status === 'sold' || selectedTicket?.status === 'reserved') && 
+             raffleTitle && rafflePrizeName && raffleDrawDate && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Boleto Visual</p>
+                  <DownloadableTicket
+                    ticket={{
+                      id: selectedTicket.id,
+                      ticket_number: selectedTicket.ticket_number,
+                      buyer_name: selectedTicket.buyer_name || 'Sin nombre',
+                      buyer_email: selectedTicket.buyer_email || '',
+                      status: selectedTicket.status,
+                    }}
+                    raffle={{
+                      title: raffleTitle,
+                      slug: raffleSlug || '',
+                      prize_name: rafflePrizeName,
+                      prize_images: rafflePrizeImages,
+                      draw_date: raffleDrawDate,
+                      ticket_price: raffleTicketPrice || 0,
+                      currency_code: raffleCurrencyCode || 'MXN',
+                    }}
+                    organization={organizationName ? {
+                      name: organizationName,
+                      logo_url: organizationLogo,
+                    } : undefined}
+                  />
+                </div>
+              </>
             )}
 
             {/* Quick Actions */}

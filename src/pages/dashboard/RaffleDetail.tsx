@@ -155,7 +155,18 @@ export default function RaffleDetail() {
           </TabsContent>
 
           <TabsContent value="tickets">
-            <TicketsTab raffleId={raffle.id} raffleTitle={raffle.title} raffleSlug={raffle.slug} />
+            <TicketsTab 
+              raffleId={raffle.id} 
+              raffleTitle={raffle.title} 
+              raffleSlug={raffle.slug}
+              rafflePrizeName={raffle.prize_name}
+              rafflePrizeImages={raffle.prize_images || []}
+              raffleDrawDate={raffle.draw_date}
+              raffleTicketPrice={raffle.ticket_price}
+              raffleCurrencyCode={raffle.currency_code || 'MXN'}
+              organizationName={raffle.organization?.name || ''}
+              organizationLogo={raffle.organization?.logo_url}
+            />
           </TabsContent>
 
           <TabsContent value="buyers">
