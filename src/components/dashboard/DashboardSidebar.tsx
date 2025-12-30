@@ -41,6 +41,7 @@ import {
   Shield,
   Eye,
   Trophy,
+  History,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TicketScannerDialog } from "@/components/scanner";
@@ -89,6 +90,11 @@ const settingsItems = [
     title: "Suscripción",
     url: "/dashboard/subscription",
     icon: CreditCard,
+  },
+  {
+    title: "Historial",
+    url: "/dashboard/audit-log",
+    icon: History,
   },
   {
     title: "Centro de Ayuda",

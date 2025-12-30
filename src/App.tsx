@@ -34,6 +34,7 @@ import OrganizationHome from "./pages/OrganizationHome";
 import Buyers from "./pages/dashboard/Buyers";
 import Analytics from "./pages/dashboard/Analytics";
 import Subscription from "./pages/dashboard/Subscription";
+import AuditLog from "./pages/dashboard/AuditLog";
 import Contact from "./pages/Contact";
 import SystemStatus from "./pages/SystemStatus";
 import LogoPreview from "./pages/LogoPreview";
@@ -77,6 +78,7 @@ const App = () => (
                   <Route path="/dashboard/buyers" element={<Buyers />} />
                   <Route path="/dashboard/analytics" element={<Analytics />} />
                   <Route path="/dashboard/subscription" element={<Subscription />} />
+                  <Route path="/dashboard/audit-log" element={<AuditLog />} />
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/dashboard/coupons" element={<Coupons />} />
                   <Route path="/dashboard/marketing" element={<Marketing />} />
