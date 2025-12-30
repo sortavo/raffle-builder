@@ -8,27 +8,31 @@ import { cn } from "@/lib/utils";
 export function TrialBanner() {
   const { organization } = useAuth();
 
-  // Only show if subscription_status is 'trial' and trial_ends_at exists
-  if (
-    organization?.subscription_status !== "trial" ||
-    !organization?.trial_ends_at
-  ) {
+  // Only show if subscription_status is 'trial'
+  if (organization?.subscription_status !== "trial") {
     return null;
   }
 
-  const trialEndDate = parseISO(organization.trial_ends_at);
+  // Handle case when trial_ends_at is not set
+  const hasTrialEndDate = !!organization?.trial_ends_at;
   
-  // Normalizar fechas al inicio del día para cálculo correcto
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endDate = new Date(trialEndDate);
-  endDate.setHours(0, 0, 0, 0);
+  let daysRemaining = 7; // Default to 7 days if no end date
   
-  const daysRemaining = differenceInDays(endDate, today);
+  if (hasTrialEndDate) {
+    const trialEndDate = parseISO(organization.trial_ends_at!);
+    
+    // Normalizar fechas al inicio del día para cálculo correcto
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(trialEndDate);
+    endDate.setHours(0, 0, 0, 0);
+    
+    daysRemaining = differenceInDays(endDate, today);
 
-  // Don't show if trial has expired
-  if (daysRemaining < 0) {
-    return null;
+    // Don't show if trial has expired
+    if (daysRemaining < 0) {
+      return null;
+    }
   }
 
   const isUrgent = daysRemaining <= 2;

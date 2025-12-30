@@ -50,10 +50,15 @@ export function SubscriptionBadge({
   const isPastDue = status === "past_due";
   const isCanceled = status === "canceled";
   
-  // Calculate days remaining for trial
-  const daysRemaining = trialEndsAt 
-    ? Math.max(0, differenceInDays(new Date(trialEndsAt), new Date()))
-    : 0;
+  // Calculate days remaining for trial - normalize to start of day for accurate counting
+  let daysRemaining = 0;
+  if (trialEndsAt) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(trialEndsAt);
+    endDate.setHours(0, 0, 0, 0);
+    daysRemaining = Math.max(0, differenceInDays(endDate, today));
+  }
 
   // Handle special statuses
   if (isPastDue) {
@@ -114,7 +119,7 @@ export function SubscriptionBadge({
         )}
       </div>
       
-      {isTrialing && !collapsed && daysRemaining >= 0 && (
+      {isTrialing && !collapsed && trialEndsAt && (
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground pl-0.5">
           <Clock className="h-3 w-3" />
           <span>
@@ -123,6 +128,12 @@ export function SubscriptionBadge({
               : `${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`
             }
           </span>
+        </div>
+      )}
+      {isTrialing && !collapsed && !trialEndsAt && (
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground pl-0.5">
+          <Clock className="h-3 w-3" />
+          <span>Prueba activa</span>
         </div>
       )}
     </div>
