@@ -131,7 +131,7 @@ export function PricingCard({
           <span className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             ${monthlyEquivalent.toLocaleString()}
           </span>
-          <span className="text-muted-foreground text-lg">/mes</span>
+          <span className="text-muted-foreground text-lg">USD/mes</span>
         </div>
         {isAnnual && (
           <p className="text-sm text-muted-foreground mt-1">
