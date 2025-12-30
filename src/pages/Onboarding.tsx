@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,62 +107,82 @@ export default function Onboarding() {
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>(initialPlan);
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
 
+  // Ref to prevent duplicate checkout processing
+  const hasProcessedCheckout = useRef(false);
+
   // Handle successful Stripe checkout return
   useEffect(() => {
-    const success = searchParams.get("success");
-    const sessionId = searchParams.get("session_id");
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const sessionId = params.get("session_id");
     
-    if (success === "true" && sessionId) {
-      setIsProcessingPayment(true);
-      
-      // Poll for subscription update
-      let pollCount = 0;
-      const maxPolls = 20; // 20 polls * 1.5s = 30 seconds max
-      
-      const pollSubscription = async () => {
-        pollCount++;
-        
-        // Refresh organization data from the database
-        if (refreshOrganization) {
-          await refreshOrganization();
-        }
-        
-        // Check if subscription is now active or trial
-        const { data: orgData } = await supabase
-          .from("organizations")
-          .select("subscription_status, onboarding_completed")
-          .eq("id", organization?.id)
-          .single();
-        
-        if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
-          // Mark onboarding as completed if not already
-          if (!orgData.onboarding_completed) {
-            await supabase
-              .from("organizations")
-              .update({ onboarding_completed: true })
-              .eq("id", organization?.id);
-          }
-          
-          setIsProcessingPayment(false);
-          toast.success("¡Suscripción activada exitosamente!");
-          navigate("/dashboard");
-          return;
-        }
-        
-        if (pollCount < maxPolls) {
-          setTimeout(pollSubscription, 1500);
-        } else {
-          // Max polls reached - still redirect to dashboard, webhook might be delayed
-          setIsProcessingPayment(false);
-          toast.info("Procesando tu suscripción. Puede tardar unos segundos.");
-          navigate("/dashboard");
-        }
-      };
-      
-      // Start polling after a short delay to allow webhook to process
-      setTimeout(pollSubscription, 2000);
+    // Skip if already processed or no success param
+    if (hasProcessedCheckout.current || success !== "true" || !sessionId) {
+      return;
     }
-  }, [searchParams, organization?.id, navigate, refreshOrganization]);
+    
+    // Mark as processed immediately to prevent re-runs
+    hasProcessedCheckout.current = true;
+    
+    // Clean URL immediately to prevent re-triggers on refresh
+    window.history.replaceState({}, '', '/onboarding');
+    
+    setIsProcessingPayment(true);
+    
+    // Poll for subscription update
+    let pollCount = 0;
+    const maxPolls = 20; // 20 polls * 1.5s = 30 seconds max
+    let pollTimeoutId: number;
+    
+    const pollSubscription = async () => {
+      pollCount++;
+      
+      // Refresh organization data from the database
+      if (refreshOrganization) {
+        await refreshOrganization();
+      }
+      
+      // Check if subscription is now active or trial
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("subscription_status, onboarding_completed")
+        .eq("id", organization?.id)
+        .single();
+      
+      if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
+        // Mark onboarding as completed if not already
+        if (!orgData.onboarding_completed) {
+          await supabase
+            .from("organizations")
+            .update({ onboarding_completed: true })
+            .eq("id", organization?.id);
+        }
+        
+        setIsProcessingPayment(false);
+        toast.success("¡Suscripción activada exitosamente!");
+        navigate("/dashboard");
+        return;
+      }
+      
+      if (pollCount < maxPolls) {
+        pollTimeoutId = window.setTimeout(pollSubscription, 1500);
+      } else {
+        // Max polls reached - still redirect to dashboard, webhook might be delayed
+        setIsProcessingPayment(false);
+        toast.info("Procesando tu suscripción. Puede tardar unos segundos.");
+        navigate("/dashboard");
+      }
+    };
+    
+    // Start polling after a short delay to allow webhook to process
+    pollTimeoutId = window.setTimeout(pollSubscription, 2000);
+    
+    return () => {
+      if (pollTimeoutId) {
+        window.clearTimeout(pollTimeoutId);
+      }
+    };
+  }, [organization?.id, navigate, refreshOrganization]);
 
   useEffect(() => {
     if (!isLoading && !user) {
