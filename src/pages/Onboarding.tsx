@@ -168,10 +168,10 @@ export default function Onboarding() {
         await refreshOrganization();
       }
       
-      // Check if subscription is now active or trial
+      // Check if subscription is now active or trial AND has stripe_subscription_id
       const { data: orgData, error: orgError } = await supabase
         .from("organizations")
-        .select("subscription_status, onboarding_completed")
+        .select("subscription_status, stripe_subscription_id, onboarding_completed")
         .eq("id", orgId)
         .single();
       
@@ -179,7 +179,10 @@ export default function Onboarding() {
         console.error("Polling error:", orgError);
       }
       
-      if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
+      // Only mark as successful when we have BOTH valid status AND stripe_subscription_id
+      if (orgData?.stripe_subscription_id && 
+          orgData?.subscription_status && 
+          ["active", "trial"].includes(orgData.subscription_status)) {
         // Mark onboarding as completed if not already
         if (!orgData.onboarding_completed) {
           await supabase
@@ -241,11 +244,14 @@ export default function Onboarding() {
     
     const { data: orgData } = await supabase
       .from("organizations")
-      .select("subscription_status, onboarding_completed")
+      .select("subscription_status, stripe_subscription_id, onboarding_completed")
       .eq("id", orgId)
       .single();
     
-    if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
+    // Only mark as successful when we have BOTH valid status AND stripe_subscription_id
+    if (orgData?.stripe_subscription_id &&
+        orgData?.subscription_status && 
+        ["active", "trial"].includes(orgData.subscription_status)) {
       if (!orgData.onboarding_completed) {
         await supabase
           .from("organizations")
