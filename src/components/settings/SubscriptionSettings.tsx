@@ -16,7 +16,8 @@ import {
   ArrowRight,
   ExternalLink,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Building2
 } from "lucide-react";
 import { STRIPE_PLANS, type PlanKey } from "@/lib/stripe-config";
 import { getSubscriptionLimits } from "@/lib/subscription-limits";
@@ -27,6 +28,7 @@ const PLAN_ICONS = {
   basic: Rocket,
   pro: Zap,
   premium: Crown,
+  enterprise: Building2,
 };
 
 export function SubscriptionSettings() {

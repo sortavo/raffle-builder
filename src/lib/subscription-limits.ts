@@ -38,8 +38,8 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
 
     case 'premium':
       return {
-        maxActiveRaffles: 999,
-        maxTicketsPerRaffle: 10000000,
+        maxActiveRaffles: 15,
+        maxTicketsPerRaffle: 100000,
         templatesAvailable: 6,
         canRemoveBranding: true,
         hasAdvancedAnalytics: true,
@@ -54,7 +54,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
     
     case 'pro':
       return {
-        maxActiveRaffles: 15,
+        maxActiveRaffles: 7,
         maxTicketsPerRaffle: 30000,
         templatesAvailable: 6,
         canRemoveBranding: true,

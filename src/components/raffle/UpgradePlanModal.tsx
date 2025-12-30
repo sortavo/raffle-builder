@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Crown, Zap, Star, AlertCircle } from 'lucide-react';
+import { Crown, Zap, Star, AlertCircle, Building2, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
 
@@ -64,7 +64,7 @@ export const UpgradePlanModal = ({
           )}
 
           <div className="space-y-3">
-            {currentTier !== 'pro' && currentTier !== 'premium' && (
+            {currentTier !== 'pro' && currentTier !== 'premium' && currentTier !== 'enterprise' && (
               <div 
                 className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary transition-colors cursor-pointer"
                 onClick={() => handleUpgrade('pro')}
@@ -80,7 +80,7 @@ export const UpgradePlanModal = ({
               </div>
             )}
 
-            {currentTier !== 'premium' && (
+            {currentTier !== 'premium' && currentTier !== 'enterprise' && (
               <div 
                 className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary transition-colors cursor-pointer"
                 onClick={() => handleUpgrade('premium')}
@@ -89,10 +89,29 @@ export const UpgradePlanModal = ({
                 <div className="flex-1">
                   <p className="font-medium">Plan Premium</p>
                   <p className="text-sm text-muted-foreground">
-                    Hasta {STRIPE_PLANS.premium.limits.maxTicketsPerRaffle.toLocaleString()} boletos • Sorteos ilimitados
+                    Hasta {STRIPE_PLANS.premium.limits.maxTicketsPerRaffle.toLocaleString()} boletos • {STRIPE_PLANS.premium.limits.maxActiveRaffles} sorteos activos
                   </p>
                 </div>
                 <span className="font-bold">${STRIPE_PLANS.premium.monthlyPrice} USD/mes</span>
+              </div>
+            )}
+
+            {currentTier === 'premium' && (
+              <div 
+                className="flex items-center gap-3 p-3 border rounded-lg hover:border-purple-500 transition-colors cursor-pointer"
+                onClick={() => navigate('/contact')}
+              >
+                <Building2 className="w-8 h-8 text-purple-600" />
+                <div className="flex-1">
+                  <p className="font-medium">Plan Enterprise</p>
+                  <p className="text-sm text-muted-foreground">
+                    Hasta {STRIPE_PLANS.enterprise.limits.maxTicketsPerRaffle.toLocaleString()} boletos • Sorteos ilimitados • API Access
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-purple-600">
+                  <Phone className="w-4 h-4" />
+                  <span className="font-bold text-sm">Contactar</span>
+                </div>
               </div>
             )}
           </div>
