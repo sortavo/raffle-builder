@@ -191,9 +191,15 @@ export default function Onboarding() {
             .eq("id", orgId);
         }
         
+        // Refresh organization state BEFORE navigating to ensure dashboard sees updated data
+        console.debug("[Onboarding] Subscription confirmed, refreshing org state before navigation");
+        if (refreshOrganization) {
+          await refreshOrganization();
+        }
+        
         setIsProcessingPayment(false);
         toast.success("¡Suscripción activada exitosamente!");
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
         return;
       }
       
@@ -259,12 +265,25 @@ export default function Onboarding() {
           .eq("id", orgId);
       }
       
+      // Refresh state before navigating
+      if (refreshOrganization) {
+        await refreshOrganization();
+      }
+      
       toast.success("¡Suscripción activada!");
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } else {
       toast.info("Aún procesando. Intenta de nuevo en unos segundos.");
     }
   };
+
+  // Auto-escape: if onboarding is already completed and we're not processing payment, go to dashboard
+  useEffect(() => {
+    if (!isLoading && !isProcessingPayment && organization?.onboarding_completed === true) {
+      console.debug("[Onboarding] Onboarding already completed, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isLoading, isProcessingPayment, organization?.onboarding_completed, navigate]);
 
   useEffect(() => {
     if (!isLoading && !user) {

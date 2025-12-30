@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
@@ -34,16 +34,42 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { organization } = useAuth();
+  const { organization, refreshOrganization } = useAuth();
   const { isSimulating, simulatedUser, mode, endSimulation, toggleMode } = useSimulation();
   const { isPlatformAdmin } = useIsPlatformAdmin();
+  const hasVerifiedOnboarding = useRef(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Redirect to onboarding if not completed
+  // Redirect to onboarding if not completed (with double-check to avoid race conditions)
   useEffect(() => {
-    if (organization && organization.onboarding_completed === false) {
-      navigate("/onboarding");
+    const verifyOnboarding = async () => {
+      if (!organization || hasVerifiedOnboarding.current || isVerifying) return;
+      
+      if (organization.onboarding_completed === false) {
+        console.debug("[DashboardLayout] onboarding_completed=false, verifying with backend...");
+        setIsVerifying(true);
+        hasVerifiedOnboarding.current = true;
+        
+        // Refresh to get latest data from backend
+        await refreshOrganization();
+        setIsVerifying(false);
+      }
+    };
+    
+    verifyOnboarding();
+  }, [organization, refreshOrganization, isVerifying]);
+
+  // Separate effect to handle redirect after verification
+  useEffect(() => {
+    if (hasVerifiedOnboarding.current && !isVerifying && organization) {
+      if (organization.onboarding_completed === false) {
+        console.debug("[DashboardLayout] Confirmed onboarding not completed, redirecting...");
+        navigate("/onboarding");
+      } else {
+        console.debug("[DashboardLayout] Onboarding is completed, staying in dashboard");
+      }
     }
-  }, [organization, navigate]);
+  }, [organization, isVerifying, navigate]);
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {
