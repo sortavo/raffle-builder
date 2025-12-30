@@ -3,7 +3,6 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Calendar, Clock, Video, Dices, Globe, Hand } from 'lucide-react';
@@ -97,13 +96,20 @@ export const Step4Draw = ({ form }: Step4Props) => {
   const startDateError = getFieldError('start_date');
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
-        <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
-          <CardTitle className="text-lg md:text-xl">Fechas del Sorteo</CardTitle>
-          <CardDescription>Configura cuándo inicia y termina tu sorteo</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
+    <div className="space-y-8 md:space-y-10">
+      {/* Dates Section */}
+      <div>
+        <div className="flex items-center gap-3 pb-4 border-b border-border/50 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
+            <Calendar className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight">Fechas del Sorteo</h2>
+            <p className="text-sm text-muted-foreground">Configura cuándo inicia y termina tu sorteo</p>
+          </div>
+        </div>
+        
+        <div className="space-y-5 md:space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -238,140 +244,152 @@ export const Step4Draw = ({ form }: Step4Props) => {
               </FormItem>
             )}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
-        <CardHeader className="px-0 md:px-6">
-          <CardTitle className="text-lg md:text-xl">Método de Sorteo</CardTitle>
-          <CardDescription>Elige cómo se seleccionará al ganador</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 md:px-6">
-          <FormField
-            control={form.control}
-            name="draw_method"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Tabs 
-                    defaultValue={field.value || 'manual'} 
-                    onValueChange={field.onChange}
-                    className="w-full"
-                  >
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="lottery_nacional" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                        <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                        <span className="hidden sm:inline">Lotería Nacional</span>
-                        <span className="sm:hidden">Lotería</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="manual" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                        <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                        Manual
-                      </TabsTrigger>
-                      <TabsTrigger value="random_org" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                        <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                        <span className="hidden sm:inline">Random.org</span>
-                        <span className="sm:hidden">Random</span>
-                      </TabsTrigger>
-                    </TabsList>
+      {/* Draw Method Section */}
+      <div>
+        <div className="flex items-center gap-3 pb-4 border-b border-border/50 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-success/10 to-success/5 text-success">
+            <Dices className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight">Método de Sorteo</h2>
+            <p className="text-sm text-muted-foreground">Elige cómo se seleccionará al ganador</p>
+          </div>
+        </div>
 
-                    <TabsContent value="lottery_nacional" className="space-y-4 mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        El ganador se determina con los últimos dígitos del premio mayor de la Lotería Nacional.
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="lottery_draw_number"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Número de Sorteo</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Ej: Sorteo Especial 257" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+        <FormField
+          control={form.control}
+          name="draw_method"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Tabs 
+                  defaultValue={field.value || 'manual'} 
+                  onValueChange={field.onChange}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="lottery_nacional" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                      <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span className="hidden sm:inline">Lotería Nacional</span>
+                      <span className="sm:hidden">Lotería</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="manual" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                      <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      Manual
+                    </TabsTrigger>
+                    <TabsTrigger value="random_org" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                      <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span className="hidden sm:inline">Random.org</span>
+                      <span className="sm:hidden">Random</span>
+                    </TabsTrigger>
+                  </TabsList>
 
-                        <FormField
-                          control={form.control}
-                          name="lottery_digits"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dígitos a Usar</FormLabel>
-                              <Select 
-                                onValueChange={(v) => field.onChange(parseInt(v))} 
-                                defaultValue={field.value?.toString() || '3'}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="2">2 dígitos</SelectItem>
-                                  <SelectItem value="3">3 dígitos</SelectItem>
-                                  <SelectItem value="4">4 dígitos</SelectItem>
-                                  <SelectItem value="5">5 dígitos</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="manual" className="space-y-4 mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Selecciona al ganador manualmente durante un evento en vivo o por otros medios.
-                      </p>
+                  <TabsContent value="lottery_nacional" className="space-y-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      El ganador se determina con los últimos dígitos del premio mayor de la Lotería Nacional.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="description"
+                        name="lottery_draw_number"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Descripción del método</FormLabel>
+                            <FormLabel>Número de Sorteo</FormLabel>
                             <FormControl>
-                              <Textarea 
-                                placeholder="Describe cómo se realizará el sorteo..."
-                                {...field}
-                              />
+                              <Input placeholder="Ej: Sorteo Especial 257" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </TabsContent>
 
-                    <TabsContent value="random_org" className="space-y-4 mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Sorteo automático usando Random.org con certificado de autenticidad verificable.
+                      <FormField
+                        control={form.control}
+                        name="lottery_digits"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Dígitos a Usar</FormLabel>
+                            <Select 
+                              onValueChange={(v) => field.onChange(parseInt(v))} 
+                              defaultValue={field.value?.toString() || '3'}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="2">2 dígitos</SelectItem>
+                                <SelectItem value="3">3 dígitos</SelectItem>
+                                <SelectItem value="4">4 dígitos</SelectItem>
+                                <SelectItem value="5">5 dígitos</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="manual" className="space-y-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Selecciona al ganador manualmente durante un evento en vivo o por otros medios.
+                    </p>
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descripción del método</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Describe cómo se realizará el sorteo..."
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="random_org" className="space-y-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Sorteo automático usando Random.org con certificado de autenticidad verificable.
+                    </p>
+                    <div className="p-4 bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl border border-border/50">
+                      <p className="text-sm">
+                        ✓ Generación de números verdaderamente aleatorios<br />
+                        ✓ Certificado digital descargable<br />
+                        ✓ Verificable por cualquier participante
                       </p>
-                      <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm">
-                          ✓ Generación de números verdaderamente aleatorios<br />
-                          ✓ Certificado digital descargable<br />
-                          ✓ Verificable por cualquier participante
-                        </p>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </CardContent>
-      </Card>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
-        <CardHeader className="px-0 md:px-6">
-          <CardTitle className="text-lg md:text-xl">Transmisión en Vivo</CardTitle>
-          <CardDescription>Opcional: Comparte el link de tu transmisión</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 md:px-6 space-y-4">
+      {/* Livestream Section */}
+      <div>
+        <div className="flex items-center gap-3 pb-4 border-b border-border/50 mb-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/10 to-secondary/5 text-secondary">
+            <Video className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight">Transmisión en Vivo</h2>
+            <p className="text-sm text-muted-foreground">Opcional: Comparte el link de tu transmisión</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
           <FormField
             control={form.control}
             name="livestream_url"
@@ -396,9 +414,9 @@ export const Step4Draw = ({ form }: Step4Props) => {
             control={form.control}
             name="auto_publish_result"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between rounded-lg border p-4">
+              <FormItem className="flex items-center justify-between rounded-xl border border-border/50 p-4 bg-muted/30">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">Publicar resultado automáticamente</FormLabel>
+                  <FormLabel className="text-base font-semibold">Publicar resultado automáticamente</FormLabel>
                   <FormDescription>
                     El ganador se mostrará en la página del sorteo al finalizar
                   </FormDescription>
@@ -412,8 +430,8 @@ export const Step4Draw = ({ form }: Step4Props) => {
               </FormItem>
             )}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

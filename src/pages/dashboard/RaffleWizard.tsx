@@ -513,52 +513,74 @@ export default function RaffleWizard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
-        {/* Header - Compact on mobile */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">
-              {isEditing ? 'Editar Sorteo' : 'Crear Sorteo'}
-            </h1>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowPreview(!showPreview)}
-                className="hidden lg:flex"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                {showPreview ? 'Ocultar Vista Previa' : 'Mostrar Vista Previa'}
-              </Button>
-              <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={() => navigate('/dashboard/raffles')}>
-                <span className="hidden sm:inline">Cancelar</span>
-                <X className="h-4 w-4 sm:hidden" />
-              </Button>
+      <div className="max-w-7xl mx-auto space-y-5 md:space-y-8">
+        {/* Premium Header */}
+        <div className="relative">
+          {/* Gradient accent line */}
+          <div className="absolute -top-4 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent rounded-full" />
+          
+          <div className="flex flex-col gap-2 pt-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
+                  <Rocket className="h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    {isEditing ? 'Editar Sorteo' : 'Crear Sorteo'}
+                  </h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Paso {currentStep} de {STEPS.length} • {STEPS[currentStep - 1].description}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="hidden lg:flex border-border/50 hover:bg-muted/50"
+                >
+                  {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                  {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="px-2.5 hover:bg-muted/50" 
+                  onClick={() => navigate('/dashboard/raffles')}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Cancelar</span>
+                </Button>
+              </div>
             </div>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground -mt-1">
-            {STEPS[currentStep - 1].description}
-          </p>
         </div>
 
-        {/* Progress - Compact */}
-        <WizardProgress 
-          steps={STEPS} 
-          currentStep={currentStep} 
-          stepStatuses={stepStatuses}
-          stepErrors={stepErrors}
-        />
+        {/* Premium Progress */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-2xl" />
+          <div className="relative bg-card/50 backdrop-blur-sm rounded-2xl border border-border/50 p-3 md:p-4 shadow-sm">
+            <WizardProgress 
+              steps={STEPS} 
+              currentStep={currentStep} 
+              stepStatuses={stepStatuses}
+              stepErrors={stepErrors}
+            />
+          </div>
+        </div>
 
         {/* Payment Methods Warning */}
         {showPaymentMethodsWarning && !hasEnabledPaymentMethods && (
-          <Alert variant="destructive" className="py-3">
+          <Alert variant="destructive" className="py-3 border-destructive/30 bg-destructive/5">
             <CreditCard className="h-4 w-4" />
-            <AlertTitle className="text-sm">Métodos de pago requeridos</AlertTitle>
+            <AlertTitle className="text-sm font-semibold">Métodos de pago requeridos</AlertTitle>
             <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm">
-              <span>Configura un método de pago para que te paguen.</span>
-              <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+              <span>Configura un método de pago para que tus clientes puedan pagarte.</span>
+              <Button variant="outline" size="sm" asChild className="w-full sm:w-auto border-destructive/30 hover:bg-destructive/10">
                 <Link to="/dashboard/settings?tab=payment-methods">
-                  Configurar
+                  Configurar Pagos
                 </Link>
               </Button>
             </AlertDescription>
@@ -566,70 +588,92 @@ export default function RaffleWizard() {
         )}
 
         {/* Main Content with Preview */}
-        <div className={`grid gap-4 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,400px]' : ''}`}>
+        <div className={`grid gap-5 md:gap-8 ${showPreview ? 'lg:grid-cols-[1fr,420px]' : ''}`}>
           {/* Left: Form */}
-          <div className="space-y-3 md:space-y-4">
+          <div className="space-y-4 md:space-y-5">
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()}>
-                <Card className="overflow-hidden border-0 shadow-sm md:border md:shadow">
-                  <CardContent className="p-3 sm:p-4 md:p-6">
-                    {renderStep()}
-                  </CardContent>
-                </Card>
+                {/* Premium Card */}
+                <div className="relative group">
+                  {/* Glow effect on hover (desktop only) */}
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500 hidden md:block" />
+                  
+                  <Card className="relative overflow-hidden border-border/50 shadow-lg shadow-black/5 bg-card/95 backdrop-blur-sm rounded-xl md:rounded-2xl">
+                    {/* Card header accent */}
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                    
+                    <CardContent className="p-4 sm:p-5 md:p-8">
+                      {renderStep()}
+                    </CardContent>
+                  </Card>
+                </div>
               </form>
             </Form>
 
-            {/* Navigation - Fixed bottom on mobile */}
-            <div className="flex items-center justify-between gap-2 p-3 -mx-3 sm:mx-0 sm:p-0 bg-background/95 backdrop-blur-sm border-t sm:border-0 sticky bottom-0 sm:static z-10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBack}
-                disabled={currentStep === 1}
-                className="px-3"
-              >
-                <ArrowLeft className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Anterior</span>
-              </Button>
-
-              <div className="flex items-center gap-2">
+            {/* Premium Navigation Bar */}
+            <div className="relative">
+              {/* Gradient background for mobile sticky bar */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background to-transparent sm:hidden -mx-4 px-4 -mb-4 pb-4" />
+              
+              <div className="relative flex items-center justify-between gap-3 p-4 -mx-4 sm:mx-0 sm:p-4 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl sm:rounded-2xl shadow-lg shadow-black/5 sticky bottom-3 sm:static z-10">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSaveDraft}
-                  disabled={createRaffle.isPending || updateRaffle.isPending}
-                  className="px-3"
+                  variant="outline"
+                  size="default"
+                  onClick={handleBack}
+                  disabled={currentStep === 1}
+                  className="px-4 border-border/50 hover:bg-muted/50 transition-all"
                 >
-                  <Save className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Guardar</span>
+                  <ArrowLeft className="h-4 w-4 mr-1.5" />
+                  <span className="hidden sm:inline">Anterior</span>
                 </Button>
 
-                {currentStep < 5 ? (
-                  <Button onClick={handleNext} size="sm" className="px-4">
-                    <span className="hidden sm:inline">Siguiente</span>
-                    <span className="sm:hidden">Sig.</span>
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handlePublish}
-                    size="sm"
-                    disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
-                    className="px-4"
+                <div className="flex items-center gap-2.5">
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    onClick={handleSaveDraft}
+                    disabled={createRaffle.isPending || updateRaffle.isPending}
+                    className="px-4 hover:bg-muted/50"
                   >
-                    <Rocket className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">Publicar</span>
-                    <span className="sm:hidden">Pub.</span>
+                    <Save className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Guardar borrador</span>
+                    <span className="sm:hidden">Guardar</span>
                   </Button>
-                )}
+
+                  {currentStep < 5 ? (
+                    <Button 
+                      onClick={handleNext} 
+                      size="default" 
+                      className="px-5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
+                    >
+                      <span>Siguiente</span>
+                      <ArrowRight className="h-4 w-4 ml-1.5" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handlePublish}
+                      size="default"
+                      disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
+                      className="px-5 bg-gradient-to-r from-primary to-success hover:from-primary/90 hover:to-success/90 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
+                    >
+                      <Rocket className="h-4 w-4 mr-1.5" />
+                      <span>Publicar Sorteo</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right: Preview */}
           {showPreview && (
-            <div className="hidden lg:block sticky top-4 h-fit">
-              <RafflePreview form={form} />
+            <div className="hidden lg:block sticky top-6 h-fit">
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 rounded-2xl blur-sm" />
+                <div className="relative">
+                  <RafflePreview form={form} />
+                </div>
+              </div>
             </div>
           )}
         </div>

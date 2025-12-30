@@ -2,7 +2,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CURRENCIES } from '@/lib/currency-utils';
 import { ImagePlus, Video, X, Loader2, GripVertical, Plus, Trash2, Gift, Sparkles } from 'lucide-react';
@@ -485,12 +485,19 @@ export const Step2Prize = ({ form }: Step2Props) => {
   };
 
   return (
-    <Card className="border-0 shadow-none md:border md:shadow-sm">
-      <CardHeader className="px-0 md:px-6 pt-0 md:pt-6">
-        <CardTitle className="text-lg md:text-xl">Configuración de Premios</CardTitle>
-        <CardDescription>Define los premios que van a ganar los participantes</CardDescription>
-      </CardHeader>
-      <CardContent className="px-0 md:px-6 space-y-5 md:space-y-6">
+    <div className="space-y-6 md:space-y-8">
+      {/* Premium Section Header */}
+      <div className="flex items-center gap-3 pb-4 border-b border-border/50">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/20 to-secondary/10 text-secondary">
+          <Gift className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg md:text-xl font-bold tracking-tight">Configuración de Premios</h2>
+          <p className="text-sm text-muted-foreground">Define los premios que van a ganar los participantes</p>
+        </div>
+      </div>
+      
+      <div className="space-y-5 md:space-y-6">
         {/* Prize Rows */}
         <div className="space-y-4">
           <FormLabel className="flex items-center gap-2">
@@ -723,7 +730,7 @@ export const Step2Prize = ({ form }: Step2Props) => {
             </FormItem>
           )}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
