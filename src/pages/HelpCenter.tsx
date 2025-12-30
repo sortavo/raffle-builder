@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { scrollToSection } from '@/lib/scroll-utils';
-import { Search, Book, MessageCircle, FileText, ChevronRight, ExternalLink, Mail, Phone, Trophy, Menu } from 'lucide-react';
+import { Search, Book, MessageCircle, FileText, ChevronRight, ExternalLink, Mail, Phone } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +16,9 @@ import { LoadingButton } from '@/components/ui/LoadingButton';
 import { successToast, errorToast } from '@/lib/toast-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Footer } from '@/components/layout/Footer';
+import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
+import { PremiumHero } from '@/components/layout/PremiumBackground';
 
 const faqCategories = [
   {
@@ -158,7 +158,6 @@ export default function HelpCenter() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactSchema),
@@ -202,168 +201,62 @@ export default function HelpCenter() {
     }
   };
 
-  const navLinks = [
-    { label: 'Características', href: '/#features' },
-    { label: 'Precios', href: '/pricing' },
-    { label: 'Ayuda', href: '/help' },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted">
+    <div className="min-h-screen bg-gray-950">
       {/* Premium Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                SORTAVO
-              </span>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                link.href.startsWith('/#') ? (
-                  <a 
-                    key={link.label}
-                    href={link.href.replace('/', '')}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollToSection(link.href.replace('/#', ''));
-                    }}
-                    className="text-muted-foreground hover:text-primary font-medium transition-colors cursor-pointer"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <Link 
-                    key={link.label}
-                    to={link.href} 
-                    className="text-muted-foreground hover:text-primary font-medium transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                )
-              ))}
-            </div>
-
-            <div className="hidden md:flex items-center gap-3">
-              <Link to="/auth">
-                <Button variant="ghost" className="text-foreground hover:text-primary hover:bg-primary/10">
-                  Iniciar Sesión
-                </Button>
-              </Link>
-              <Link to="/auth?tab=signup">
-                <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25">
-                  Crear Cuenta
-                </Button>
-              </Link>
-            </div>
-
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px]">
-                <div className="flex flex-col gap-6 mt-8">
-                  {navLinks.map((link) => (
-                    link.href.startsWith('/#') ? (
-                      <a 
-                        key={link.label}
-                        href={link.href.replace('/', '')}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          scrollToSection(link.href.replace('/#', ''), () => setMobileMenuOpen(false));
-                        }}
-                        className="text-lg font-medium text-foreground hover:text-primary cursor-pointer"
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link 
-                        key={link.label}
-                        to={link.href} 
-                        className="text-lg font-medium text-foreground hover:text-primary"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    )
-                  ))}
-                  <hr className="border-border" />
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full">Iniciar Sesión</Button>
-                  </Link>
-                  <Link to="/auth?tab=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full bg-gradient-to-r from-primary to-accent">
-                      Crear Cuenta
-                    </Button>
-                  </Link>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </nav>
+      <PremiumNavbar variant="solid" />
 
       {/* Hero Header */}
-      <div className="pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute top-20 -left-20 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute top-40 -right-20 w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-        
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+      <PremiumHero className="pt-28 pb-16 lg:pt-36 lg:pb-20">
+        <div className="container mx-auto px-4 text-center">
+          <Badge className="mb-4 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
             Estamos para ayudarte
           </Badge>
           <h1 className="text-4xl font-bold mb-4 md:text-5xl">
-            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
               Centro de Ayuda
             </span>
           </h1>
-          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
             Encuentra respuestas a tus preguntas, guías detalladas y soporte personalizado
           </p>
           
           {/* Search */}
           <div className="max-w-xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary/60" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400/60" />
             <Input
               placeholder="Buscar en preguntas frecuentes..."
-              className="pl-12 h-14 text-lg bg-card/80 backdrop-blur-sm border-border focus:border-primary focus:ring-primary shadow-xl shadow-primary/10"
+              className="pl-12 h-14 text-lg bg-gray-900/80 backdrop-blur-sm border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 shadow-xl shadow-emerald-600/10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
-      </div>
+      </PremiumHero>
 
       {/* Quick Links */}
       <div className="container mx-auto px-4 -mt-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { icon: Book, title: 'Documentación', desc: 'Guías y tutoriales', gradient: 'from-primary to-accent' },
-            { icon: MessageCircle, title: 'Soporte', desc: 'Contactar al equipo', gradient: 'from-secondary to-secondary/80' },
-            { icon: FileText, title: 'Estado del Sistema', desc: 'Todo operativo', gradient: 'from-success to-success/80', status: true },
+            { icon: Book, title: 'Documentación', desc: 'Guías y tutoriales', gradient: 'from-emerald-600 to-teal-500' },
+            { icon: MessageCircle, title: 'Soporte', desc: 'Contactar al equipo', gradient: 'from-amber-500 to-orange-500' },
+            { icon: FileText, title: 'Estado del Sistema', desc: 'Todo operativo', gradient: 'from-emerald-500 to-green-500', status: true },
           ].map((item, idx) => (
-            <Card key={idx} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-card/80 backdrop-blur-sm border-border shadow-lg">
+            <Card key={idx} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer bg-gray-900/80 backdrop-blur-sm border-white/10 shadow-lg">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg`}>
                   <item.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                  <p className="text-sm text-gray-400">{item.desc}</p>
                 </div>
                 {item.status ? (
-                  <Badge className="ml-auto bg-success/10 text-success border-success/20">
+                  <Badge className="ml-auto bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                     Online
                   </Badge>
                 ) : (
-                  <ChevronRight className="w-5 h-5 ml-auto text-muted-foreground" />
+                  <ChevronRight className="w-5 h-5 ml-auto text-gray-500" />
                 )}
               </CardContent>
             </Card>
@@ -374,14 +267,14 @@ export default function HelpCenter() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <Tabs defaultValue="faq" className="space-y-8">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-card/60 backdrop-blur-sm p-1 rounded-xl shadow-lg">
-            <TabsTrigger value="faq" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground rounded-lg">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-gray-900/60 backdrop-blur-sm p-1 rounded-xl shadow-lg border border-white/10">
+            <TabsTrigger value="faq" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-500 data-[state=active]:text-white rounded-lg text-gray-400">
               Preguntas
             </TabsTrigger>
-            <TabsTrigger value="guides" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground rounded-lg">
+            <TabsTrigger value="guides" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-500 data-[state=active]:text-white rounded-lg text-gray-400">
               Guías
             </TabsTrigger>
-            <TabsTrigger value="contact" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-primary-foreground rounded-lg">
+            <TabsTrigger value="contact" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-500 data-[state=active]:text-white rounded-lg text-gray-400">
               Contacto
             </TabsTrigger>
           </TabsList>
@@ -389,30 +282,30 @@ export default function HelpCenter() {
           {/* FAQ Tab */}
           <TabsContent value="faq" className="space-y-8">
             {(searchQuery ? filteredFaqs : faqCategories).map((category) => (
-              <Card key={category.id} className="bg-card/80 backdrop-blur-sm border-border shadow-xl">
+              <Card key={category.id} className="bg-gray-900/80 backdrop-blur-sm border-white/10 shadow-xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                      <category.icon className="w-5 h-5 text-primary-foreground" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center">
+                      <category.icon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                       {category.title}
                     </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="single" collapsible className="w-full space-y-2">
-                    {category.questions.map((faq, index) => (
+                  <Accordion type="single" collapsible className="space-y-2">
+                    {category.questions.map((item, idx) => (
                       <AccordionItem 
-                        key={index} 
-                        value={`${category.id}-${index}`}
-                        className="border border-border rounded-xl px-4 hover:border-primary/20 transition-colors"
+                        key={idx} 
+                        value={`${category.id}-${idx}`}
+                        className="border border-white/10 rounded-xl px-4 bg-gray-800/30"
                       >
-                        <AccordionTrigger className="text-left hover:no-underline py-4 text-foreground">
-                          {faq.q}
+                        <AccordionTrigger className="text-left hover:no-underline text-gray-200 hover:text-emerald-400">
+                          {item.q}
                         </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground pb-4">
-                          {faq.a}
+                        <AccordionContent className="text-gray-400">
+                          {item.a}
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -420,39 +313,28 @@ export default function HelpCenter() {
                 </CardContent>
               </Card>
             ))}
-
-            {searchQuery && filteredFaqs.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Search className="w-8 h-8 text-primary/60" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">Sin resultados</h3>
-                <p className="text-muted-foreground">
-                  No encontramos preguntas que coincidan con "{searchQuery}"
-                </p>
-              </div>
-            )}
           </TabsContent>
 
           {/* Guides Tab */}
           <TabsContent value="guides">
             <div className="grid md:grid-cols-2 gap-6">
-              {guides.map((guide, index) => (
-                <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card/80 backdrop-blur-sm border-border">
+              {guides.map((guide, idx) => (
+                <Card key={idx} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gray-900/80 backdrop-blur-sm border-white/10">
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">{guide.category}</Badge>
-                      <span className="text-sm text-muted-foreground">{guide.readTime}</span>
+                      <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                        {guide.category}
+                      </Badge>
+                      <span className="text-sm text-gray-500">{guide.readTime}</span>
                     </div>
-                    <CardTitle className="text-lg text-foreground">{guide.title}</CardTitle>
-                    <CardDescription>{guide.description}</CardDescription>
+                    <CardTitle className="text-white hover:text-emerald-400 transition-colors">
+                      <a href={guide.href} className="flex items-center gap-2">
+                        {guide.title}
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">{guide.description}</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button variant="outline" className="w-full group hover:border-primary hover:text-primary">
-                      Leer guía
-                      <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -461,12 +343,56 @@ export default function HelpCenter() {
           {/* Contact Tab */}
           <TabsContent value="contact">
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Contact Form */}
-              <Card className="bg-card/80 backdrop-blur-sm border-border shadow-xl">
+              {/* Contact Info */}
+              <Card className="bg-gray-900/80 backdrop-blur-sm border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-foreground">Envíanos un mensaje</CardTitle>
-                  <CardDescription>
-                    Nuestro equipo te responderá en menos de 24 horas
+                  <CardTitle className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                    Información de Contacto
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Estamos aquí para ayudarte
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center">
+                      <Mail className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Email</p>
+                      <a href="mailto:soporte@sortavo.com" className="text-emerald-400 hover:text-emerald-300">
+                        soporte@sortavo.com
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Phone className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">WhatsApp</p>
+                      <a href="https://wa.me/525512345678" className="text-emerald-400 hover:text-emerald-300">
+                        +52 55 1234 5678
+                      </a>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-white/10">
+                    <p className="text-sm text-gray-400">
+                      <strong className="text-white">Horario de atención:</strong><br />
+                      Lunes a Viernes: 9:00 AM - 6:00 PM (CDMX)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Form */}
+              <Card className="bg-gray-900/80 backdrop-blur-sm border-white/10">
+                <CardHeader>
+                  <CardTitle className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                    Envíanos un mensaje
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Responderemos en menos de 24 horas
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -477,11 +403,15 @@ export default function HelpCenter() {
                         name="subject"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Asunto</FormLabel>
+                            <FormLabel className="text-gray-300">Asunto</FormLabel>
                             <FormControl>
-                              <Input placeholder="¿En qué podemos ayudarte?" {...field} />
+                              <Input 
+                                placeholder="¿En qué podemos ayudarte?" 
+                                {...field} 
+                                className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500"
+                              />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-red-400" />
                           </FormItem>
                         )}
                       />
@@ -490,98 +420,30 @@ export default function HelpCenter() {
                         name="message"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mensaje</FormLabel>
+                            <FormLabel className="text-gray-300">Mensaje</FormLabel>
                             <FormControl>
                               <Textarea 
-                                placeholder="Describe tu consulta con detalle..."
-                                rows={5}
-                                {...field}
+                                placeholder="Describe tu consulta..." 
+                                rows={4}
+                                {...field} 
+                                className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 resize-none"
                               />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="priority"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Prioridad</FormLabel>
-                            <div className="flex gap-2">
-                              {['low', 'medium', 'high'].map((priority) => (
-                                <Button
-                                  key={priority}
-                                  type="button"
-                                  variant={field.value === priority ? 'default' : 'outline'}
-                                  size="sm"
-                                  onClick={() => field.onChange(priority)}
-                                  className={field.value === priority ? 'bg-primary' : ''}
-                                >
-                                  {priority === 'low' ? 'Baja' : priority === 'medium' ? 'Media' : 'Alta'}
-                                </Button>
-                              ))}
-                            </div>
-                            <FormMessage />
+                            <FormMessage className="text-red-400" />
                           </FormItem>
                         )}
                       />
                       <LoadingButton 
                         type="submit" 
-                        className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                         isLoading={isSubmitting}
+                        className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white"
                       >
-                        Enviar mensaje
+                        Enviar Mensaje
                       </LoadingButton>
                     </form>
                   </Form>
                 </CardContent>
               </Card>
-
-              {/* Contact Info */}
-              <div className="space-y-6">
-                <Card className="bg-card/80 backdrop-blur-sm border-border">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                        <Mail className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Email</h3>
-                        <p className="text-muted-foreground">soporte@sortavo.com</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card/80 backdrop-blur-sm border-border">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-success to-success/80 flex items-center justify-center">
-                        <MessageCircle className="w-6 h-6 text-success-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">WhatsApp</h3>
-                        <p className="text-muted-foreground">+52 55 1234 5678</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card/80 backdrop-blur-sm border-border">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center">
-                        <Phone className="w-6 h-6 text-secondary-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">Teléfono</h3>
-                        <p className="text-muted-foreground">Lunes a Viernes, 9am - 6pm</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           </TabsContent>
         </Tabs>
