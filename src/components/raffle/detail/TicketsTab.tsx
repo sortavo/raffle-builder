@@ -358,7 +358,7 @@ export function TicketsTab({
 
       {/* Ticket Detail Modal */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               Boleto #{selectedTicket?.ticket_number}
@@ -374,7 +374,7 @@ export function TicketsTab({
             </DialogTitle>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-4">
             {/* Buyer Info */}
             {(selectedTicket?.status === 'sold' || selectedTicket?.status === 'reserved') && (
               <div className="space-y-3">
@@ -459,28 +459,30 @@ export function TicketsTab({
                 <Separator />
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Boleto Visual</p>
-                  <DownloadableTicket
-                    ticket={{
-                      id: selectedTicket.id,
-                      ticket_number: selectedTicket.ticket_number,
-                      buyer_name: selectedTicket.buyer_name || 'Sin nombre',
-                      buyer_email: selectedTicket.buyer_email || '',
-                      status: selectedTicket.status,
-                    }}
-                    raffle={{
-                      title: raffleTitle,
-                      slug: raffleSlug || '',
-                      prize_name: rafflePrizeName,
-                      prize_images: rafflePrizeImages,
-                      draw_date: raffleDrawDate,
-                      ticket_price: raffleTicketPrice || 0,
-                      currency_code: raffleCurrencyCode || 'MXN',
-                    }}
-                    organization={organizationName ? {
-                      name: organizationName,
-                      logo_url: organizationLogo,
-                    } : undefined}
-                  />
+                  <div className="transform scale-[0.85] origin-top -mb-8">
+                    <DownloadableTicket
+                      ticket={{
+                        id: selectedTicket.id,
+                        ticket_number: selectedTicket.ticket_number,
+                        buyer_name: selectedTicket.buyer_name || 'Sin nombre',
+                        buyer_email: selectedTicket.buyer_email || '',
+                        status: selectedTicket.status,
+                      }}
+                      raffle={{
+                        title: raffleTitle,
+                        slug: raffleSlug || '',
+                        prize_name: rafflePrizeName,
+                        prize_images: rafflePrizeImages,
+                        draw_date: raffleDrawDate,
+                        ticket_price: raffleTicketPrice || 0,
+                        currency_code: raffleCurrencyCode || 'MXN',
+                      }}
+                      organization={organizationName ? {
+                        name: organizationName,
+                        logo_url: organizationLogo,
+                      } : undefined}
+                    />
+                  </div>
                 </div>
               </>
             )}
