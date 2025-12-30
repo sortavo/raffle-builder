@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { VirtualizedTicketList } from "@/components/ui/VirtualizedTicketList";
 import { useMyTickets } from "@/hooks/usePublicRaffle";
 import { useBulkTicketDownload } from "@/hooks/useBulkTicketDownload";
+import { useOrderReceipt } from "@/hooks/useOrderReceipt";
 import { useAuth } from "@/hooks/useAuth";
 import { TicketQRCode } from "@/components/ticket/TicketQRCode";
 import { DownloadableTicket } from "@/components/ticket/DownloadableTicket";
@@ -68,6 +69,7 @@ export default function MyTickets() {
 
   const { data: tickets, isLoading } = useMyTickets(searchValue, searchType);
   const { generatePDF, isGenerating } = useBulkTicketDownload();
+  const { generateOrderReceipt, isGenerating: isGeneratingOrder } = useOrderReceipt();
   const { sendReservationEmail } = useEmails();
   const { toast } = useToast();
   const [isResendingEmail, setIsResendingEmail] = useState(false);
@@ -181,7 +183,7 @@ export default function MyTickets() {
     return matchesStatus && matchesSearch;
   });
 
-  // Group tickets by raffle with additional stats
+  // Group tickets by raffle with additional stats and order grouping
   const groupedTickets = useMemo(() => {
     return filteredTickets?.reduce((acc, ticket) => {
       const raffleId = ticket.raffles?.id || 'unknown';
@@ -189,7 +191,8 @@ export default function MyTickets() {
         acc[raffleId] = { 
           raffle: ticket.raffles, 
           tickets: [],
-          stats: { confirmed: 0, pending: 0, total: 0, totalValue: 0 }
+          stats: { confirmed: 0, pending: 0, total: 0, totalValue: 0 },
+          orders: {} as Record<string, typeof filteredTickets>
         };
       }
       acc[raffleId].tickets.push(ticket);
@@ -200,11 +203,20 @@ export default function MyTickets() {
       } else if (ticket.status === 'reserved') {
         acc[raffleId].stats.pending += 1;
       }
+      
+      // Group by payment_reference for order receipts
+      const orderRef = ticket.payment_reference || 'no-reference';
+      if (!acc[raffleId].orders[orderRef]) {
+        acc[raffleId].orders[orderRef] = [];
+      }
+      acc[raffleId].orders[orderRef].push(ticket);
+      
       return acc;
     }, {} as Record<string, { 
       raffle: typeof filteredTickets[0]['raffles']; 
       tickets: typeof filteredTickets;
-      stats: { confirmed: number; pending: number; total: number; totalValue: number }
+      stats: { confirmed: number; pending: number; total: number; totalValue: number };
+      orders: Record<string, typeof filteredTickets>;
     }>);
   }, [filteredTickets]);
 
@@ -507,7 +519,7 @@ export default function MyTickets() {
           </Card>
         ) : (
           <div className="space-y-5">
-            {Object.values(groupedTickets || {}).map(({ raffle, tickets: raffleTickets, stats }, index) => (
+            {Object.values(groupedTickets || {}).map(({ raffle, tickets: raffleTickets, stats, orders }, index) => (
               <motion.div
                 key={raffle?.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -568,6 +580,52 @@ export default function MyTickets() {
                       <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 group-hover:translate-x-1 transition-transform" />
                     </div>
                     </div>
+
+                  {/* Order Receipt Downloads */}
+                  {Object.entries(orders || {}).filter(([ref]) => ref !== 'no-reference').length > 0 && (
+                    <div className="px-4 py-3 bg-muted/30 border-b space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Comprobantes de Orden</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(orders || {}).filter(([ref]) => ref !== 'no-reference').map(([ref, orderTickets]) => (
+                          <Button
+                            key={ref}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-xs h-8"
+                            disabled={isGeneratingOrder}
+                            onClick={() => generateOrderReceipt({
+                              tickets: orderTickets.map(t => ({
+                                id: t.id,
+                                ticket_number: t.ticket_number,
+                                ticket_index: t.ticket_index,
+                                status: t.status,
+                                reserved_at: t.reserved_at,
+                                sold_at: t.sold_at,
+                                payment_reference: t.payment_reference,
+                                order_total: t.order_total,
+                                payment_method: t.payment_method,
+                                buyer_name: t.buyer_name,
+                                buyer_email: t.buyer_email,
+                                buyer_phone: t.buyer_phone,
+                                buyer_city: t.buyer_city,
+                              })),
+                              raffle: {
+                                title: raffle?.title || '',
+                                slug: raffle?.slug || '',
+                                prize_name: raffle?.prize_name || '',
+                                draw_date: raffle?.draw_date || null,
+                                ticket_price: raffle?.ticket_price || 0,
+                                currency_code: raffle?.currency_code || 'MXN',
+                              },
+                            })}
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                            {ref} ({orderTickets.length})
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tickets List - Virtualized */}
                   <CardContent className="p-0">
