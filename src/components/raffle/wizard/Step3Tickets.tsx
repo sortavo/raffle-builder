@@ -35,6 +35,7 @@ interface Package {
   discount_percent: number;
   label: string;
   display_order: number;
+  bonus_tickets?: number; // Boletos gratis adicionales (ej: 3x2 = quantity:2, bonus:1)
 }
 
 // Rangos de numeración personalizados
@@ -48,9 +49,9 @@ export const Step3Tickets = ({ form }: Step3Props) => {
   const { organization } = useAuth();
   const ticketLimit = getTicketLimitByTier(organization?.subscription_tier || null);
   const [packages, setPackages] = useState<Package[]>([
-    { quantity: 3, price: 0, discount_percent: 0, label: '', display_order: 0 },
-    { quantity: 5, price: 0, discount_percent: 0, label: '', display_order: 1 },
-    { quantity: 10, price: 0, discount_percent: 0, label: '', display_order: 2 },
+    { quantity: 3, price: 0, discount_percent: 0, label: '', display_order: 0, bonus_tickets: 0 },
+    { quantity: 5, price: 0, discount_percent: 0, label: '', display_order: 1, bonus_tickets: 0 },
+    { quantity: 10, price: 0, discount_percent: 0, label: '', display_order: 2, bonus_tickets: 0 },
   ]);
   const [packagesInitialized, setPackagesInitialized] = useState(false);
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
@@ -168,6 +169,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
       discount_percent: 0,
       label: '',
       display_order: packages.length,
+      bonus_tickets: 0,
     }]);
   };
 
@@ -210,15 +212,17 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     form.setValue('packages', updated);
   };
 
-  // Helper para calcular ahorro
+  // Helper para calcular ahorro y total de boletos
   const getSavingsInfo = (pkg: Package) => {
     const normalPrice = basePrice * pkg.quantity;
     const finalPrice = pkg.price || normalPrice;
     const savings = normalPrice - finalPrice;
     const savingsPercent = normalPrice > 0 ? Math.round((savings / normalPrice) * 100) : 0;
     const hasDiscount = savings > 0;
+    const totalTickets = pkg.quantity + (pkg.bonus_tickets || 0);
+    const hasBonus = (pkg.bonus_tickets || 0) > 0;
     
-    return { normalPrice, finalPrice, savings, savingsPercent, hasDiscount };
+    return { normalPrice, finalPrice, savings, savingsPercent, hasDiscount, totalTickets, hasBonus };
   };
 
   const availableTicketOptions = TICKET_COUNT_OPTIONS.filter(opt => opt.value <= ticketLimit);
@@ -657,7 +661,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             Paquetes de Boletos
           </CardTitle>
           <CardDescription>
-            Crea paquetes con descuentos por volumen o simplemente muestra los precios por cantidad
+            Crea paquetes con descuentos, promociones tipo "3x2" (paga 2, lleva 3) o muestra precios por cantidad
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 md:px-6">
@@ -665,11 +669,11 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             {/* Desktop header - hide on mobile */}
             <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
               <div className="col-span-1">Cant.</div>
-              <div className="col-span-2">P. Normal</div>
+              <div className="col-span-1">+Bonus</div>
               <div className="col-span-2">P. Final</div>
               <div className="col-span-1">%</div>
-              <div className="col-span-2">Ahorro</div>
-              <div className="col-span-3">
+              <div className="col-span-2">Total</div>
+              <div className="col-span-4">
                 <div className="flex items-center gap-1">
                   <Tag className="w-3 h-3" />
                   Etiqueta
@@ -679,14 +683,21 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             </div>
 
             {packages.map((pkg, index) => {
-              const { normalPrice, savings, savingsPercent, hasDiscount } = getSavingsInfo(pkg);
+              const { normalPrice, savings, savingsPercent, hasDiscount, totalTickets, hasBonus } = getSavingsInfo(pkg);
               
               return (
                 <div key={index} className="space-y-3 md:space-y-0 p-3 md:p-0 border md:border-0 rounded-lg md:rounded-none bg-muted/30 md:bg-transparent">
                   {/* Mobile: Stacked compact layout */}
                   <div className="md:hidden space-y-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">Paquete {index + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Paquete {index + 1}</span>
+                        {hasBonus && (
+                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">
+                            {pkg.quantity}+{pkg.bonus_tickets} Gratis
+                          </Badge>
+                        )}
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -699,7 +710,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                       </Button>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                       <div className="min-w-0">
                         <label className="text-[10px] text-muted-foreground truncate block">Cantidad</label>
                         <Input
@@ -707,6 +718,17 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                           value={pkg.quantity}
                           onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
                           min={1}
+                          className="h-9 text-sm px-2"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="text-[10px] text-muted-foreground truncate block">+Bonus</label>
+                        <Input
+                          type="number"
+                          value={pkg.bonus_tickets || 0}
+                          onChange={(e) => updatePackage(index, 'bonus_tickets', parseInt(e.target.value) || 0)}
+                          min={0}
+                          placeholder="0"
                           className="h-9 text-sm px-2"
                         />
                       </div>
@@ -744,13 +766,23 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                     
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">
-                        Normal: <span className={cn(hasDiscount && "line-through")}>${normalPrice.toLocaleString()}</span>
+                        Total: <span className="font-medium text-foreground">{totalTickets} boletos</span>
+                        {hasDiscount && (
+                          <span className="ml-1">por <span className={cn(hasDiscount && "line-through")}>${normalPrice.toLocaleString()}</span> ${pkg.price.toLocaleString()}</span>
+                        )}
                       </span>
-                      {hasDiscount && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] px-1.5">
-                          -{savingsPercent}%
-                        </Badge>
-                      )}
+                      <div className="flex gap-1">
+                        {hasBonus && (
+                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">
+                            +{pkg.bonus_tickets} gratis
+                          </Badge>
+                        )}
+                        {hasDiscount && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] px-1.5">
+                            -{savingsPercent}%
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="min-w-0">
@@ -758,7 +790,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                       <LabelCombobox
                         value={pkg.label}
                         onValueChange={(v) => updatePackage(index, 'label', v)}
-                        placeholder="Ej: Popular"
+                        placeholder="Ej: Popular, 3x2, Mejor Valor"
                       />
                     </div>
                   </div>
@@ -774,13 +806,15 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                         className="text-center px-1 h-9 text-sm"
                       />
                     </div>
-                    <div className="col-span-2">
-                      <div className={cn(
-                        "h-9 px-2 py-1 rounded-md border bg-muted/50 flex items-center text-sm",
-                        hasDiscount && "line-through text-muted-foreground"
-                      )}>
-                        {currencyData?.symbol}{normalPrice.toLocaleString()}
-                      </div>
+                    <div className="col-span-1">
+                      <Input
+                        type="number"
+                        value={pkg.bonus_tickets || 0}
+                        onChange={(e) => updatePackage(index, 'bonus_tickets', parseInt(e.target.value) || 0)}
+                        min={0}
+                        placeholder="0"
+                        className="text-center px-1 h-9 text-sm"
+                      />
                     </div>
                     <div className="col-span-2">
                       <div className="relative">
@@ -811,19 +845,25 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                       </div>
                     </div>
                     <div className="col-span-2">
-                      {hasDiscount ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
-                          -{savingsPercent}%
-                        </Badge>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-medium">{totalTickets} boletos</span>
+                        {hasBonus && (
+                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5 whitespace-nowrap">
+                            +{pkg.bonus_tickets} gratis
+                          </Badge>
+                        )}
+                        {hasDiscount && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px]">
+                            -{savingsPercent}%
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-4">
                       <LabelCombobox
                         value={pkg.label}
                         onValueChange={(v) => updatePackage(index, 'label', v)}
-                        placeholder="Etiqueta..."
+                        placeholder="Ej: Popular, 3x2, Mejor Valor"
                       />
                     </div>
                     <div className="col-span-1">
