@@ -11,6 +11,11 @@ export interface Buyer {
   ticketCount: number;
   status: string;
   date: string;
+  orderTotal: number | null;
+  paymentMethod: string | null;
+  paymentReference: string | null;
+  hasPaymentProof: boolean;
+  soldAt: string | null;
 }
 
 export interface BuyerFilters {
@@ -58,6 +63,11 @@ export const useBuyers = (raffleId: string | undefined) => {
           ticketCount: Number(row.ticket_count) || 0,
           status: row.status || 'reserved',
           date: row.first_reserved_at || '',
+          orderTotal: row.order_total ? Number(row.order_total) : null,
+          paymentMethod: row.payment_method || null,
+          paymentReference: row.payment_reference || null,
+          hasPaymentProof: row.has_payment_proof || false,
+          soldAt: row.sold_at || null,
         }));
 
         // Get total count from first row (all rows have the same total_count)
@@ -128,6 +138,11 @@ export const useBuyers = (raffleId: string | undefined) => {
           ticketCount: Number(row.ticket_count) || 0,
           status: row.status || 'reserved',
           date: row.first_reserved_at || '',
+          orderTotal: row.order_total ? Number(row.order_total) : null,
+          paymentMethod: row.payment_method || null,
+          paymentReference: row.payment_reference || null,
+          hasPaymentProof: row.has_payment_proof || false,
+          soldAt: row.sold_at || null,
         }));
 
         allBuyers.push(...buyers);

@@ -1347,6 +1347,11 @@ export type Database = {
           buyer_name: string
           buyer_phone: string
           first_reserved_at: string
+          has_payment_proof: boolean
+          order_total: number
+          payment_method: string
+          payment_reference: string
+          sold_at: string
           status: string
           ticket_count: number
           ticket_numbers: string[]
