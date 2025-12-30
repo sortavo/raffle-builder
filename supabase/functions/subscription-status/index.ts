@@ -78,10 +78,24 @@ serve(async (req) => {
         
         try {
           const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+          
+          // Safe timestamp conversion to prevent "Invalid time value" errors
+          let currentPeriodEndISO: string | null = null;
+          if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+            try {
+              const date = new Date(subscription.current_period_end * 1000);
+              if (!isNaN(date.getTime())) {
+                currentPeriodEndISO = date.toISOString();
+              }
+            } catch {
+              currentPeriodEndISO = null;
+            }
+          }
+          
           stripeData = {
             id: subscription.id,
             status: subscription.status,
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+            currentPeriodEnd: currentPeriodEndISO,
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           };
           logStep("Stripe subscription retrieved", stripeData);

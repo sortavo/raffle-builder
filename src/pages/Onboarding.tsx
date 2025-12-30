@@ -84,7 +84,7 @@ const steps = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, organization, isLoading, refreshOrganization } = useAuth();
+  const { user, profile, organization, isLoading, refreshOrganization } = useAuth();
   
   const initialStep = parseInt(searchParams.get("step") || "1");
   const [currentStep, setCurrentStep] = useState(initialStep);
@@ -109,8 +109,10 @@ export default function Onboarding() {
 
   // Ref to prevent duplicate checkout processing
   const hasProcessedCheckout = useRef(false);
+  const pollTimeoutRef = useRef<number | null>(null);
+  const [manualRetryCount, setManualRetryCount] = useState(0);
 
-  // Handle successful Stripe checkout return
+  // Handle successful Stripe checkout return - uses profile.organization_id for stability
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const success = params.get("success");
@@ -118,6 +120,11 @@ export default function Onboarding() {
     
     // Skip if already processed or no success param
     if (hasProcessedCheckout.current || success !== "true" || !sessionId) {
+      return;
+    }
+    
+    // Wait for user to be loaded before processing
+    if (!user?.id) {
       return;
     }
     
@@ -132,10 +139,29 @@ export default function Onboarding() {
     // Poll for subscription update
     let pollCount = 0;
     const maxPolls = 20; // 20 polls * 1.5s = 30 seconds max
-    let pollTimeoutId: number;
     
     const pollSubscription = async () => {
       pollCount++;
+      
+      // Get orgId from profile (stable) or fetch from DB if needed
+      let orgId = profile?.organization_id;
+      
+      if (!orgId && user?.id) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", user.id)
+          .single();
+        orgId = profileData?.organization_id;
+      }
+      
+      if (!orgId) {
+        // If still no orgId, retry after delay
+        if (pollCount < maxPolls) {
+          pollTimeoutRef.current = window.setTimeout(pollSubscription, 1500);
+        }
+        return;
+      }
       
       // Refresh organization data from the database
       if (refreshOrganization) {
@@ -143,11 +169,15 @@ export default function Onboarding() {
       }
       
       // Check if subscription is now active or trial
-      const { data: orgData } = await supabase
+      const { data: orgData, error: orgError } = await supabase
         .from("organizations")
         .select("subscription_status, onboarding_completed")
-        .eq("id", organization?.id)
+        .eq("id", orgId)
         .single();
+      
+      if (orgError) {
+        console.error("Polling error:", orgError);
+      }
       
       if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
         // Mark onboarding as completed if not already
@@ -155,7 +185,7 @@ export default function Onboarding() {
           await supabase
             .from("organizations")
             .update({ onboarding_completed: true })
-            .eq("id", organization?.id);
+            .eq("id", orgId);
         }
         
         setIsProcessingPayment(false);
@@ -165,24 +195,70 @@ export default function Onboarding() {
       }
       
       if (pollCount < maxPolls) {
-        pollTimeoutId = window.setTimeout(pollSubscription, 1500);
+        pollTimeoutRef.current = window.setTimeout(pollSubscription, 1500);
       } else {
-        // Max polls reached - still redirect to dashboard, webhook might be delayed
+        // Max polls reached - show timeout state (don't auto-redirect)
         setIsProcessingPayment(false);
-        toast.info("Procesando tu suscripción. Puede tardar unos segundos.");
-        navigate("/dashboard");
+        toast.info("Tu suscripción está siendo procesada. Puedes ir al dashboard.");
       }
     };
     
     // Start polling after a short delay to allow webhook to process
-    pollTimeoutId = window.setTimeout(pollSubscription, 2000);
+    pollTimeoutRef.current = window.setTimeout(pollSubscription, 2000);
     
+    // Cleanup only on unmount
     return () => {
-      if (pollTimeoutId) {
-        window.clearTimeout(pollTimeoutId);
+      if (pollTimeoutRef.current) {
+        window.clearTimeout(pollTimeoutRef.current);
       }
     };
-  }, [organization?.id, navigate, refreshOrganization]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user.id - stable after auth loads
+
+  // Manual retry handler
+  const handleManualRetry = async () => {
+    setManualRetryCount(prev => prev + 1);
+    
+    let orgId = profile?.organization_id;
+    
+    if (!orgId && user?.id) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+      orgId = profileData?.organization_id;
+    }
+    
+    if (!orgId) {
+      toast.error("No se pudo obtener la organización");
+      return;
+    }
+    
+    if (refreshOrganization) {
+      await refreshOrganization();
+    }
+    
+    const { data: orgData } = await supabase
+      .from("organizations")
+      .select("subscription_status, onboarding_completed")
+      .eq("id", orgId)
+      .single();
+    
+    if (orgData?.subscription_status && ["active", "trial"].includes(orgData.subscription_status)) {
+      if (!orgData.onboarding_completed) {
+        await supabase
+          .from("organizations")
+          .update({ onboarding_completed: true })
+          .eq("id", orgId);
+      }
+      
+      toast.success("¡Suscripción activada!");
+      navigate("/dashboard");
+    } else {
+      toast.info("Aún procesando. Intenta de nuevo en unos segundos.");
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -333,7 +409,7 @@ export default function Onboarding() {
   // Show processing state when returning from Stripe checkout
   if (isProcessingPayment) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 gap-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 gap-6 px-4">
         <div className="relative">
           <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping" />
           <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/25">
@@ -344,6 +420,28 @@ export default function Onboarding() {
           <h2 className="text-xl font-semibold text-white">Procesando tu suscripción</h2>
           <p className="text-gray-400">Esto solo tomará unos segundos...</p>
         </div>
+        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          <Button
+            variant="outline"
+            onClick={handleManualRetry}
+            disabled={manualRetryCount > 5}
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            Reintentar verificación
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            className="text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            Ir al dashboard
+          </Button>
+        </div>
+        {manualRetryCount > 0 && (
+          <p className="text-sm text-gray-500">
+            Reintentos: {manualRetryCount}/5
+          </p>
+        )}
       </div>
     );
   }
