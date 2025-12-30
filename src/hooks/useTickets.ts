@@ -107,9 +107,9 @@ export const useTickets = (raffleId: string | undefined) => {
     });
   };
 
-  // Approve ticket and send notification email
+  // Approve ticket and send notification email + Telegram
   const approveTicket = useMutation({
-    mutationFn: async ({ ticketId, raffleTitle, raffleSlug }: { ticketId: string; raffleTitle?: string; raffleSlug?: string }) => {
+    mutationFn: async ({ ticketId, raffleTitle, raffleSlug, organizationId }: { ticketId: string; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
       const { data, error } = await supabase
         .from('tickets')
         .update({
@@ -140,6 +140,32 @@ export const useTickets = (raffleId: string | undefined) => {
             },
           },
         }).catch(console.error);
+
+        // Send Telegram notification to buyer (non-blocking)
+        supabase.functions.invoke('telegram-notify', {
+          body: {
+            type: 'buyer_payment_approved',
+            buyerEmail: data.buyer_email,
+            data: {
+              raffleName: raffleTitle,
+              ticketNumbers: [data.ticket_number],
+            },
+          },
+        }).catch(console.error);
+
+        // Notify organizer via Telegram (non-blocking)
+        if (organizationId) {
+          supabase.functions.invoke('telegram-notify', {
+            body: {
+              type: 'payment_approved',
+              organizationId,
+              data: {
+                buyerName: data.buyer_name,
+                ticketNumbers: [data.ticket_number],
+              },
+            },
+          }).catch(console.error);
+        }
       }
       
       return data;
@@ -215,9 +241,9 @@ export const useTickets = (raffleId: string | undefined) => {
     },
   });
 
-  // Bulk approve tickets and send notification email
+  // Bulk approve tickets and send notification email + Telegram
   const bulkApprove = useMutation({
-    mutationFn: async ({ ticketIds, raffleTitle, raffleSlug }: { ticketIds: string[]; raffleTitle?: string; raffleSlug?: string }) => {
+    mutationFn: async ({ ticketIds, raffleTitle, raffleSlug, organizationId }: { ticketIds: string[]; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
       const { data, error } = await supabase
         .from('tickets')
         .update({
@@ -247,7 +273,7 @@ export const useTickets = (raffleId: string | undefined) => {
           return acc;
         }, {} as Record<string, { buyer_name: string | null; ticket_numbers: string[]; reference_code: string | null }>);
         
-        // Send email to each buyer (non-blocking)
+        // Send email and Telegram to each buyer (non-blocking)
         Object.entries(ticketsByEmail).forEach(([email, info]) => {
           supabase.functions.invoke('send-email', {
             body: {
@@ -263,7 +289,33 @@ export const useTickets = (raffleId: string | undefined) => {
               },
             },
           }).catch(console.error);
+
+          // Telegram notification to buyer
+          supabase.functions.invoke('telegram-notify', {
+            body: {
+              type: 'buyer_payment_approved',
+              buyerEmail: email,
+              data: {
+                raffleName: raffleTitle,
+                ticketNumbers: info.ticket_numbers,
+              },
+            },
+          }).catch(console.error);
         });
+
+        // Notify organizer via Telegram (non-blocking)
+        if (organizationId) {
+          supabase.functions.invoke('telegram-notify', {
+            body: {
+              type: 'payment_approved',
+              organizationId,
+              data: {
+                buyerName: 'Múltiples compradores',
+                ticketNumbers: data.map(t => t.ticket_number),
+              },
+            },
+          }).catch(console.error);
+        }
       }
       
       return data;

@@ -1,13 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 
-interface TelegramOptInProps {
+export interface TelegramOptInProps {
   buyerEmail: string;
-  organizationHasTelegram?: boolean;
+  organizationTier?: string | null;
 }
 
-export function TelegramOptIn({ buyerEmail, organizationHasTelegram = false }: TelegramOptInProps) {
-  if (!organizationHasTelegram || !buyerEmail) {
+export function TelegramOptIn({ buyerEmail, organizationTier }: TelegramOptInProps) {
+  // Only show for Premium/Enterprise organizations
+  const hasTelegram = organizationTier === 'premium' || organizationTier === 'enterprise';
+  
+  if (!hasTelegram || !buyerEmail) {
     return null;
   }
 
@@ -18,7 +21,7 @@ export function TelegramOptIn({ buyerEmail, organizationHasTelegram = false }: T
     <Button
       variant="outline"
       size="sm"
-      className="gap-2"
+      className="gap-2 w-full"
       onClick={() => window.open(telegramLink, "_blank")}
     >
       <Send className="h-4 w-4" />
