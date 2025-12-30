@@ -14,12 +14,23 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 // Map Stripe product IDs to subscription tiers
+// Includes both PRODUCTION and TEST mode product IDs
 const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium" | "enterprise"> = {
+  // Production IDs
   "prod_Tf5pTKxFYtPfd4": "basic",
   "prod_Tf5tsw8mmJQneA": "pro",
   "prod_Tf5uiAAHV2WZNF": "premium",
   "prod_ThHMyhLAztHnsu": "enterprise",
   "prod_ThHMbFCP3wSrq8": "enterprise",
+  // Test IDs
+  "prod_ThK1EiE0AtKCIM": "basic",
+  "prod_ThK1JlY6NKTIFS": "basic",  // Annual
+  "prod_ThK1LTy6UcPdrl": "pro",
+  "prod_ThK1C9kzAMf4h9": "pro",     // Annual
+  "prod_ThK1L4ZhLIMS0C": "premium",
+  "prod_ThK1pF8uFNd4yB": "premium", // Annual
+  "prod_ThK18K9yms0nxs": "enterprise",
+  "prod_ThK1X1RtiwN326": "enterprise", // Annual
 };
 
 // Subscription limits by tier
