@@ -30,6 +30,23 @@ const logStep = (step: string, details?: Record<string, unknown>, level: LogLeve
   }
 };
 
+// Safe timestamp conversion helper to prevent "Invalid time value" errors
+function safeTimestampToISO(timestamp: number | null | undefined): string | null {
+  if (timestamp === null || timestamp === undefined || typeof timestamp !== 'number') {
+    return null;
+  }
+  try {
+    const date = new Date(timestamp * 1000);
+    // Verify the date is valid before converting
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    return date.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 // Map Stripe product IDs to subscription tiers
 // Includes both PRODUCTION and TEST mode product IDs
 const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium" | "enterprise"> = {
@@ -275,8 +292,10 @@ async function handleSubscriptionChange(
     subscriptionId: subscription.id,
     status: subscription.status,
     customerId,
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    rawCurrentPeriodEnd: subscription.current_period_end,
+    currentPeriodEnd: safeTimestampToISO(subscription.current_period_end),
+    rawTrialEnd: subscription.trial_end,
+    trialEnd: safeTimestampToISO(subscription.trial_end),
     itemsCount: subscription.items.data.length,
   });
 
@@ -366,9 +385,7 @@ async function handleSubscriptionChange(
     max_active_raffles: limits.maxActiveRaffles,
     max_tickets_per_raffle: limits.maxTicketsPerRaffle,
     templates_available: limits.templatesAvailable,
-    trial_ends_at: subscription.trial_end 
-      ? new Date(subscription.trial_end * 1000).toISOString() 
-      : null,
+    trial_ends_at: safeTimestampToISO(subscription.trial_end),
   };
 
   const { error: updateError } = await supabase
@@ -434,7 +451,8 @@ async function handleSubscriptionCanceled(
     eventId,
     subscriptionId: subscription.id,
     customerId,
-    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+    rawCanceledAt: subscription.canceled_at,
+    canceledAt: safeTimestampToISO(subscription.canceled_at),
   });
 
   const customer = await stripe.customers.retrieve(customerId);
@@ -576,9 +594,8 @@ async function handlePaymentFailed(
     invoiceId: invoice.id,
     subscriptionId: invoice.subscription,
     attemptCount: invoice.attempt_count,
-    nextPaymentAttempt: invoice.next_payment_attempt 
-      ? new Date(invoice.next_payment_attempt * 1000).toISOString() 
-      : null,
+    rawNextPaymentAttempt: invoice.next_payment_attempt,
+    nextPaymentAttempt: safeTimestampToISO(invoice.next_payment_attempt),
   });
 
   const customerId = typeof invoice.customer === "string"
