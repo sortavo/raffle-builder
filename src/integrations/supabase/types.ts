@@ -448,12 +448,14 @@ export type Database = {
           templates_available: number | null
           tiktok_url: string | null
           timezone: string | null
+          total_raffles_completed: number | null
           trial_ends_at: string | null
           updated_at: string | null
           verified: boolean | null
           website_url: string | null
           whatsapp_number: string | null
           whatsapp_numbers: string[] | null
+          years_experience: number | null
         }
         Insert: {
           brand_color?: string | null
@@ -494,12 +496,14 @@ export type Database = {
           templates_available?: number | null
           tiktok_url?: string | null
           timezone?: string | null
+          total_raffles_completed?: number | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
           website_url?: string | null
           whatsapp_number?: string | null
           whatsapp_numbers?: string[] | null
+          years_experience?: number | null
         }
         Update: {
           brand_color?: string | null
@@ -540,12 +544,14 @@ export type Database = {
           templates_available?: number | null
           tiktok_url?: string | null
           timezone?: string | null
+          total_raffles_completed?: number | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
           website_url?: string | null
           whatsapp_number?: string | null
           whatsapp_numbers?: string[] | null
+          years_experience?: number | null
         }
         Relationships: []
       }

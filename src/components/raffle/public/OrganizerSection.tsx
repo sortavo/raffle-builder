@@ -38,6 +38,9 @@ interface OrganizerSectionProps {
     emails?: string[] | null;
     phones?: string[] | null;
     whatsapp_numbers?: string[] | null;
+    // Experience fields
+    years_experience?: number | null;
+    total_raffles_completed?: number | null;
   };
   raffleTitle: string;
   brandColor: string;
@@ -143,12 +146,28 @@ export function OrganizerSection({ organization, raffleTitle, brandColor }: Orga
                 </div>
 
                 {/* Stats */}
-                {timeOnPlatform && (
-                  <div className="hidden sm:block text-center px-4 py-2 bg-gray-100 rounded-lg">
-                    <p className="text-sm text-gray-500">En la plataforma</p>
-                    <p className="font-semibold text-gray-900">{timeOnPlatform}</p>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-0">
+                  {organization.years_experience && organization.years_experience > 0 && (
+                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
+                      <p className="text-xs text-gray-500">Experiencia</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                        {organization.years_experience} {organization.years_experience === 1 ? "año" : "años"}
+                      </p>
+                    </div>
+                  )}
+                  {organization.total_raffles_completed && organization.total_raffles_completed > 0 && (
+                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
+                      <p className="text-xs text-gray-500">Rifas realizadas</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{organization.total_raffles_completed}</p>
+                    </div>
+                  )}
+                  {timeOnPlatform && (
+                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
+                      <p className="text-xs text-gray-500">En plataforma</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{timeOnPlatform}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Description */}

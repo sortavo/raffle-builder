@@ -91,6 +91,10 @@ export function OrganizationSettings() {
   const [showPhoneValidation, setShowPhoneValidation] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   
+  // Experience fields
+  const [yearsExperience, setYearsExperience] = useState<number | null>(null);
+  const [totalRafflesCompleted, setTotalRafflesCompleted] = useState<number>(0);
+  
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
   const isChangingSlug = hasExistingSlug && slugInput !== organization?.slug;
@@ -102,7 +106,7 @@ export function OrganizationSettings() {
     }
   }, [organization?.slug]);
   
-  // Sync contact arrays and cover media with organization data
+  // Sync contact arrays, cover media, and experience fields with organization data
   useEffect(() => {
     if (organization) {
       const org = organization as any;
@@ -119,6 +123,10 @@ export function OrganizationSettings() {
       } else {
         setCoverMedia([]);
       }
+      
+      // Sync experience fields
+      setYearsExperience(org.years_experience ?? null);
+      setTotalRafflesCompleted(org.total_raffles_completed ?? 0);
     }
   }, [organization]);
   
@@ -314,6 +322,9 @@ export function OrganizationSettings() {
           cover_media: JSON.parse(JSON.stringify(coverMedia)),
           // Keep legacy field updated with first image for backwards compatibility
           cover_image_url: coverMedia.find(m => m.type === "image")?.url || null,
+          // Experience fields
+          years_experience: yearsExperience,
+          total_raffles_completed: totalRafflesCompleted,
         })
         .eq("id", organization.id);
 
@@ -779,6 +790,38 @@ export function OrganizationSettings() {
                 />
                 <p className="text-xs text-muted-foreground">
                   Esta descripción aparecerá en tu página pública
+                </p>
+              </div>
+
+              {/* Experience Section */}
+              <div className="space-y-2">
+                <Label htmlFor="years_experience">Años de Experiencia</Label>
+                <Input
+                  id="years_experience"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="Ej: 5"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ¿Cuántos años llevas organizando rifas?
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_raffles_completed">Rifas Realizadas</Label>
+                <Input
+                  id="total_raffles_completed"
+                  type="number"
+                  min="0"
+                  value={totalRafflesCompleted}
+                  onChange={(e) => setTotalRafflesCompleted(e.target.value ? parseInt(e.target.value) : 0)}
+                  placeholder="Ej: 25"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Número total de rifas que has organizado
                 </p>
               </div>
 
