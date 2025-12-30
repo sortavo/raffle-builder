@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { scrollToSection } from '@/lib/scroll-utils';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Trophy, Rocket, Zap, Crown, Check, X, ArrowRight, 
-  Shield, MessageCircle, Mail, Phone, HelpCircle, Menu, Building2
+  Mail, Menu, Building2, Sparkles
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
 import { Footer } from '@/components/layout/Footer';
+import { PricingCard, PricingToggle, SocialProofSection, TrustBadges } from '@/components/pricing';
 
 export default function Pricing() {
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const plans = [
@@ -23,20 +23,15 @@ export default function Pricing() {
       key: 'basic' as const,
       icon: Rocket,
       badge: 'Para Empezar',
-      badgeVariant: 'secondary' as const,
-      popular: false,
-      gradient: 'from-primary to-primary/80',
+      idealFor: 'Ideal para organizadores casuales',
       features: [
         { text: '2 sorteos activos simultáneos', included: true },
         { text: 'Hasta 2,000 boletos por sorteo', included: true },
         { text: '1 plantilla personalizable', included: true },
         { text: 'Panel de control básico', included: true },
         { text: 'Soporte por email (48h)', included: true },
-        { text: 'Métodos de pago configurables', included: true },
         { text: 'Grid de boletos interactivo', included: true },
         { text: 'Sistema de reservación automática', included: true },
-        { text: 'Aprobación manual de pagos', included: true },
-        { text: 'Marca "Powered by Sortavo" visible', included: 'partial' },
       ],
       cta: 'Prueba 7 días gratis',
       ctaLink: '/auth?tab=signup&plan=basic',
@@ -45,21 +40,16 @@ export default function Pricing() {
       key: 'pro' as const,
       icon: Zap,
       badge: 'Más Popular',
-      badgeVariant: 'default' as const,
+      idealFor: 'Para organizadores profesionales',
       popular: true,
-      gradient: 'from-primary to-accent',
       features: [
-        { text: '7 sorteos activos simultáneos', included: true },
-        { text: 'Hasta 30,000 boletos por sorteo', included: true },
+        { text: '7 sorteos activos simultáneos', included: true, highlight: true },
+        { text: 'Hasta 30,000 boletos por sorteo', included: true, highlight: true },
         { text: '6 plantillas profesionales', included: true },
-        { text: 'Panel con analytics avanzado', included: true },
+        { text: 'Analytics avanzado', included: true },
         { text: 'Sin marca Sortavo', included: true },
-        { text: 'Notificaciones automáticas por email', included: true },
-        { text: 'Integración con WhatsApp', included: true },
-        { text: 'Exportación de datos (CSV/Excel)', included: true },
-        { text: 'Soporte prioritario por WhatsApp (12h)', included: true },
-        { text: 'API de sorteo de Lotería Nacional', included: true },
-        { text: 'Múltiples métodos de pago', included: true },
+        { text: 'Integración WhatsApp', included: true },
+        { text: 'API Lotería Nacional', included: true },
       ],
       cta: 'Empezar ahora',
       ctaLink: '/auth?tab=signup&plan=pro',
@@ -68,20 +58,14 @@ export default function Pricing() {
       key: 'premium' as const,
       icon: Crown,
       badge: 'Empresas',
-      badgeVariant: 'outline' as const,
-      popular: false,
-      gradient: 'from-secondary to-warning',
+      idealFor: 'Para equipos y empresas',
       features: [
-        { text: '15 sorteos activos simultáneos', included: true },
-        { text: 'Hasta 100,000 boletos por sorteo', included: true },
+        { text: '15 sorteos activos simultáneos', included: true, highlight: true },
+        { text: 'Hasta 100,000 boletos', included: true, highlight: true },
         { text: '6 plantillas + CSS personalizado', included: true },
-        { text: 'Dashboard personalizado', included: true },
         { text: 'Account Manager dedicado', included: true },
-        { text: 'Setup asistido incluido', included: true },
         { text: 'Bot de Telegram bidireccional', included: true },
-        { text: 'Entrenamiento del equipo', included: true },
-        { text: 'Integraciones personalizadas', included: true },
-        { text: 'Subdominios personalizados', included: true },
+        { text: 'Setup asistido incluido', included: true },
         { text: 'White-label completo', included: true },
       ],
       cta: 'Empezar ahora',
@@ -91,20 +75,14 @@ export default function Pricing() {
       key: 'enterprise' as const,
       icon: Building2,
       badge: 'Corporativo',
-      badgeVariant: 'outline' as const,
-      popular: false,
-      gradient: 'from-purple-600 to-purple-400',
+      idealFor: 'Loterías y grandes organizaciones',
       features: [
-        { text: 'Sorteos ilimitados', included: true },
-        { text: 'Hasta 10,000,000 boletos por sorteo', included: true },
+        { text: 'Sorteos ilimitados', included: true, highlight: true },
+        { text: 'Hasta 10,000,000 boletos', included: true, highlight: true },
         { text: 'API Access completo', included: true },
-        { text: 'Bot de Telegram bidireccional', included: true },
-        { text: 'Account Manager dedicado', included: true },
-        { text: 'SLA 99.9% uptime garantizado', included: true },
+        { text: 'SLA 99.9% garantizado', included: true },
         { text: 'Soporte telefónico 24/7', included: true },
         { text: 'Integraciones personalizadas', included: true },
-        { text: 'Onboarding personalizado', included: true },
-        { text: 'Contratos personalizados', included: true },
         { text: 'Facturación empresarial', included: true },
       ],
       cta: 'Contactar Ventas',
@@ -146,16 +124,16 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Premium Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
                 <Trophy className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
                 SORTAVO
               </span>
             </Link>
@@ -194,7 +172,7 @@ export default function Pricing() {
                 </Button>
               </Link>
               <Link to="/auth?tab=signup">
-                <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25">
+                <Button className="bg-gradient-to-r from-primary to-emerald-400 hover:from-primary/90 hover:to-emerald-400/90 shadow-lg shadow-primary/25">
                   Crear Cuenta
                 </Button>
               </Link>
@@ -238,7 +216,7 @@ export default function Pricing() {
                     <Button variant="outline" className="w-full">Iniciar Sesión</Button>
                   </Link>
                   <Link to="/auth?tab=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full bg-gradient-to-r from-primary to-accent">
+                    <Button className="w-full bg-gradient-to-r from-primary to-emerald-400">
                       Crear Cuenta
                     </Button>
                   </Link>
@@ -250,153 +228,134 @@ export default function Pricing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-16 relative overflow-hidden">
-        {/* Background Blobs */}
-        <div className="absolute top-20 -left-20 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute top-40 -right-20 w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+      <section className="pt-28 pb-12 lg:pt-36 lg:pb-20 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 radial-gradient-top" />
+        <div className="absolute top-20 -left-32 w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob" />
+        <div className="absolute top-40 -right-32 w-96 h-96 bg-emerald-400/20 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-t from-primary/5 to-transparent rounded-full blur-3xl" />
         
         <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-            Sin comisiones por venta
-          </Badge>
-          <h1 className="mb-4 text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Badge className="mb-6 px-4 py-1.5 bg-gradient-to-r from-primary/20 to-emerald-400/20 text-primary border-primary/30 hover:bg-primary/20 text-sm font-medium">
+              <Sparkles className="w-3.5 h-3.5 mr-2" />
+              Sin comisiones por venta
+            </Badge>
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mb-6 text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight"
+          >
+            <span className="bg-gradient-to-r from-primary via-emerald-500 to-teal-400 bg-clip-text text-transparent">
               Precios Simples
             </span>
             <br />
             <span className="text-foreground">y Transparentes</span>
-          </h1>
-          <p className="mb-8 text-lg text-muted-foreground max-w-2xl mx-auto">
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mb-10 text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto"
+          >
             Elige el plan perfecto para tu negocio de sorteos. Sin sorpresas, sin costos ocultos.
-          </p>
+            <span className="block mt-2 text-primary font-medium">
+              Más de 500+ organizadores confían en Sortavo
+            </span>
+          </motion.p>
 
           {/* Billing Toggle */}
-          <div className="mb-12 flex items-center justify-center gap-4 bg-card/60 backdrop-blur-sm rounded-full px-6 py-3 w-fit mx-auto shadow-lg shadow-primary/10 border border-border">
-            <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-primary' : 'text-muted-foreground'}`}>
-              Mensual
-            </span>
-            <Switch 
-              checked={isAnnual} 
-              onCheckedChange={setIsAnnual}
-              className="data-[state=checked]:bg-primary"
-            />
-            <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-primary' : 'text-muted-foreground'}`}>
-              Anual
-            </span>
-            {isAnnual && (
-              <Badge className="bg-gradient-to-r from-success to-success/80 text-success-foreground border-0">
-                Ahorra 16%
-              </Badge>
-            )}
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mb-16"
+          >
+            <PricingToggle isAnnual={isAnnual} onToggle={setIsAnnual} />
+          </motion.div>
 
           {/* Pricing Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
+          <div className="grid gap-6 lg:gap-8 md:grid-cols-2 xl:grid-cols-4 max-w-7xl mx-auto">
             {plans.map((plan, index) => {
               const planData = STRIPE_PLANS[plan.key];
               const price = isAnnual ? planData.annualPrice : planData.monthlyPrice;
-              const Icon = plan.icon;
-              const isEnterprise = plan.key === 'enterprise';
 
               return (
-                <Card 
-                  key={plan.key} 
-                  className={`relative flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
-                    plan.popular 
-                      ? 'border-2 border-primary shadow-xl shadow-primary/20 scale-105 z-10' 
-                      : 'border-border hover:border-primary/30 hover:shadow-primary/10'
-                  }`}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-4 py-1 shadow-lg">
-                        {plan.badge}
-                      </Badge>
-                    </div>
-                  )}
-                  <CardHeader className="text-center pb-2">
-                    <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${plan.gradient} shadow-lg`}>
-                      <Icon className="h-7 w-7 text-white" />
-                    </div>
-                    {!plan.popular && (
-                      <Badge variant={plan.badgeVariant} className="mx-auto mb-2 w-fit">
-                        {plan.badge}
-                      </Badge>
-                    )}
-                    <CardTitle className="text-2xl">{planData.name}</CardTitle>
-                    <div className="mt-4">
-                      <span className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                        ${price.toLocaleString()}
-                      </span>
-                      <span className="text-muted-foreground ml-1">
-                        USD/{isAnnual ? 'año' : 'mes'}
-                      </span>
-                    </div>
-                    {isAnnual && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        ${Math.round(price / 12).toLocaleString()} USD/mes
-                      </p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          {feature.included === true ? (
-                            <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                          ) : (
-                            <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />
-                          )}
-                          <span className={`text-sm ${feature.included === 'partial' ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
-                            {feature.text}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      asChild 
-                      className={`w-full transition-all duration-300 ${
-                        plan.popular 
-                          ? 'bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25' 
-                          : isEnterprise
-                            ? 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'
-                            : 'bg-foreground hover:bg-foreground/90'
-                      }`}
-                    >
-                      <Link to={plan.ctaLink}>
-                        {isEnterprise ? <Phone className="mr-2 h-4 w-4" /> : null}
-                        {plan.cta}
-                        {!isEnterprise && <ArrowRight className="ml-2 h-4 w-4" />}
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <PricingCard
+                  key={plan.key}
+                  name={planData.name}
+                  price={price}
+                  isAnnual={isAnnual}
+                  icon={plan.icon}
+                  badge={plan.badge}
+                  popular={plan.popular}
+                  tier={plan.key}
+                  idealFor={plan.idealFor}
+                  features={plan.features}
+                  cta={plan.cta}
+                  ctaLink={plan.ctaLink}
+                  index={index}
+                />
               );
             })}
           </div>
         </div>
       </section>
 
+      {/* Trust Badges */}
+      <TrustBadges />
+
+      {/* Social Proof */}
+      <SocialProofSection />
+
       {/* Feature Comparison Table */}
-      <section className="py-16 bg-card/50 backdrop-blur-sm">
+      <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="mb-8 text-center text-3xl font-bold">
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Comparación de Planes
-            </span>
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full max-w-5xl mx-auto bg-card rounded-2xl shadow-xl shadow-primary/5 overflow-hidden">
-              <thead className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <tr>
-                  <th className="py-4 px-4 text-left font-medium text-muted-foreground">Característica</th>
-                  <th className="py-4 px-4 text-center font-medium text-foreground">Básico</th>
-                  <th className="py-4 px-4 text-center font-medium text-primary bg-primary/10">Pro</th>
-                  <th className="py-4 px-4 text-center font-medium text-foreground">Premium</th>
-                  <th className="py-4 px-4 text-center font-medium text-purple-600">Enterprise</th>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+                Comparación de Planes
+              </span>
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Encuentra el plan que mejor se adapte a tus necesidades
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="overflow-x-auto"
+          >
+            <table className="w-full max-w-5xl mx-auto bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
+              <thead>
+                <tr className="bg-gradient-to-r from-primary/10 via-emerald-400/10 to-primary/10">
+                  <th className="py-5 px-6 text-left font-semibold text-muted-foreground">Característica</th>
+                  <th className="py-5 px-4 text-center font-semibold text-foreground">Básico</th>
+                  <th className="py-5 px-4 text-center font-semibold text-primary bg-primary/10 relative">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-primary text-primary-foreground text-xs">Popular</Badge>
+                    </div>
+                    Pro
+                  </th>
+                  <th className="py-5 px-4 text-center font-semibold text-amber-600">Premium</th>
+                  <th className="py-5 px-4 text-center font-semibold text-purple-600">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -414,119 +373,127 @@ export default function Pricing() {
                   ['SLA 99.9%', false, false, false, true],
                   ['Soporte 24/7', false, false, false, true],
                 ].map(([feature, basic, pro, premium, enterprise], idx) => (
-                  <tr key={idx} className="hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4 text-muted-foreground">{feature}</td>
-                    <td className="py-3 px-4 text-center">
+                  <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-4 px-6 text-foreground font-medium">{feature}</td>
+                    <td className="py-4 px-4 text-center">
                       {typeof basic === 'boolean' ? (
-                        basic ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
-                      ) : basic}
+                        basic ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/30" />
+                      ) : <span className="text-muted-foreground">{basic}</span>}
                     </td>
-                    <td className="py-3 px-4 text-center bg-primary/5">
+                    <td className="py-4 px-4 text-center bg-primary/5">
                       {typeof pro === 'boolean' ? (
-                        pro ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
-                      ) : <span className="font-medium text-primary">{pro}</span>}
+                        pro ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/30" />
+                      ) : <span className="font-semibold text-primary">{pro}</span>}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-4 px-4 text-center">
                       {typeof premium === 'boolean' ? (
-                        premium ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
-                      ) : premium}
+                        premium ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/30" />
+                      ) : <span className="text-amber-600 font-medium">{premium}</span>}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-4 px-4 text-center">
                       {typeof enterprise === 'boolean' ? (
-                        enterprise ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
-                      ) : <span className="font-medium text-purple-600">{enterprise}</span>}
+                        enterprise ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/30" />
+                      ) : <span className="font-semibold text-purple-600">{enterprise}</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Trust Badges */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              { icon: Shield, title: 'Pago Seguro', desc: 'Transacciones encriptadas con Stripe' },
-              { icon: MessageCircle, title: 'Soporte Humano', desc: 'Equipo real que responde en menos de 24h' },
-              { icon: HelpCircle, title: 'Sin Letra Pequeña', desc: 'Precios claros, sin costos ocultos' },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-                  <item.icon className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-card/50">
+      <section className="py-20">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="mb-8 text-center text-3xl font-bold">
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Preguntas Frecuentes
-            </span>
-          </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
+                Preguntas Frecuentes
+              </span>
+            </h2>
+            <p className="text-muted-foreground">
+              Todo lo que necesitas saber sobre nuestros planes
+            </p>
+          </motion.div>
+          
           <Accordion type="single" collapsible className="space-y-4">
             {faqs.map((faq, index) => (
-              <AccordionItem 
-                key={index} 
-                value={`faq-${index}`}
-                className="bg-card border border-border rounded-xl px-6 hover:border-primary/30 transition-colors"
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <AccordionTrigger className="text-left text-foreground hover:no-underline py-4">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
+                <AccordionItem 
+                  value={`faq-${index}`}
+                  className="bg-card border border-border rounded-xl px-6 hover:border-primary/30 hover:shadow-lg transition-all duration-300 data-[state=open]:border-primary/50 data-[state=open]:shadow-lg data-[state=open]:shadow-primary/5"
+                >
+                  <AccordionTrigger className="text-left text-foreground hover:no-underline py-5 font-medium">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              </motion.div>
             ))}
           </Accordion>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-accent"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,255,255,0.3),rgba(255,255,255,0))]"></div>
+      <section className="py-24 relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-emerald-600 to-teal-500" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,255,255,0.3),transparent)]" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
         
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-            ¿Listo para empezar?
-          </h2>
-          <p className="text-primary-foreground/90 text-lg mb-8 max-w-2xl mx-auto">
-            Únete a miles de organizadores que ya confían en Sortavo para sus sorteos
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth?tab=signup">
-              <Button 
-                size="lg"
-                className="bg-background text-primary hover:bg-background/90 shadow-xl"
-              >
-                Crear cuenta gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to="/contact">
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <Mail className="mr-2 h-5 w-5" />
-                Contactar ventas
-              </Button>
-            </Link>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground mb-6">
+              ¿Listo para empezar?
+            </h2>
+            <p className="text-primary-foreground/90 text-lg lg:text-xl mb-10 max-w-2xl mx-auto">
+              Únete a miles de organizadores que ya confían en Sortavo para sus sorteos.
+              <span className="block mt-2 text-primary-foreground/80 text-base">
+                Garantía de devolución de 7 días • Sin compromiso
+              </span>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/auth?tab=signup">
+                <Button 
+                  size="lg"
+                  className="bg-background text-primary hover:bg-background/90 shadow-xl px-8 py-6 text-lg font-semibold group"
+                >
+                  Crear cuenta gratis
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+              <Link to="/contact">
+                <Button 
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50 px-8 py-6 text-lg"
+                >
+                  <Mail className="mr-2 h-5 w-5" />
+                  Contactar ventas
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

@@ -588,3 +588,116 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+/* =============================================
+   Premium Pricing Page Utilities
+   ============================================= */
+
+/* Animated blob for backgrounds */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(20px, -30px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+  75% { transform: translate(30px, 10px) scale(1.05); }
+}
+
+.animate-blob {
+  animation: blob 8s ease-in-out infinite;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Shimmer effect for premium elements */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(0, 0%, 100%, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: hsla(var(--card), 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-heavy {
+  background: hsla(var(--card), 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Gradient border effect */
+.gradient-border {
+  position: relative;
+  background: hsl(var(--card));
+  border-radius: var(--radius-lg);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Premium shadow utilities */
+.shadow-premium {
+  box-shadow: 
+    0 4px 6px -1px hsla(var(--primary), 0.1),
+    0 10px 25px -5px hsla(var(--primary), 0.15),
+    0 25px 50px -12px hsla(var(--primary), 0.25);
+}
+
+.shadow-gold {
+  box-shadow: 
+    0 4px 14px -3px hsla(45, 80%, 46%, 0.3),
+    0 10px 25px -5px hsla(45, 80%, 46%, 0.2);
+}
+
+/* Grid pattern background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(hsla(var(--border), 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(var(--border), 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Dot pattern background */
+.bg-dot-pattern {
+  background-image: radial-gradient(hsla(var(--muted-foreground), 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Radial gradient overlays */
+.radial-gradient-top {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, hsla(var(--primary), 0.15), transparent);
+}
+
+.radial-gradient-center {
+  background: radial-gradient(ellipse 60% 40% at 50% 50%, hsla(var(--primary), 0.08), transparent);
+}
