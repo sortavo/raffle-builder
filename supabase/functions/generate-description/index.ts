@@ -6,13 +6,15 @@ const corsHeaders = {
 };
 
 interface GenerateDescriptionRequest {
-  type?: 'title' | 'description' | 'prize_terms';
+  type?: 'title' | 'description' | 'prize_terms' | 'organization_description';
   title?: string;
   category?: string;
   prizeName?: string;
   prizeValue?: number;
   currencyCode?: string;
   userContext?: string;
+  organizationName?: string;
+  city?: string;
 }
 
 serve(async (req) => {
@@ -22,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext }: GenerateDescriptionRequest = await req.json();
+    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext, organizationName, city }: GenerateDescriptionRequest = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -92,8 +94,43 @@ Formato:
 Escribe SOLO los términos, sin explicaciones adicionales.`;
 
       logMessage = `Generating prize terms for: ${prizeName || 'unknown prize'}`;
+    } else if (type === 'organization_description') {
+      // Generate organization description
+      if (!organizationName) {
+        return new Response(
+          JSON.stringify({ error: "El nombre de la organización es requerido" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const contextParts = [];
+      contextParts.push(`Nombre de la organización: "${organizationName}"`);
+      if (city) contextParts.push(`Ubicación: ${city}`);
+      if (userContext && userContext.trim()) {
+        contextParts.push(`Información adicional proporcionada: ${userContext}`);
+      }
+
+      prompt = `Genera una descripción profesional y atractiva para una organización que realiza sorteos y rifas, con estas características:
+
+${contextParts.join("\n")}
+
+La descripción debe:
+- Ser de 2-3 oraciones cortas y profesionales
+- Transmitir confianza, transparencia y profesionalismo
+- Mencionar que organizan sorteos/rifas de manera segura
+- Si hay ubicación, mencionarla naturalmente
+- Incluir 1-2 emojis sutiles (🎯✨🏆🎁)
+- Estar en español latinoamericano
+- Máximo 300 caracteres
+- Motivar a los visitantes a participar en sus sorteos
+- NO usar saludos formales ni frases como "Bienvenidos"
+- Si el usuario proporcionó información adicional, incorporarla o mejorarla
+
+Escribe SOLO la descripción, sin explicaciones adicionales.`;
+
+      logMessage = `Generating organization description for: ${organizationName}`;
     } else {
-      // Generate description
+      // Generate raffle description
       if (!title) {
         return new Response(
           JSON.stringify({ error: "El título del sorteo es requerido" }),

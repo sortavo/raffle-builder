@@ -89,6 +89,7 @@ export function OrganizationSettings() {
   const [phones, setPhones] = useState<string[]>([]);
   const [whatsappNumbers, setWhatsappNumbers] = useState<string[]>([]);
   const [showPhoneValidation, setShowPhoneValidation] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
@@ -717,7 +718,61 @@ export function OrganizationSettings() {
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="description">Descripción</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Descripción</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      setIsGeneratingDescription(true);
+                      try {
+                        const name = form.getValues("name") || organization?.name;
+                        const city = form.getValues("city") || "";
+                        
+                        if (!name) {
+                          toast.error("Ingresa el nombre de tu organización primero");
+                          return;
+                        }
+
+                        const response = await supabase.functions.invoke("generate-description", {
+                          body: {
+                            type: "organization_description",
+                            organizationName: name,
+                            city: city,
+                            userContext: form.getValues("description") || ""
+                          }
+                        });
+
+                        if (response.error) {
+                          throw new Error(response.error.message);
+                        }
+
+                        const generated = response.data?.description;
+                        if (generated) {
+                          form.setValue("description", generated);
+                          toast.success("Descripción generada con IA");
+                        } else {
+                          toast.error("No se pudo generar la descripción");
+                        }
+                      } catch (error: any) {
+                        console.error("Error generating description:", error);
+                        toast.error(error.message || "Error al generar descripción");
+                      } finally {
+                        setIsGeneratingDescription(false);
+                      }
+                    }}
+                    disabled={isGeneratingDescription}
+                    className="h-7 text-xs gap-1.5 text-primary hover:text-primary"
+                  >
+                    {isGeneratingDescription ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    Generar con IA
+                  </Button>
+                </div>
                 <Textarea
                   id="description"
                   {...form.register("description")}
