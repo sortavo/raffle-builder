@@ -58,6 +58,36 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Sanitize color values to prevent CSS injection attacks
+const sanitizeColor = (color: string | undefined): string | null => {
+  if (!color) return null;
+  
+  // Allow hex colors (3, 4, 6, or 8 digits)
+  if (/^#[0-9A-Fa-f]{3,8}$/i.test(color)) return color;
+  
+  // Allow rgb/rgba with numbers and commas/spaces only
+  if (/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)$/i.test(color)) return color;
+  
+  // Allow hsl/hsla with numbers, percentages, and commas/spaces only
+  if (/^hsla?\(\s*\d{1,3}(\.\d+)?\s*,\s*\d{1,3}(\.\d+)?%?\s*,\s*\d{1,3}(\.\d+)?%?\s*(,\s*[\d.]+\s*)?\)$/i.test(color)) return color;
+  
+  // Allow CSS color keywords (common ones)
+  const validColorKeywords = [
+    'transparent', 'currentColor', 'inherit',
+    'black', 'white', 'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey'
+  ];
+  if (validColorKeywords.includes(color.toLowerCase())) return color;
+  
+  // Reject anything else to prevent injection
+  return null;
+};
+
+// Sanitize CSS key names to prevent injection
+const sanitizeKey = (key: string): string => {
+  // Only allow alphanumeric, hyphens, and underscores
+  return key.replace(/[^a-zA-Z0-9_-]/g, '');
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -74,9 +104,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    const rawColor = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+    const color = sanitizeColor(rawColor);
+    const safeKey = sanitizeKey(key);
+    return color ? `  --color-${safeKey}: ${color};` : null;
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `,
