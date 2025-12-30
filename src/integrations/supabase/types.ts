@@ -1358,6 +1358,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_order_by_reference: {
+        Args: { p_reference_code: string }
+        Returns: Json
+      }
       get_public_ticket_counts: {
         Args: { p_raffle_id: string }
         Returns: {
