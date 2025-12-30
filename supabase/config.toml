@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.reactivate-subscription]
 verify_jwt = false
+
+[functions.get-payment-method]
+verify_jwt = false

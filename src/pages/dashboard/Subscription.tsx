@@ -12,6 +12,7 @@ import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/li
 import { UpgradeConfirmationModal } from "@/components/subscription/UpgradeConfirmationModal";
 import { CancelSubscriptionModal } from "@/components/subscription/CancelSubscriptionModal";
 import { InvoiceHistory } from "@/components/subscription/InvoiceHistory";
+import { PaymentMethodCard } from "@/components/settings/PaymentMethodCard";
 import { 
   CreditCard, 
   Check, 
@@ -286,6 +287,10 @@ export default function Subscription() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Payment Method Card - only show for active subscriptions */}
+        {currentStatus === "active" && <PaymentMethodCard />}
+
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
