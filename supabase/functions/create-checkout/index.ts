@@ -59,6 +59,16 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
+    // Get user's organization_id from profile
+    const { data: userProfile } = await supabaseClient
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+    
+    const organizationId = userProfile?.organization_id;
+    logStep("Organization ID retrieved", { organizationId, userId: user.id });
+
     // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
@@ -87,13 +97,16 @@ serve(async (req) => {
       cancel_url: `${origin}/onboarding?step=3&canceled=true`,
       metadata: {
         user_id: user.id,
+        organization_id: organizationId,
         stripe_mode: stripeMode,
       },
-      ...(isBasicPlan && {
-        subscription_data: {
-          trial_period_days: 7,
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          organization_id: organizationId,
         },
-      }),
+        ...(isBasicPlan && { trial_period_days: 7 }),
+      },
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url, stripeMode });

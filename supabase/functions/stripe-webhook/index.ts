@@ -314,24 +314,81 @@ async function handleSubscriptionChange(
 
   logStep("Customer retrieved", { customerId, email, eventId }, "DEBUG");
 
-  // Find organization by email
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .select("id, subscription_tier, subscription_status")
-    .eq("email", email)
-    .single();
+  // Find organization using cascaded search for reliability
+  let org = null;
 
-  if (orgError || !org) {
-    logStep("Organization not found for email", { 
+  // 1. First try by organization_id from subscription metadata (most reliable for new subscriptions)
+  const orgIdFromMeta = subscription.metadata?.organization_id;
+  if (orgIdFromMeta) {
+    const { data: orgByMeta } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier, subscription_status")
+      .eq("id", orgIdFromMeta)
+      .single();
+    if (orgByMeta) {
+      org = orgByMeta;
+      logStep("Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 2. If not found, try by stripe_customer_id (reliable for renewals)
+  if (!org) {
+    const { data: orgByCustomer } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier, subscription_status")
+      .eq("stripe_customer_id", customerId)
+      .single();
+    if (orgByCustomer) {
+      org = orgByCustomer;
+      logStep("Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 3. If not found, try by organization email
+  if (!org) {
+    const { data: orgByEmail } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier, subscription_status")
+      .eq("email", email)
+      .single();
+    if (orgByEmail) {
+      org = orgByEmail;
+      logStep("Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 4. If still not found, try by profile email -> get organization_id
+  if (!org) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("email", email)
+      .single();
+    
+    if (profileData?.organization_id) {
+      const { data: orgByProfile } = await supabase
+        .from("organizations")
+        .select("id, subscription_tier, subscription_status")
+        .eq("id", profileData.organization_id)
+        .single();
+      if (orgByProfile) {
+        org = orgByProfile;
+        logStep("Organization found via profile email", { orgId: org.id, profileEmail: email, eventId }, "DEBUG");
+      }
+    }
+  }
+
+  if (!org) {
+    logStep("Organization not found by any method", { 
       email, 
+      customerId,
+      orgIdFromMeta,
       eventId,
-      error: orgError?.message,
-      errorCode: orgError?.code,
     }, "WARN");
     return;
   }
 
-  logStep("Organization found", { 
+  logStep("Organization resolved", { 
     orgId: org.id, 
     currentTier: org.subscription_tier,
     currentStatus: org.subscription_status,
@@ -458,13 +515,76 @@ async function handleSubscriptionCanceled(
   const customer = await stripe.customers.retrieve(customerId);
   if (customer.deleted || !customer.email) return;
 
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("email", customer.email)
-    .single();
+  const email = customer.email;
 
-  if (!org) return;
+  // Find organization using cascaded search
+  let org = null;
+
+  // 1. First try by organization_id from subscription metadata
+  const orgIdFromMeta = subscription.metadata?.organization_id;
+  if (orgIdFromMeta) {
+    const { data: orgByMeta } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("id", orgIdFromMeta)
+      .single();
+    if (orgByMeta) {
+      org = orgByMeta;
+      logStep("Canceled: Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 2. If not found, try by stripe_customer_id
+  if (!org) {
+    const { data: orgByCustomer } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("stripe_customer_id", customerId)
+      .single();
+    if (orgByCustomer) {
+      org = orgByCustomer;
+      logStep("Canceled: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 3. If not found, try by organization email
+  if (!org) {
+    const { data: orgByEmail } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("email", email)
+      .single();
+    if (orgByEmail) {
+      org = orgByEmail;
+      logStep("Canceled: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 4. If still not found, try by profile email
+  if (!org) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("email", email)
+      .single();
+    
+    if (profileData?.organization_id) {
+      const { data: orgByProfile } = await supabase
+        .from("organizations")
+        .select("id, subscription_tier")
+        .eq("id", profileData.organization_id)
+        .single();
+      if (orgByProfile) {
+        org = orgByProfile;
+        logStep("Canceled: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
+      }
+    }
+  }
+
+  if (!org) {
+    logStep("Canceled: Organization not found by any method", { email, customerId, eventId }, "WARN");
+    return;
+  }
 
   // Reset to basic tier limits
   const basicLimits = TIER_LIMITS.basic;
