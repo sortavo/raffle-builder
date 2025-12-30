@@ -411,12 +411,14 @@ export type Database = {
       organizations: {
         Row: {
           brand_color: string | null
+          cancel_at_period_end: boolean | null
           city: string | null
           country_code: string | null
           cover_image_url: string | null
           cover_media: Json | null
           created_at: string | null
           currency_code: string | null
+          current_period_end: string | null
           description: string | null
           email: string
           emails: string[] | null
@@ -455,12 +457,14 @@ export type Database = {
         }
         Insert: {
           brand_color?: string | null
+          cancel_at_period_end?: boolean | null
           city?: string | null
           country_code?: string | null
           cover_image_url?: string | null
           cover_media?: Json | null
           created_at?: string | null
           currency_code?: string | null
+          current_period_end?: string | null
           description?: string | null
           email: string
           emails?: string[] | null
@@ -499,12 +503,14 @@ export type Database = {
         }
         Update: {
           brand_color?: string | null
+          cancel_at_period_end?: boolean | null
           city?: string | null
           country_code?: string | null
           cover_image_url?: string | null
           cover_media?: Json | null
           created_at?: string | null
           currency_code?: string | null
+          current_period_end?: string | null
           description?: string | null
           email?: string
           emails?: string[] | null

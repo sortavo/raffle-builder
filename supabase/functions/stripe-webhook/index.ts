@@ -443,6 +443,8 @@ async function handleSubscriptionChange(
     max_tickets_per_raffle: limits.maxTicketsPerRaffle,
     templates_available: limits.templatesAvailable,
     trial_ends_at: safeTimestampToISO(subscription.trial_end),
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+    current_period_end: safeTimestampToISO(subscription.current_period_end),
   };
 
   const { error: updateError } = await supabase

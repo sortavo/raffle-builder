@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { UpgradeConfirmationModal } from "@/components/subscription/UpgradeConfirmationModal";
+import { CancelSubscriptionModal } from "@/components/subscription/CancelSubscriptionModal";
 import { InvoiceHistory } from "@/components/subscription/InvoiceHistory";
 import { 
   CreditCard, 
@@ -21,7 +23,9 @@ import {
   Gift,
   Users,
   FileText,
-  Building2
+  Building2,
+  AlertTriangle,
+  XCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -49,12 +53,21 @@ export default function Subscription() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isCancelLoading, setIsCancelLoading] = useState(false);
+  const [isReactivateLoading, setIsReactivateLoading] = useState(false);
   const [upgradePreview, setUpgradePreview] = useState<UpgradePreview | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const currentTier = (organization?.subscription_tier || "basic") as PlanKey;
   const currentStatus = organization?.subscription_status || "trial";
   const trialEndsAt = organization?.trial_ends_at;
+  // Access new fields using type assertion since types.ts is auto-generated
+  const orgAny = organization as unknown as Record<string, unknown> | null;
+  const cancelAtPeriodEnd = (orgAny?.cancel_at_period_end as boolean) || false;
+  const currentPeriodEnd = orgAny?.current_period_end 
+    ? new Date(orgAny.current_period_end as string) 
+    : null;
 
   const planIcons: Record<string, typeof Rocket> = {
     basic: Rocket,
@@ -173,6 +186,52 @@ export default function Subscription() {
     }
   };
 
+  const handleCancelSubscription = async (immediate: boolean) => {
+    setIsCancelLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-subscription", {
+        body: { immediate },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        if (immediate) {
+          toast.success("Tu suscripción ha sido cancelada.");
+        } else {
+          toast.success(
+            `Tu suscripción se cancelará el ${format(new Date(data.cancel_at), "d 'de' MMMM yyyy", { locale: es })}`
+          );
+        }
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (error) {
+      console.error("Cancel error:", error);
+      toast.error("Error al cancelar. Intenta de nuevo.");
+    } finally {
+      setIsCancelLoading(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    setIsReactivateLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reactivate-subscription");
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success("¡Tu suscripción ha sido reactivada!");
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (error) {
+      console.error("Reactivate error:", error);
+      toast.error("Error al reactivar. Intenta de nuevo.");
+    } finally {
+      setIsReactivateLoading(false);
+    }
+  };
+
   const getStatusBadge = () => {
     switch (currentStatus) {
       case "active":
@@ -202,7 +261,31 @@ export default function Subscription() {
           </p>
         </div>
 
-        {/* Current Plan */}
+        {/* Pending Cancellation Alert */}
+        {cancelAtPeriodEnd && currentPeriodEnd && (
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-amber-800 dark:text-amber-200">
+                Tu suscripción se cancelará el{" "}
+                <strong>{format(currentPeriodEnd, "d 'de' MMMM yyyy", { locale: es })}</strong>. 
+                Mantendrás acceso hasta esa fecha.
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={handleReactivateSubscription}
+                disabled={isReactivateLoading}
+                className="ml-4 shrink-0"
+              >
+                {isReactivateLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Reactivar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -287,7 +370,7 @@ export default function Subscription() {
             </div>
           </CardContent>
           {currentStatus === "active" && (
-            <CardFooter>
+            <CardFooter className="flex gap-2">
               <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
                 {isPortalLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -296,6 +379,16 @@ export default function Subscription() {
                 )}
                 Gestionar Suscripción
               </Button>
+              {!cancelAtPeriodEnd && (
+                <Button 
+                  variant="ghost" 
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => setShowCancelModal(true)}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar
+                </Button>
+              )}
             </CardFooter>
           )}
         </Card>
@@ -415,6 +508,15 @@ export default function Subscription() {
           onConfirm={confirmUpgrade}
           targetPlanPrice={upgradePreview ? STRIPE_PLANS[upgradePreview.targetPlan].monthlyPrice : 0}
           currentPlanPrice={STRIPE_PLANS[currentTier].monthlyPrice}
+        />
+
+        {/* Cancel Subscription Modal */}
+        <CancelSubscriptionModal
+          open={showCancelModal}
+          onOpenChange={setShowCancelModal}
+          currentPlan={STRIPE_PLANS[currentTier]?.name || "Basic"}
+          currentPeriodEnd={currentPeriodEnd}
+          onConfirm={handleCancelSubscription}
         />
       </div>
     </DashboardLayout>
