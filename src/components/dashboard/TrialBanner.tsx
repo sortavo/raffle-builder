@@ -99,7 +99,7 @@ export function TrialBanner() {
             !isUrgent && "bg-gradient-to-r from-secondary to-warning hover:from-secondary/90 hover:to-warning/90 text-secondary-foreground"
           )}
         >
-          <Link to="/pricing">
+          <Link to="/dashboard/subscription">
             <Sparkles className="h-4 w-4 mr-2" />
             Elegir plan
             <ArrowRight className="h-4 w-4 ml-2" />
