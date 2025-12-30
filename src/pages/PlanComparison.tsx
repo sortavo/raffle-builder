@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Check, Minus, Info, Sparkles, Zap, Crown, Building2 } from 'lucide-react';
+import { ArrowLeft, Check, Minus, Info, Sparkles, Zap, Crown, Building2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,9 +10,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Footer } from '@/components/layout/Footer';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Feature categories with tooltips
 const featureCategories = [
@@ -299,24 +307,69 @@ const planMeta = [
   { key: 'enterprise', name: 'Enterprise', icon: Building2, color: 'text-purple-600' },
 ];
 
-function FeatureCell({ value }: { value: boolean | string }) {
+function FeatureCell({ value, className }: { value: boolean | string; className?: string }) {
   if (typeof value === 'boolean') {
     return value ? (
-      <div className="flex justify-center">
+      <div className={cn("flex justify-center", className)}>
         <div className="w-6 h-6 rounded-full bg-success/20 flex items-center justify-center">
           <Check className="w-4 h-4 text-success" strokeWidth={3} />
         </div>
       </div>
     ) : (
-      <div className="flex justify-center">
+      <div className={cn("flex justify-center", className)}>
         <Minus className="w-4 h-4 text-muted-foreground/40" />
       </div>
     );
   }
-  return <span className="text-sm font-medium text-foreground">{value}</span>;
+  return <span className={cn("text-sm font-medium text-foreground", className)}>{value}</span>;
+}
+
+// Mobile feature row component
+function MobileFeatureRow({ feature }: { feature: typeof featureCategories[0]['features'][0] }) {
+  return (
+    <div className="py-4 border-b border-border last:border-b-0">
+      <div className="flex items-start gap-2 mb-3">
+        <span className="text-sm font-medium text-foreground flex-1">{feature.name}</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="text-muted-foreground hover:text-primary transition-colors shrink-0">
+              <Info className="w-4 h-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-[250px]">
+            <p className="text-sm">{feature.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {planMeta.map((plan) => {
+          const value = feature[plan.key as keyof typeof feature] as boolean | string;
+          return (
+            <div
+              key={plan.key}
+              className={cn(
+                "text-center p-2 rounded-lg",
+                plan.popular && "bg-primary/10 ring-1 ring-primary/30"
+              )}
+            >
+              <span className="text-[10px] font-medium text-muted-foreground block mb-1">
+                {plan.name}
+              </span>
+              <FeatureCell value={value} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function PlanComparison() {
+  const isMobile = useIsMobile();
+  const [openCategories, setOpenCategories] = useState<string[]>(
+    featureCategories.map((c) => c.name)
+  );
+
   return (
     <>
       <Helmet>
@@ -332,21 +385,25 @@ export default function PlanComparison() {
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/pricing">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Volver a Precios
+                  <span className="hidden sm:inline">Volver a Precios</span>
+                  <span className="sm:hidden">Atrás</span>
                 </Link>
               </Button>
               <Link to="/" className="text-xl font-bold text-foreground">
                 🎟️ SORTAVO
               </Link>
-              <Button asChild>
-                <Link to="/auth?tab=signup">Empezar gratis</Link>
+              <Button asChild size={isMobile ? "sm" : "default"}>
+                <Link to="/auth?tab=signup">
+                  <span className="hidden sm:inline">Empezar gratis</span>
+                  <span className="sm:hidden">Empezar</span>
+                </Link>
               </Button>
             </div>
           </div>
         </header>
 
         {/* Hero */}
-        <section className="py-12 lg:py-16 border-b border-border">
+        <section className="py-8 lg:py-16 border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -356,19 +413,19 @@ export default function PlanComparison() {
               <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
                 Comparación Completa
               </Badge>
-              <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+              <h1 className="text-2xl lg:text-4xl font-bold text-foreground mb-4">
                 Encuentra el plan perfecto para ti
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Compara todas las características de cada plan. Pasa el cursor sobre{' '}
+              <p className="text-sm lg:text-lg text-muted-foreground max-w-2xl mx-auto">
+                Compara todas las características de cada plan. Toca{' '}
                 <Info className="inline w-4 h-4 text-primary" /> para más información.
               </p>
             </motion.div>
           </div>
         </section>
 
-        {/* Plan Headers - Sticky */}
-        <div className="sticky top-[73px] z-40 bg-background border-b border-border shadow-sm">
+        {/* Plan Headers - Desktop only (sticky) */}
+        <div className="hidden lg:block sticky top-[73px] z-40 bg-background border-b border-border shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-5 gap-2 py-4">
               <div className="col-span-1" />
@@ -402,8 +459,60 @@ export default function PlanComparison() {
           </div>
         </div>
 
-        {/* Comparison Table */}
-        <section className="py-8 lg:py-12">
+        {/* Mobile Plan Summary */}
+        <div className="lg:hidden py-4 px-4 border-b border-border bg-muted/30">
+          <div className="grid grid-cols-4 gap-2">
+            {planMeta.map((plan) => {
+              const Icon = plan.icon;
+              const planData = STRIPE_PLANS[plan.key as keyof typeof STRIPE_PLANS];
+              return (
+                <div
+                  key={plan.key}
+                  className={cn(
+                    'text-center p-2 rounded-lg',
+                    plan.popular && 'bg-primary/10 ring-1 ring-primary'
+                  )}
+                >
+                  <Icon className={cn('w-4 h-4 mx-auto mb-1', plan.color)} />
+                  <p className="text-[10px] font-medium text-muted-foreground">{plan.name}</p>
+                  <p className="text-xs font-bold text-foreground">${planData.monthlyPrice}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Comparison - Mobile (Accordions) */}
+        <section className="lg:hidden py-4">
+          <div className="px-4">
+            <Accordion 
+              type="multiple" 
+              value={openCategories}
+              onValueChange={setOpenCategories}
+              className="space-y-3"
+            >
+              {featureCategories.map((category) => (
+                <AccordionItem
+                  key={category.name}
+                  value={category.name}
+                  className="bg-card rounded-xl border border-border overflow-hidden"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50">
+                    <span className="text-sm font-bold text-foreground">{category.name}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-2">
+                    {category.features.map((feature) => (
+                      <MobileFeatureRow key={feature.name} feature={feature} />
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
+        {/* Comparison Table - Desktop */}
+        <section className="hidden lg:block py-8 lg:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {featureCategories.map((category, catIdx) => (
               <motion.div
@@ -464,19 +573,19 @@ export default function PlanComparison() {
         {/* CTA Section */}
         <section className="py-12 lg:py-16 bg-gradient-to-b from-muted/50 to-background border-t border-border">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-4">
+            <h2 className="text-xl lg:text-3xl font-bold text-foreground mb-4">
               ¿Listo para empezar?
             </h2>
-            <p className="text-muted-foreground mb-8">
-              Prueba gratis por 7 días. Sin tarjeta de crédito requerida.
+            <p className="text-sm lg:text-base text-muted-foreground mb-6 lg:mb-8">
+              Prueba gratis por 7 días. Sin tarjeta de crédito.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" asChild>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button size="lg" asChild className="w-full sm:w-auto">
                 <Link to="/auth?tab=signup">
                   Crear cuenta gratis
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
                 <Link to="/pricing">
                   Ver precios
                 </Link>
