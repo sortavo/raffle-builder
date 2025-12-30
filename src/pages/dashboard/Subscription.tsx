@@ -19,7 +19,9 @@ import {
   Calendar,
   Gift,
   Users,
-  FileText
+  FileText,
+  Building2,
+  Phone
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -38,6 +40,7 @@ export default function Subscription() {
     basic: Rocket,
     pro: Zap,
     premium: Crown,
+    enterprise: Building2,
   };
 
   const handleUpgrade = async (planKey: PlanKey, period: BillingPeriod) => {
@@ -211,11 +214,12 @@ export default function Subscription() {
           <h2 className="text-lg font-semibold mb-4">
             {currentStatus === "trial" ? "Elige tu plan" : "Cambiar de plan"}
           </h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {(Object.entries(STRIPE_PLANS) as [PlanKey, typeof STRIPE_PLANS.basic & { popular?: boolean }][]).map(
               ([key, plan]) => {
-                const Icon = planIcons[key];
+                const Icon = planIcons[key] || Rocket;
                 const isCurrentPlan = key === currentTier && currentStatus === "active";
+                const isEnterprise = key === "enterprise";
 
                 return (
                   <Card
@@ -238,7 +242,7 @@ export default function Subscription() {
                     )}
                     <CardHeader>
                       <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-primary" />
+                        <Icon className={cn("h-5 w-5", isEnterprise ? "text-purple-600" : "text-primary")} />
                         <CardTitle>{plan.name}</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
@@ -263,6 +267,16 @@ export default function Subscription() {
                       {isCurrentPlan ? (
                         <Button disabled className="w-full" variant="outline">
                           Plan Actual
+                        </Button>
+                      ) : isEnterprise ? (
+                        <Button
+                          asChild
+                          className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
+                        >
+                          <a href="/contact">
+                            <Phone className="mr-2 h-4 w-4" />
+                            Contactar Ventas
+                          </a>
                         </Button>
                       ) : (
                         <>

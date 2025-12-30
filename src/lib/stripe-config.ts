@@ -30,7 +30,7 @@ export const STRIPE_PLANS = {
     productId: "prod_Tf5tsw8mmJQneA",
     popular: true,
     features: [
-      "15 sorteos activos",
+      "7 sorteos activos",
       "30,000 boletos por sorteo",
       "6 plantillas",
       "Lotería Nacional",
@@ -38,7 +38,7 @@ export const STRIPE_PLANS = {
       "Soporte WhatsApp (12h)",
     ],
     limits: {
-      maxActiveRaffles: 15,
+      maxActiveRaffles: 7,
       maxTicketsPerRaffle: 30000,
       templatesAvailable: 6,
     },
@@ -51,7 +51,7 @@ export const STRIPE_PLANS = {
     annualPriceId: "price_1ShliZRk7xhLUSttqay0l79f",
     productId: "prod_Tf5uiAAHV2WZNF",
     features: [
-      "Sorteos ilimitados",
+      "15 sorteos activos",
       "100,000 boletos por sorteo",
       "6 plantillas + CSS personalizado",
       "Bot de Telegram incluido",
@@ -59,7 +59,7 @@ export const STRIPE_PLANS = {
       "Setup asistido incluido",
     ],
     limits: {
-      maxActiveRaffles: 999,
+      maxActiveRaffles: 15,
       maxTicketsPerRaffle: 100000,
       templatesAvailable: 6,
     },
@@ -68,9 +68,9 @@ export const STRIPE_PLANS = {
     name: "Enterprise",
     monthlyPrice: 499,
     annualPrice: 4990,
-    monthlyPriceId: "", // User must create in Stripe
-    annualPriceId: "", // User must create in Stripe
-    productId: "", // User must create in Stripe
+    monthlyPriceId: "price_1SjsnMRk7xhLUSttruKBstef",
+    annualPriceId: "price_1SjsnrRk7xhLUSttiS0aebpB",
+    productId: "prod_ThHMyhLAztHnsu",
     features: [
       "Sorteos ilimitados",
       "10,000,000 boletos por sorteo",

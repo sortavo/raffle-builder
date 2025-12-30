@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Trophy, Rocket, Zap, Crown, Check, X, ArrowRight, 
-  Shield, MessageCircle, Mail, Phone, HelpCircle, Menu
+  Shield, MessageCircle, Mail, Phone, HelpCircle, Menu, Building2
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
@@ -49,7 +49,7 @@ export default function Pricing() {
       popular: true,
       gradient: 'from-primary to-accent',
       features: [
-        { text: '15 sorteos activos simultáneos', included: true },
+        { text: '7 sorteos activos simultáneos', included: true },
         { text: 'Hasta 30,000 boletos por sorteo', included: true },
         { text: '6 plantillas profesionales', included: true },
         { text: 'Panel con analytics avanzado', included: true },
@@ -72,13 +72,13 @@ export default function Pricing() {
       popular: false,
       gradient: 'from-secondary to-warning',
       features: [
-        { text: 'Sorteos ilimitados', included: true },
+        { text: '15 sorteos activos simultáneos', included: true },
         { text: 'Hasta 100,000 boletos por sorteo', included: true },
         { text: '6 plantillas + CSS personalizado', included: true },
         { text: 'Dashboard personalizado', included: true },
         { text: 'Account Manager dedicado', included: true },
         { text: 'Setup asistido incluido', included: true },
-        { text: 'Soporte telefónico 24/7', included: true },
+        { text: 'Bot de Telegram bidireccional', included: true },
         { text: 'Entrenamiento del equipo', included: true },
         { text: 'Integraciones personalizadas', included: true },
         { text: 'Subdominios personalizados', included: true },
@@ -86,6 +86,29 @@ export default function Pricing() {
       ],
       cta: 'Empezar ahora',
       ctaLink: '/auth?tab=signup&plan=premium',
+    },
+    {
+      key: 'enterprise' as const,
+      icon: Building2,
+      badge: 'Corporativo',
+      badgeVariant: 'outline' as const,
+      popular: false,
+      gradient: 'from-purple-600 to-purple-400',
+      features: [
+        { text: 'Sorteos ilimitados', included: true },
+        { text: 'Hasta 10,000,000 boletos por sorteo', included: true },
+        { text: 'API Access completo', included: true },
+        { text: 'Bot de Telegram bidireccional', included: true },
+        { text: 'Account Manager dedicado', included: true },
+        { text: 'SLA 99.9% uptime garantizado', included: true },
+        { text: 'Soporte telefónico 24/7', included: true },
+        { text: 'Integraciones personalizadas', included: true },
+        { text: 'Onboarding personalizado', included: true },
+        { text: 'Contratos personalizados', included: true },
+        { text: 'Facturación empresarial', included: true },
+      ],
+      cta: 'Contactar Ventas',
+      ctaLink: '/contact',
     },
   ];
 
@@ -268,11 +291,12 @@ export default function Pricing() {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
             {plans.map((plan, index) => {
               const planData = STRIPE_PLANS[plan.key];
               const price = isAnnual ? planData.annualPrice : planData.monthlyPrice;
               const Icon = plan.icon;
+              const isEnterprise = plan.key === 'enterprise';
 
               return (
                 <Card 
@@ -302,7 +326,7 @@ export default function Pricing() {
                     )}
                     <CardTitle className="text-2xl">{planData.name}</CardTitle>
                     <div className="mt-4">
-                      <span className="text-5xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                      <span className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                         ${price.toLocaleString()}
                       </span>
                       <span className="text-muted-foreground ml-1">
@@ -316,13 +340,13 @@ export default function Pricing() {
                     )}
                   </CardHeader>
                   <CardContent className="flex-1">
-                    <ul className="space-y-3">
+                    <ul className="space-y-2">
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           {feature.included === true ? (
-                            <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                            <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
                           ) : (
-                            <X className="h-5 w-5 text-muted-foreground/50 shrink-0 mt-0.5" />
+                            <X className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />
                           )}
                           <span className={`text-sm ${feature.included === 'partial' ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
                             {feature.text}
@@ -337,12 +361,15 @@ export default function Pricing() {
                       className={`w-full transition-all duration-300 ${
                         plan.popular 
                           ? 'bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25' 
-                          : 'bg-foreground hover:bg-foreground/90'
+                          : isEnterprise
+                            ? 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'
+                            : 'bg-foreground hover:bg-foreground/90'
                       }`}
                     >
                       <Link to={plan.ctaLink}>
+                        {isEnterprise ? <Phone className="mr-2 h-4 w-4" /> : null}
                         {plan.cta}
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        {!isEnterprise && <ArrowRight className="ml-2 h-4 w-4" />}
                       </Link>
                     </Button>
                   </CardFooter>
@@ -362,42 +389,52 @@ export default function Pricing() {
             </span>
           </h2>
           <div className="overflow-x-auto">
-            <table className="w-full max-w-4xl mx-auto bg-card rounded-2xl shadow-xl shadow-primary/5 overflow-hidden">
+            <table className="w-full max-w-5xl mx-auto bg-card rounded-2xl shadow-xl shadow-primary/5 overflow-hidden">
               <thead className="bg-gradient-to-r from-primary/10 to-accent/10">
                 <tr>
-                  <th className="py-4 px-6 text-left font-medium text-muted-foreground">Característica</th>
-                  <th className="py-4 px-6 text-center font-medium text-foreground">Básico</th>
-                  <th className="py-4 px-6 text-center font-medium text-primary bg-primary/10">Pro</th>
-                  <th className="py-4 px-6 text-center font-medium text-foreground">Premium</th>
+                  <th className="py-4 px-4 text-left font-medium text-muted-foreground">Característica</th>
+                  <th className="py-4 px-4 text-center font-medium text-foreground">Básico</th>
+                  <th className="py-4 px-4 text-center font-medium text-primary bg-primary/10">Pro</th>
+                  <th className="py-4 px-4 text-center font-medium text-foreground">Premium</th>
+                  <th className="py-4 px-4 text-center font-medium text-purple-600">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {[
-                  ['Sorteos activos', '2', '15', 'Ilimitados'],
-                  ['Boletos por sorteo', '2,000', '30,000', '100,000'],
-                  ['Plantillas', '1', '6', '6 + CSS'],
-                  ['Sin marca Sortavo', false, true, true],
-                  ['Analytics avanzado', false, true, true],
-                  ['Lotería Nacional', false, true, true],
-                  ['Soporte WhatsApp', false, true, true],
-                  ['Account Manager', false, false, true],
-                ].map(([feature, basic, pro, premium], idx) => (
+                  ['Sorteos activos', '2', '7', '15', 'Ilimitados'],
+                  ['Boletos por sorteo', '2,000', '30,000', '100,000', '10,000,000'],
+                  ['Plantillas', '1', '6', '6 + CSS', '6 + CSS'],
+                  ['Sin marca Sortavo', false, true, true, true],
+                  ['Analytics avanzado', false, true, true, true],
+                  ['Lotería Nacional', false, true, true, true],
+                  ['Soporte WhatsApp', false, true, true, true],
+                  ['Bot de Telegram', false, false, true, true],
+                  ['Account Manager', false, false, true, true],
+                  ['API Access', false, false, false, true],
+                  ['SLA 99.9%', false, false, false, true],
+                  ['Soporte 24/7', false, false, false, true],
+                ].map(([feature, basic, pro, premium, enterprise], idx) => (
                   <tr key={idx} className="hover:bg-muted/50 transition-colors">
-                    <td className="py-4 px-6 text-muted-foreground">{feature}</td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-3 px-4 text-muted-foreground">{feature}</td>
+                    <td className="py-3 px-4 text-center">
                       {typeof basic === 'boolean' ? (
                         basic ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
                       ) : basic}
                     </td>
-                    <td className="py-4 px-6 text-center bg-primary/5">
+                    <td className="py-3 px-4 text-center bg-primary/5">
                       {typeof pro === 'boolean' ? (
                         pro ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
                       ) : <span className="font-medium text-primary">{pro}</span>}
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-3 px-4 text-center">
                       {typeof premium === 'boolean' ? (
                         premium ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
                       ) : premium}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {typeof enterprise === 'boolean' ? (
+                        enterprise ? <Check className="h-5 w-5 mx-auto text-success" /> : <X className="h-5 w-5 mx-auto text-muted-foreground/50" />
+                      ) : <span className="font-medium text-purple-600">{enterprise}</span>}
                     </td>
                   </tr>
                 ))}

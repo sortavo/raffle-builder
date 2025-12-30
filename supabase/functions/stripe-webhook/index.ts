@@ -14,17 +14,20 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 // Map Stripe product IDs to subscription tiers
-const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium"> = {
+const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium" | "enterprise"> = {
   "prod_Tf5pTKxFYtPfd4": "basic",
   "prod_Tf5tsw8mmJQneA": "pro",
   "prod_Tf5uiAAHV2WZNF": "premium",
+  "prod_ThHMyhLAztHnsu": "enterprise",
+  "prod_ThHMbFCP3wSrq8": "enterprise",
 };
 
 // Subscription limits by tier
 const TIER_LIMITS = {
   basic: { maxActiveRaffles: 2, maxTicketsPerRaffle: 2000, templatesAvailable: 1 },
-  pro: { maxActiveRaffles: 15, maxTicketsPerRaffle: 30000, templatesAvailable: 6 },
-  premium: { maxActiveRaffles: 999, maxTicketsPerRaffle: 100000, templatesAvailable: 6 },
+  pro: { maxActiveRaffles: 7, maxTicketsPerRaffle: 30000, templatesAvailable: 6 },
+  premium: { maxActiveRaffles: 15, maxTicketsPerRaffle: 100000, templatesAvailable: 6 },
+  enterprise: { maxActiveRaffles: 999, maxTicketsPerRaffle: 10000000, templatesAvailable: 6 },
 };
 
 serve(async (req) => {
