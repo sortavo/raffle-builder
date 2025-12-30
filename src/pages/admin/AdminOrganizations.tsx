@@ -33,7 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ExternalLink, Building2, CheckCircle2, XCircle, Trash2, Loader2 } from "lucide-react";
+import { Search, ExternalLink, Building2, CheckCircle2, XCircle, Trash2, Loader2, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -293,8 +294,13 @@ export default function AdminOrganizations() {
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {org.created_at && format(new Date(org.created_at), "d MMM yyyy", { locale: es })}
                       </TableCell>
-                      <TableCell className="text-right">
+                        <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/admin/organizations/${org.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
                           {org.slug && (
                             <Button variant="ghost" size="sm" asChild>
                               <a 

@@ -48,6 +48,7 @@ import AdminFinancial from "./pages/admin/AdminFinancial";
 import AdminActivity from "./pages/admin/AdminActivity";
 import AdminUsersDashboard from "./pages/admin/AdminUsersDashboard";
 import AdminOrganizations from "./pages/admin/AdminOrganizations";
+import AdminOrganizationDetail from "./pages/admin/AdminOrganizationDetail";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminUsers from "./pages/admin/AdminUsers";
 
@@ -89,6 +90,7 @@ const App = () => (
                   <Route path="/admin/activity" element={<AdminActivity />} />
                   <Route path="/admin/users-dashboard" element={<AdminUsersDashboard />} />
                   <Route path="/admin/organizations" element={<AdminOrganizations />} />
+                  <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
                   <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   {/* Public Routes */}

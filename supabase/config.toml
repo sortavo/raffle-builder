@@ -75,5 +75,8 @@ verify_jwt = false
 [functions.delete-organization]
 verify_jwt = false
 
+[functions.delete-organization-users]
+verify_jwt = false
+
 [functions.delete-user]
 verify_jwt = false
