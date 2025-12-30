@@ -376,9 +376,30 @@ export function OrganizationSettings() {
     }
   };
 
-  // Handle cover media changes
-  const handleCoverMediaChange = (newMedia: CoverMediaItem[]) => {
+  // Handle cover media changes - Auto-save to prevent data loss
+  const handleCoverMediaChange = async (newMedia: CoverMediaItem[]) => {
     setCoverMedia(newMedia);
+    
+    // Auto-save cover media to database immediately
+    if (organization?.id) {
+      try {
+        const { error } = await supabase
+          .from("organizations")
+          .update({
+            cover_media: JSON.parse(JSON.stringify(newMedia)),
+            cover_image_url: newMedia.find(m => m.type === "image")?.url || null,
+          })
+          .eq("id", organization.id);
+        
+        if (error) throw error;
+        
+        queryClient.invalidateQueries({ queryKey: ["auth"] });
+        toast.success("Medios de portada actualizados");
+      } catch (error: any) {
+        console.error("Error auto-saving cover media:", error);
+        toast.error("Error al guardar los medios de portada");
+      }
+    }
   };
 
   return (
