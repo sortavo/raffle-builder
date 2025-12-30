@@ -17,7 +17,14 @@ export function TrialBanner() {
   }
 
   const trialEndDate = parseISO(organization.trial_ends_at);
-  const daysRemaining = differenceInDays(trialEndDate, new Date());
+  
+  // Normalizar fechas al inicio del día para cálculo correcto
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(trialEndDate);
+  endDate.setHours(0, 0, 0, 0);
+  
+  const daysRemaining = differenceInDays(endDate, today);
 
   // Don't show if trial has expired
   if (daysRemaining < 0) {
