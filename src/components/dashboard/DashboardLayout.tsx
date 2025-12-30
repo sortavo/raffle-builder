@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
@@ -11,6 +11,7 @@ import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { TrialBanner } from "./TrialBanner";
 import { useSimulation } from "@/contexts/SimulationContext";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +34,16 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayoutProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { organization } = useAuth();
   const { isSimulating, simulatedUser, mode, endSimulation, toggleMode } = useSimulation();
   const { isPlatformAdmin } = useIsPlatformAdmin();
+
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (organization && organization.onboarding_completed === false) {
+      navigate("/onboarding");
+    }
+  }, [organization, navigate]);
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {

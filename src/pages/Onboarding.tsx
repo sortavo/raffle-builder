@@ -6,22 +6,77 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trophy, Loader2, ArrowLeft, ArrowRight, Check, Building2, CreditCard, Sparkles } from "lucide-react";
+import { Trophy, Loader2, ArrowRight, Check, Building2, Sparkles, Globe, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { z } from "zod";
 import { SinglePhoneInput } from "@/components/ui/SinglePhoneInput";
 
+// Country defaults configuration
+const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string; phoneCode: string }> = {
+  MX: { currency: "MXN", timezone: "America/Mexico_City", phoneCode: "+52" },
+  CO: { currency: "COP", timezone: "America/Bogota", phoneCode: "+57" },
+  US: { currency: "USD", timezone: "America/New_York", phoneCode: "+1" },
+  AR: { currency: "ARS", timezone: "America/Buenos_Aires", phoneCode: "+54" },
+  CL: { currency: "CLP", timezone: "America/Santiago", phoneCode: "+56" },
+  PE: { currency: "PEN", timezone: "America/Lima", phoneCode: "+51" },
+  ES: { currency: "EUR", timezone: "Europe/Madrid", phoneCode: "+34" },
+  BR: { currency: "BRL", timezone: "America/Sao_Paulo", phoneCode: "+55" },
+};
+
+const COUNTRIES = [
+  { code: "MX", name: "México", flag: "🇲🇽" },
+  { code: "CO", name: "Colombia", flag: "🇨🇴" },
+  { code: "US", name: "Estados Unidos", flag: "🇺🇸" },
+  { code: "AR", name: "Argentina", flag: "🇦🇷" },
+  { code: "CL", name: "Chile", flag: "🇨🇱" },
+  { code: "PE", name: "Perú", flag: "🇵🇪" },
+  { code: "ES", name: "España", flag: "🇪🇸" },
+  { code: "BR", name: "Brasil", flag: "🇧🇷" },
+];
+
+const CURRENCIES = [
+  { code: "MXN", name: "Peso Mexicano", symbol: "$", flag: "🇲🇽" },
+  { code: "COP", name: "Peso Colombiano", symbol: "$", flag: "🇨🇴" },
+  { code: "USD", name: "Dólar", symbol: "$", flag: "🇺🇸" },
+  { code: "ARS", name: "Peso Argentino", symbol: "$", flag: "🇦🇷" },
+  { code: "CLP", name: "Peso Chileno", symbol: "$", flag: "🇨🇱" },
+  { code: "PEN", name: "Sol Peruano", symbol: "S/", flag: "🇵🇪" },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
+  { code: "BRL", name: "Real Brasileño", symbol: "R$", flag: "🇧🇷" },
+];
+
+const TIMEZONES = [
+  { value: "America/Mexico_City", label: "Ciudad de México (GMT-6)" },
+  { value: "America/Bogota", label: "Bogotá (GMT-5)" },
+  { value: "America/New_York", label: "Nueva York (GMT-5)" },
+  { value: "America/Los_Angeles", label: "Los Ángeles (GMT-8)" },
+  { value: "America/Buenos_Aires", label: "Buenos Aires (GMT-3)" },
+  { value: "America/Santiago", label: "Santiago (GMT-4)" },
+  { value: "America/Lima", label: "Lima (GMT-5)" },
+  { value: "Europe/Madrid", label: "Madrid (GMT+1)" },
+  { value: "America/Sao_Paulo", label: "São Paulo (GMT-3)" },
+];
+
 const businessInfoSchema = z.object({
   businessName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   phone: z.string().refine((val) => val.replace(/\D/g, "").length >= 12, "El teléfono debe tener al menos 10 dígitos"),
+  country: z.string().min(1, "Selecciona un país"),
+  currency: z.string().min(1, "Selecciona una moneda"),
+  timezone: z.string().min(1, "Selecciona una zona horaria"),
 });
 
 const steps = [
-  { id: 1, name: "Negocio", icon: Building2 },
-  { id: 2, name: "Pagos", icon: CreditCard },
-  { id: 3, name: "Plan", icon: Sparkles },
+  { id: 1, name: "Organización", icon: Building2 },
+  { id: 2, name: "Plan", icon: Sparkles },
 ];
 
 export default function Onboarding() {
@@ -33,18 +88,16 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Step 1: Business Info
+  // Step 1: Organization Info
   const [businessName, setBusinessName] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("MX");
+  const [selectedCurrency, setSelectedCurrency] = useState("MXN");
+  const [selectedTimezone, setSelectedTimezone] = useState("America/Mexico_City");
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  // Step 2: Payment Methods
-  const [bankName, setBankName] = useState("");
-  const [accountHolder, setAccountHolder] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [clabeNumber, setClabeNumber] = useState("");
-  
-  // Step 3: Plan Selection
+  // Step 2: Plan Selection
   const urlPlan = searchParams.get("plan") as PlanKey | null;
   const validPlans: PlanKey[] = ["basic", "pro", "premium"];
   const initialPlan = urlPlan && validPlans.includes(urlPlan) ? urlPlan : "pro";
@@ -60,12 +113,44 @@ export default function Onboarding() {
   useEffect(() => {
     if (organization) {
       setBusinessName(organization.name || "");
+      if (organization.country_code) {
+        setSelectedCountry(organization.country_code);
+      }
+      if (organization.currency_code) {
+        setSelectedCurrency(organization.currency_code);
+      }
+      if (organization.timezone) {
+        setSelectedTimezone(organization.timezone);
+      }
+      if (organization.city) {
+        setCity(organization.city);
+      }
     }
   }, [organization]);
 
+  // Auto-update currency and timezone when country changes
+  const handleCountryChange = (countryCode: string) => {
+    setSelectedCountry(countryCode);
+    const defaults = COUNTRY_DEFAULTS[countryCode];
+    if (defaults) {
+      setSelectedCurrency(defaults.currency);
+      setSelectedTimezone(defaults.timezone);
+      // Update phone prefix if phone is empty or only has country code
+      if (!phone || phone.length <= 4) {
+        setPhone(defaults.phoneCode);
+      }
+    }
+  };
+
   const validateStep1 = () => {
     try {
-      businessInfoSchema.parse({ businessName, phone });
+      businessInfoSchema.parse({ 
+        businessName, 
+        phone, 
+        country: selectedCountry,
+        currency: selectedCurrency,
+        timezone: selectedTimezone,
+      });
       setErrors({});
       return true;
     } catch (e) {
@@ -88,7 +173,14 @@ export default function Onboarding() {
     setIsSubmitting(true);
     const { error } = await supabase
       .from("organizations")
-      .update({ name: businessName, phone })
+      .update({ 
+        name: businessName, 
+        phone,
+        country_code: selectedCountry,
+        currency_code: selectedCurrency,
+        timezone: selectedTimezone,
+        city: city || null,
+      })
       .eq("id", organization.id);
     setIsSubmitting(false);
 
@@ -98,13 +190,6 @@ export default function Onboarding() {
     }
     
     setCurrentStep(2);
-  };
-
-  const handleStep2Submit = async () => {
-    if (bankName || accountNumber) {
-      // Save payment methods if provided
-    }
-    setCurrentStep(3);
   };
 
   const handlePlanSelect = async () => {
@@ -140,7 +225,7 @@ export default function Onboarding() {
       .update({ 
         onboarding_completed: true,
         subscription_status: "trial",
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        // trial_ends_at will be set automatically by the trigger
       })
       .eq("id", organization.id);
     setIsSubmitting(false);
@@ -220,20 +305,21 @@ export default function Onboarding() {
           </ol>
         </nav>
 
-        {/* Step 1: Business Info */}
+        {/* Step 1: Organization Info */}
         {currentStep === 1 && (
           <Card className="backdrop-blur-sm bg-card/80 border-border/40 shadow-2xl shadow-primary/10">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Información de tu negocio
+                Información de tu Organización
               </CardTitle>
               <CardDescription>
-                Cuéntanos sobre tu organización para personalizar tu experiencia
+                Cuéntanos sobre tu negocio para personalizar tu experiencia
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Business Name */}
               <div className="space-y-2">
-                <Label htmlFor="businessName">Nombre del negocio</Label>
+                <Label htmlFor="businessName">Nombre del negocio *</Label>
                 <Input
                   id="businessName"
                   placeholder="Mi Empresa S.A. de C.V."
@@ -249,14 +335,107 @@ export default function Onboarding() {
                 )}
               </div>
               
+              {/* Phone */}
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono de contacto</Label>
+                <Label htmlFor="phone">Teléfono de contacto *</Label>
                 <SinglePhoneInput
                   value={phone}
                   onChange={setPhone}
                   error={errors.phone}
-                  defaultCountryCode="+52"
+                  defaultCountryCode={COUNTRY_DEFAULTS[selectedCountry]?.phoneCode || "+52"}
                 />
+              </div>
+
+              {/* City (Optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="city" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Ciudad (opcional)
+                </Label>
+                <Input
+                  id="city"
+                  placeholder="Ciudad de México, Bogotá, Miami..."
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="bg-background/50 border-border focus:border-primary focus:ring-primary"
+                />
+              </div>
+
+              {/* Location & Currency Section */}
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-border/50">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Globe className="h-4 w-4" />
+                  Ubicación y Moneda
+                </div>
+                
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {/* Country */}
+                  <div className="space-y-2">
+                    <Label htmlFor="country">País *</Label>
+                    <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                      <SelectTrigger className="bg-background/50 border-border">
+                        <SelectValue placeholder="Selecciona país" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            <span className="flex items-center gap-2">
+                              <span>{country.flag}</span>
+                              <span>{country.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.country && (
+                      <p className="text-sm text-destructive">{errors.country}</p>
+                    )}
+                  </div>
+
+                  {/* Currency */}
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Moneda *</Label>
+                    <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                      <SelectTrigger className="bg-background/50 border-border">
+                        <SelectValue placeholder="Selecciona moneda" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map((currency) => (
+                          <SelectItem key={currency.code} value={currency.code}>
+                            <span className="flex items-center gap-2">
+                              <span>{currency.flag}</span>
+                              <span>{currency.code}</span>
+                              <span className="text-muted-foreground text-xs">- {currency.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.currency && (
+                      <p className="text-sm text-destructive">{errors.currency}</p>
+                    )}
+                  </div>
+
+                  {/* Timezone */}
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone">Zona horaria *</Label>
+                    <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                      <SelectTrigger className="bg-background/50 border-border">
+                        <SelectValue placeholder="Selecciona zona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIMEZONES.map((tz) => (
+                          <SelectItem key={tz.value} value={tz.value}>
+                            {tz.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.timezone && (
+                      <p className="text-sm text-destructive">{errors.timezone}</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end pt-4">
@@ -274,91 +453,8 @@ export default function Onboarding() {
           </Card>
         )}
 
-        {/* Step 2: Payment Methods */}
+        {/* Step 2: Plan Selection */}
         {currentStep === 2 && (
-          <Card className="backdrop-blur-sm bg-card/80 border-border/40 shadow-2xl shadow-primary/10">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Métodos de pago
-              </CardTitle>
-              <CardDescription>
-                Configura cómo recibirás los pagos de tus compradores (opcional)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="bankName">Banco</Label>
-                <Input
-                  id="bankName"
-                  placeholder="BBVA, Banorte, Santander..."
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  className="bg-background/50 border-border focus:border-primary focus:ring-primary"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="accountHolder">Titular de la cuenta</Label>
-                <Input
-                  id="accountHolder"
-                  placeholder="Juan Pérez García"
-                  value={accountHolder}
-                  onChange={(e) => setAccountHolder(e.target.value)}
-                  className="bg-background/50 border-border focus:border-primary focus:ring-primary"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Número de cuenta</Label>
-                  <Input
-                    id="accountNumber"
-                    placeholder="1234567890"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    className="bg-background/50 border-border focus:border-primary focus:ring-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clabeNumber">CLABE interbancaria</Label>
-                  <Input
-                    id="clabeNumber"
-                    placeholder="012345678901234567"
-                    value={clabeNumber}
-                    onChange={(e) => setClabeNumber(e.target.value)}
-                    className="bg-background/50 border-border focus:border-primary focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              <p className="text-sm text-muted-foreground bg-primary/10 p-3 rounded-lg">
-                Esta información se mostrará a tus compradores para que realicen transferencias.
-                Puedes configurarla más tarde desde ajustes.
-              </p>
-
-              <div className="flex justify-between pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setCurrentStep(1)}
-                  className="border-border hover:bg-muted"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Atrás
-                </Button>
-                <Button 
-                  onClick={handleStep2Submit}
-                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5"
-                >
-                  Continuar
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 3: Plan Selection */}
-        {currentStep === 3 && (
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -481,7 +577,7 @@ export default function Onboarding() {
                 disabled={isSubmitting}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
-                Continuar con prueba gratuita de 14 días
+                Continuar con prueba gratuita de 7 días
               </button>
             </div>
           </div>
