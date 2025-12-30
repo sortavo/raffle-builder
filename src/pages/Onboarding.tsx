@@ -429,7 +429,7 @@ export default function Onboarding() {
                 <Label htmlFor="businessName" className="text-gray-300">Nombre del negocio *</Label>
                 <Input
                   id="businessName"
-                  placeholder="Mi Empresa S.A. de C.V."
+                  placeholder="Ej: Rifas de Juan, Mi Tienda, Sorteos MX..."
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   className={cn(
