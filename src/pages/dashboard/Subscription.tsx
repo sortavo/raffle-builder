@@ -268,16 +268,6 @@ export default function Subscription() {
                         <Button disabled className="w-full" variant="outline">
                           Plan Actual
                         </Button>
-                      ) : isEnterprise ? (
-                        <Button
-                          asChild
-                          className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600"
-                        >
-                          <a href="/contact">
-                            <Phone className="mr-2 h-4 w-4" />
-                            Contactar Ventas
-                          </a>
-                        </Button>
                       ) : (
                         <>
                           <Button
