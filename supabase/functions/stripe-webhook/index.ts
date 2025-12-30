@@ -7,10 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
+// Enhanced logging with severity levels
+type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
+
+const logStep = (step: string, details?: Record<string, unknown>, level: LogLevel = "INFO") => {
   const timestamp = new Date().toISOString();
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[STRIPE-WEBHOOK] [${timestamp}] ${step}${detailsStr}`);
+  const prefix = `[STRIPE-WEBHOOK] [${timestamp}] [${level}]`;
+  
+  switch (level) {
+    case "ERROR":
+      console.error(`${prefix} ${step}${detailsStr}`);
+      break;
+    case "WARN":
+      console.warn(`${prefix} ${step}${detailsStr}`);
+      break;
+    case "DEBUG":
+      console.debug(`${prefix} ${step}${detailsStr}`);
+      break;
+    default:
+      console.log(`${prefix} ${step}${detailsStr}`);
+  }
 };
 
 // Map Stripe product IDs to subscription tiers
@@ -54,9 +71,14 @@ serve(async (req) => {
   );
 
   try {
+    const requestId = crypto.randomUUID().slice(0, 8);
+    
     logStep("Webhook request received", { 
+      requestId,
       method: req.method,
       hasSignature: !!req.headers.get("stripe-signature"),
+      contentLength: req.headers.get("content-length"),
+      userAgent: req.headers.get("user-agent")?.slice(0, 50),
     });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -64,14 +86,22 @@ serve(async (req) => {
     const isProduction = Deno.env.get("ENVIRONMENT") === "production" || 
                          !Deno.env.get("ENVIRONMENT"); // Default to production-like behavior
     
+    logStep("Environment check", { 
+      requestId,
+      hasStripeKey: !!stripeKey,
+      stripeKeyPrefix: stripeKey?.slice(0, 7),
+      hasWebhookSecret: !!webhookSecret,
+      isProduction,
+    }, "DEBUG");
+    
     if (!stripeKey) {
-      logStep("ERROR: STRIPE_SECRET_KEY not configured");
+      logStep("STRIPE_SECRET_KEY not configured", { requestId }, "ERROR");
       throw new Error("STRIPE_SECRET_KEY is not set");
     }
     
     // CRITICAL: In production, webhook secret is MANDATORY
     if (!webhookSecret && isProduction) {
-      logStep("CRITICAL: STRIPE_WEBHOOK_SECRET not configured in production - rejecting request");
+      logStep("STRIPE_WEBHOOK_SECRET not configured in production - rejecting", {}, "ERROR");
       return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -87,7 +117,7 @@ serve(async (req) => {
     // CRITICAL: Always verify webhook signature in production
     if (webhookSecret) {
       if (!signature) {
-        logStep("ERROR: Missing stripe-signature header");
+        logStep("Missing stripe-signature header", {}, "ERROR");
         return new Response(JSON.stringify({ error: "Missing signature" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -96,10 +126,18 @@ serve(async (req) => {
       
       try {
         event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-        logStep("Webhook signature verified", { eventType: event.type });
+        logStep("Webhook signature verified", { 
+          eventId: event.id,
+          eventType: event.type,
+          livemode: event.livemode,
+          apiVersion: event.api_version,
+        });
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        logStep("Webhook signature verification failed", { error: errorMessage });
+        logStep("Webhook signature verification failed", { 
+          error: errorMessage,
+          signaturePrefix: signature?.slice(0, 20),
+        }, "ERROR");
         return new Response(JSON.stringify({ error: "Invalid signature" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -107,80 +145,113 @@ serve(async (req) => {
       }
     } else {
       // Only allow unverified webhooks in development
-      logStep("WARNING: Processing webhook without signature verification (development mode only)");
+      logStep("Processing webhook without signature verification (dev mode)", {}, "WARN");
       event = JSON.parse(body);
     }
 
     // Check for duplicate events
-    const { data: existingEvent } = await supabaseAdmin
+    const { data: existingEvent, error: dupeCheckError } = await supabaseAdmin
       .from("stripe_events")
       .select("id")
       .eq("event_id", event.id)
       .single();
 
+    if (dupeCheckError && dupeCheckError.code !== "PGRST116") {
+      logStep("Error checking for duplicate event", { error: dupeCheckError.message }, "WARN");
+    }
+
     if (existingEvent) {
-      logStep("Duplicate event, skipping", { eventId: event.id });
+      logStep("Duplicate event, skipping", { eventId: event.id, eventType: event.type }, "DEBUG");
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Record the event
-    await supabaseAdmin.from("stripe_events").insert({
+    const { error: insertError } = await supabaseAdmin.from("stripe_events").insert({
       event_id: event.id,
       event_type: event.type,
     });
+    
+    if (insertError) {
+      logStep("Failed to record event", { eventId: event.id, error: insertError.message }, "WARN");
+    }
 
     // Handle different event types
+    const startTime = Date.now();
+    logStep("Processing event", { eventId: event.id, eventType: event.type });
+    
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionChange(supabaseAdmin, stripe, subscription);
+        await handleSubscriptionChange(supabaseAdmin, stripe, subscription, event.id);
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionCanceled(supabaseAdmin, stripe, subscription);
+        await handleSubscriptionCanceled(supabaseAdmin, stripe, subscription, event.id);
         break;
       }
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentSucceeded(supabaseAdmin, stripe, invoice);
+        await handlePaymentSucceeded(supabaseAdmin, stripe, invoice, event.id);
         break;
       }
 
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentFailed(supabaseAdmin, stripe, invoice);
+        await handlePaymentFailed(supabaseAdmin, stripe, invoice, event.id);
         break;
       }
 
       case "customer.updated": {
         const customer = event.data.object as Stripe.Customer;
-        await handleCustomerUpdated(supabaseAdmin, customer);
+        await handleCustomerUpdated(supabaseAdmin, customer, event.id);
         break;
       }
 
       case "payment_method.attached":
       case "payment_method.detached": {
-        logStep("Payment method event received", { eventType: event.type });
-        // These events are informational - the customer portal handles card management
+        logStep("Payment method event received (informational)", { eventType: event.type }, "DEBUG");
+        break;
+      }
+
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        logStep("Checkout session completed", {
+          sessionId: session.id,
+          customerId: session.customer,
+          subscriptionId: session.subscription,
+          mode: session.mode,
+          paymentStatus: session.payment_status,
+        });
         break;
       }
 
       default:
-        logStep("Unhandled event type", { eventType: event.type });
+        logStep("Unhandled event type", { eventType: event.type }, "DEBUG");
     }
+
+    const processingTime = Date.now() - startTime;
+    logStep("Event processed successfully", { 
+      eventId: event.id, 
+      eventType: event.type, 
+      processingTimeMs: processingTime,
+    });
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in stripe-webhook", { message: errorMessage });
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logStep("Unhandled error in stripe-webhook", { 
+      message: errorMessage,
+      stack: errorStack?.slice(0, 500),
+    }, "ERROR");
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -192,50 +263,80 @@ serve(async (req) => {
 async function handleSubscriptionChange(
   supabase: any,
   stripe: Stripe,
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  eventId: string
 ) {
-  logStep("Handling subscription change", {
-    subscriptionId: subscription.id,
-    status: subscription.status,
-    customerId: subscription.customer,
-  });
-
   const customerId = typeof subscription.customer === "string" 
     ? subscription.customer 
     : subscription.customer.id;
 
+  logStep("handleSubscriptionChange started", {
+    eventId,
+    subscriptionId: subscription.id,
+    status: subscription.status,
+    customerId,
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+    itemsCount: subscription.items.data.length,
+  });
+
   // Get customer email
   const customer = await stripe.customers.retrieve(customerId);
   if (customer.deleted) {
-    logStep("Customer was deleted, skipping");
+    logStep("Customer was deleted, skipping", { customerId, eventId }, "WARN");
     return;
   }
 
   const email = customer.email;
   if (!email) {
-    logStep("No email found for customer", { customerId });
+    logStep("No email found for customer", { customerId, eventId }, "WARN");
     return;
   }
+
+  logStep("Customer retrieved", { customerId, email, eventId }, "DEBUG");
 
   // Find organization by email
   const { data: org, error: orgError } = await supabase
     .from("organizations")
-    .select("id")
+    .select("id, subscription_tier, subscription_status")
     .eq("email", email)
     .single();
 
   if (orgError || !org) {
-    logStep("Organization not found", { email, error: orgError?.message });
+    logStep("Organization not found for email", { 
+      email, 
+      eventId,
+      error: orgError?.message,
+      errorCode: orgError?.code,
+    }, "WARN");
     return;
   }
 
+  logStep("Organization found", { 
+    orgId: org.id, 
+    currentTier: org.subscription_tier,
+    currentStatus: org.subscription_status,
+    eventId,
+  }, "DEBUG");
+
   // Determine tier from product
-  const productId = subscription.items.data[0]?.price?.product as string;
+  const priceItem = subscription.items.data[0];
+  const productId = priceItem?.price?.product as string;
+  const priceId = priceItem?.price?.id;
   const tier = PRODUCT_TO_TIER[productId] || "basic";
   const limits = TIER_LIMITS[tier];
 
+  logStep("Tier determined from product", { 
+    productId, 
+    priceId,
+    tier, 
+    isKnownProduct: !!PRODUCT_TO_TIER[productId],
+    limits,
+    eventId,
+  }, "DEBUG");
+
   // Determine billing period
-  const priceInterval = subscription.items.data[0]?.price?.recurring?.interval;
+  const priceInterval = priceItem?.price?.recurring?.interval;
   const subscriptionPeriod = priceInterval === "year" ? "annual" : "monthly";
 
   // Map Stripe status to our status
@@ -248,31 +349,48 @@ async function handleSubscriptionChange(
     subscriptionStatus = "trial";
   }
 
+  logStep("Subscription status mapped", { 
+    stripeStatus: subscription.status,
+    mappedStatus: subscriptionStatus,
+    period: subscriptionPeriod,
+    eventId,
+  }, "DEBUG");
+
   // Update organization
+  const updatePayload = {
+    subscription_tier: tier,
+    subscription_status: subscriptionStatus,
+    subscription_period: subscriptionPeriod,
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: customerId,
+    max_active_raffles: limits.maxActiveRaffles,
+    max_tickets_per_raffle: limits.maxTicketsPerRaffle,
+    templates_available: limits.templatesAvailable,
+    trial_ends_at: subscription.trial_end 
+      ? new Date(subscription.trial_end * 1000).toISOString() 
+      : null,
+  };
+
   const { error: updateError } = await supabase
     .from("organizations")
-    .update({
-      subscription_tier: tier,
-      subscription_status: subscriptionStatus,
-      subscription_period: subscriptionPeriod,
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: customerId,
-      max_active_raffles: limits.maxActiveRaffles,
-      max_tickets_per_raffle: limits.maxTicketsPerRaffle,
-      templates_available: limits.templatesAvailable,
-      trial_ends_at: subscription.trial_end 
-        ? new Date(subscription.trial_end * 1000).toISOString() 
-        : null,
-    })
+    .update(updatePayload)
     .eq("id", org.id);
 
   if (updateError) {
-    logStep("Failed to update organization", { error: updateError.message });
+    logStep("Failed to update organization", { 
+      orgId: org.id,
+      error: updateError.message,
+      errorCode: updateError.code,
+      eventId,
+    }, "ERROR");
   } else {
     logStep("Organization updated successfully", {
+      eventId,
       orgId: org.id,
-      tier,
-      status: subscriptionStatus,
+      previousTier: org.subscription_tier,
+      newTier: tier,
+      previousStatus: org.subscription_status,
+      newStatus: subscriptionStatus,
       period: subscriptionPeriod,
     });
   }
@@ -286,7 +404,7 @@ async function handleSubscriptionChange(
     .single();
 
   if (profile) {
-    await supabase.from("notifications").insert({
+    const { error: notifError } = await supabase.from("notifications").insert({
       user_id: profile.id,
       organization_id: org.id,
       type: "subscription",
@@ -294,6 +412,10 @@ async function handleSubscriptionChange(
       message: getSubscriptionNotificationMessage(subscription.status, tier),
       link: "/dashboard/settings",
     });
+    
+    if (notifError) {
+      logStep("Failed to create notification", { error: notifError.message, eventId }, "WARN");
+    }
   }
 }
 
@@ -301,16 +423,19 @@ async function handleSubscriptionChange(
 async function handleSubscriptionCanceled(
   supabase: any,
   stripe: Stripe,
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  eventId: string
 ) {
-  logStep("Handling subscription cancellation", {
-    subscriptionId: subscription.id,
-    customerId: subscription.customer,
-  });
-
   const customerId = typeof subscription.customer === "string"
     ? subscription.customer
     : subscription.customer.id;
+
+  logStep("handleSubscriptionCanceled started", {
+    eventId,
+    subscriptionId: subscription.id,
+    customerId,
+    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+  });
 
   const customer = await stripe.customers.retrieve(customerId);
   if (customer.deleted || !customer.email) return;
@@ -326,7 +451,7 @@ async function handleSubscriptionCanceled(
   // Reset to basic tier limits
   const basicLimits = TIER_LIMITS.basic;
 
-  await supabase
+  const { error: updateError } = await supabase
     .from("organizations")
     .update({
       subscription_tier: "basic",
@@ -338,7 +463,19 @@ async function handleSubscriptionCanceled(
     })
     .eq("id", org.id);
 
-  logStep("Subscription canceled, reverted to basic", { orgId: org.id });
+  if (updateError) {
+    logStep("Failed to update org on cancellation", { 
+      orgId: org.id, 
+      error: updateError.message,
+      eventId,
+    }, "ERROR");
+  } else {
+    logStep("Subscription canceled, reverted to basic", { 
+      orgId: org.id,
+      previousTier: org.subscription_tier,
+      eventId,
+    });
+  }
 
   // Create cancellation notification
   const { data: profile } = await supabase
@@ -349,7 +486,7 @@ async function handleSubscriptionCanceled(
     .single();
 
   if (profile) {
-    await supabase.from("notifications").insert({
+    const { error: notifError } = await supabase.from("notifications").insert({
       user_id: profile.id,
       organization_id: org.id,
       type: "subscription",
@@ -357,6 +494,10 @@ async function handleSubscriptionCanceled(
       message: "Tu suscripción ha sido cancelada. Has vuelto al plan Basic.",
       link: "/dashboard/settings",
     });
+    
+    if (notifError) {
+      logStep("Failed to create cancellation notification", { error: notifError.message, eventId }, "WARN");
+    }
   }
 }
 
@@ -364,14 +505,21 @@ async function handleSubscriptionCanceled(
 async function handlePaymentSucceeded(
   supabase: any,
   stripe: Stripe,
-  invoice: Stripe.Invoice
+  invoice: Stripe.Invoice,
+  eventId: string
 ) {
-  if (!invoice.subscription) return;
+  if (!invoice.subscription) {
+    logStep("Invoice has no subscription, skipping", { invoiceId: invoice.id, eventId }, "DEBUG");
+    return;
+  }
 
-  logStep("Payment succeeded", {
+  logStep("handlePaymentSucceeded started", {
+    eventId,
     invoiceId: invoice.id,
     subscriptionId: invoice.subscription,
-    amount: invoice.amount_paid,
+    amountPaid: invoice.amount_paid,
+    currency: invoice.currency,
+    billingReason: invoice.billing_reason,
   });
 
   const customerId = typeof invoice.customer === "string"
@@ -381,15 +529,25 @@ async function handlePaymentSucceeded(
   if (!customerId) return;
 
   const customer = await stripe.customers.retrieve(customerId);
-  if (customer.deleted || !customer.email) return;
+  if (customer.deleted || !customer.email) {
+    logStep("Customer deleted or no email", { customerId, eventId }, "WARN");
+    return;
+  }
 
-  const { data: org } = await supabase
+  const { data: org, error: orgError } = await supabase
     .from("organizations")
-    .select("id")
+    .select("id, subscription_tier")
     .eq("email", customer.email)
     .single();
 
-  if (!org) return;
+  if (!org) {
+    logStep("Organization not found for cancellation", { 
+      email: customer.email, 
+      eventId,
+      error: orgError?.message,
+    }, "WARN");
+    return;
+  }
 
   // Update status to active if it was past_due
   await supabase
@@ -405,24 +563,38 @@ async function handlePaymentSucceeded(
 async function handlePaymentFailed(
   supabase: any,
   stripe: Stripe,
-  invoice: Stripe.Invoice
+  invoice: Stripe.Invoice,
+  eventId: string
 ) {
-  if (!invoice.subscription) return;
+  if (!invoice.subscription) {
+    logStep("Invoice has no subscription for failed payment", { invoiceId: invoice.id, eventId }, "DEBUG");
+    return;
+  }
 
-  logStep("Payment failed", {
+  logStep("handlePaymentFailed started", {
+    eventId,
     invoiceId: invoice.id,
     subscriptionId: invoice.subscription,
     attemptCount: invoice.attempt_count,
+    nextPaymentAttempt: invoice.next_payment_attempt 
+      ? new Date(invoice.next_payment_attempt * 1000).toISOString() 
+      : null,
   });
 
   const customerId = typeof invoice.customer === "string"
     ? invoice.customer
     : invoice.customer?.id;
 
-  if (!customerId) return;
+  if (!customerId) {
+    logStep("No customer ID on failed invoice", { invoiceId: invoice.id, eventId }, "WARN");
+    return;
+  }
 
   const customer = await stripe.customers.retrieve(customerId);
-  if (customer.deleted || !customer.email) return;
+  if (customer.deleted || !customer.email) {
+    logStep("Customer deleted or no email for failed payment", { customerId, eventId }, "WARN");
+    return;
+  }
 
   const { data: org } = await supabase
     .from("organizations")
@@ -430,15 +602,22 @@ async function handlePaymentFailed(
     .eq("email", customer.email)
     .single();
 
-  if (!org) return;
+  if (!org) {
+    logStep("Organization not found for failed payment", { email: customer.email, eventId }, "WARN");
+    return;
+  }
 
   // Update status to past_due
-  await supabase
+  const { error: updateError } = await supabase
     .from("organizations")
     .update({ subscription_status: "past_due" })
     .eq("id", org.id);
 
-  logStep("Organization marked as past_due", { orgId: org.id });
+  if (updateError) {
+    logStep("Failed to mark org as past_due", { error: updateError.message, eventId }, "ERROR");
+  } else {
+    logStep("Organization marked as past_due", { orgId: org.id, eventId });
+  }
 
   // Create notification
   const { data: profile } = await supabase
@@ -449,7 +628,7 @@ async function handlePaymentFailed(
     .single();
 
   if (profile) {
-    await supabase.from("notifications").insert({
+    const { error: notifError } = await supabase.from("notifications").insert({
       user_id: profile.id,
       organization_id: org.id,
       type: "payment_failed",
@@ -457,27 +636,40 @@ async function handlePaymentFailed(
       message: `No pudimos procesar tu pago. Por favor, actualiza tu método de pago para evitar la suspensión del servicio.`,
       link: "/dashboard/settings",
     });
+    
+    if (notifError) {
+      logStep("Failed to create payment failed notification", { error: notifError.message, eventId }, "WARN");
+    }
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleCustomerUpdated(
   supabase: any,
-  customer: Stripe.Customer
+  customer: Stripe.Customer,
+  eventId: string
 ) {
-  if (!customer.email) return;
+  if (!customer.email) {
+    logStep("Customer updated but no email", { customerId: customer.id, eventId }, "DEBUG");
+    return;
+  }
 
-  logStep("Customer updated", {
+  logStep("handleCustomerUpdated", {
+    eventId,
     customerId: customer.id,
     email: customer.email,
-  });
+  }, "DEBUG");
 
   // Update stripe_customer_id if not set
-  await supabase
+  const { error } = await supabase
     .from("organizations")
     .update({ stripe_customer_id: customer.id })
     .eq("email", customer.email)
     .is("stripe_customer_id", null);
+
+  if (error) {
+    logStep("Failed to update customer ID on org", { error: error.message, eventId }, "WARN");
+  }
 }
 
 function getSubscriptionNotificationTitle(status: string, tier: string): string {
