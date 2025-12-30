@@ -72,19 +72,19 @@ export default function RaffleDetail() {
       <PageTransition>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Button 
               variant="ghost" 
               size="icon"
-              className="flex-shrink-0"
+              className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9"
               onClick={() => navigate('/dashboard/raffles')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{raffle.title}</h1>
-              <p className="text-sm text-muted-foreground truncate">{raffle.prize_name}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">{raffle.title}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{raffle.prize_name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -95,55 +95,39 @@ export default function RaffleDetail() {
              (role === 'owner' || role === 'admin') && (
               <Button 
                 size="sm"
-                className="sm:hidden"
+                className="h-8 gap-1.5"
                 onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}
               >
                 <Trophy className="h-4 w-4" />
-              </Button>
-            )}
-            {raffle.status === 'active' && 
-             raffle.tickets_sold > 0 && 
-             !raffle.winner_ticket_number &&
-             (role === 'owner' || role === 'admin') && (
-              <Button 
-                className="hidden sm:flex"
-                onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}
-              >
-                <Trophy className="h-4 w-4 mr-2" />
-                Realizar Sorteo
+                <span className="hidden xs:inline">Sortear</span>
               </Button>
             )}
             <Button 
               variant="outline" 
               size="sm"
-              className="sm:hidden"
+              className="h-8 gap-1.5"
               onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}
             >
               <Pencil className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              className="hidden sm:flex"
-              onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
+              <span className="hidden xs:inline">Editar</span>
             </Button>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
-          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-            <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 h-auto">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 sm:gap-2 px-2.5 sm:px-3">
-                  <tab.icon className="h-4 w-4" />
-                  <span className="hidden xs:inline sm:inline text-xs sm:text-sm">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
+          <TabsList className="grid grid-cols-5 h-auto w-full gap-1 p-1">
+            {tabs.map((tab) => (
+              <TabsTrigger 
+                key={tab.value} 
+                value={tab.value} 
+                className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-sm h-auto"
+              >
+                <tab.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate w-full text-center sm:w-auto">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
           <TabsContent value="overview">
             <OverviewTab 

@@ -278,31 +278,31 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
         'transition-all',
         isExpired && 'border-destructive/50'
       )}>
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <div className={cn(
-                "h-8 w-8 rounded-lg flex items-center justify-center",
+                "h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center shrink-0",
                 showProof ? "bg-amber-500/10" : "bg-muted"
               )}>
                 <Package className={cn(
-                  "h-4 w-4",
+                  "h-3.5 w-3.5 sm:h-4 sm:w-4",
                   showProof ? "text-amber-600" : "text-muted-foreground"
                 )} />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-sm">{order.referenceCode}</span>
-                  <Badge variant="outline" className="font-mono text-xs">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="font-mono font-semibold text-xs sm:text-sm truncate">{order.referenceCode}</span>
+                  <Badge variant="outline" className="font-mono text-[10px] sm:text-xs shrink-0">
                     {ticketCount} boleto{ticketCount !== 1 ? 's' : ''}
                   </Badge>
                 </div>
                 <div className={cn(
-                  'flex items-center gap-1 text-xs',
+                  'flex items-center gap-1 text-[10px] sm:text-xs',
                   isExpired ? 'text-destructive' : 'text-muted-foreground'
                 )}>
-                  <Timer className="h-3 w-3" />
+                  <Timer className="h-3 w-3 shrink-0" />
                   <span>{timeRemaining || 'Sin fecha'}</span>
                 </div>
               </div>
@@ -310,23 +310,23 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
           </div>
 
           {/* Buyer Info */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-x-3 sm:gap-y-1 text-xs sm:text-sm">
             {order.buyerName && (
               <div className="flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium">{order.buyerName}</span>
+                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
+                <span className="font-medium truncate">{order.buyerName}</span>
               </div>
             )}
             {order.buyerPhone && (
               <div className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>{order.buyerPhone}</span>
+                <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{order.buyerPhone}</span>
               </div>
             )}
             {order.buyerEmail && (
-              <div className="flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground truncate max-w-[180px]">{order.buyerEmail}</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Mail className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground truncate">{order.buyerEmail}</span>
               </div>
             )}
           </div>
@@ -404,62 +404,66 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
 
           {/* Actions */}
           <TooltipProvider>
-            <div className="flex items-center gap-2 pt-2 border-t">
-              <Button 
-                size="sm" 
-                variant="default"
-                onClick={() => handleApproveOrder(order)}
-                disabled={bulkApprove.isPending}
-                className="flex-1 h-9"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                Aprobar{ticketCount > 1 ? ` (${ticketCount})` : ''}
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => handleRejectOrder(order)}
-                disabled={bulkReject.isPending}
-                className="flex-1 h-9 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
-              >
-                <XCircle className="h-4 w-4 mr-1.5" />
-                Rechazar
-              </Button>
-              {order.buyerPhone && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t">
+              <div className="flex gap-2 flex-1">
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  onClick={() => handleApproveOrder(order)}
+                  disabled={bulkApprove.isPending}
+                  className="flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">Aprobar{ticketCount > 1 ? ` (${ticketCount})` : ''}</span>
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleRejectOrder(order)}
+                  disabled={bulkReject.isPending}
+                  className="flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                >
+                  <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">Rechazar</span>
+                </Button>
+              </div>
+              <div className="flex gap-2 justify-center">
+                {order.buyerPhone && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="icon" 
+                        variant="outline"
+                        asChild
+                        className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                      >
+                        <a 
+                          href={getWhatsAppLink(order.buyerPhone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>WhatsApp</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
                       size="icon" 
                       variant="outline"
-                      asChild
-                      className="shrink-0 h-9 w-9"
+                      onClick={() => handleExtendOrder(order)}
+                      disabled={extendReservation.isPending}
+                      className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
                     >
-                      <a 
-                        href={getWhatsAppLink(order.buyerPhone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </a>
+                      <Clock className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>WhatsApp</TooltipContent>
+                  <TooltipContent>Extender 30 min</TooltipContent>
                 </Tooltip>
-              )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="icon" 
-                    variant="outline"
-                    onClick={() => handleExtendOrder(order)}
-                    disabled={extendReservation.isPending}
-                    className="shrink-0 h-9 w-9"
-                  >
-                    <Clock className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Extender 30 min</TooltipContent>
-              </Tooltip>
+              </div>
             </div>
           </TooltipProvider>
         </CardContent>

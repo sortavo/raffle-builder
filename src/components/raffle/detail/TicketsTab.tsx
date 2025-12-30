@@ -358,15 +358,18 @@ export function TicketsTab({
 
       {/* Ticket Detail Modal */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden mx-2 sm:mx-auto">
+          <DialogHeader className="flex-shrink-0 pb-2">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               Boleto #{selectedTicket?.ticket_number}
-              <Badge variant={
-                selectedTicket?.status === 'sold' ? 'default' :
-                selectedTicket?.status === 'reserved' ? 'secondary' :
-                selectedTicket?.status === 'available' ? 'outline' : 'destructive'
-              }>
+              <Badge 
+                variant={
+                  selectedTicket?.status === 'sold' ? 'default' :
+                  selectedTicket?.status === 'reserved' ? 'secondary' :
+                  selectedTicket?.status === 'available' ? 'outline' : 'destructive'
+                }
+                className="text-xs"
+              >
                 {selectedTicket?.status === 'sold' ? 'Vendido' :
                  selectedTicket?.status === 'reserved' ? 'Reservado' :
                  selectedTicket?.status === 'available' ? 'Disponible' : 'Cancelado'}
@@ -459,7 +462,7 @@ export function TicketsTab({
                 <Separator />
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Boleto Visual</p>
-                  <div className="transform scale-[0.85] origin-top -mb-8">
+                  <div className="transform scale-[0.75] sm:scale-[0.85] origin-top -mb-16 sm:-mb-8">
                     <DownloadableTicket
                       ticket={{
                         id: selectedTicket.id,
