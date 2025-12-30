@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, Phone, Sparkles, LucideIcon } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Feature {
@@ -124,22 +124,16 @@ export function PricingCard({
 
       {/* Price */}
       <div className="text-center mb-6">
-        {isEnterprise ? (
-          <div className="text-3xl font-bold text-foreground">Personalizado</div>
-        ) : (
-          <>
-            <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                ${monthlyEquivalent.toLocaleString()}
-              </span>
-              <span className="text-muted-foreground text-lg">/mes</span>
-            </div>
-            {isAnnual && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Facturado anualmente (${price.toLocaleString()} USD)
-              </p>
-            )}
-          </>
+        <div className="flex items-baseline justify-center gap-1">
+          <span className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            ${monthlyEquivalent.toLocaleString()}
+          </span>
+          <span className="text-muted-foreground text-lg">/mes</span>
+        </div>
+        {isAnnual && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Facturado anualmente (${price.toLocaleString()} USD)
+          </p>
         )}
       </div>
 
@@ -156,11 +150,8 @@ export function PricingCard({
         )}
       >
         <Link to={ctaLink}>
-          {isEnterprise ? <Phone className="mr-2 h-4 w-4" /> : null}
           {cta}
-          {!isEnterprise && (
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          )}
+          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Link>
       </Button>
 

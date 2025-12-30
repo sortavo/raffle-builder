@@ -85,8 +85,8 @@ export default function Pricing() {
         { text: 'Integraciones personalizadas', included: true },
         { text: 'Facturación empresarial', included: true },
       ],
-      cta: 'Contactar Ventas',
-      ctaLink: '/contact',
+      cta: 'Empezar ahora',
+      ctaLink: '/auth?tab=signup&plan=enterprise',
     },
   ];
 
