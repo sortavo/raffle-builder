@@ -22,11 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ExternalLink, Building2, CheckCircle2, XCircle } from "lucide-react";
+import { Search, ExternalLink, Building2, CheckCircle2, XCircle, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { useDeleteOrganization } from "@/hooks/useDeleteOrganization";
 
 type SubscriptionTier = "basic" | "pro" | "premium";
 type SubscriptionStatus = "trial" | "active" | "canceled" | "past_due";
@@ -62,6 +73,10 @@ export default function AdminOrganizations() {
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [verifiedFilter, setVerifiedFilter] = useState<string>("all");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
+
+  const deleteOrgMutation = useDeleteOrganization();
 
   const { data: organizations, isLoading } = useQuery({
     queryKey: ["admin-organizations"],
@@ -90,6 +105,19 @@ export default function AdminOrganizations() {
 
     queryClient.invalidateQueries({ queryKey: ["admin-organizations"] });
     toast.success(newValue ? "Organización verificada" : "Verificación removida");
+  };
+
+  const handleDeleteClick = (org: Organization) => {
+    setOrgToDelete(org);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orgToDelete) return;
+    
+    await deleteOrgMutation.mutateAsync(orgToDelete.id);
+    setDeleteDialogOpen(false);
+    setOrgToDelete(null);
   };
 
   const filteredOrgs = organizations?.filter((org) => {
@@ -266,17 +294,27 @@ export default function AdminOrganizations() {
                         {org.created_at && format(new Date(org.created_at), "d MMM yyyy", { locale: es })}
                       </TableCell>
                       <TableCell className="text-right">
-                        {org.slug && (
-                          <Button variant="ghost" size="sm" asChild>
-                            <a 
-                              href={`/${org.slug}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                        <div className="flex items-center justify-end gap-1">
+                          {org.slug && (
+                            <Button variant="ghost" size="sm" asChild>
+                              <a 
+                                href={`/${org.slug}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(org)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -286,6 +324,57 @@ export default function AdminOrganizations() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Eliminar Organización
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  ¿Estás seguro de que deseas eliminar la organización{" "}
+                  <strong className="text-foreground">{orgToDelete?.name}</strong>?
+                </p>
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm">
+                  <p className="font-medium text-destructive mb-1">⚠️ Esta acción es irreversible</p>
+                  <p className="text-muted-foreground">
+                    Se eliminarán permanentemente todos los datos asociados:
+                  </p>
+                  <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-0.5">
+                    <li>Todas las rifas y boletos</li>
+                    <li>Métodos de pago y cupones</li>
+                    <li>Miembros del equipo</li>
+                    <li>Configuraciones y conexiones</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteOrgMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteOrgMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteOrgMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar Organización"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }
