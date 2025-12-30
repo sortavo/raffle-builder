@@ -367,6 +367,7 @@ export function BuyersTab({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Fecha</TableHead>
                         <TableHead>Nombre</TableHead>
                         <TableHead className="hidden sm:table-cell">Contacto</TableHead>
                         <TableHead>Boletos</TableHead>
@@ -374,13 +375,47 @@ export function BuyersTab({
                         <TableHead className="hidden lg:table-cell">Método</TableHead>
                         <TableHead className="hidden xl:table-cell">Referencia</TableHead>
                         <TableHead className="hidden md:table-cell">Estado</TableHead>
-                        <TableHead className="hidden lg:table-cell">Fecha</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                   <TableBody>
                     {buyers.map((buyer) => (
                       <TableRow key={buyer.id}>
+                        <TableCell>
+                          <div className="min-w-0">
+                            {buyer.soldAt ? (
+                              <Tooltip>
+                                <TooltipTrigger className="text-left">
+                                  <p className="text-sm font-medium">
+                                    {format(new Date(buyer.soldAt), 'd MMM', { locale: es })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(buyer.soldAt), 'HH:mm', { locale: es })}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Confirmado: {format(new Date(buyer.soldAt), "dd MMM yyyy, HH:mm", { locale: es })}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : buyer.date ? (
+                              <Tooltip>
+                                <TooltipTrigger className="text-left">
+                                  <p className="text-sm font-medium">
+                                    {format(new Date(buyer.date), 'd MMM', { locale: es })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(buyer.date), 'HH:mm', { locale: es })}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Reservado: {format(new Date(buyer.date), "dd MMM yyyy, HH:mm", { locale: es })}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="min-w-0">
                             <p className="font-medium truncate">{buyer.name || 'Sin nombre'}</p>
@@ -464,29 +499,6 @@ export function BuyersTab({
                               </Tooltip>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {buyer.soldAt ? (
-                            <Tooltip>
-                              <TooltipTrigger className="text-sm text-muted-foreground">
-                                {format(new Date(buyer.soldAt), 'dd MMM', { locale: es })}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Confirmado: {format(new Date(buyer.soldAt), "dd MMM yyyy, HH:mm", { locale: es })}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : buyer.date ? (
-                            <Tooltip>
-                              <TooltipTrigger className="text-sm text-muted-foreground">
-                                {format(new Date(buyer.date), 'dd MMM', { locale: es })}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Reservado: {format(new Date(buyer.date), "dd MMM yyyy, HH:mm", { locale: es })}
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-0.5">
