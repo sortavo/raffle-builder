@@ -44,6 +44,19 @@ export default function Subscription() {
   const handleUpgrade = async (planKey: PlanKey, period: BillingPeriod) => {
     setIsLoading(true);
     try {
+      // Si ya tiene suscripción activa, usar Customer Portal para cambiar de plan
+      // Esto evita crear suscripciones duplicadas en Stripe
+      if (currentStatus === "active" && organization?.stripe_subscription_id) {
+        const { data, error } = await supabase.functions.invoke("customer-portal");
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, "_blank");
+          toast.info("Usa el portal de Stripe para cambiar tu plan");
+        }
+        return;
+      }
+      
+      // Si no tiene suscripción (trial o sin plan), crear checkout normal
       const priceId = getPriceId(planKey, period);
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId },
