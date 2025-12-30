@@ -12,6 +12,16 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// All Basic plan price IDs (both test and live) - only these get 7 day trial
+const BASIC_PRICE_IDS = [
+  // Test mode
+  "price_1SjvNEDPAURVR9VYo48CuIdo", // test monthly
+  "price_1SjvNKDPAURVR9VYTaWlJiqR", // test annual
+  // Live mode
+  "price_1ShldQRk7xhLUSttlw5O8LPm", // live monthly
+  "price_1ShldlRk7xhLUSttMCfocNpN", // live annual
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +34,11 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Detect Stripe mode from secret key
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+    const stripeMode = stripeKey.startsWith("sk_live_") ? "live" : "test";
+    logStep("Stripe mode detected", { mode: stripeMode });
 
     const { priceId } = await req.json();
     if (!priceId) {
@@ -40,7 +55,7 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -54,13 +69,9 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://sortavo.com";
     
-    // Basic plan price IDs - only these get 7 day trial
-    const BASIC_PRICE_IDS = [
-      "price_1ShldQRk7xhLUSttlw5O8LPm", // monthly
-      "price_1ShldlRk7xhLUSttMCfocNpN", // annual
-    ];
+    // Check if this is a Basic plan (gets 7 day trial)
     const isBasicPlan = BASIC_PRICE_IDS.includes(priceId);
-    logStep("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0 });
+    logStep("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0, stripeMode });
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -76,6 +87,7 @@ serve(async (req) => {
       cancel_url: `${origin}/onboarding?step=3&canceled=true`,
       metadata: {
         user_id: user.id,
+        stripe_mode: stripeMode,
       },
       ...(isBasicPlan && {
         subscription_data: {
@@ -84,7 +96,7 @@ serve(async (req) => {
       }),
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url, stripeMode });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
