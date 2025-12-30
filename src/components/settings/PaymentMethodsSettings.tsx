@@ -252,57 +252,59 @@ function AccountCard({ group, onEdit, onDelete, onToggle, isToggling }: AccountC
   
   return (
     <Card className={`border-border/50 shadow-sm hover:shadow-md transition-all duration-300 ${!someEnabled ? "opacity-60" : ""}`}>
-      <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className={`p-2 rounded-lg shrink-0 ${someEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-            {firstMethod.bank_name ? (
-              <Landmark className="h-5 w-5" />
-            ) : (
-              getIcon(firstMethod.subtype)
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              {group.bankName && (
-                <BankBadge bankName={group.bankName} size="sm" />
-              )}
-              {!group.bankName && (
-                <h4 className="font-medium truncate">{firstMethod.name}</h4>
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-lg shrink-0 ${someEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+              {firstMethod.bank_name ? (
+                <Landmark className="h-5 w-5" />
+              ) : (
+                getIcon(firstMethod.subtype)
               )}
             </div>
-            
-            {/* Methods as chips */}
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {group.methods.map(method => (
-                <span 
-                  key={method.id} 
-                  className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
-                    method.enabled 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {getIcon(method.subtype)}
-                  <span className="truncate max-w-[100px]">{getSubtypeLabel(method.subtype)}</span>
-                </span>
-              ))}
-            </div>
 
-            {/* Account info */}
-            {firstMethod.clabe && (
-              <p className="text-sm text-muted-foreground font-mono break-all">
-                CLABE: {firstMethod.clabe}
-              </p>
-            )}
-            {firstMethod.account_holder && (
-              <p className="text-sm text-muted-foreground truncate">
-                {firstMethod.account_holder}
-              </p>
-            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                {group.bankName && (
+                  <BankBadge bankName={group.bankName} size="sm" />
+                )}
+                {!group.bankName && (
+                  <h4 className="font-medium truncate text-sm sm:text-base">{firstMethod.name}</h4>
+                )}
+              </div>
+              
+              {/* Methods as chips */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {group.methods.map(method => (
+                  <span 
+                    key={method.id} 
+                    className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+                      method.enabled 
+                        ? 'bg-primary/10 text-primary' 
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {getIcon(method.subtype)}
+                    <span className="truncate max-w-[80px] sm:max-w-[100px]">{getSubtypeLabel(method.subtype)}</span>
+                  </span>
+                ))}
+              </div>
+
+              {/* Account info */}
+              {firstMethod.clabe && (
+                <p className="text-xs sm:text-sm text-muted-foreground font-mono break-all">
+                  CLABE: {firstMethod.clabe}
+                </p>
+              )}
+              {firstMethod.account_holder && (
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {firstMethod.account_holder}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 shrink-0">
+          <div className="flex items-center justify-end gap-2 border-t pt-3 sm:border-0 sm:pt-0">
             <Button
               variant="ghost"
               size="icon"
@@ -1104,26 +1106,26 @@ export function PaymentMethodsSettings() {
     <div className="space-y-6">
       {/* Progress Summary Card */}
       <Card className="border-border/50 shadow-sm bg-gradient-to-r from-primary/5 to-transparent">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${enabledCount > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`p-2 rounded-full shrink-0 ${enabledCount > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                 {enabledCount > 0 ? (
                   <CheckCircle2 className="h-5 w-5" />
                 ) : (
                   <AlertCircle className="h-5 w-5" />
                 )}
               </div>
-              <div>
-                <p className="font-medium">
-                  {methodsCount}/{MAX_METHODS} métodos configurados
+              <div className="min-w-0">
+                <p className="font-medium text-sm sm:text-base">
+                  {methodsCount}/{MAX_METHODS} métodos
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
                   {groupedMethods.length} cuenta{groupedMethods.length !== 1 ? 's' : ''} • {enabledCount} activo{enabledCount !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
-            <span className={`text-sm font-medium ${progressPercent >= 80 ? 'text-destructive' : progressPercent >= 50 ? 'text-yellow-600' : 'text-primary'}`}>
+            <span className={`text-sm font-medium shrink-0 ${progressPercent >= 80 ? 'text-destructive' : progressPercent >= 50 ? 'text-yellow-600' : 'text-primary'}`}>
               {Math.round(progressPercent)}%
             </span>
           </div>
@@ -1135,17 +1137,17 @@ export function PaymentMethodsSettings() {
       </Card>
 
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <div>
-            <CardTitle>Métodos de Pago</CardTitle>
-            <CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+          <div className="min-w-0">
+            <CardTitle className="text-lg">Métodos de Pago</CardTitle>
+            <CardDescription className="break-words">
               Configura cómo tus compradores pueden pagarte
             </CardDescription>
           </div>
           <Button 
             onClick={() => setShowAddDialog(true)} 
             disabled={methods.length >= 20}
-            className="shrink-0"
+            className="w-full sm:w-auto shrink-0"
           >
             <Plus className="h-4 w-4 mr-2" />
             Agregar
@@ -1185,7 +1187,7 @@ export function PaymentMethodsSettings() {
 
       {/* Add Method Dialog - Two-Step Flow */}
       <Dialog open={showAddDialog} onOpenChange={handleCloseAddDialog}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto mx-4 sm:mx-auto">
           {addDialogStep === 'select' ? (
             <>
               <DialogHeader>

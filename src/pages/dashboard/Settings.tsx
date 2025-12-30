@@ -56,32 +56,34 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid grid-cols-3 gap-1 p-1 w-full sm:inline-flex sm:flex-nowrap h-auto">
-            <TabsTrigger value="organization" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <Building2 className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Org</span>
-            </TabsTrigger>
-            <TabsTrigger value="payment-methods" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <CreditCard className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Pagos</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <Bell className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Alertas</span>
-            </TabsTrigger>
-            <TabsTrigger value="team" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <Users className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Equipo</span>
-            </TabsTrigger>
-            <TabsTrigger value="telegram" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <Send className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Telegram</span>
-            </TabsTrigger>
-            <TabsTrigger value="subscription" className="flex flex-col sm:flex-row items-center gap-1 px-2 py-2 text-xs">
-              <Receipt className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">Plan</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto pb-1 -mx-1 px-1">
+            <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0 gap-1 p-1 h-auto">
+              <TabsTrigger value="organization" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Org</span>
+              </TabsTrigger>
+              <TabsTrigger value="payment-methods" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <CreditCard className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Pagos</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <Bell className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Alertas</span>
+              </TabsTrigger>
+              <TabsTrigger value="team" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <Users className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Equipo</span>
+              </TabsTrigger>
+              <TabsTrigger value="telegram" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <Send className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">TG</span>
+              </TabsTrigger>
+              <TabsTrigger value="subscription" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                <Receipt className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Plan</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="organization" className="animate-fade-in">
             <OrganizationSettings />

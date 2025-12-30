@@ -492,25 +492,23 @@ export function OrganizationSettings() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="slug">Identificador único (slug)</Label>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Input
-                  id="slug"
-                  value={slugInput}
-                  onChange={(e) => setSlugInput(normalizeToSlug(e.target.value))}
-                  placeholder="mi-organizacion"
-                  className="pr-10"
-                />
-                {isCheckingSlug && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                )}
-                {!isCheckingSlug && slugAvailable === true && slugInput && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                )}
-                {!isCheckingSlug && slugAvailable === false && slugInput && (
-                  <X className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
-                )}
-              </div>
+            <div className="relative">
+              <Input
+                id="slug"
+                value={slugInput}
+                onChange={(e) => setSlugInput(normalizeToSlug(e.target.value))}
+                placeholder="mi-organizacion"
+                className="pr-10 w-full"
+              />
+              {isCheckingSlug && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {!isCheckingSlug && slugAvailable === true && slugInput && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+              )}
+              {!isCheckingSlug && slugAvailable === false && slugInput && (
+                <X className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Solo letras minúsculas, números y guiones. Ejemplo: mi-organizacion
@@ -527,14 +525,14 @@ export function OrganizationSettings() {
                     ? 'bg-green-500/10 border-green-500/30' 
                     : 'bg-muted border-border'
                 }`}>
-                  <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-1">
                     <Badge 
                       variant={slugInput === organization?.slug ? "default" : "secondary"}
-                      className={slugInput === organization?.slug ? "bg-green-600" : ""}
+                      className={`${slugInput === organization?.slug ? "bg-green-600" : ""} shrink-0`}
                     >
                       {slugInput === organization?.slug ? "URL Activa" : "Vista previa"}
                     </Badge>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         type="button"
                         variant="ghost"
@@ -579,12 +577,12 @@ export function OrganizationSettings() {
               {/* Case 2: Empty input but has suggestion */}
               {!slugInput && suggestedSlug && (
                 <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 shrink-0">
                       <Sparkles className="h-4 w-4 text-primary" />
                       <Badge variant="outline">Sugerencia</Badge>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         type="button"
                         variant="ghost"
@@ -593,7 +591,7 @@ export function OrganizationSettings() {
                         className="h-7 px-2"
                       >
                         <Copy className="h-3.5 w-3.5 mr-1" />
-                        Copiar
+                        <span className="hidden xs:inline">Copiar</span>
                       </Button>
                       <Button
                         type="button"
@@ -866,7 +864,7 @@ export function OrganizationSettings() {
               <p className="text-xs text-muted-foreground mb-4">
                 Puedes agregar hasta 5 de cada tipo de contacto
               </p>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-4">
                 <div className="min-w-0">
                   <MultiContactInput
                     label="Email"
@@ -880,26 +878,28 @@ export function OrganizationSettings() {
                   />
                 </div>
                 
-                <div className="min-w-0">
-                  <PhoneInputWithCountry
-                    label="Teléfono"
-                    icon={<Phone className="h-4 w-4" />}
-                    values={phones}
-                    onChange={setPhones}
-                    helperText="Solo ingresa los dígitos del número"
-                    showValidation={showPhoneValidation}
-                  />
-                </div>
-                
-                <div className="min-w-0">
-                  <PhoneInputWithCountry
-                    label="WhatsApp"
-                    icon={<MessageCircle className="h-4 w-4" />}
-                    values={whatsappNumbers}
-                    onChange={setWhatsappNumbers}
-                    helperText="Solo ingresa los dígitos del número"
-                    showValidation={showPhoneValidation}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="min-w-0">
+                    <PhoneInputWithCountry
+                      label="Teléfono"
+                      icon={<Phone className="h-4 w-4" />}
+                      values={phones}
+                      onChange={setPhones}
+                      helperText="Solo los 10 dígitos"
+                      showValidation={showPhoneValidation}
+                    />
+                  </div>
+                  
+                  <div className="min-w-0">
+                    <PhoneInputWithCountry
+                      label="WhatsApp"
+                      icon={<MessageCircle className="h-4 w-4" />}
+                      values={whatsappNumbers}
+                      onChange={setWhatsappNumbers}
+                      helperText="Solo los 10 dígitos"
+                      showValidation={showPhoneValidation}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -959,8 +959,8 @@ export function OrganizationSettings() {
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Guardar Cambios
               </Button>
