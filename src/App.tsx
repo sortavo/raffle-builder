@@ -23,6 +23,7 @@ import PublicRaffle from "./pages/PublicRaffle";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
 import TicketVerification from "./pages/TicketVerification";
+import OrderVerification from "./pages/OrderVerification";
 import Pricing from "./pages/Pricing";
 import PlanComparison from "./pages/PlanComparison";
 import AcceptInvite from "./pages/AcceptInvite";
@@ -102,6 +103,7 @@ const App = () => (
                   <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
                   <Route path="/my-tickets" element={<MyTickets />} />
                   <Route path="/ticket/:ticketId" element={<TicketVerification />} />
+                  <Route path="/order/:referenceCode" element={<OrderVerification />} />
                   <Route path="/invite/:token" element={<AcceptInvite />} />
                   {/* Legal Routes */}
                   <Route path="/terms" element={<TermsOfService />} />
