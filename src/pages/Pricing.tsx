@@ -241,7 +241,7 @@ export default function Pricing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Badge className="mb-6 px-4 py-1.5 bg-gradient-to-r from-primary/20 to-emerald-400/20 text-primary border-primary/30 hover:bg-primary/20 text-sm font-medium">
+            <Badge className="mb-6 px-4 py-2 bg-primary text-primary-foreground border-0 shadow-lg shadow-primary/30 text-sm font-semibold">
               <Sparkles className="w-3.5 h-3.5 mr-2" />
               Sin comisiones por venta
             </Badge>
