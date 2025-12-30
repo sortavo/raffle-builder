@@ -307,6 +307,20 @@ export default function Pricing() {
               );
             })}
           </div>
+
+          {/* Link to detailed comparison */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="text-center mt-10"
+          >
+            <Button variant="link" asChild className="text-muted-foreground hover:text-primary">
+              <Link to="/pricing/compare">
+                Ver comparación detallada de todas las características →
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </section>
 

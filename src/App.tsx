@@ -24,6 +24,7 @@ import PaymentInstructions from "./pages/PaymentInstructions";
 import MyTickets from "./pages/MyTickets";
 import TicketVerification from "./pages/TicketVerification";
 import Pricing from "./pages/Pricing";
+import PlanComparison from "./pages/PlanComparison";
 import AcceptInvite from "./pages/AcceptInvite";
 import TermsOfService from "./pages/legal/TermsOfService";
 import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
@@ -92,6 +93,7 @@ const App = () => (
                   <Route path="/admin/users" element={<AdminUsers />} />
                   {/* Public Routes */}
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/pricing/compare" element={<PlanComparison />} />
                   <Route path="/help" element={<HelpCenter />} />
                   {/* Legacy raffle routes */}
                   <Route path="/r/:slug" element={<PublicRaffle />} />
