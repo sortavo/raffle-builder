@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.upgrade-subscription]
 verify_jwt = false
+
+[functions.preview-upgrade]
+verify_jwt = false
