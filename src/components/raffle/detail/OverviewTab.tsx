@@ -358,38 +358,39 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
       )}
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={onEdit} variant="outline" size="sm">
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <Button onClick={onEdit} variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm">
+          <Edit className="h-4 w-4 shrink-0" />
+          <span className="truncate">Editar</span>
         </Button>
         <Button 
           onClick={onToggleStatus} 
           variant="outline" 
           size="sm"
           disabled={isTogglingStatus || raffle.status === 'draft' || raffle.status === 'completed'}
+          className="gap-1.5 text-xs sm:text-sm"
         >
           {raffle.status === 'active' ? (
             <>
-              <Pause className="h-4 w-4 mr-2" />
-              Pausar
+              <Pause className="h-4 w-4 shrink-0" />
+              <span className="truncate">Pausar</span>
             </>
           ) : (
             <>
-              <Play className="h-4 w-4 mr-2" />
-              Reanudar
+              <Play className="h-4 w-4 shrink-0" />
+              <span className="truncate">Reanudar</span>
             </>
           )}
         </Button>
-        <Button variant="outline" size="sm" onClick={handleShare}>
-          <Share2 className="h-4 w-4 mr-2" />
-          Compartir
+        <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 text-xs sm:text-sm">
+          <Share2 className="h-4 w-4 shrink-0" />
+          <span className="truncate">Compartir</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={isExporting}>
-              <Download className="h-4 w-4 mr-2" />
-              {isExporting ? 'Exportando...' : 'Exportar'}
+            <Button variant="outline" size="sm" disabled={isExporting} className="gap-1.5 text-xs sm:text-sm">
+              <Download className="h-4 w-4 shrink-0" />
+              <span className="truncate">{isExporting ? 'Exportando...' : 'Exportar'}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -411,26 +412,26 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" asChild>
+        <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs sm:text-sm col-span-2 sm:col-span-1">
           <a href={`/r/${raffle.slug}`} target="_blank" rel="noopener noreferrer">
-            <Eye className="h-4 w-4 mr-2" />
-            Ver Público
+            <Eye className="h-4 w-4 shrink-0" />
+            <span className="truncate">Ver Público</span>
           </a>
         </Button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate pr-2">
                 {kpi.title}
               </CardTitle>
-              <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+              <kpi.icon className={`h-4 w-4 shrink-0 ${kpi.color}`} />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold truncate">{kpi.value}</div>
             </CardContent>
           </Card>
         ))}

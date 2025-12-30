@@ -298,22 +298,20 @@ export function BuyersTab({
 
         {/* Filters */}
         <Card>
-          <CardContent className="pt-4">
-            <div className="flex flex-col gap-3 sm:gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nombre, email o teléfono..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+          <CardContent className="pt-4 p-3 sm:p-4 sm:pt-4">
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, email o teléfono..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 text-sm"
+                />
               </div>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:flex gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[130px]">
+                  <SelectTrigger className="w-full sm:w-[130px] text-xs sm:text-sm">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -323,7 +321,7 @@ export function BuyersTab({
                   </SelectContent>
                 </Select>
                 <Select value={cityFilter} onValueChange={setCityFilter}>
-                  <SelectTrigger className="w-full sm:w-[130px]">
+                  <SelectTrigger className="w-full sm:w-[130px] text-xs sm:text-sm">
                     <SelectValue placeholder="Ciudad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -335,9 +333,9 @@ export function BuyersTab({
                     ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleExport} variant="outline" size="sm" className="w-full sm:w-auto">
-                  <Download className="h-4 w-4 mr-2" />
-                  <span className="sm:inline">Exportar</span>
+                <Button onClick={handleExport} variant="outline" size="sm" className="col-span-2 sm:col-span-1 sm:w-auto gap-1.5">
+                  <Download className="h-4 w-4" />
+                  <span>Exportar</span>
                 </Button>
               </div>
             </div>
@@ -346,38 +344,40 @@ export function BuyersTab({
 
         {/* Buyers Table */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               Compradores ({buyersData?.count || 0})
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-4 sm:pt-0">
             {isLoading ? (
-              <TableSkeleton rows={5} columns={9} />
+              <div className="p-4">
+                <TableSkeleton rows={5} columns={5} />
+              </div>
             ) : buyers.length === 0 ? (
-              <EmptyState
-                icon={<Users className="h-12 w-12" />}
-                title="No hay compradores aún"
-                description="Cuando alguien compre boletos, aparecerán aquí con su información de contacto."
-              />
+              <div className="p-4">
+                <EmptyState
+                  icon={<Users className="h-12 w-12" />}
+                  title="No hay compradores aún"
+                  description="Cuando alguien compre boletos, aparecerán aquí con su información de contacto."
+                />
+              </div>
             ) : (
-              <div className="overflow-x-auto -mx-4 sm:-mx-6">
-                <div className="inline-block min-w-full align-middle px-4 sm:px-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Nombre</TableHead>
-                        <TableHead className="hidden sm:table-cell">Contacto</TableHead>
-                        <TableHead>Boletos</TableHead>
-                        <TableHead className="hidden md:table-cell">Monto</TableHead>
-                        <TableHead className="hidden lg:table-cell">Método</TableHead>
-                        <TableHead className="hidden xl:table-cell">Referencia</TableHead>
-                        <TableHead className="hidden md:table-cell">Estado</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Fecha</TableHead>
+                      <TableHead className="text-xs">Nombre</TableHead>
+                      <TableHead className="hidden md:table-cell text-xs">Contacto</TableHead>
+                      <TableHead className="text-xs">Boletos</TableHead>
+                      <TableHead className="hidden sm:table-cell text-xs">Monto</TableHead>
+                      <TableHead className="hidden lg:table-cell text-xs">Método</TableHead>
+                      <TableHead className="hidden md:table-cell text-xs">Estado</TableHead>
+                      <TableHead className="text-right text-xs">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {buyers.map((buyer) => (
                       <TableRow key={buyer.id}>
@@ -597,7 +597,6 @@ export function BuyersTab({
                     ))}
                   </TableBody>
                 </Table>
-                </div>
               </div>
             )}
           </CardContent>
