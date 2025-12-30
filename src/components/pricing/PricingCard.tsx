@@ -141,9 +141,9 @@ export function PricingCard({
       </div>
 
       {/* Trial Badge or Payment Notice */}
-      <div className="text-center mb-6 min-h-[52px]">
+      <div className="text-center mb-6 min-h-[70px]">
         {hasTrial ? (
-          <div className="space-y-1">
+          <div className="space-y-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
@@ -153,17 +153,20 @@ export function PricingCard({
                 duration: 2 
               }}
             >
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-3 py-1.5 text-sm font-bold">
-                <Gift className="w-3.5 h-3.5 mr-1.5" />
+              <Badge className="bg-emerald-500 text-white px-4 py-2 text-base font-bold shadow-lg">
+                <Gift className="w-4 h-4 mr-2" />
                 {trialDays} DÍAS GRATIS
               </Badge>
             </motion.div>
-            <p className="text-xs text-emerald-400/80">
+            <p className="text-sm text-emerald-400 font-medium">
               Sin cargo hasta terminar la prueba
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Tu tarjeta se valida pero no se cobra hoy
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground p-3">
             <CreditCard className="w-3.5 h-3.5" />
             <span>Pago inmediato al suscribirte</span>
           </div>
