@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Footer } from '@/components/layout/Footer';
@@ -110,6 +111,9 @@ const getIncidentStatusText = (status: Incident['status']) => {
 };
 
 export default function SystemStatus() {
+  // Activate dark mode for this page
+  useScopedDarkMode();
+  
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
@@ -143,7 +147,7 @@ export default function SystemStatus() {
         <meta name="description" content="Monitorea el estado en tiempo real de todos los servicios de Sortavo." />
       </Helmet>
 
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-ultra-dark">
         <PremiumNavbar variant="solid" />
 
         {/* Overall Status Banner */}
@@ -203,11 +207,11 @@ export default function SystemStatus() {
             
             {isLoading && services.length === 0 ? (
               <div className="space-y-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-gray-900/80 rounded-xl p-6 border border-white/10 animate-pulse">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-ultra-dark-card rounded-xl p-6 border border-ultra-dark animate-pulse">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gray-700" />
-                      <div className="flex-1"><div className="h-4 bg-gray-700 rounded w-1/4 mb-2" /><div className="h-3 bg-gray-800 rounded w-1/3" /></div>
+                      <div className="w-12 h-12 rounded-xl bg-ultra-dark-elevated" />
+                      <div className="flex-1"><div className="h-4 bg-ultra-dark-elevated rounded w-1/4 mb-2" /><div className="h-3 bg-ultra-dark-card rounded w-1/3" /></div>
                     </div>
                   </div>
                 ))}
@@ -217,11 +221,11 @@ export default function SystemStatus() {
                 {services.map((service, index) => {
                   const ServiceIcon = getServiceIcon(service.name);
                   return (
-                    <div key={index} className="bg-gray-900/80 rounded-xl p-6 border border-white/10 hover:border-white/20 transition-all">
+                    <div key={index} className="bg-ultra-dark-card rounded-xl p-6 border border-ultra-dark hover:border-ultra-dark-subtle transition-all">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center">
-                            <ServiceIcon className="w-6 h-6 text-gray-400" />
+                          <div className="w-12 h-12 rounded-xl bg-ultra-dark-elevated flex items-center justify-center">
+                            <ServiceIcon className="w-6 h-6 text-ultra-dark-dimmed" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-white">{service.name}</h3>
@@ -245,13 +249,13 @@ export default function SystemStatus() {
         </section>
 
         {/* Recent Incidents */}
-        <section className="py-12 bg-gray-900/50">
+        <section className="py-12 bg-ultra-dark-elevated">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-2xl font-bold text-white mb-8">Incidentes Recientes</h2>
-            <div className="bg-gray-900/80 rounded-xl p-12 text-center border border-white/10">
+            <div className="bg-ultra-dark-card rounded-xl p-12 text-center border border-ultra-dark">
               <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">Sin incidentes recientes</h3>
-              <p className="text-gray-400">No ha habido incidentes en los últimos 90 días.</p>
+              <p className="text-ultra-dark-dimmed">No ha habido incidentes en los últimos 90 días.</p>
             </div>
           </div>
         </section>

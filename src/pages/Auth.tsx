@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,8 @@ const emailSchema = z.string().email("Ingresa un correo electrónico válido");
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres");
 
 export default function Auth() {
+  // Activate dark mode for this page
+  useScopedDarkMode();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, signInWithGoogle, resetPassword, isLoading } = useAuth();
@@ -196,7 +199,7 @@ export default function Auth() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
       </div>
     );
@@ -205,7 +208,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       {/* Premium Dark Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-emerald-950/30" />
+      <div className="absolute inset-0 bg-gradient-to-br from-ultra-dark via-ultra-dark-elevated to-emerald-950/30" />
       
       {/* Animated Orbs */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl animate-blob" />
@@ -234,9 +237,9 @@ export default function Auth() {
           />
         </div>
 
-        <Card className="backdrop-blur-sm bg-gray-900/80 border-white/10 shadow-2xl shadow-emerald-600/10">
+        <Card className="backdrop-blur-sm bg-ultra-dark-card border-ultra-dark shadow-2xl shadow-emerald-600/10">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
+            <TabsList className="grid w-full grid-cols-2 bg-ultra-dark-elevated">
               <TabsTrigger value="login" className="data-[state=active]:bg-gray-700 data-[state=active]:text-emerald-400 text-gray-400">
                 Iniciar Sesión
               </TabsTrigger>
@@ -259,21 +262,22 @@ export default function Auth() {
                   <GoogleButton />
                   
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-gray-300">Correo electrónico</Label>
+                    <Label htmlFor="login-email" className="text-ultra-dark-muted">Correo electrónico</Label>
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="tu@correo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 ${errors.email ? "border-red-500" : ""}`}
+                      variant="dark"
+                      className={errors.email ? "border-red-500" : ""}
                     />
                     {errors.email && (
                       <p className="text-sm text-red-400">{errors.email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-gray-300">Contraseña</Label>
+                    <Label htmlFor="login-password" className="text-ultra-dark-muted">Contraseña</Label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -281,12 +285,13 @@ export default function Auth() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 pr-10 ${errors.password ? "border-red-500" : ""}`}
+                        variant="dark"
+                        className={`pr-10 ${errors.password ? "border-red-500" : ""}`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ultra-dark-dimmed hover:text-white"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -299,7 +304,8 @@ export default function Auth() {
                 <CardFooter className="flex flex-col gap-4">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-600/25" 
+                    variant="gradient"
+                    className="w-full shadow-lg shadow-emerald-600/25" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -314,7 +320,7 @@ export default function Auth() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("reset")}
-                    className="text-sm text-gray-400 hover:text-emerald-400 transition-colors"
+                    className="text-sm text-ultra-dark-dimmed hover:text-emerald-400 transition-colors"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -336,35 +342,37 @@ export default function Auth() {
                   <GoogleButton />
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-gray-300">Nombre completo</Label>
+                    <Label htmlFor="signup-name" className="text-ultra-dark-muted">Nombre completo</Label>
                     <Input
                       id="signup-name"
                       type="text"
                       placeholder="Juan Pérez"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className={`bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 ${errors.fullName ? "border-red-500" : ""}`}
+                      variant="dark"
+                      className={errors.fullName ? "border-red-500" : ""}
                     />
                     {errors.fullName && (
                       <p className="text-sm text-red-400">{errors.fullName}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-gray-300">Correo electrónico</Label>
+                    <Label htmlFor="signup-email" className="text-ultra-dark-muted">Correo electrónico</Label>
                     <Input
                       id="signup-email"
                       type="email"
                       placeholder="tu@correo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={`bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 ${errors.email ? "border-red-500" : ""}`}
+                      variant="dark"
+                      className={errors.email ? "border-red-500" : ""}
                     />
                     {errors.email && (
                       <p className="text-sm text-red-400">{errors.email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-gray-300">Contraseña</Label>
+                    <Label htmlFor="signup-password" className="text-ultra-dark-muted">Contraseña</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
@@ -372,12 +380,13 @@ export default function Auth() {
                         placeholder="Mínimo 8 caracteres"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className={`bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500 pr-10 ${errors.password ? "border-red-500" : ""}`}
+                        variant="dark"
+                        className={`pr-10 ${errors.password ? "border-red-500" : ""}`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ultra-dark-dimmed hover:text-white"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -390,7 +399,8 @@ export default function Auth() {
                 <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-600/25" 
+                    variant="gradient"
+                    className="w-full shadow-lg shadow-emerald-600/25" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (

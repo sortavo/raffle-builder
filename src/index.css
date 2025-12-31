@@ -701,3 +701,55 @@
 .radial-gradient-center {
   background: radial-gradient(ellipse 60% 40% at 50% 50%, hsla(var(--primary), 0.08), transparent);
 }
+
+/* =============================================
+   Ultra Dark Theme - Marketing/Public Pages
+   ============================================= */
+
+/* Ultra Dark CSS Variables */
+:root {
+  --ultra-dark: 222 47% 3%;
+  --ultra-dark-elevated: 222 47% 6%;
+  --ultra-dark-card: 0 0% 100%;
+  --ultra-dark-border: 0 0% 100%;
+  --ultra-dark-text: 0 0% 100%;
+  --ultra-dark-text-muted: 0 0% 100%;
+  --ultra-dark-text-dimmed: 0 0% 100%;
+}
+
+/* Ultra Dark Utility Classes */
+.bg-ultra-dark {
+  background-color: hsl(222 47% 3%);
+}
+
+.bg-ultra-dark-elevated {
+  background-color: hsl(222 47% 6%);
+}
+
+.bg-ultra-dark-card {
+  background-color: rgb(255 255 255 / 0.03);
+}
+
+.bg-ultra-dark-card-hover {
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+.border-ultra-dark {
+  border-color: rgb(255 255 255 / 0.08);
+}
+
+.border-ultra-dark-subtle {
+  border-color: rgb(255 255 255 / 0.06);
+}
+
+.text-ultra-dark {
+  color: rgb(255 255 255);
+}
+
+.text-ultra-dark-muted {
+  color: rgb(255 255 255 / 0.7);
+}
+
+.text-ultra-dark-dimmed {
+  color: rgb(255 255 255 / 0.5);
+}
