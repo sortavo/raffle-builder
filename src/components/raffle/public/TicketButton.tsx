@@ -39,53 +39,52 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
         ref={ref}
         onClick={onClick}
         disabled={disabled || !isAvailable}
-        whileHover={isAvailable ? { scale: 1.08, y: -2 } : undefined}
-        whileTap={isAvailable ? { scale: 0.95 } : undefined}
+        whileHover={isAvailable ? { scale: 1.03 } : undefined}
+        whileTap={isAvailable ? { scale: 0.97 } : undefined}
         initial={false}
         animate={isSelected ? { scale: 1.02 } : { scale: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
         className={cn(
-          "relative aspect-square rounded-lg font-bold text-sm",
-          "transition-all duration-200 touch-manipulation group",
-          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
+          "relative aspect-square rounded-lg font-mono font-bold text-sm",
+          "transition-all duration-150 touch-manipulation",
+          "focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 focus:ring-offset-[#030712]",
           
           // Highlighted state (found via search)
           isHighlighted && [
-            "ring-4 ring-amber-400 ring-offset-2 animate-pulse z-10",
+            "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#030712] z-10",
           ],
           
-          // Available - not selected
+          // Available - not selected (ultra subtle dark)
           isAvailable && !isSelected && [
-            "bg-card border border-border",
-            "text-foreground/80 hover:border-primary hover:text-primary",
-            "hover:shadow-lg hover:shadow-primary/20",
-            "hover:bg-primary/5",
+            "bg-white/[0.03] border border-white/[0.08]",
+            "text-white/70",
+            "hover:bg-white/[0.06] hover:border-white/[0.12] hover:text-white",
           ],
           
-          // Available - selected (premium violet gradient)
+          // Available - selected (emerald solid)
           isAvailable && isSelected && [
-            "bg-gradient-to-br from-primary via-primary to-accent",
-            "text-primary-foreground border border-transparent",
-            "shadow-lg shadow-primary/40",
-            "ring-2 ring-primary/50 ring-offset-1 ring-offset-background",
+            "bg-emerald-500 text-white",
+            "border border-emerald-400",
+            "shadow-lg shadow-emerald-500/30",
           ],
           
-          // Sold
+          // Sold (very subtle with diagonal pattern)
           status === 'sold' && [
-            "bg-muted border border-muted",
-            "text-muted-foreground/50 cursor-not-allowed",
+            "bg-white/[0.02] border border-white/[0.04]",
+            "text-white/20 cursor-not-allowed",
+            "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.02)_3px,rgba(255,255,255,0.02)_6px)]",
           ],
           
           // Reserved
           status === 'reserved' && [
-            "bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700",
-            "text-amber-600 dark:text-amber-400 cursor-not-allowed",
+            "bg-amber-500/10 border border-amber-500/20",
+            "text-amber-500/50 cursor-not-allowed",
           ],
           
           // Canceled
           status === 'canceled' && [
-            "bg-destructive/10 border border-destructive/30",
-            "text-destructive/50 cursor-not-allowed",
+            "bg-red-500/5 border border-red-500/10",
+            "text-red-500/30 cursor-not-allowed",
           ]
         )}
       >
@@ -96,7 +95,7 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
         
         {/* Content */}
         <span className={cn(
-          "relative z-0 flex items-center justify-center h-full text-xs sm:text-sm",
+          "relative z-0 flex items-center justify-center h-full text-xs sm:text-sm tabular-nums",
           isSelected && "font-bold"
         )}>
           {isSelected ? (
@@ -104,30 +103,15 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 500, damping: 15 }}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center gap-0.5"
             >
-              <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5" strokeWidth={3} />
+              <Check className="w-3 h-3 sm:w-4 sm:h-4" strokeWidth={3} />
               <span className="text-[10px] sm:text-xs">{ticketNumber}</span>
             </motion.div>
           ) : (
             ticketNumber
           )}
         </span>
-        
-        {/* Selection ripple effect */}
-        {isSelected && (
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0.8 }}
-            animate={{ scale: 2.5, opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="absolute inset-0 bg-primary rounded-lg pointer-events-none"
-          />
-        )}
-        
-        {/* Hover glow effect for available tickets */}
-        {isAvailable && !isSelected && (
-          <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary/0 to-accent/0 group-hover:from-primary/5 group-hover:to-accent/5 transition-all duration-200 pointer-events-none" />
-        )}
       </motion.button>
     );
   }

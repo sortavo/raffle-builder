@@ -8,16 +8,17 @@ import {
   Home, 
   MessageCircle, 
   Play,
-  ChevronRight
+  ChevronRight,
+  Check
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCurrency } from "@/lib/currency-utils";
 import { CountdownTimer } from "./CountdownTimer";
 import { getVideoEmbedUrl } from "@/lib/video-utils";
+import { PREMIUM_COLORS } from "./design-tokens";
 
 interface MobileHeroProps {
   raffle: {
@@ -90,72 +91,106 @@ export function MobileHero({
     : null;
 
   return (
-    <div className="relative bg-background">
-      {/* Expanded Header */}
-      <div className="bg-card border-b border-border">
+    <div className="relative" style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}>
+      {/* Premium Header - Glassmorphism */}
+      <div 
+        className="backdrop-blur-2xl border-b"
+        style={{ 
+          backgroundColor: 'rgba(3, 7, 18, 0.95)',
+          borderColor: PREMIUM_COLORS.border.subtle 
+        }}
+      >
         {/* Top row: Avatar, Name, Share */}
         <div className="flex items-center justify-between px-4 py-3">
           <Link 
             to={organization.slug ? `/${organization.slug}` : '#'}
             className="flex items-center gap-3 flex-1 min-w-0"
           >
-            <Avatar className="h-12 w-12 border-2 border-primary shadow-md flex-shrink-0">
-              <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
-              <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                {organization.name.substring(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              {/* Subtle glow behind avatar */}
+              <div 
+                className="absolute inset-0 blur-xl opacity-30"
+                style={{ backgroundColor: PREMIUM_COLORS.accent.emerald }}
+              />
+              <Avatar 
+                className="h-11 w-11 relative border-2 flex-shrink-0"
+                style={{ borderColor: 'rgba(52, 211, 153, 0.3)' }}
+              >
+                <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
+                <AvatarFallback 
+                  className="font-bold text-white"
+                  style={{ backgroundColor: PREMIUM_COLORS.accent.emeraldDark }}
+                >
+                  {organization.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-foreground truncate">
+                <h2 className="font-semibold text-white truncate tracking-tight">
                   {organization.name}
                 </h2>
                 {organization.verified && (
-                  <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 flex-shrink-0">
-                    ✓
-                  </Badge>
+                  <Check 
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ color: PREMIUM_COLORS.accent.emerald }}
+                  />
                 )}
               </div>
               {organization.city && (
-                <p className="text-xs text-muted-foreground">
-                  📍 {organization.city}
+                <p className="text-xs" style={{ color: PREMIUM_COLORS.text.muted }}>
+                  {organization.city}
                 </p>
               )}
             </div>
           </Link>
-          <Button
-            variant="outline"
-            size="icon"
+          <button
             onClick={onShare}
-            className="h-10 w-10 flex-shrink-0"
+            className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors"
+            style={{ 
+              backgroundColor: PREMIUM_COLORS.bg.card,
+              color: PREMIUM_COLORS.text.muted 
+            }}
           >
             <Share2 className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
 
-        {/* Menu row */}
+        {/* Menu row - subtle buttons */}
         <div className="flex items-center gap-2 px-4 pb-3">
           {organization.slug && (
             <Link to={`/${organization.slug}`}>
-              <Button variant="secondary" size="sm" className="h-8 text-xs">
-                <Home className="w-3.5 h-3.5 mr-1.5" />
+              <button 
+                className="h-8 px-3 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
+                style={{ 
+                  backgroundColor: PREMIUM_COLORS.bg.card,
+                  color: PREMIUM_COLORS.text.secondary 
+                }}
+              >
+                <Home className="w-3.5 h-3.5" />
                 Ver sorteos
-              </Button>
+              </button>
             </Link>
           )}
           {whatsappLink && (
             <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" size="sm" className="h-8 text-xs">
-                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
+              <button 
+                className="h-8 px-3 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
+                style={{ 
+                  backgroundColor: PREMIUM_COLORS.bg.card,
+                  color: PREMIUM_COLORS.text.secondary 
+                }}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
                 Contactar
-              </Button>
+              </button>
             </a>
           )}
         </div>
       </div>
 
-      {/* Image/Video Carousel with Swipe */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
+      {/* Image/Video Carousel */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden">
         <div className="overflow-hidden h-full" ref={emblaRef}>
           <div className="flex h-full">
             {mediaItems.map((item, idx) => (
@@ -178,87 +213,97 @@ export function MobileHero({
           </div>
         </div>
 
-        {/* Gradient overlay on images */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+        {/* Elegant gradient overlays */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to bottom, rgba(3,7,18,0.4) 0%, transparent 30%, transparent 50%, rgba(3,7,18,0.95) 100%)' 
+          }}
+        />
 
-        {/* Pagination dots */}
+        {/* Pagination dots - minimal white */}
         {mediaItems.length > 1 && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-2 z-10">
             {mediaItems.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => emblaApi?.scrollTo(idx)}
                 className={`transition-all duration-200 ${
                   idx === selectedIndex 
-                    ? 'w-6 h-2 bg-white rounded-full' 
-                    : 'w-2 h-2 bg-white/50 rounded-full hover:bg-white/70'
+                    ? 'w-6 h-1.5 bg-white rounded-full' 
+                    : 'w-1.5 h-1.5 bg-white/40 rounded-full hover:bg-white/60'
                 }`}
                 aria-label={`Ir a ${item.type === 'video' ? 'video' : `imagen ${idx + 1}`}`}
-              >
-                {item.type === 'video' && idx !== selectedIndex && (
-                  <Play className="w-2 h-2 fill-current" />
-                )}
-              </button>
+              />
             ))}
           </div>
         )}
 
-        {/* Prize info overlay at bottom */}
+        {/* Prize info overlay - Clean typography */}
         <div className="absolute bottom-0 left-0 right-0 p-5 space-y-3 pointer-events-none">
-          {/* Badge */}
-          <div className="flex items-center gap-2">
-            <Badge className="bg-primary text-primary-foreground font-semibold px-3 py-1">
-              <Trophy className="w-3.5 h-3.5 mr-1" />
-              SORTEO
-            </Badge>
-            <Badge variant="outline" className="bg-white/10 text-white border-white/30 text-xs">
-              🎟️ {raffle.ticketsSold.toLocaleString()} vendidos
-            </Badge>
-          </div>
-          
-          {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+          {/* Title - Large and dramatic */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight tracking-tight">
             {raffle.title}
           </h1>
           
-          {/* Prize name and value */}
+          {/* Prize name with value */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-white/90 text-lg font-medium">
+            <span className="text-white/80 text-base">
               {raffle.prize_name}
             </span>
             {raffle.prize_value && (
-              <Badge className="bg-green-500/90 text-white font-semibold">
-                Valor: {formatCurrency(raffle.prize_value, currency)}
-              </Badge>
+              <span 
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold"
+                style={{ 
+                  backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                  color: PREMIUM_COLORS.accent.emerald
+                }}
+              >
+                {formatCurrency(raffle.prize_value, currency)}
+              </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Ticket Price - Elegant dark style */}
-      <div className="bg-gray-900 py-4 px-5">
+      {/* Ticket Price Section - Dark premium */}
+      <div 
+        className="py-5 px-5"
+        style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}
+      >
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
-              <Ticket className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-4">
+            <div 
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)' }}
+            >
+              <Ticket className="w-6 h-6" style={{ color: PREMIUM_COLORS.accent.emerald }} />
             </div>
             <div>
-              <p className="text-gray-400 text-xs font-medium uppercase tracking-wide">
+              <p 
+                className="text-[10px] font-medium uppercase tracking-[0.15em]"
+                style={{ color: PREMIUM_COLORS.text.dimmed }}
+              >
                 Precio por boleto
               </p>
-              <p className="text-3xl font-black text-white">
+              <p className="text-3xl font-black text-white tracking-tight">
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>
           </div>
-          <div className="text-4xl">🎟️</div>
         </div>
       </div>
 
-      {/* Countdown Timer - Clean light style */}
+      {/* Countdown Timer - Enterprise lottery style */}
       {raffle.draw_date && (
-        <div className="bg-muted py-5 px-4">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider text-center mb-3">
+        <div 
+          className="py-6 px-4"
+          style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}
+        >
+          <p 
+            className="text-[10px] font-medium uppercase tracking-[0.2em] text-center mb-4"
+            style={{ color: PREMIUM_COLORS.text.dimmed }}
+          >
             El sorteo se realizará en
           </p>
           <CountdownTimer 
@@ -268,53 +313,73 @@ export function MobileHero({
         </div>
       )}
 
-      {/* Progress bar */}
-      <div className="bg-background px-5 py-4 space-y-3">
+      {/* Progress bar - Minimal emerald */}
+      <div 
+        className="px-5 py-5 space-y-3"
+        style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}
+      >
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-foreground">
+          <span style={{ color: PREMIUM_COLORS.text.secondary }}>
             {raffle.ticketsSold.toLocaleString()} de {raffle.total_tickets.toLocaleString()} vendidos
           </span>
-          <span className="font-bold text-primary">
+          <span 
+            className="font-semibold"
+            style={{ color: PREMIUM_COLORS.accent.emerald }}
+          >
             {Math.round(progress)}%
           </span>
         </div>
         
-        <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+        <div 
+          className="relative h-1.5 rounded-full overflow-hidden"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+        >
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="absolute inset-y-0 left-0 bg-primary rounded-full"
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{ background: `linear-gradient(90deg, ${PREMIUM_COLORS.accent.emeraldDark}, ${PREMIUM_COLORS.accent.emerald})` }}
           />
         </div>
         
-        <p className="text-sm text-muted-foreground text-center">
-          🎟️ <span className="font-semibold text-green-600">{raffle.ticketsAvailable.toLocaleString()}</span> boletos disponibles
+        <p className="text-sm text-center" style={{ color: PREMIUM_COLORS.text.muted }}>
+          <span className="font-medium" style={{ color: PREMIUM_COLORS.accent.emerald }}>
+            {raffle.ticketsAvailable.toLocaleString()}
+          </span>
+          {' '}boletos disponibles
         </p>
       </div>
 
-      {/* Primary CTA */}
-      <div className="px-5 py-4 bg-background">
+      {/* Primary CTA - White button (inverted) */}
+      <div 
+        className="px-5 py-5"
+        style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}
+      >
         <motion.div whileTap={{ scale: 0.98 }}>
           <Button
             size="lg"
-            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 shadow-lg"
+            className="w-full h-14 text-base font-semibold bg-white text-[#030712] hover:bg-white/90 rounded-xl shadow-lg"
             onClick={onScrollToTickets}
           >
-            <Ticket className="w-5 h-5 mr-2" />
-            ¡COMPRAR BOLETOS!
+            Comprar Boletos
             <ChevronRight className="w-5 h-5 ml-2" />
           </Button>
         </motion.div>
         
-        {/* Scroll indicator */}
+        {/* Scroll indicator - minimal */}
         <motion.div 
-          className="flex flex-col items-center mt-4 text-muted-foreground"
-          animate={{ y: [0, 5, 0] }}
+          className="flex flex-col items-center mt-5"
+          animate={{ y: [0, 4, 0] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
-          <span className="text-xs">Desliza para ver boletos</span>
-          <ChevronDown className="w-5 h-5" />
+          <span 
+            className="text-[10px] uppercase tracking-widest"
+            style={{ color: PREMIUM_COLORS.text.dimmed }}
+          >
+            Desliza para ver boletos
+          </span>
+          <ChevronDown className="w-4 h-4 mt-1" style={{ color: PREMIUM_COLORS.text.dimmed }} />
         </motion.div>
       </div>
     </div>
@@ -328,8 +393,11 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
 
   if (!embedUrl) {
     return (
-      <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-        <p className="text-white/60">Video no disponible</p>
+      <div 
+        className="w-full h-full flex items-center justify-center"
+        style={{ backgroundColor: PREMIUM_COLORS.bg.primary }}
+      >
+        <p style={{ color: PREMIUM_COLORS.text.muted }}>Video no disponible</p>
       </div>
     );
   }
@@ -338,7 +406,8 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
   if (!showVideo) {
     return (
       <div 
-        className="w-full h-full bg-black relative cursor-pointer"
+        className="w-full h-full relative cursor-pointer"
+        style={{ backgroundColor: '#000' }}
         onClick={() => setShowVideo(true)}
       >
         {/* Video thumbnail */}
@@ -347,22 +416,27 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
           alt={title}
           className="w-full h-full object-cover"
           onError={(e) => {
-            // Fallback to medium quality thumbnail if maxres fails
             const target = e.target as HTMLImageElement;
             if (thumbnailUrl?.includes('maxresdefault')) {
               target.src = thumbnailUrl.replace('maxresdefault', 'hqdefault');
             }
           }}
         />
-        {/* Play button overlay */}
+        {/* Play button overlay - minimal */}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl transform hover:scale-105 transition-transform">
-            <Play className="w-10 h-10 text-white fill-white ml-1" />
+          <div 
+            className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(8px)' }}
+          >
+            <Play className="w-7 h-7 text-white fill-white ml-1" />
           </div>
         </div>
         {/* Hint text */}
         <div className="absolute bottom-8 left-0 right-0 text-center">
-          <span className="text-white text-sm bg-black/60 px-4 py-2 rounded-full">
+          <span 
+            className="text-white text-xs px-4 py-2 rounded-full"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+          >
             Toca para ver el video
           </span>
         </div>
@@ -370,15 +444,12 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
     );
   }
 
-  // Once activated, show the iframe with swipe layers on edges
   return (
     <div className="w-full h-full bg-black relative">
-      {/* Left swipe layer - allows swiping back */}
       <div 
         className="absolute top-0 bottom-0 left-0 w-16 z-10 touch-pan-x"
         onClick={() => setShowVideo(false)}
       />
-      {/* Right swipe layer - allows swiping forward */}
       <div 
         className="absolute top-0 bottom-0 right-0 w-16 z-10 touch-pan-x"
         onClick={() => setShowVideo(false)}
@@ -393,7 +464,6 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
         loading="lazy"
       />
       
-      {/* Close button to return to thumbnail */}
       <button
         onClick={() => setShowVideo(false)}
         className="absolute top-4 right-4 z-20 bg-black/70 text-white rounded-full p-2 hover:bg-black/90 transition-colors"

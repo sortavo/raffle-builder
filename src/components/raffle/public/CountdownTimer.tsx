@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { PREMIUM_COLORS } from "./design-tokens";
 
 interface CountdownTimerProps {
   targetDate: Date;
@@ -64,7 +65,7 @@ export function CountdownTimer({
   if (timeLeft.expired) {
     return (
       <div className={cn("text-center", className)}>
-        <p className="text-lg font-semibold text-muted-foreground">
+        <p className="text-lg font-semibold" style={{ color: PREMIUM_COLORS.text.muted }}>
           Sorteo Finalizado
         </p>
       </div>
@@ -73,18 +74,33 @@ export function CountdownTimer({
 
   const pad = (num: number) => num.toString().padStart(2, '0');
 
-  // Lottery variant - large animated numbers (clean style)
+  // Lottery variant - Enterprise dark premium style
   if (variant === 'lottery') {
     const isUrgent = timeLeft.days === 0 && timeLeft.hours < 6;
     
     return (
-      <div className={cn("flex justify-center gap-2 sm:gap-4", className)}>
+      <div className={cn("flex justify-center gap-2 sm:gap-3", className)}>
         <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} />
-        <div className="text-muted-foreground/60 text-3xl sm:text-5xl font-bold self-center pb-6">:</div>
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5"
+          style={{ color: 'rgba(52, 211, 153, 0.4)' }}
+        >
+          :
+        </div>
         <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} />
-        <div className="text-muted-foreground/60 text-3xl sm:text-5xl font-bold self-center pb-6">:</div>
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5"
+          style={{ color: 'rgba(52, 211, 153, 0.4)' }}
+        >
+          :
+        </div>
         <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} />
-        <div className="text-muted-foreground/60 text-3xl sm:text-5xl font-bold self-center pb-6">:</div>
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5"
+          style={{ color: 'rgba(52, 211, 153, 0.4)' }}
+        >
+          :
+        </div>
         <LotteryTimeUnit 
           value={timeLeft.seconds} 
           label="SEG" 
@@ -112,7 +128,7 @@ export function CountdownTimer({
     return (
       <div className={cn(
         "flex items-center gap-1 font-mono text-lg",
-        isUrgent && "text-destructive animate-pulse",
+        isUrgent && "text-red-500 animate-pulse",
         className
       )}>
         {showHours && (
@@ -149,11 +165,17 @@ function TimeUnit({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="bg-primary text-primary-foreground text-2xl md:text-4xl font-bold rounded-lg px-3 py-2 md:px-4 md:py-3 min-w-[60px] md:min-w-[80px] text-center">
+      <div 
+        className="text-2xl md:text-4xl font-bold rounded-lg px-3 py-2 md:px-4 md:py-3 min-w-[60px] md:min-w-[80px] text-center text-white"
+        style={{ background: PREMIUM_COLORS.gradient.primary }}
+      >
         {value.toString().padStart(2, '0')}
       </div>
       {showLabel && (
-        <span className="text-xs md:text-sm text-muted-foreground mt-1">
+        <span 
+          className="text-xs md:text-sm mt-1"
+          style={{ color: PREMIUM_COLORS.text.muted }}
+        >
           {label}
         </span>
       )}
@@ -180,30 +202,35 @@ function LotteryTimeUnit({
   
   return (
     <div className="flex flex-col items-center">
-      <div className={cn(
-        "relative bg-primary/10 rounded-xl px-3 py-2 sm:px-4 sm:py-3 min-w-[52px] sm:min-w-[72px] overflow-hidden border border-primary/20",
-        urgent && "bg-destructive/10 border-destructive/20"
-      )}>
+      <div 
+        className={cn(
+          "relative rounded-xl px-3 py-2 sm:px-4 sm:py-3 min-w-[48px] sm:min-w-[68px] overflow-hidden border"
+        )}
+        style={{ 
+          backgroundColor: urgent ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.08)',
+          borderColor: urgent ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.15)'
+        }}
+      >
         <AnimatePresence mode="popLayout">
           <motion.span
             key={displayValue}
-            initial={hasChanged ? { y: -40, opacity: 0 } : false}
+            initial={hasChanged ? { y: -30, opacity: 0 } : false}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
+            exit={{ y: 30, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
-              "block text-3xl sm:text-5xl font-black text-foreground text-center font-mono tabular-nums",
-              urgent && "text-destructive"
+              "block text-2xl sm:text-4xl font-black text-center font-mono tabular-nums tracking-tight"
             )}
+            style={{ color: urgent ? '#ef4444' : '#ffffff' }}
           >
             {displayValue}
           </motion.span>
         </AnimatePresence>
       </div>
-      <span className={cn(
-        "text-[10px] sm:text-xs font-medium mt-1.5 uppercase tracking-wider",
-        urgent ? "text-destructive" : "text-muted-foreground"
-      )}>
+      <span 
+        className="text-[9px] sm:text-[10px] font-medium mt-1.5 uppercase tracking-[0.15em]"
+        style={{ color: urgent ? '#ef4444' : PREMIUM_COLORS.text.dimmed }}
+      >
         {label}
       </span>
     </div>

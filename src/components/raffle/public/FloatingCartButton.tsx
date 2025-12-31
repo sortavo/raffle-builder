@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency-utils";
-import { ShoppingCart, ArrowRight, Ticket, X, Sparkles } from "lucide-react";
+import { ArrowRight, Ticket, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PREMIUM_COLORS } from "./design-tokens";
 
 interface FloatingCartButtonProps {
   selectedCount: number;
@@ -36,25 +37,23 @@ export function FloatingCartButton({
         aria-live="polite"
       >
         {/* Premium glassmorphism container */}
-        <div className={cn(
-          "relative overflow-hidden",
-          "bg-gray-950/95 backdrop-blur-2xl",
-          "rounded-2xl md:rounded-3xl",
-          "border border-white/10",
-          "shadow-2xl shadow-black/50"
-        )}>
-          {/* Animated gradient accent bar */}
-          <motion.div 
-            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_auto]"
-            animate={{ backgroundPosition: ["0% 0%", "200% 0%"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          />
-          
-          {/* Subtle pulse animation when items present */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 pointer-events-none"
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
+        <div 
+          className={cn(
+            "relative overflow-hidden",
+            "backdrop-blur-2xl",
+            "rounded-2xl md:rounded-2xl",
+            "border",
+            "shadow-2xl shadow-black/60"
+          )}
+          style={{
+            backgroundColor: 'rgba(3, 7, 18, 0.95)',
+            borderColor: PREMIUM_COLORS.border.subtle
+          }}
+        >
+          {/* Subtle top accent line */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: `linear-gradient(90deg, transparent, ${PREMIUM_COLORS.accent.emerald}40, transparent)` }}
           />
           
           <div className="relative p-4 md:p-5">
@@ -63,30 +62,32 @@ export function FloatingCartButton({
               <div className="flex items-center gap-3">
                 {/* Ticket icon with count badge */}
                 <div className="relative">
-                  <motion.div 
-                    className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary to-accent rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30"
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                  <div 
+                    className="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)' }}
                   >
-                    <Ticket className="w-6 h-6 md:w-7 md:h-7 text-primary-foreground" />
-                  </motion.div>
+                    <Ticket className="w-5 h-5 md:w-6 md:h-6" style={{ color: PREMIUM_COLORS.accent.emerald }} />
+                  </div>
                   
-                  {/* Animated count badge */}
+                  {/* Count badge */}
                   <motion.div
                     key={selectedCount}
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center text-black text-xs font-bold shadow-lg"
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
                   >
                     {selectedCount}
                   </motion.div>
                 </div>
                 
                 <div>
-                  <p className="font-semibold text-white/90 text-sm md:text-base">
+                  <p className="font-medium text-white text-sm">
                     {selectedCount} boleto{selectedCount !== 1 && 's'}
                   </p>
-                  <p className="text-xs text-white/50 truncate max-w-[120px] md:max-w-[180px]">
+                  <p 
+                    className="text-xs truncate max-w-[100px] md:max-w-[160px]"
+                    style={{ color: PREMIUM_COLORS.text.muted }}
+                  >
                     {selectedTickets.slice(0, 3).join(', ')}
                     {selectedCount > 3 && ` +${selectedCount - 3}`}
                   </p>
@@ -95,22 +96,28 @@ export function FloatingCartButton({
               
               <button
                 onClick={onClear}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors group"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: PREMIUM_COLORS.text.muted }}
                 aria-label="Limpiar selección"
               >
-                <X className="w-5 h-5 text-white/50 group-hover:text-white/80 transition-colors" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             
             {/* Price and CTA */}
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/50 mb-0.5">Total</p>
+                <p 
+                  className="text-[10px] uppercase tracking-widest mb-0.5"
+                  style={{ color: PREMIUM_COLORS.text.dimmed }}
+                >
+                  Total
+                </p>
                 <motion.p
                   key={total}
-                  initial={{ scale: 1.1 }}
+                  initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-2xl md:text-3xl font-bold text-white"
+                  className="text-2xl md:text-3xl font-bold text-white tracking-tight"
                 >
                   {formatCurrency(total, currency)}
                 </motion.p>
@@ -122,32 +129,34 @@ export function FloatingCartButton({
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-1 mt-1"
                   >
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span className="text-xs font-medium text-amber-400">
+                    <Sparkles className="w-3 h-3" style={{ color: PREMIUM_COLORS.accent.amber }} />
+                    <span 
+                      className="text-xs font-medium"
+                      style={{ color: PREMIUM_COLORS.accent.amber }}
+                    >
                       {winProbability.toFixed(2)}% de ganar
                     </span>
                   </motion.div>
                 )}
               </div>
               
+              {/* White CTA button - inverted for impact */}
               <Button
                 onClick={onContinue}
                 size="lg"
                 className={cn(
                   "h-12 md:h-14 px-5 md:px-8",
-                  "bg-gradient-to-r from-primary to-accent",
-                  "hover:from-primary/90 hover:to-accent/90",
-                  "shadow-lg shadow-primary/40",
-                  "text-base font-bold",
-                  "rounded-xl md:rounded-2xl",
-                  "group transition-all duration-300",
-                  "hover:shadow-xl hover:shadow-primary/50"
+                  "bg-white text-[#030712]",
+                  "hover:bg-white/90",
+                  "shadow-lg",
+                  "text-sm font-semibold",
+                  "rounded-xl",
+                  "group transition-all duration-200"
                 )}
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
                 <span className="hidden sm:inline">Continuar</span>
                 <span className="sm:hidden">Pagar</span>
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
               </Button>
             </div>
           </div>
