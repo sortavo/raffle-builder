@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Star, Zap } from 'lucide-react';
@@ -30,10 +30,27 @@ function SlotReel({
 }) {
   const [displayNumbers, setDisplayNumbers] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isStopped, setIsStopped] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isStopped, setIsStopped] = useState(!isSpinning);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onStopRef = useRef(onStop);
+  
+  // Keep ref updated to avoid stale closure
+  useEffect(() => {
+    onStopRef.current = onStop;
+  }, [onStop]);
 
   useEffect(() => {
+    // Clear any existing timers
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+    
     if (isSpinning) {
       setIsStopped(false);
       // Generate random numbers for spinning effect
@@ -52,26 +69,39 @@ function SlotReel({
       }, 80);
 
       // Stop after delay
-      const stopTimeout = setTimeout(() => {
+      stopTimeoutRef.current = setTimeout(() => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
         setCurrentIndex(20); // Final number is at index 20
         setIsStopped(true);
-        onStop?.();
+        // Use ref to call the latest callback
+        onStopRef.current?.();
       }, 1000 + delay);
-
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        clearTimeout(stopTimeout);
-      };
+    } else {
+      // When not spinning, show final number immediately
+      setDisplayNumbers([finalNumber]);
+      setCurrentIndex(0);
+      setIsStopped(true);
     }
-  }, [isSpinning, finalNumber, delay, onStop]);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (stopTimeoutRef.current) {
+        clearTimeout(stopTimeoutRef.current);
+        stopTimeoutRef.current = null;
+      }
+    };
+  }, [isSpinning, finalNumber, delay]);
 
   const currentNumber = displayNumbers[currentIndex] || finalNumber;
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden flex-shrink-0">
       <motion.div
         className={`
           relative w-12 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24 rounded-lg sm:rounded-xl 
@@ -140,6 +170,7 @@ export function SlotMachineAnimation({
   const [stoppedCount, setStoppedCount] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const completedRef = useRef(false);
+  const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // For many numbers, only show a subset for animation
   const displayNumbers = numbers.length > MAX_DISPLAY_REELS 
@@ -149,25 +180,41 @@ export function SlotMachineAnimation({
   const totalReels = displayNumbers.filter(n => n !== '...').length;
   const hiddenCount = numbers.length > MAX_DISPLAY_REELS ? numbers.length - 4 : 0;
 
+  // Reset state when spinning starts
   useEffect(() => {
     if (isSpinning) {
       setStoppedCount(0);
       setShowConfetti(false);
       completedRef.current = false;
+      if (confettiTimeoutRef.current) {
+        clearTimeout(confettiTimeoutRef.current);
+        confettiTimeoutRef.current = null;
+      }
     }
   }, [isSpinning]);
 
+  // Handle completion when all reels stop
   useEffect(() => {
-    if (stoppedCount === totalReels && totalReels > 0 && !completedRef.current) {
+    if (stoppedCount === totalReels && totalReels > 0 && !completedRef.current && !isSpinning === false) {
       completedRef.current = true;
       setShowConfetti(true);
       onComplete?.();
       
       // Hide confetti after animation
-      const timeout = setTimeout(() => setShowConfetti(false), 2000);
-      return () => clearTimeout(timeout);
+      confettiTimeoutRef.current = setTimeout(() => setShowConfetti(false), 2000);
     }
-  }, [stoppedCount, totalReels, onComplete]);
+    
+    return () => {
+      if (confettiTimeoutRef.current) {
+        clearTimeout(confettiTimeoutRef.current);
+      }
+    };
+  }, [stoppedCount, totalReels, onComplete, isSpinning]);
+
+  // Stable callback for reel stops
+  const handleReelStop = useCallback(() => {
+    setStoppedCount(prev => prev + 1);
+  }, []);
 
   if (numbers.length === 0 && !isSpinning) {
     return null;
@@ -179,7 +226,7 @@ export function SlotMachineAnimation({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-6 shadow-2xl border-4 border-slate-700"
+        className="relative bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 rounded-2xl p-4 sm:p-6 shadow-2xl border-4 border-slate-700"
       >
         {/* Top decoration */}
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -187,14 +234,14 @@ export function SlotMachineAnimation({
             animate={isSpinning ? { rotate: 360 } : {}}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
-            <Sparkles className="w-6 h-6 text-yellow-400" />
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
           </motion.div>
-          <span className="text-yellow-400 font-bold text-sm tracking-wider">LUCKY MACHINE</span>
+          <span className="text-yellow-400 font-bold text-xs sm:text-sm tracking-wider whitespace-nowrap">LUCKY MACHINE</span>
           <motion.div
             animate={isSpinning ? { rotate: -360 } : {}}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
-            <Sparkles className="w-6 h-6 text-yellow-400" />
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
           </motion.div>
         </div>
 
@@ -219,7 +266,7 @@ export function SlotMachineAnimation({
         </div>
 
         {/* Slot reels container */}
-        <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3 py-3 sm:py-4 px-2 bg-slate-950 rounded-lg sm:rounded-xl border-2 border-slate-600 mt-4 overflow-x-auto">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 md:gap-3 py-3 sm:py-4 px-2 bg-slate-950 rounded-lg sm:rounded-xl border-2 border-slate-600 mt-4 overflow-x-auto max-w-full">
           {displayNumbers.length > 0 ? (
             displayNumbers.map((num, index) => (
               num === '...' ? (
@@ -232,11 +279,11 @@ export function SlotMachineAnimation({
                 </div>
               ) : (
                 <SlotReel
-                  key={`${num}-${index}`}
+                  key={`${num}-${index}-${isSpinning}`}
                   finalNumber={num}
                   isSpinning={isSpinning}
-                  delay={index * 200} // Staggered stop effect
-                  onStop={() => setStoppedCount(prev => prev + 1)}
+                  delay={index * 200}
+                  onStop={handleReelStop}
                 />
               )
             ))
@@ -256,7 +303,7 @@ export function SlotMachineAnimation({
         {/* Bottom decoration */}
         <div className="flex items-center justify-center gap-2 mt-4">
           <Zap className="w-4 h-4 text-amber-400" />
-          <span className="text-xs text-slate-400 font-medium">
+          <span className="text-[10px] sm:text-xs text-slate-400 font-medium">
             Algoritmo Criptográfico Seguro
           </span>
           <Zap className="w-4 h-4 text-amber-400" />
@@ -311,8 +358,8 @@ export function SlotMachineAnimation({
             exit={{ opacity: 0, y: -20 }}
             className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap"
           >
-            <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-950 text-sm px-4 py-2 shadow-lg">
-              <Sparkles className="w-4 h-4 mr-2" />
+            <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-950 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 shadow-lg">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
               ¡Números de la suerte generados!
             </Badge>
           </motion.div>
