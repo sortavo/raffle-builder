@@ -40,59 +40,6 @@ export default function RaffleDetail() {
   const { useRaffleById, toggleRaffleStatus } = useRaffles();
   const { data: raffle, isLoading, error } = useRaffleById(id);
 
-  // DEBUG: Detect overflow culprits - REMOVE after fixing
-  useEffect(() => {
-    const checkOverflow = () => {
-      const elements = document.querySelectorAll('*');
-      const culprits: { el: Element; diff: number; classes: string; tag: string }[] = [];
-      
-      elements.forEach(el => {
-        const htmlEl = el as HTMLElement;
-        // Skip elements inside overflow-x-auto containers (expected scroll)
-        if (htmlEl.closest('[class*="overflow-x-auto"]')) return;
-        // Skip sr-only elements (screen reader, positioned off-screen)
-        if (htmlEl.classList.contains('sr-only')) return;
-        // Skip very small overflows (< 5px, likely rounding)
-        const diff = htmlEl.scrollWidth - htmlEl.clientWidth;
-        if (diff < 5) return;
-        
-        culprits.push({
-          el: htmlEl,
-          diff,
-          classes: htmlEl.className || '(no class)',
-          tag: htmlEl.tagName
-        });
-      });
-      
-      // Sort by difference (biggest overflow first)
-      culprits.sort((a, b) => b.diff - a.diff);
-      
-      // Log top 5 culprits with full details
-      if (culprits.length > 0) {
-        console.warn('🔴 OVERFLOW CULPRITS (>5px):', culprits.slice(0, 5).map(c => ({
-          tag: c.tag,
-          overflow: c.diff + 'px',
-          classes: c.classes.substring(0, 100) + (c.classes.length > 100 ? '...' : '')
-        })));
-        
-        // Highlight top 3 with red border
-        culprits.slice(0, 3).forEach(c => {
-          (c.el as HTMLElement).style.outline = '3px solid red';
-          (c.el as HTMLElement).style.outlineOffset = '-3px';
-        });
-      } else {
-        console.log('✅ No significant overflow detected (>5px threshold)');
-      }
-    };
-    
-    const timeout = setTimeout(checkOverflow, 2000);
-    window.addEventListener('resize', checkOverflow);
-    
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener('resize', checkOverflow);
-    };
-  }, [raffle]);
 
   if (isLoading) {
     return (
