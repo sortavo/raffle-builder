@@ -142,7 +142,7 @@ export default function PublicRaffle() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#030712]">
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-2 border-white/20 border-t-emerald-500 rounded-full animate-spin mx-auto" />
           <p className="text-white/50 text-sm">Cargando sorteo...</p>
@@ -153,7 +153,7 @@ export default function PublicRaffle() {
 
   if (error || !raffle) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#030712] px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-ultra-dark px-4">
         <div className="w-20 h-20 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-center">
           <Trophy className="w-10 h-10 text-emerald-400" />
         </div>
@@ -247,7 +247,7 @@ export default function PublicRaffle() {
       </Helmet>
 
       <div 
-        className="min-h-screen transition-colors duration-300 bg-[#030712] relative overflow-hidden"
+        className="min-h-screen transition-colors duration-300 bg-ultra-dark relative overflow-hidden"
         style={{ 
           fontFamily: `"${fontBody}", sans-serif`,
         }}
@@ -307,7 +307,7 @@ export default function PublicRaffle() {
           </>
         ) : isMobile ? (
           /* Mobile without hero - simple header */
-          <div className="bg-[#030712] py-8 px-4 border-b border-white/[0.06]">
+          <div className="bg-ultra-dark py-8 px-4 border-b border-white/[0.06]">
             <h1 className="text-2xl font-bold text-white text-center tracking-tight">{raffle.title}</h1>
             <p className="text-white/50 text-center mt-2">{raffle.prize_name}</p>
           </div>
@@ -352,7 +352,7 @@ export default function PublicRaffle() {
 
             {/* Desktop Countdown */}
             {showCountdown && raffle.draw_date && (
-              <div className="py-12 bg-[#030712] border-y border-white/[0.06]">
+              <div className="py-12 bg-ultra-dark border-y border-white/[0.06]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-6">
                     <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/40">El sorteo se realizará en</p>
@@ -366,7 +366,7 @@ export default function PublicRaffle() {
 
         {/* Desktop without hero - simple header */}
         {!isMobile && !showHero && (
-          <div className="bg-[#030712] py-16 px-4 border-b border-white/[0.06]">
+          <div className="bg-ultra-dark py-16 px-4 border-b border-white/[0.06]">
             <div className="max-w-4xl mx-auto text-center">
               <h1 className="text-3xl lg:text-5xl font-bold text-white tracking-tight">{raffle.title}</h1>
               <p className="text-white/50 mt-4 text-lg">{raffle.prize_name}</p>

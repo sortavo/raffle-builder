@@ -1,240 +1,266 @@
-# Sortavo - Guía de Estilos
+# Sortavo - Guía de Estilos Enterprise
 
-## Sistema de Colores "Negro & Esmeralda"
+## Sistema de Diseño Unificado "Negro & Esmeralda"
 
-Este proyecto utiliza un sistema de diseño basado en tokens semánticos definidos en `index.css` y `tailwind.config.ts`.
+Este proyecto utiliza un sistema de diseño enterprise con tokens semánticos definidos en `index.css` y `tailwind.config.ts`.
 
 ---
 
-## Tokens Semánticos (USO OBLIGATORIO)
+## 🎨 Paleta de Colores
 
-### Colores Base
-| Token | Uso | Ejemplo Tailwind |
-|-------|-----|------------------|
-| `background` | Fondo principal de la app | `bg-background` |
-| `foreground` | Texto principal | `text-foreground` |
-| `card` | Fondo de tarjetas | `bg-card` |
-| `card-foreground` | Texto en tarjetas | `text-card-foreground` |
-| `muted` | Fondos secundarios/deshabilitados | `bg-muted` |
-| `muted-foreground` | Texto secundario | `text-muted-foreground` |
+### Ultra-Dark Theme (Páginas Públicas)
+
+Todas las páginas públicas usan el tema ultra-dark para una estética premium enterprise:
+
+| Token | Valor | Uso | Ejemplo Tailwind |
+|-------|-------|-----|------------------|
+| `ultra-dark` | `#030712` | Fondo principal de páginas públicas | `bg-ultra-dark` |
+| `ultra-dark-elevated` | `#0a0f1a` | Elementos elevados | `bg-ultra-dark-elevated` |
+| `ultra-dark-card` | `rgba(255,255,255,0.03)` | Cards glassmorphism | `bg-ultra-dark-card` |
+| `ultra-dark-border` | `rgba(255,255,255,0.08)` | Bordes sutiles | `border-ultra-dark` |
+
+**Páginas que usan Ultra-Dark:**
+- `/` (Landing)
+- `/pricing`
+- `/auth`
+- `/r/:slug` (Rifa pública)
+- `/onboarding`
+- `/contact`
+- `/help`
+
+### Tokens Semánticos Base
+
+| Token | Uso Light | Uso Dark | Ejemplo Tailwind |
+|-------|-----------|----------|------------------|
+| `background` | `hsl(0 0% 100%)` | `hsl(222 47% 3%)` | `bg-background` |
+| `foreground` | `hsl(222 47% 11%)` | `hsl(0 0% 98%)` | `text-foreground` |
+| `card` | `hsl(0 0% 100%)` | `hsl(222 47% 5%)` | `bg-card` |
+| `muted` | `hsl(220 14% 96%)` | `hsl(222 47% 8%)` | `bg-muted` |
+| `muted-foreground` | `hsl(220 9% 46%)` | `hsl(220 9% 60%)` | `text-muted-foreground` |
 
 ### Colores de Marca
-| Token | Uso | Ejemplo Tailwind |
-|-------|-----|------------------|
-| `primary` | Color principal (esmeralda) | `bg-primary`, `text-primary` |
-| `primary-foreground` | Texto sobre primary | `text-primary-foreground` |
-| `accent` | Acentos dorados/secundarios | `bg-accent`, `text-accent` |
-| `accent-foreground` | Texto sobre accent | `text-accent-foreground` |
-| `secondary` | Elementos secundarios | `bg-secondary` |
+
+| Token | Valor | Uso | Ejemplo Tailwind |
+|-------|-------|-----|------------------|
+| `primary` | Emerald-500 `#10B981` | Botones, CTAs, acentos principales | `bg-primary` |
+| `accent` | Teal-500 `#14B8A6` | Acentos secundarios, gradientes | `bg-accent` |
+| `secondary` | Gris sutil | Elementos secundarios | `bg-secondary` |
 
 ### Estados Semánticos
-| Token | Uso | Ejemplo Tailwind |
-|-------|-----|------------------|
-| `success` | Estados exitosos, confirmados | `bg-success`, `text-success` |
-| `warning` | Advertencias, pendientes | `bg-warning`, `text-warning` |
-| `destructive` | Errores, eliminación | `bg-destructive`, `text-destructive` |
-| `info` | Información neutral | `bg-info`, `text-info` |
 
-### Bordes y Anillos
-| Token | Uso | Ejemplo Tailwind |
-|-------|-----|------------------|
-| `border` | Bordes generales | `border-border` |
-| `ring` | Anillos de focus | `ring-ring` |
+| Token | Color | Uso | Ejemplo |
+|-------|-------|-----|---------|
+| `success` | Emerald | Confirmaciones, aprobados | `bg-success/20 text-success` |
+| `warning` | Amber | Pendientes, advertencias | `bg-warning/20 text-warning` |
+| `destructive` | Red | Errores, eliminación | `bg-destructive/20 text-destructive` |
+| `info` | Blue | Información neutral | `bg-info/20 text-info` |
 
 ---
 
-## Colores Hardcodeados Intencionales
+## 📐 Componentes con Variantes CVA
 
-Los siguientes colores están hardcodeados **intencionalmente** y NO deben migrarse a tokens:
+### Button Variants
 
-### 1. Colores de Marca Externa
-
-#### WhatsApp (`green-500`, `green-600`)
 ```tsx
-// ✅ CORRECTO - Color oficial de WhatsApp
-className="bg-green-500 hover:bg-green-600"
-```
-**Archivos:** `OrganizationHome.tsx`, `FloatingWhatsAppButton.tsx`
+import { Button } from "@/components/ui/button";
 
-#### Visa/Mastercard (`blue-500`, `red-500`)
-```tsx
-// ✅ CORRECTO - Colores oficiales de tarjetas
-<div className="bg-blue-500">V</div>  // Visa
-<div className="bg-red-500">M</div>   // Mastercard
+// Variantes disponibles:
+<Button variant="default">Primary</Button>      // Emerald solid
+<Button variant="gradient">Gradient</Button>   // Emerald → Teal gradient
+<Button variant="inverted">Inverted</Button>   // White on dark (CTAs en dark theme)
+<Button variant="ghost">Ghost</Button>         // Transparente con hover
+<Button variant="outline">Outline</Button>     // Borde sin fill
+<Button variant="destructive">Delete</Button>  // Rojo para eliminación
 ```
-**Archivos:** `CheckoutModal.tsx`
+
+### Card Variants
+
+```tsx
+import { Card } from "@/components/ui/card";
+
+// Variantes disponibles:
+<Card variant="default">...</Card>    // Standard para dashboard
+<Card variant="elevated">...</Card>   // Shadow mayor, hover lift
+<Card variant="glass">...</Card>      // Glassmorphism para dark theme
+<Card variant="premium">...</Card>    // Glassmorphism intenso + glow
+```
+
+**Cuándo usar cada variante:**
+- `default`: Dashboard, formularios, settings
+- `elevated`: Cards destacadas, pricing, features
+- `glass`: Páginas públicas con tema ultra-dark
+- `premium`: Hero sections, elementos premium
+
+### Input Variants
+
+```tsx
+import { Input } from "@/components/ui/input";
+
+// Para dark theme, usar clases adicionales:
+<Input className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500" />
+```
 
 ---
 
-### 2. Decorativos de UI Específica
+## ✨ Efectos Premium
 
-#### Botones de Ventana (macOS style)
+### Glassmorphism
+
 ```tsx
-// ✅ CORRECTO - Simula botones de ventana macOS
-<div className="w-3 h-3 rounded-full bg-red-500/60" />
-<div className="w-3 h-3 rounded-full bg-amber-500/60" />
-<div className="w-3 h-3 rounded-full bg-emerald-500/60" />
-```
-**Archivos:** `Index.tsx`, `OrganizationPreview.tsx`
+// Card glass básico
+<div className="bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm rounded-2xl">
 
-#### Slot Machine Animation
-```tsx
-// ✅ CORRECTO - Estilo casino/arcade
-className="bg-slate-950 border-slate-600"
-```
-**Archivos:** `SlotMachineAnimation.tsx`
-
-#### Ticket Descargable (Visual especial)
-```tsx
-// ✅ CORRECTO - Diseño de ticket premium con gradiente oscuro
-className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
-```
-**Archivos:** `DownloadableTicket.tsx`
-
----
-
-### 3. Estados de Urgencia/Marketing
-
-#### Urgencia Crítica (`red-*`)
-```tsx
-// ✅ CORRECTO - Urgencia máxima (últimos minutos)
-className="border-red-500/50 bg-red-50 dark:bg-red-950/20"
-```
-**Archivos:** `UrgencyBadge.tsx`
-
-#### Urgencia Moderada (`amber-*`, `orange-*`)
-```tsx
-// ✅ CORRECTO - Urgencia moderada (horas restantes)
-className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20"
-```
-**Archivos:** `UrgencyBadge.tsx`
-
----
-
-### 4. Simulación de Admin
-
-#### Modo Solo Lectura (`amber-*`)
-```tsx
-// ✅ CORRECTO - Indica modo observación
-className="bg-amber-50 border-amber-200"
+// Card glass premium
+<div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl shadow-2xl rounded-2xl">
 ```
 
-#### Modo Escritura (`red-*`)
-```tsx
-// ✅ CORRECTO - Indica modo con permisos de escritura (peligroso)
-className="bg-red-50 border-red-200"
-```
-**Archivos:** `SimulationBanner.tsx`
-
----
-
-### 5. Grid de Tickets (Estados Visuales)
-
-Los estados de tickets en la grilla usan colores específicos para máxima claridad visual:
-
-| Estado | Color | Clase |
-|--------|-------|-------|
-| Disponible | Verde | `bg-green-50 border-green-300` |
-| Seleccionado | Verde intenso | `bg-green-500 border-green-600` |
-| Reservado | Ámbar | `bg-amber-50 border-amber-300` |
-| Vendido | Gris | `bg-muted border-muted` |
-| Cancelado | Rojo | `bg-red-50 border-red-200` |
-
-**Archivos:** `TicketButton.tsx`, `VirtualizedTicketGrid.tsx`, `TicketSelector.tsx`
-
----
-
-### 6. Landing Page Decorativo
-
-Los blobs y efectos decorativos del landing usan colores específicos del tema:
+### Animated Orbs (Background)
 
 ```tsx
-// ✅ CORRECTO - Blobs decorativos con colores de marca
-<div className="bg-emerald-600/15 rounded-full blur-3xl animate-blob" />
-<div className="bg-amber-500/10 rounded-full blur-3xl animate-blob" />
-```
-**Archivos:** `Index.tsx`
-
----
-
-## Reglas de Migración
-
-### ✅ USAR Tokens Semánticos Para:
-- Fondos de componentes (`bg-background`, `bg-card`, `bg-muted`)
-- Texto general (`text-foreground`, `text-muted-foreground`)
-- Bordes (`border-border`)
-- Estados de negocio (`bg-success/20`, `text-warning`, `bg-destructive/10`)
-- Botones y CTAs (`bg-primary`, `hover:bg-primary/90`)
-
-### ❌ NO Migrar a Tokens:
-- Colores de marcas externas (WhatsApp, Visa, etc.)
-- Decorativos de UI específica (window buttons, slots, etc.)
-- Estados de urgencia de marketing (rojo crítico, ámbar moderado)
-- Simulación de admin (indicadores de modo)
-- Grid de tickets (estados visuales heredados)
-
----
-
-## Ejemplos de Uso Correcto
-
-### Botón Primario
-```tsx
-// ✅ CORRECTO
-<Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-  Comprar
-</Button>
-```
-
-### Badge de Estado
-```tsx
-// ✅ CORRECTO
-<Badge className="bg-success/20 text-success border-success/50">
-  Confirmado
-</Badge>
-
-// ✅ CORRECTO
-<Badge className="bg-warning/20 text-warning border-warning/50">
-  Pendiente
-</Badge>
-```
-
-### Alerta de Error
-```tsx
-// ✅ CORRECTO
-<Alert className="bg-destructive/10 border-destructive/50">
-  <AlertDescription className="text-destructive">
-    Error al procesar
-  </AlertDescription>
-</Alert>
-```
-
-### Fondo con Gradiente de Marca
-```tsx
-// ✅ CORRECTO
-<div className="bg-gradient-to-r from-primary via-primary/80 to-accent">
-  Contenido
+// En páginas premium (Index, Pricing, Onboarding, PublicRaffle)
+<div className="fixed inset-0 pointer-events-none z-0">
+  <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[100px] animate-blob" />
+  <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[80px] animate-blob animation-delay-2000" />
+  <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] animate-blob animation-delay-4000" />
 </div>
 ```
 
+### Grid Pattern
+
+```tsx
+// Overlay de grid sutil
+<div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+```
+
+### Gradientes de Texto
+
+```tsx
+// Título hero con gradiente emerald
+<h1 className="text-5xl font-bold">
+  <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
+    Título Premium
+  </span>
+</h1>
+```
+
 ---
 
-## Archivos Clave del Sistema
+## 📏 Tipografía Enterprise
+
+### Escala de Tamaños
+
+| Tipo | Clases | Uso |
+|------|--------|-----|
+| Display | `text-6xl lg:text-7xl font-black tracking-[-0.04em]` | Hero titles |
+| Heading 1 | `text-4xl lg:text-5xl font-bold tracking-tight` | Page titles |
+| Heading 2 | `text-2xl lg:text-3xl font-semibold` | Section headers |
+| Heading 3 | `text-xl font-semibold` | Card titles |
+| Body | `text-base` | Párrafos |
+| Caption | `text-sm text-muted-foreground` | Texto secundario |
+| Small | `text-xs` | Labels, badges |
+
+### Font Weights
+
+- `font-black` (900): Hero headlines únicamente
+- `font-bold` (700): Títulos de sección
+- `font-semibold` (600): Subtítulos, card headers
+- `font-medium` (500): Labels importantes
+- `font-normal` (400): Body text
+
+---
+
+## 📐 Sistema de Espaciado
+
+### Section Padding
+
+```tsx
+// Secciones de contenido
+<section className="py-20 lg:py-28">...</section>
+
+// Hero sections
+<section className="py-24 lg:py-32">...</section>
+```
+
+### Container Widths
+
+```tsx
+// Contenedor estándar
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+// Contenedor angosto (formularios)
+<div className="max-w-3xl mx-auto px-4">
+
+// Contenedor muy angosto (modals)
+<div className="max-w-md mx-auto px-4">
+```
+
+### Card Padding
+
+```tsx
+// Card content
+<CardContent className="p-6 lg:p-8">
+
+// Compact card
+<CardContent className="p-4">
+```
+
+---
+
+## 🎭 Colores Hardcodeados Permitidos
+
+Los siguientes colores están hardcodeados **intencionalmente** y NO deben migrarse:
+
+### Marcas Externas
+- **WhatsApp**: `bg-green-500 hover:bg-green-600`
+- **Visa**: `bg-blue-500`
+- **Mastercard**: `bg-red-500`
+
+### UI Decorativa
+- **Window buttons (macOS)**: `bg-red-500/60`, `bg-amber-500/60`, `bg-emerald-500/60`
+- **Slot machine**: `bg-slate-950`
+- **Ticket descargable**: `bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900`
+
+### Estados de Marketing
+- **Urgencia crítica**: `border-red-500/50 bg-red-50 dark:bg-red-950/20`
+- **Urgencia moderada**: `border-amber-500/50 bg-amber-50 dark:bg-amber-950/20`
+
+### Grid de Tickets
+| Estado | Color |
+|--------|-------|
+| Disponible | `bg-green-50 border-green-300` |
+| Seleccionado | `bg-green-500 border-green-600` |
+| Reservado | `bg-amber-50 border-amber-300` |
+| Vendido | `bg-muted border-muted` |
+
+---
+
+## 📁 Archivos Clave
 
 | Archivo | Propósito |
 |---------|-----------|
-| `src/index.css` | Definición de tokens CSS (variables HSL) |
-| `tailwind.config.ts` | Mapeo de tokens a clases Tailwind |
-| `src/components/ui/button.tsx` | Variantes de botones |
-| `src/components/ui/badge.tsx` | Variantes de badges |
+| `src/index.css` | Tokens CSS (variables HSL), utilidades |
+| `tailwind.config.ts` | Mapeo tokens → Tailwind, animaciones |
+| `src/components/ui/button.tsx` | Variantes CVA de botones |
+| `src/components/ui/card.tsx` | Variantes CVA de cards |
+| `src/components/ui/input.tsx` | Estilos de inputs |
 
 ---
 
-## Notas Adicionales
+## ✅ Checklist de Implementación
 
-1. **Siempre usar HSL**: Todos los colores en `index.css` deben estar en formato HSL.
-2. **Dark mode**: Los tokens cambian automáticamente entre light/dark mode.
-3. **Opacidades**: Usar `/XX` para opacidades (ej: `bg-primary/20`).
-4. **Gradientes**: Preferir gradientes con tokens (`from-primary to-accent`).
+### Para Nuevas Páginas Públicas:
+- [ ] Usar `bg-ultra-dark` como fondo principal
+- [ ] Incluir orbes animados y grid pattern
+- [ ] Usar `useScopedDarkMode()` hook
+- [ ] Cards con `variant="glass"` o `variant="premium"`
+- [ ] Botones con `variant="gradient"` o `variant="inverted"`
+- [ ] Títulos con gradiente emerald
+
+### Para Páginas de Dashboard:
+- [ ] Usar tokens semánticos (`bg-background`, `text-foreground`)
+- [ ] Cards con `variant="default"` o `variant="elevated"`
+- [ ] Botones con `variant="default"`
+- [ ] Respetar sistema de espaciado
 
 ---
 

@@ -134,7 +134,7 @@ export default function Contact() {
         <meta name="description" content="Contáctanos para cualquier consulta sobre Sortavo. Estamos aquí para ayudarte con tus sorteos." />
       </Helmet>
 
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-ultra-dark">
         {/* Navigation */}
         <PremiumNavbar variant="solid" />
 

@@ -202,7 +202,7 @@ export default function HelpCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-ultra-dark">
       {/* Premium Navigation */}
       <PremiumNavbar variant="solid" />
 

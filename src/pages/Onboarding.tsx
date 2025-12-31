@@ -425,7 +425,7 @@ export default function Onboarding() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
       </div>
     );
@@ -434,7 +434,7 @@ export default function Onboarding() {
   // Show processing state when returning from Stripe checkout
   if (isProcessingPayment) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 gap-6 px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-ultra-dark gap-6 px-4">
         <div className="relative">
           <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping" />
           <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/25">
@@ -450,7 +450,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 relative overflow-hidden">
+    <div className="min-h-screen bg-ultra-dark relative overflow-hidden">
       {/* Premium Dark Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-emerald-950/30" />
       
