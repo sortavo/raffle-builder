@@ -47,37 +47,38 @@ export function ShareButtons({ url, title, description }: ShareButtonsProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-center gap-3">
       <Button
         variant="outline"
-        size="icon"
+        size="lg"
         onClick={handleWhatsApp}
-        className="bg-[#25D366] hover:bg-[#128C7E] text-white border-none"
+        className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20 hover:border-emerald-500/30"
       >
-        <MessageCircle className="h-4 w-4" />
+        <MessageCircle className="h-5 w-5" />
       </Button>
       <Button
         variant="outline"
-        size="icon"
+        size="lg"
         onClick={handleFacebook}
-        className="bg-[#1877F2] hover:bg-[#0d65d9] text-white border-none"
+        className="bg-muted/50 hover:bg-muted text-foreground border-border/50"
       >
-        <Facebook className="h-4 w-4" />
+        <Facebook className="h-5 w-5" />
       </Button>
       <Button
         variant="outline"
-        size="icon"
+        size="lg"
         onClick={handleTwitter}
-        className="bg-[#1DA1F2] hover:bg-[#0c8de0] text-white border-none"
+        className="bg-muted/50 hover:bg-muted text-foreground border-border/50"
       >
-        <Twitter className="h-4 w-4" />
+        <Twitter className="h-5 w-5" />
       </Button>
       <Button
         variant="outline"
-        size="icon"
+        size="lg"
         onClick={handleCopyLink}
+        className="bg-muted/50 hover:bg-muted text-foreground border-border/50"
       >
-        <Link2 className="h-4 w-4" />
+        <Link2 className="h-5 w-5" />
       </Button>
     </div>
   );

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -31,6 +32,9 @@ import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayou
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
 
 export default function PublicRaffle() {
+  // Activate dark mode for this page - ensures all design tokens use dark values
+  useScopedDarkMode();
+  
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
