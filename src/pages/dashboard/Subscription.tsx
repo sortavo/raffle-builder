@@ -400,10 +400,10 @@ export default function Subscription() {
 
         {/* Available Plans */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">
+          <h2 className="text-lg font-semibold mb-4 text-center">
             {currentStatus === "trial" ? "Elige tu plan" : "Cambiar de plan"}
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {(Object.entries(STRIPE_PLANS) as [PlanKey, typeof STRIPE_PLANS.basic & { popular?: boolean }][]).map(
               ([key, plan]) => {
                 const Icon = planIcons[key] || Rocket;
