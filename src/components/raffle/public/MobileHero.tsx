@@ -233,20 +233,27 @@ export function MobileHero({
           }}
         />
 
-        {/* Pagination dots - TIER S minimal white */}
+        {/* Pagination dots - TIER S minimal white with video indicator */}
         {mediaItems.length > 1 && (
           <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-2.5 z-10">
             {mediaItems.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => emblaApi?.scrollTo(idx)}
-                className={`transition-all duration-300 ${
+                className={`transition-all duration-300 flex items-center justify-center ${
                   idx === selectedIndex 
-                    ? 'w-8 h-2 bg-white rounded-full shadow-lg' 
+                    ? item.type === 'video' 
+                      ? 'w-10 h-6 bg-white rounded-full shadow-lg' 
+                      : 'w-8 h-2 bg-white rounded-full shadow-lg' 
                     : 'w-2 h-2 bg-white/40 rounded-full hover:bg-white/60'
                 }`}
                 aria-label={`Ir a ${item.type === 'video' ? 'video' : `imagen ${idx + 1}`}`}
-              />
+              >
+                {/* Show play icon for video dot when selected */}
+                {item.type === 'video' && idx === selectedIndex && (
+                  <Play className="w-3 h-3 text-black fill-black" />
+                )}
+              </button>
             ))}
           </div>
         )}
@@ -371,7 +378,7 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
   if (!embedUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-ultra-dark">
-        <p className="text-ultra-dark-muted">Video no disponible</p>
+        <p className="text-white/50">Video no disponible</p>
       </div>
     );
   }
@@ -381,7 +388,10 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
     return (
       <div 
         className="w-full h-full relative cursor-pointer bg-black"
-        onClick={() => setShowVideo(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowVideo(true);
+        }}
       >
         {/* Video thumbnail */}
         <img 
@@ -395,15 +405,15 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
             }
           }}
         />
-        {/* Play button overlay - minimal */}
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl bg-white/15 backdrop-blur-lg">
-            <Play className="w-7 h-7 text-white fill-white ml-1" />
+        {/* Play button overlay - premium glassmorphism */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-2xl bg-white/20 backdrop-blur-xl border border-white/20">
+            <Play className="w-10 h-10 text-white fill-white ml-1" />
           </div>
         </div>
         {/* Hint text */}
         <div className="absolute bottom-8 left-0 right-0 text-center">
-          <span className="text-white text-xs px-4 py-2 rounded-full bg-black/60">
+          <span className="text-white text-sm font-medium px-5 py-2.5 rounded-full bg-black/70 backdrop-blur-sm border border-white/10">
             Toca para ver el video
           </span>
         </div>
@@ -413,13 +423,20 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
 
   return (
     <div className="w-full h-full bg-black relative">
+      {/* Edge zones to exit video on swipe */}
       <div 
         className="absolute top-0 bottom-0 left-0 w-16 z-10 touch-pan-x"
-        onClick={() => setShowVideo(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowVideo(false);
+        }}
       />
       <div 
         className="absolute top-0 bottom-0 right-0 w-16 z-10 touch-pan-x"
-        onClick={() => setShowVideo(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowVideo(false);
+        }}
       />
       
       <iframe
@@ -432,8 +449,11 @@ function VideoSlide({ videoUrl, title }: { videoUrl: string; title: string }) {
       />
       
       <button
-        onClick={() => setShowVideo(false)}
-        className="absolute top-4 right-4 z-20 bg-black/70 text-white rounded-full p-2 hover:bg-black/90 transition-colors"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowVideo(false);
+        }}
+        className="absolute top-4 right-4 z-20 bg-black/70 text-white rounded-full p-2.5 hover:bg-black/90 transition-colors backdrop-blur-sm border border-white/10"
         aria-label="Cerrar video"
       >
         <ChevronDown className="w-5 h-5" />

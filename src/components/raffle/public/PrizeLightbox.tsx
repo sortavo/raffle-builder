@@ -50,7 +50,7 @@ export function PrizeLightbox({ images, initialIndex = 0, open, onOpenChange }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none">
+      <DialogContent hideCloseButton className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-none">
         {/* Close button */}
         <Button
           variant="ghost"
