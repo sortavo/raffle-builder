@@ -31,7 +31,6 @@ import { HowToParticipate } from "@/components/raffle/public/HowToParticipate";
 import { FAQSection } from "@/components/raffle/public/FAQSection";
 import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayout";
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
-import { PublicToaster } from "@/components/raffle/public/PublicToaster";
 
 export default function PublicRaffle() {
   // Activate dark mode for this page - ensures all design tokens use dark values
@@ -247,9 +246,6 @@ export default function PublicRaffle() {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
-      {/* Public-specific toaster positioned at top to avoid FloatingCartButton overlap */}
-      <PublicToaster />
-
       <div
         className="min-h-screen transition-colors duration-300 bg-ultra-dark relative overflow-hidden"
         style={{ 
@@ -304,6 +300,7 @@ export default function PublicRaffle() {
             {showGallery && raffle.prize_images && raffle.prize_images.length > 0 && (
               <PrizeLightbox
                 images={raffle.prize_images}
+                videoUrl={showVideoInGallery ? raffle.prize_video_url : undefined}
                 initialIndex={lightboxIndex}
                 open={lightboxOpen}
                 onOpenChange={setLightboxOpen}

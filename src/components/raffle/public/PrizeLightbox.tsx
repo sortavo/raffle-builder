@@ -1,36 +1,83 @@
 import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Play } from "lucide-react";
 
 interface PrizeLightboxProps {
   images: string[];
+  videoUrl?: string | null;
   initialIndex?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function PrizeLightbox({ images, initialIndex = 0, open, onOpenChange }: PrizeLightboxProps) {
+// Helper to extract video embed URL
+function getEmbedUrl(url: string): string | null {
+  // YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+  }
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+  }
+  return null;
+}
+
+// Helper to get video thumbnail
+function getVideoThumbnail(url: string): string | null {
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
+  }
+  return null;
+}
+
+interface MediaItem {
+  type: 'image' | 'video';
+  src: string;
+  embedUrl?: string;
+  thumbnail?: string;
+}
+
+export function PrizeLightbox({ images, videoUrl, initialIndex = 0, open, onOpenChange }: PrizeLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  // Build unified media array: images + video (if exists)
+  const mediaItems: MediaItem[] = [
+    ...images.map(src => ({ type: 'image' as const, src })),
+    ...(videoUrl ? [{
+      type: 'video' as const,
+      src: videoUrl,
+      embedUrl: getEmbedUrl(videoUrl) || undefined,
+      thumbnail: getVideoThumbnail(videoUrl) || undefined,
+    }] : []),
+  ];
 
   // Reset to initial index when opening
   useEffect(() => {
     if (open) {
       setCurrentIndex(initialIndex);
       setIsZoomed(false);
+      setIsVideoPlaying(false);
     }
   }, [open, initialIndex]);
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
     setIsZoomed(false);
-  }, [images.length]);
+    setIsVideoPlaying(false);
+  }, [mediaItems.length]);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === mediaItems.length - 1 ? 0 : prev + 1));
     setIsZoomed(false);
-  }, [images.length]);
+    setIsVideoPlaying(false);
+  }, [mediaItems.length]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -46,7 +93,9 @@ export function PrizeLightbox({ images, initialIndex = 0, open, onOpenChange }: 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, goToPrevious, goToNext, onOpenChange]);
 
-  if (!images.length) return null;
+  if (!mediaItems.length) return null;
+
+  const currentItem = mediaItems[currentIndex];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,40 +110,79 @@ export function PrizeLightbox({ images, initialIndex = 0, open, onOpenChange }: 
           <X className="h-6 w-6" />
         </Button>
 
-        {/* Zoom button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-16 z-50 text-white hover:bg-white/20 rounded-full"
-          onClick={() => setIsZoomed(!isZoomed)}
-        >
-          {isZoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
-        </Button>
+        {/* Zoom button - only for images */}
+        {currentItem.type === 'image' && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-16 z-50 text-white hover:bg-white/20 rounded-full"
+            onClick={() => setIsZoomed(!isZoomed)}
+          >
+            {isZoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
+          </Button>
+        )}
 
         {/* Image counter */}
         <div className="absolute top-4 left-4 z-50 text-white/80 text-sm font-medium bg-black/40 px-3 py-1.5 rounded-full">
-          {currentIndex + 1} / {images.length}
+          {currentIndex + 1} / {mediaItems.length}
         </div>
 
-        {/* Main image */}
+        {/* Main content */}
         <div className="flex items-center justify-center w-full h-full p-4">
-          <div 
-            className={`relative transition-transform duration-300 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
-            onClick={() => setIsZoomed(!isZoomed)}
-          >
-            <img
-              src={images[currentIndex]}
-              alt={`Imagen ${currentIndex + 1}`}
-              className={`max-w-full max-h-[85vh] object-contain transition-transform duration-300 ${
-                isZoomed ? 'scale-150' : 'scale-100'
-              }`}
-              draggable={false}
-            />
-          </div>
+          {currentItem.type === 'image' ? (
+            <div 
+              className={`relative transition-transform duration-300 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+              onClick={() => setIsZoomed(!isZoomed)}
+            >
+              <img
+                src={currentItem.src}
+                alt={`Imagen ${currentIndex + 1}`}
+                className={`max-w-full max-h-[85vh] object-contain transition-transform duration-300 ${
+                  isZoomed ? 'scale-150' : 'scale-100'
+                }`}
+                draggable={false}
+              />
+            </div>
+          ) : (
+            // Video slide
+            <div className="relative w-full max-w-4xl aspect-video">
+              {isVideoPlaying && currentItem.embedUrl ? (
+                <iframe
+                  src={currentItem.embedUrl}
+                  className="w-full h-full rounded-xl"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div 
+                  className="relative w-full h-full cursor-pointer group"
+                  onClick={() => setIsVideoPlaying(true)}
+                >
+                  {currentItem.thumbnail ? (
+                    <img
+                      src={currentItem.thumbnail}
+                      alt="Video thumbnail"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-white/5 rounded-xl flex items-center justify-center">
+                      <span className="text-white/50">Video</span>
+                    </div>
+                  )}
+                  {/* Play button overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                      <Play className="w-8 h-8 text-white fill-white ml-1" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navigation arrows */}
-        {images.length > 1 && (
+        {mediaItems.length > 1 && (
           <>
             <Button
               variant="ghost"
@@ -116,22 +204,37 @@ export function PrizeLightbox({ images, initialIndex = 0, open, onOpenChange }: 
         )}
 
         {/* Thumbnail strip */}
-        {images.length > 1 && (
+        {mediaItems.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 p-2 bg-black/60 rounded-xl max-w-[90vw] overflow-x-auto">
-            {images.map((img, idx) => (
+            {mediaItems.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => {
                   setCurrentIndex(idx);
                   setIsZoomed(false);
+                  setIsVideoPlaying(false);
                 }}
-                className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                   idx === currentIndex 
                     ? 'border-white scale-105' 
                     : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
               >
-                <img src={img} alt="" className="w-full h-full object-cover" />
+                {item.type === 'image' ? (
+                  <img src={item.src} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="relative w-full h-full">
+                    {item.thumbnail ? (
+                      <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-white/10" />
+                    )}
+                    {/* Play icon overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Play className="w-4 h-4 text-white fill-white" />
+                    </div>
+                  </div>
+                )}
               </button>
             ))}
           </div>

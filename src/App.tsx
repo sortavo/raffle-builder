@@ -3,7 +3,7 @@ import Settings from "./pages/dashboard/Settings";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SimulationProvider } from "@/contexts/SimulationContext";
@@ -56,16 +56,58 @@ import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
+// Adaptive toaster that positions based on route
+function AdaptiveToaster() {
+  const location = useLocation();
+  // Check if we're on a public raffle page (either /r/:slug or /:orgSlug/:slug)
+  const isPublicRaffle = location.pathname.startsWith('/r/') || 
+    // Detect /:orgSlug/:slug pattern (2 segments, not reserved routes)
+    (location.pathname.split('/').filter(Boolean).length === 2 &&
+     !location.pathname.startsWith('/dashboard') &&
+     !location.pathname.startsWith('/admin') &&
+     !location.pathname.startsWith('/pricing') &&
+     !location.pathname.startsWith('/help') &&
+     !location.pathname.startsWith('/terms') &&
+     !location.pathname.startsWith('/privacy') &&
+     !location.pathname.startsWith('/contact') &&
+     !location.pathname.startsWith('/status') &&
+     !location.pathname.startsWith('/design-system') &&
+     !location.pathname.startsWith('/logo-preview') &&
+     !location.pathname.startsWith('/sentry-test') &&
+     !location.pathname.startsWith('/auth') &&
+     !location.pathname.startsWith('/onboarding') &&
+     !location.pathname.startsWith('/my-tickets') &&
+     !location.pathname.startsWith('/ticket') &&
+     !location.pathname.startsWith('/order') &&
+     !location.pathname.startsWith('/invite'));
+  
+  return (
+    <Sonner 
+      position={isPublicRaffle ? "top-center" : "bottom-center"}
+      theme={isPublicRaffle ? "dark" : undefined}
+      toastOptions={isPublicRaffle ? {
+        duration: 1500,
+        classNames: {
+          toast: "group toast group-[.toaster]:bg-white/10 group-[.toaster]:backdrop-blur-xl group-[.toaster]:text-white group-[.toaster]:border-white/10 group-[.toaster]:shadow-2xl",
+          description: "group-[.toast]:text-white/70",
+          actionButton: "group-[.toast]:bg-emerald-500 group-[.toast]:text-white",
+          cancelButton: "group-[.toast]:bg-white/10 group-[.toast]:text-white/70",
+        },
+      } : undefined}
+    />
+  );
+}
+
 const App = () => (
   <SentryErrorBoundary>
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <Sonner />
           <BrowserRouter>
             <AuthProvider>
               <SimulationProvider>
+                <AdaptiveToaster />
                 <ScrollToTop />
                 <SimulationBanner />
                 <Routes>
