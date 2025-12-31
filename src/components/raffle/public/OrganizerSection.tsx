@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
   CheckCircle2, 
   MapPin, 
-  ExternalLink, 
   MessageCircle,
   ChevronRight
 } from "lucide-react";
@@ -34,14 +32,11 @@ interface OrganizerSectionProps {
     verified: boolean | null;
     brand_color: string | null;
     created_at: string | null;
-    // New array fields (optional for backward compatibility)
     emails?: string[] | null;
     phones?: string[] | null;
     whatsapp_numbers?: string[] | null;
-    // Experience fields
     years_experience?: number | null;
     total_raffles_completed?: number | null;
-    // Address field
     address?: string | null;
   };
   raffleTitle: string;
@@ -50,10 +45,10 @@ interface OrganizerSectionProps {
 
 export function OrganizerSection({ organization, raffleTitle, brandColor }: OrganizerSectionProps) {
   const socialLinks = [
-    { url: organization.facebook_url, icon: FaFacebook, label: "Facebook", color: "#1877F2" },
-    { url: organization.instagram_url, icon: FaInstagram, label: "Instagram", color: "#E4405F" },
-    { url: organization.tiktok_url, icon: FaTiktok, label: "TikTok", color: "#000000" },
-    { url: organization.website_url, icon: FaGlobe, label: "Sitio Web", color: "#6B7280" },
+    { url: organization.facebook_url, icon: FaFacebook, label: "Facebook" },
+    { url: organization.instagram_url, icon: FaInstagram, label: "Instagram" },
+    { url: organization.tiktok_url, icon: FaTiktok, label: "TikTok" },
+    { url: organization.website_url, icon: FaGlobe, label: "Sitio Web" },
   ].filter(link => link.url);
 
   // Calculate time on platform
@@ -70,11 +65,11 @@ export function OrganizerSection({ organization, raffleTitle, brandColor }: Orga
 
   const timeOnPlatform = getTimeOnPlatform();
 
-  // Get all whatsapp numbers (use array if available, fallback to single)
+  // Get all whatsapp numbers
   const whatsappList = organization.whatsapp_numbers?.filter(w => w) || 
     (organization.whatsapp_number ? [organization.whatsapp_number] : []);
   
-  // Primary WhatsApp link with pre-filled message
+  // Primary WhatsApp link
   const whatsappMessage = `¡Hola! Vi su sorteo "${raffleTitle}" y tengo una pregunta.`;
   const primaryWhatsapp = whatsappList[0];
   const whatsappLink = primaryWhatsapp 
@@ -86,161 +81,134 @@ export function OrganizerSection({ organization, raffleTitle, brandColor }: Orga
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="py-16 bg-gradient-to-br from-gray-50 to-white"
+      className="py-16 border-y border-border/50"
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Sobre el Organizador</h2>
-          <p className="text-gray-600">Conoce a quien está detrás de este sorteo</p>
+        <div className="text-center mb-10">
+          <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3">
+            Organizador
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            Sobre el Organizador
+          </h2>
         </div>
 
-        <Card className="overflow-hidden border-0 shadow-xl">
-          <CardContent className="p-0">
-            {/* Header with brand color */}
-            <div 
-              className="h-24 sm:h-32 relative"
-              style={{ 
-                background: `linear-gradient(135deg, ${brandColor}, ${brandColor}dd)` 
-              }}
-            >
-              {/* Pattern overlay */}
-              <div 
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-                  backgroundSize: '20px 20px'
-                }}
-              />
-            </div>
-
-            {/* Content */}
-            <div className="px-6 pb-6 -mt-12 sm:-mt-16 relative">
-              {/* Avatar */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 mb-6">
-                <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-white shadow-lg">
-                  <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
-                  <AvatarFallback 
-                    className="text-2xl sm:text-3xl font-bold text-white"
-                    style={{ backgroundColor: brandColor }}
-                  >
-                    {organization.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="text-center sm:text-left flex-1 sm:pb-2">
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {organization.name}
-                    </h3>
-                    {organization.verified && (
-                      <Badge className="bg-blue-500 text-white">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Verificado
-                      </Badge>
-                    )}
+        <div className="bg-card/50 rounded-2xl border border-border/50 overflow-hidden">
+          {/* Content */}
+          <div className="p-6 sm:p-8">
+            {/* Avatar and info */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6">
+              <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-border">
+                <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
+                <AvatarFallback className="text-xl sm:text-2xl font-bold bg-muted text-foreground">
+                  {organization.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="text-center sm:text-left flex-1">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">
+                    {organization.name}
+                  </h3>
+                  {organization.verified && (
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Verificado
+                    </Badge>
+                  )}
+                </div>
+                {organization.city && (
+                  <div className="flex items-center justify-center sm:justify-start gap-1 text-muted-foreground">
+                    <MapPin className="w-4 h-4 shrink-0" />
+                    <span>{organization.city}</span>
                   </div>
-                  {organization.city && (
-                    <div className="flex items-center justify-center sm:justify-start gap-1 text-gray-500">
-                      <MapPin className="w-4 h-4 shrink-0" />
-                      <span>{organization.city}</span>
-                    </div>
-                  )}
-                  {organization.address && (
-                    <div className="flex items-start justify-center sm:justify-start gap-1 text-gray-500 mt-1">
-                      <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span className="text-sm">{organization.address}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stats */}
-                <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-0">
-                  {organization.years_experience && organization.years_experience > 0 && (
-                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
-                      <p className="text-xs text-gray-500">Experiencia</p>
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                        {organization.years_experience} {organization.years_experience === 1 ? "año" : "años"}
-                      </p>
-                    </div>
-                  )}
-                  {organization.total_raffles_completed && organization.total_raffles_completed > 0 && (
-                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
-                      <p className="text-xs text-gray-500">Rifas realizadas</p>
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{organization.total_raffles_completed}</p>
-                    </div>
-                  )}
-                  {timeOnPlatform && (
-                    <div className="text-center px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-100 rounded-lg">
-                      <p className="text-xs text-gray-500">En plataforma</p>
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{timeOnPlatform}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              {organization.description && (
-                <p className="text-gray-600 mb-6 text-center sm:text-left">
-                  {organization.description}
-                </p>
-              )}
-
-              {/* Social links */}
-              {socialLinks.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-6">
-                  {socialLinks.map((link, idx) => (
-                    <a
-                      key={idx}
-                      href={link.url!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors"
-                      title={link.label}
-                    >
-                      <link.icon className="w-5 h-5" style={{ color: link.color }} />
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {whatsappLink && (
-                  <Button
-                    asChild
-                    size="lg"
-                    className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg"
-                  >
-                    <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Contactar por WhatsApp
-                      {whatsappList.length > 1 && (
-                        <span className="ml-1 text-xs opacity-75">
-                          (+{whatsappList.length - 1})
-                        </span>
-                      )}
-                    </a>
-                  </Button>
                 )}
-                
-                {organization.slug && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 border-2"
-                    style={{ borderColor: brandColor, color: brandColor }}
-                  >
-                    <Link to={`/${organization.slug}`}>
-                      Ver todos los sorteos
-                      <ChevronRight className="w-5 h-5 ml-2" />
-                    </Link>
-                  </Button>
+                {organization.description && (
+                  <p className="text-muted-foreground mt-3 text-sm">
+                    {organization.description}
+                  </p>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Stats */}
+            <div className="flex flex-wrap justify-center sm:justify-start gap-3 mb-6">
+              {organization.years_experience && organization.years_experience > 0 && (
+                <div className="text-center px-4 py-2 bg-muted/50 rounded-lg border border-border/50">
+                  <p className="text-xs text-muted-foreground">Experiencia</p>
+                  <p className="font-semibold text-foreground text-sm">
+                    {organization.years_experience} {organization.years_experience === 1 ? "año" : "años"}
+                  </p>
+                </div>
+              )}
+              {organization.total_raffles_completed && organization.total_raffles_completed > 0 && (
+                <div className="text-center px-4 py-2 bg-muted/50 rounded-lg border border-border/50">
+                  <p className="text-xs text-muted-foreground">Rifas realizadas</p>
+                  <p className="font-semibold text-foreground text-sm">{organization.total_raffles_completed}</p>
+                </div>
+              )}
+              {timeOnPlatform && (
+                <div className="text-center px-4 py-2 bg-muted/50 rounded-lg border border-border/50">
+                  <p className="text-xs text-muted-foreground">En plataforma</p>
+                  <p className="font-semibold text-foreground text-sm">{timeOnPlatform}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Social links */}
+            {socialLinks.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-6">
+                {socialLinks.map((link, idx) => (
+                  <a
+                    key={idx}
+                    href={link.url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full flex items-center justify-center bg-muted/50 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title={link.label}
+                  >
+                    <link.icon className="w-5 h-5" />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {whatsappLink && (
+                <Button
+                  asChild
+                  size="lg"
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Contactar por WhatsApp
+                    {whatsappList.length > 1 && (
+                      <span className="ml-1 text-xs opacity-75">
+                        (+{whatsappList.length - 1})
+                      </span>
+                    )}
+                  </a>
+                </Button>
+              )}
+              
+              {organization.slug && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 border-border/50 text-foreground hover:bg-muted"
+                >
+                  <Link to={`/${organization.slug}`}>
+                    Ver todos los sorteos
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </motion.section>
   );

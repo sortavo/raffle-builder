@@ -1,5 +1,3 @@
-import { motion } from "framer-motion";
-import { Sparkles, Star, Flame, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LuckyNumberBadgeProps {
@@ -9,51 +7,39 @@ interface LuckyNumberBadgeProps {
 
 const badgeConfig = {
   lucky: {
-    icon: Sparkles,
-    label: 'Suerte',
-    colors: 'bg-yellow-400 text-yellow-900',
-    glow: 'shadow-yellow-400/50',
+    label: '★',
+    colors: 'bg-emerald-500',
   },
   popular: {
-    icon: Star,
-    label: 'Popular',
-    colors: 'bg-blue-500 text-white',
-    glow: 'shadow-blue-500/50',
+    label: '●',
+    colors: 'bg-blue-500',
   },
   hot: {
-    icon: Flame,
-    label: 'Hot',
-    colors: 'bg-orange-500 text-white',
-    glow: 'shadow-orange-500/50',
+    label: '●',
+    colors: 'bg-amber-500',
   },
   last: {
-    icon: Zap,
-    label: 'Último',
-    colors: 'bg-red-500 text-white',
-    glow: 'shadow-red-500/50',
+    label: '!',
+    colors: 'bg-red-500',
   },
 };
 
 export function LuckyNumberBadge({ type, className }: LuckyNumberBadgeProps) {
   const config = badgeConfig[type];
-  const Icon = config.icon;
 
   return (
-    <motion.div
-      initial={{ scale: 0, rotate: -45 }}
-      animate={{ scale: 1, rotate: 0 }}
+    <div
       className={cn(
-        "absolute -top-1 -right-1 z-10",
-        "w-5 h-5 rounded-full",
+        "absolute -top-0.5 -right-0.5 z-10",
+        "w-3 h-3 rounded-full",
         "flex items-center justify-center",
-        "shadow-lg",
+        "text-[8px] font-bold text-white",
         config.colors,
-        config.glow,
         className
       )}
     >
-      <Icon className="w-3 h-3" />
-    </motion.div>
+      {config.label}
+    </div>
   );
 }
 

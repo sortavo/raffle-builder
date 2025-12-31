@@ -55,16 +55,16 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
         onClick={() => onTicketClick(ticket.ticket_number, ticket.status)}
         disabled={!isAvailable}
         className={cn(
-          "relative w-full h-full rounded-lg text-xs font-mono font-bold transition-all border-2 flex items-center justify-center",
-          isAvailable && !isSelected && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer hover:scale-105",
-          isAvailable && isSelected && "bg-green-500 border-green-600 text-white ring-2 ring-green-400 ring-offset-1",
-          !isAvailable && "bg-muted border-muted text-muted-foreground cursor-not-allowed opacity-60"
+          "relative w-full h-full rounded-lg text-xs font-mono font-bold transition-all border flex items-center justify-center",
+          isAvailable && !isSelected && "bg-card/50 border-border/50 text-foreground hover:bg-muted cursor-pointer",
+          isAvailable && isSelected && "bg-emerald-500 border-emerald-400 text-white",
+          !isAvailable && "bg-muted/30 border-border/30 text-muted-foreground/50 cursor-not-allowed"
         )}
       >
         {ticket.ticket_number}
         {isSelected && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-            <Check className="w-3 h-3 text-green-600" />
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-background rounded-full flex items-center justify-center border border-emerald-500">
+            <Check className="w-2.5 h-2.5 text-emerald-500" />
           </span>
         )}
       </button>
@@ -91,7 +91,7 @@ export function VirtualizedTicketGrid({
   
   return (
     <Grid<CellData>
-      className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent mx-auto"
+      className="scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent mx-auto"
       columnCount={columnCount}
       columnWidth={CELL_SIZE}
       rowCount={rowCount}

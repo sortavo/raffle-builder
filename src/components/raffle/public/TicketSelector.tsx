@@ -23,7 +23,6 @@ import { VirtualizedTicketGrid } from "./VirtualizedTicketGrid";
 import { LargeRaffleNotice, LARGE_RAFFLE_THRESHOLD, MEGA_RAFFLE_THRESHOLD } from "./LargeRaffleNotice";
 import { toast } from "sonner";
 import { LoadMoreTrigger } from "@/components/ui/LoadMoreTrigger";
-import confetti from "canvas-confetti";
 import { 
   Loader2, 
   Search, 
@@ -345,33 +344,11 @@ export function TicketSelector({
       setGeneratedNumbers(numbers);
       setSelectedTickets(numbers);
       
-      // Trigger confetti for large batches (>100 tickets)
+      // Simple toast notification - no confetti for enterprise feel
       if (numbers.length > 100) {
-        // Fire confetti from both sides
-        const fireConfetti = () => {
-          // Left side
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { x: 0.1, y: 0.6 },
-            colors: ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#4169E1'],
-          });
-          // Right side
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { x: 0.9, y: 0.6 },
-            colors: ['#FFD700', '#FFA500', '#FF6347', '#32CD32', '#4169E1'],
-          });
-        };
-        
-        // Fire twice for more impact
-        fireConfetti();
-        setTimeout(fireConfetti, 300);
-        
-        toast.success(`🎉 ¡Increíble! ${numbers.length.toLocaleString()} boletos seleccionados`, {
-          description: '¡Buena suerte en el sorteo!',
-          duration: 5000,
+        toast.success(`${numbers.length.toLocaleString()} boletos seleccionados`, {
+          description: 'Buena suerte en el sorteo',
+          duration: 4000,
         });
       } else {
         toast.success(`${numbers.length} boletos aleatorios seleccionados`);
@@ -966,21 +943,21 @@ export function TicketSelector({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-6 text-sm justify-center pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap gap-6 text-sm justify-center pt-4 border-t border-border/50">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-white border-2 border-gray-300" />
-                <span className="text-gray-600">Disponible</span>
+                <div className="w-6 h-6 rounded-lg bg-card border border-border" />
+                <span className="text-muted-foreground">Disponible</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-accent" />
+                <div className="w-6 h-6 rounded-lg bg-emerald-500" />
                 <span className="text-muted-foreground">Seleccionado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-warning/20 border-2 border-warning/50" />
+                <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/50" />
                 <span className="text-muted-foreground">Reservado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-muted border-2 border-border" />
+                <div className="w-6 h-6 rounded-lg bg-muted/50 border border-border/50" />
                 <span className="text-muted-foreground">Vendido</span>
               </div>
             </div>

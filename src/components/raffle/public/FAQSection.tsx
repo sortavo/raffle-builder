@@ -15,7 +15,6 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency-utils';
 import { cn } from '@/lib/utils';
 
@@ -55,14 +54,13 @@ interface SmartFAQ {
   category: string;
 }
 
-// FAQ Categories matching the editor
 const FAQ_CATEGORIES = [
-  { id: 'shipping', label: 'Envío', icon: Truck, color: 'bg-blue-500' },
-  { id: 'payment', label: 'Pagos', icon: CreditCard, color: 'bg-green-500' },
-  { id: 'prize', label: 'Premio', icon: Trophy, color: 'bg-amber-500' },
-  { id: 'participation', label: 'Participación', icon: HelpCircle, color: 'bg-purple-500' },
-  { id: 'trust', label: 'Garantías', icon: ShieldCheck, color: 'bg-teal-500' },
-  { id: 'other', label: 'Otros', icon: Package, color: 'bg-gray-500' },
+  { id: 'shipping', label: 'Envío', icon: Truck },
+  { id: 'payment', label: 'Pagos', icon: CreditCard },
+  { id: 'prize', label: 'Premio', icon: Trophy },
+  { id: 'participation', label: 'Participación', icon: HelpCircle },
+  { id: 'trust', label: 'Garantías', icon: ShieldCheck },
+  { id: 'other', label: 'Otros', icon: Package },
 ] as const;
 
 const DRAW_METHOD_LABELS: Record<string, string> = {
@@ -83,7 +81,6 @@ export function FAQSection({ raffle, organization, customization, className }: F
   const currency = raffle.currency_code || 'MXN';
   const packages = raffle.packages || [];
 
-  // Generate smart FAQs based on raffle data
   const generateSmartFAQs = (): SmartFAQ[] => {
     const faqs: SmartFAQ[] = [];
 
@@ -235,7 +232,6 @@ export function FAQSection({ raffle, organization, customization, className }: F
 
   const smartFaqs = showDefaultFaqs ? generateSmartFAQs() : [];
   
-  // Convert custom FAQs to SmartFAQ format
   const customFaqsFormatted: SmartFAQ[] = customFaqs.map((faq, idx) => ({
     id: `custom-${idx}`,
     question: faq.question,
@@ -256,42 +252,21 @@ export function FAQSection({ raffle, organization, customization, className }: F
     return acc;
   }, {} as Record<string, SmartFAQ[]>);
 
-  // Get categories that have FAQs, in order
   const categoriesWithFaqs = FAQ_CATEGORIES.filter(cat => groupedFaqs[cat.id]?.length > 0);
 
   return (
-    <div className={cn("max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16", className)}>
-      <div className="text-center mb-8 lg:mb-12">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+    <div className={cn("max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16", className)}>
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium mb-4 border border-border/50">
           <HelpCircle className="w-4 h-4" />
           Resolvemos tus dudas
         </div>
-        <h2 className="text-2xl lg:text-3xl font-bold text-foreground mb-3">
+        <h2 className="text-2xl lg:text-3xl font-bold text-foreground tracking-tight mb-3">
           Preguntas Frecuentes
         </h2>
         <p className="text-muted-foreground">
           Todo lo que necesitas saber sobre este sorteo
         </p>
-      </div>
-
-      {/* Category badges */}
-      <div className="flex flex-wrap justify-center gap-2 mb-6">
-        {categoriesWithFaqs.map((cat) => {
-          const Icon = cat.icon;
-          const count = groupedFaqs[cat.id]?.length || 0;
-          return (
-            <Badge 
-              key={cat.id} 
-              variant="outline" 
-              className="gap-1.5 text-xs cursor-default"
-            >
-              <span className={cn("w-2 h-2 rounded-full", cat.color)} />
-              <Icon className="w-3 h-3" />
-              {cat.label}
-              <span className="text-muted-foreground">({count})</span>
-            </Badge>
-          );
-        })}
       </div>
 
       <div className="space-y-8">
@@ -302,8 +277,7 @@ export function FAQSection({ raffle, organization, customization, className }: F
           return (
             <div key={cat.id} className="space-y-3">
               <div className="flex items-center gap-2 px-1">
-                <span className={cn("w-3 h-3 rounded-full", cat.color)} />
-                <Icon className="w-5 h-5 text-muted-foreground" />
+                <Icon className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-foreground">{cat.label}</h3>
                 <span className="text-sm text-muted-foreground">({faqs.length})</span>
               </div>
@@ -313,9 +287,9 @@ export function FAQSection({ raffle, organization, customization, className }: F
                   <AccordionItem 
                     key={faq.id} 
                     value={faq.id} 
-                    className="bg-card rounded-xl border border-border px-4 sm:px-5 overflow-hidden"
+                    className="bg-card/50 rounded-xl border border-border/50 px-4 sm:px-5 overflow-hidden"
                   >
-                    <AccordionTrigger className="text-left font-medium hover:no-underline text-sm sm:text-base py-4">
+                    <AccordionTrigger className="text-left font-medium hover:no-underline text-sm sm:text-base py-4 text-foreground">
                       <div className="flex items-center gap-3">
                         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
                           {faq.icon}
