@@ -534,7 +534,7 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Estas preguntas se generan automáticamente. Para editarlas, desactiva "Incluir preguntas automáticas" y agrégalas como preguntas personalizadas.
+                      Haz clic en <Pencil className="w-3 h-3 inline" /> para copiar una pregunta a tus personalizadas y editarla.
                     </p>
                     
                     <div className="space-y-4 max-h-[400px] overflow-y-auto">
@@ -551,27 +551,56 @@ export const FAQEditor = ({ form }: FAQEditorProps) => {
                               <span className="text-xs text-muted-foreground">({faqs.length})</span>
                             </div>
                             
-                            <Accordion type="single" collapsible className="w-full space-y-1">
-                              {faqs.map((faq) => (
-                                <AccordionItem 
-                                  key={faq.id} 
-                                  value={faq.id} 
-                                  className="bg-card rounded-lg border border-border px-3 overflow-hidden"
-                                >
-                                  <AccordionTrigger className="text-left font-medium hover:no-underline text-xs py-3">
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex-shrink-0 w-6 h-6 rounded bg-muted text-muted-foreground flex items-center justify-center">
-                                        {faq.icon}
+                            <div className="space-y-1">
+                              {faqs.map((faq) => {
+                                const isAlreadyCopied = customFaqs.some(
+                                  cf => cf.question.toLowerCase() === faq.question.toLowerCase()
+                                );
+                                
+                                return (
+                                  <div 
+                                    key={faq.id} 
+                                    className="bg-card rounded-lg border border-border p-3 space-y-2"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded bg-muted text-muted-foreground flex items-center justify-center mt-0.5">
+                                          {faq.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-foreground">{faq.question}</p>
+                                          <p className="text-xs text-muted-foreground mt-1">{faq.answer}</p>
+                                        </div>
                                       </div>
-                                      <span className="line-clamp-1">{faq.question}</span>
+                                      <Button
+                                        type="button"
+                                        variant={isAlreadyCopied ? "secondary" : "outline"}
+                                        size="icon"
+                                        className="h-7 w-7 flex-shrink-0"
+                                        onClick={() => {
+                                          if (!isAlreadyCopied) {
+                                            const newFaq: FAQItem = {
+                                              question: faq.question,
+                                              answer: faq.answer,
+                                              category: faq.category as CategoryId
+                                            };
+                                            updateFaqConfig({ custom_faqs: [...customFaqs, newFaq] });
+                                          }
+                                        }}
+                                        disabled={isAlreadyCopied}
+                                        title={isAlreadyCopied ? "Ya copiada" : "Copiar para editar"}
+                                      >
+                                        {isAlreadyCopied ? (
+                                          <Check className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <Pencil className="w-3.5 h-3.5" />
+                                        )}
+                                      </Button>
                                     </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent className="text-muted-foreground text-xs pb-3 pl-8">
-                                    {faq.answer}
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
                       })}
