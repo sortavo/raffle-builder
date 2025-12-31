@@ -361,10 +361,10 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
         </Card>
       )}
 
-      {/* Quick Actions - 2x3 grid on mobile */}
-      <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
-        <Button onClick={onEdit} variant="outline" size="sm" className="gap-1 text-[11px] sm:text-sm h-9 px-2 sm:px-3">
-          <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+      {/* Quick Actions - 2 columns on mobile for more space */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <Button onClick={onEdit} variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm h-9">
+          <Edit className="h-4 w-4 shrink-0" />
           <span>Editar</span>
         </Button>
         <Button 
@@ -372,28 +372,28 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
           variant="outline" 
           size="sm"
           disabled={isTogglingStatus || raffle.status === 'draft' || raffle.status === 'completed'}
-          className="gap-1 text-[11px] sm:text-sm h-9 px-2 sm:px-3"
+          className="gap-1.5 text-xs sm:text-sm h-9"
         >
           {raffle.status === 'active' ? (
             <>
-              <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <Pause className="h-4 w-4 shrink-0" />
               <span>Pausar</span>
             </>
           ) : (
             <>
-              <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <Play className="h-4 w-4 shrink-0" />
               <span>Activar</span>
             </>
           )}
         </Button>
-        <Button variant="outline" size="sm" onClick={handleShare} className="gap-1 text-[11px] sm:text-sm h-9 px-2 sm:px-3">
-          <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+        <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 text-xs sm:text-sm h-9">
+          <Share2 className="h-4 w-4 shrink-0" />
           <span>Compartir</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={isExporting} className="gap-1 text-[11px] sm:text-sm h-9 px-2 sm:px-3">
-              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+            <Button variant="outline" size="sm" disabled={isExporting} className="gap-1.5 text-xs sm:text-sm h-9 w-full">
+              <Download className="h-4 w-4 shrink-0" />
               <span>{isExporting ? '...' : 'Exportar'}</span>
             </Button>
           </DropdownMenuTrigger>
@@ -416,10 +416,10 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" asChild className="gap-1 text-[11px] sm:text-sm h-9 px-2 sm:px-3 col-span-2 sm:col-span-1">
+        <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs sm:text-sm h-9 col-span-2 sm:col-span-1">
           <a href={`/r/${raffle.slug}`} target="_blank" rel="noopener noreferrer">
-            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-            <span>Ver Público</span>
+            <Eye className="h-4 w-4 shrink-0" />
+            <span>Ver Página Pública</span>
           </a>
         </Button>
       </div>
@@ -454,10 +454,19 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
             <span className="font-medium">{soldPercentage.toFixed(1)}%</span>
           </div>
           <Progress value={soldPercentage} className="h-3" />
-          <div className="grid grid-cols-3 gap-2 text-[11px] sm:text-sm text-muted-foreground">
-            <span className="text-center truncate">{raffle.tickets_sold.toLocaleString()} vendidos</span>
-            <span className="text-center truncate">{raffle.tickets_reserved} reservados</span>
-            <span className="text-center truncate">{raffle.tickets_available.toLocaleString()} disponibles</span>
+          <div className="grid grid-cols-3 gap-1 text-muted-foreground">
+            <div className="text-center">
+              <div className="font-semibold text-foreground text-sm sm:text-base">{raffle.tickets_sold.toLocaleString()}</div>
+              <div className="text-[10px] sm:text-xs">vendidos</div>
+            </div>
+            <div className="text-center">
+              <div className="font-semibold text-foreground text-sm sm:text-base">{raffle.tickets_reserved}</div>
+              <div className="text-[10px] sm:text-xs">reservados</div>
+            </div>
+            <div className="text-center">
+              <div className="font-semibold text-foreground text-sm sm:text-base">{raffle.tickets_available.toLocaleString()}</div>
+              <div className="text-[10px] sm:text-xs">disponibles</div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -473,28 +482,14 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
               <div className="text-4xl font-bold text-primary mb-2">
                 {timeRemaining}
               </div>
-              <p className="text-muted-foreground">
-                <span className="md:hidden">
-                  Fecha del sorteo:{" "}
-                  {new Date(raffle.draw_date).toLocaleDateString('es-MX', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-                <span className="hidden md:inline">
-                  Fecha del sorteo:{" "}
-                  {new Date(raffle.draw_date).toLocaleDateString('es-MX', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
+              <p className="text-sm text-muted-foreground">
+                Sorteo: {new Date(raffle.draw_date).toLocaleDateString('es-MX', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </p>
             </div>
           </CardContent>
