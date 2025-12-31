@@ -196,6 +196,21 @@ export default function PublicRaffle() {
 
   // Feature configurations from customization (with sensible defaults)
   const customization = (raffle as any).customization || {};
+  const sections = customization.sections || {};
+  
+  // Section visibility toggles (default to true if not explicitly set to false)
+  const showHero = sections.hero !== false;
+  const showCountdown = sections.countdown !== false;
+  const showTicketGrid = sections.ticket_grid !== false;
+  const showPackages = sections.packages !== false;
+  const showGallery = sections.gallery !== false;
+  const showVideo = sections.video !== false;
+  const showHowItWorks = sections.how_it_works !== false;
+  const showFAQ = sections.faq !== false;
+  const showStats = sections.stats !== false;
+  const showShareButtons = sections.share_buttons !== false;
+  
+  // Feature toggles
   const showRandomPicker = customization.show_random_picker !== false;
   const showLuckyNumbers = true; // Always enabled
   const showWinnersHistory = customization.show_winners_history !== false;
@@ -251,18 +266,18 @@ export default function PublicRaffle() {
         }}
       >
         {/* Mobile Hero - Full lottery experience */}
-        {isMobile ? (
+        {isMobile && showHero ? (
           <>
             <MobileHero
               raffle={{
                 title: raffle.title,
                 prize_name: raffle.prize_name,
-                prize_images: raffle.prize_images,
-                prize_video_url: raffle.prize_video_url,
+                prize_images: showGallery ? raffle.prize_images : [],
+                prize_video_url: showVideo ? raffle.prize_video_url : null,
                 prize_value: raffle.prize_value ? Number(raffle.prize_value) : null,
                 ticket_price: Number(raffle.ticket_price),
-                draw_date: raffle.draw_date,
-                ticketsSold: raffle.ticketsSold,
+                draw_date: showCountdown ? raffle.draw_date : null,
+                ticketsSold: showStats ? raffle.ticketsSold : 0,
                 total_tickets: raffle.total_tickets,
                 ticketsAvailable: raffle.ticketsAvailable,
               }}
@@ -276,7 +291,7 @@ export default function PublicRaffle() {
               }}
               currency={currency}
               onScrollToTickets={scrollToTickets}
-              onShare={shareRaffle}
+              onShare={showShareButtons ? shareRaffle : undefined}
               onImageClick={(index) => {
                 setLightboxIndex(index);
                 setLightboxOpen(true);
@@ -284,7 +299,7 @@ export default function PublicRaffle() {
             />
 
             {/* Lightbox for mobile */}
-            {raffle.prize_images && raffle.prize_images.length > 0 && (
+            {showGallery && raffle.prize_images && raffle.prize_images.length > 0 && (
               <PrizeLightbox
                 images={raffle.prize_images}
                 initialIndex={lightboxIndex}
@@ -293,10 +308,17 @@ export default function PublicRaffle() {
               />
             )}
           </>
-        ) : (
-          /* Desktop: Original Premium Header */
+        ) : isMobile ? (
+          /* Mobile without hero - simple header */
+          <div className="bg-gradient-to-br from-primary/10 to-accent/10 py-8 px-4">
+            <h1 className="text-2xl font-bold text-foreground text-center">{raffle.title}</h1>
+            <p className="text-muted-foreground text-center mt-2">{raffle.prize_name}</p>
+          </div>
+        ) : null}
+        
+        {!isMobile && showHero && (
           <>
-            <header 
+            <header
               className={`sticky top-0 z-50 transition-all duration-500 ease-out ${
                 isScrolled 
                   ? 'backdrop-blur-xl shadow-xl' 
@@ -704,7 +726,7 @@ export default function PublicRaffle() {
             </div>
 
             {/* Desktop Countdown */}
-            {raffle.draw_date && (
+            {showCountdown && raffle.draw_date && (
               <div className="py-8" style={{ background: gradient }}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-4">
@@ -717,45 +739,56 @@ export default function PublicRaffle() {
           </>
         )}
 
+        {/* Desktop without hero - simple header */}
+        {!isMobile && !showHero && (
+          <div className="bg-gradient-to-br from-primary/10 to-accent/10 py-12 px-4">
+            <div className="max-w-4xl mx-auto text-center">
+              <h1 className="text-3xl lg:text-4xl font-bold text-foreground">{raffle.title}</h1>
+              <p className="text-muted-foreground mt-3 text-lg">{raffle.prize_name}</p>
+            </div>
+          </div>
+        )}
         {/* Purchase Toast Notifications */}
         {showPurchaseToasts && <PurchaseToast raffleId={raffle.id} />}
 
         {/* How To Participate - Mobile only shows this compact version */}
-        {isMobile && <HowToParticipate />}
+        {isMobile && showHowItWorks && <HowToParticipate />}
 
         {/* Ticket Selection Section */}
-        <div ref={ticketsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16" id="tickets">
-          <div className="text-center mb-8 lg:mb-12">
-            <h2 className="text-2xl lg:text-4xl font-bold text-foreground mb-2 lg:mb-3">
-              {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos de la Suerte"}
-            </h2>
-            <p className="text-base lg:text-lg text-muted-foreground">
-              {isMobile ? "¡La suerte te espera!" : "Elige los números que te llevarán a la victoria"}
-            </p>
-          </div>
-
-          <TicketSelector
-            raffleId={raffle.id}
-            totalTickets={raffle.total_tickets}
-            ticketPrice={Number(raffle.ticket_price)}
-            currencyCode={currency}
-            maxPerPurchase={raffle.max_tickets_per_purchase || 100}
-            packages={raffle.packages || []}
-            onContinue={handleContinue}
-            showRandomPicker={showRandomPicker}
-            showLuckyNumbers={showLuckyNumbers}
-            showWinnersHistory={showWinnersHistory}
-            showProbabilityStats={showProbabilityStats}
-            ticketsSold={raffle.ticketsSold}
-            ticketsAvailable={raffle.ticketsAvailable}
-          />
-
-          {showSocialProof && (
-            <div className="mt-12">
-              <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" />
+        {showTicketGrid && (
+          <div ref={ticketsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16" id="tickets">
+            <div className="text-center mb-8 lg:mb-12">
+              <h2 className="text-2xl lg:text-4xl font-bold text-foreground mb-2 lg:mb-3">
+                {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos de la Suerte"}
+              </h2>
+              <p className="text-base lg:text-lg text-muted-foreground">
+                {isMobile ? "¡La suerte te espera!" : "Elige los números que te llevarán a la victoria"}
+              </p>
             </div>
-          )}
-        </div>
+
+            <TicketSelector
+              raffleId={raffle.id}
+              totalTickets={raffle.total_tickets}
+              ticketPrice={Number(raffle.ticket_price)}
+              currencyCode={currency}
+              maxPerPurchase={raffle.max_tickets_per_purchase || 100}
+              packages={showPackages ? (raffle.packages || []) : []}
+              onContinue={handleContinue}
+              showRandomPicker={showRandomPicker}
+              showLuckyNumbers={showLuckyNumbers}
+              showWinnersHistory={showWinnersHistory}
+              showProbabilityStats={showStats && showProbabilityStats}
+              ticketsSold={showStats ? raffle.ticketsSold : 0}
+              ticketsAvailable={raffle.ticketsAvailable}
+            />
+
+            {showSocialProof && (
+              <div className="mt-12">
+                <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Transparency Section - shows on both mobile and desktop */}
         <TransparencySection 
@@ -764,7 +797,7 @@ export default function PublicRaffle() {
         />
 
         {/* How It Works - Desktop only (mobile uses compact version above) */}
-        {!isMobile && (
+        {!isMobile && showHowItWorks && (
           <div className="bg-gradient-to-br from-violet-50 via-white to-indigo-50 py-16">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
@@ -801,30 +834,32 @@ export default function PublicRaffle() {
         )}
 
         {/* FAQ Section */}
-        <FAQSection 
-          raffle={{
-            ticket_price: Number(raffle.ticket_price),
-            currency_code: raffle.currency_code,
-            draw_date: raffle.draw_date,
-            total_tickets: raffle.total_tickets,
-            max_tickets_per_person: raffle.max_tickets_per_person,
-            prize_name: raffle.prize_name,
-            prize_value: raffle.prize_value ? Number(raffle.prize_value) : undefined,
-            draw_method: raffle.draw_method,
-            lucky_numbers_enabled: raffle.lucky_numbers_enabled,
-            packages: raffle.packages?.map(p => ({ 
-              quantity: p.quantity, 
-              price: Number(p.price),
-              label: p.label 
-            }))
-          }}
-          organization={org ? {
-            name: org.name,
-            whatsapp_number: org.whatsapp_number,
-            email: org.email
-          } : null}
-          customization={customization}
-        />
+        {showFAQ && (
+          <FAQSection 
+            raffle={{
+              ticket_price: Number(raffle.ticket_price),
+              currency_code: raffle.currency_code,
+              draw_date: raffle.draw_date,
+              total_tickets: raffle.total_tickets,
+              max_tickets_per_person: raffle.max_tickets_per_person,
+              prize_name: raffle.prize_name,
+              prize_value: raffle.prize_value ? Number(raffle.prize_value) : undefined,
+              draw_method: raffle.draw_method,
+              lucky_numbers_enabled: raffle.lucky_numbers_enabled,
+              packages: raffle.packages?.map(p => ({ 
+                quantity: p.quantity, 
+                price: Number(p.price),
+                label: p.label 
+              }))
+            }}
+            organization={org ? {
+              name: org.name,
+              whatsapp_number: org.whatsapp_number,
+              email: org.email
+            } : null}
+            customization={customization}
+          />
+        )}
 
         {/* Terms Section */}
         {raffle.prize_terms && (
@@ -841,11 +876,13 @@ export default function PublicRaffle() {
         )}
 
         {/* Share Section */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-center">
-          <h2 className="text-xl lg:text-2xl font-bold text-foreground mb-4">¡Comparte y gana!</h2>
-          <p className="text-muted-foreground mb-6">Comparte este sorteo con tus amigos</p>
-          <ShareButtons url={url} title={raffle.title} description={raffle.description || undefined} />
-        </div>
+        {showShareButtons && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 text-center">
+            <h2 className="text-xl lg:text-2xl font-bold text-foreground mb-4">¡Comparte y gana!</h2>
+            <p className="text-muted-foreground mb-6">Comparte este sorteo con tus amigos</p>
+            <ShareButtons url={url} title={raffle.title} description={raffle.description || undefined} />
+          </div>
+        )}
 
         {/* Footer */}
         {!limits.canRemoveBranding && (
