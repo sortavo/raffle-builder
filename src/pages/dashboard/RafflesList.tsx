@@ -247,7 +247,7 @@ export default function RafflesList() {
         <div className="space-y-4">
           <RaffleFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -267,24 +267,21 @@ export default function RafflesList() {
                 </Button>
               )}
             </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {raffles.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleSelectAll}
-                  className="hidden sm:flex"
-                >
-                  {selectedIds.size === raffles.length ? 'Deseleccionar' : 'Seleccionar todo'}
-                </Button>
-              )}
-              {totalCount > 0 && (
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {totalCount} {totalCount === 1 ? 'sorteo' : 'sorteos'}
-                </span>
-              )}
-            </div>
+            {raffles.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+                className="hidden sm:flex"
+              >
+                {selectedIds.size === raffles.length ? 'Deseleccionar' : 'Seleccionar todo'}
+              </Button>
+            )}
+            {totalCount > 0 && (
+              <span className="text-sm text-muted-foreground hidden sm:inline">
+                {totalCount} {totalCount === 1 ? 'sorteo' : 'sorteos'}
+              </span>
+            )}
           </div>
         </div>
 
