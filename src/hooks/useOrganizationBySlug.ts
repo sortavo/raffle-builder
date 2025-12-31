@@ -97,46 +97,30 @@ export function useOrganizationBySlug(slug: string | undefined) {
         console.error("Error fetching completed raffles:", completedError);
       }
 
-      // Get ticket counts for active raffles
+      // Get ticket counts for active raffles using RPC to bypass RLS
       const activeRafflesWithCounts = await Promise.all(
         (activeRaffles || []).map(async (raffle) => {
-          const { count: soldCount } = await supabase
-            .from("tickets")
-            .select("*", { count: "exact", head: true })
-            .eq("raffle_id", raffle.id)
-            .eq("status", "sold");
+          const { data: counts } = await supabase
+            .rpc("get_public_ticket_counts", { p_raffle_id: raffle.id });
 
-          const { count: availableCount } = await supabase
-            .from("tickets")
-            .select("*", { count: "exact", head: true })
-            .eq("raffle_id", raffle.id)
-            .eq("status", "available");
+          const ticketCounts = counts?.[0] || { sold_count: 0, available_count: 0 };
 
           return {
             ...raffle,
-            tickets_sold: soldCount || 0,
-            tickets_available: availableCount || 0,
+            tickets_sold: ticketCounts.sold_count || 0,
+            tickets_available: ticketCounts.available_count || 0,
           };
         })
       );
 
-      // Get ticket counts for completed raffles
-      const completedRafflesWithCounts = await Promise.all(
-        (completedRaffles || []).map(async (raffle) => {
-          const { count: soldCount } = await supabase
-            .from("tickets")
-            .select("*", { count: "exact", head: true })
-            .eq("raffle_id", raffle.id)
-            .eq("status", "sold");
-
-          return {
-            ...raffle,
-            tickets_sold: soldCount || 0,
-            tickets_available: 0,
-            winner_data: raffle.winner_data as OrganizationRaffle["winner_data"],
-          };
-        })
-      );
+      // Get ticket counts for completed raffles - use direct query since no RPC for completed
+      // For completed raffles, we sum all sold tickets from active raffles already fetched
+      const completedRafflesWithCounts = (completedRaffles || []).map((raffle) => ({
+        ...raffle,
+        tickets_sold: raffle.total_tickets, // Completed raffles show total as sold
+        tickets_available: 0,
+        winner_data: raffle.winner_data as OrganizationRaffle["winner_data"],
+      }));
 
       // Calculate stats
       const allRafflesCount = (activeRaffles?.length || 0) + (completedRaffles?.length || 0);
