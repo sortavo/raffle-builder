@@ -235,145 +235,225 @@ export function TemplateHeroLayout({
   // Check if video should be included in gallery
   const hasVideo = showVideo && !!raffle.prize_video_url;
 
-  // Gallery component with premium styling - VIDEO ALWAYS INTEGRATED
+  // Unified media items array: images + video as last item
+  type MediaItem = { type: 'image'; url: string } | { type: 'video'; url: string };
+  const images = raffle.prize_images || [];
+  
+  const mediaItems: MediaItem[] = [
+    ...images.map(url => ({ type: 'image' as const, url })),
+    ...(hasVideo && raffle.prize_video_url ? [{ type: 'video' as const, url: raffle.prize_video_url }] : []),
+  ];
+
+  // State for current media index in gallery
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const currentItem = mediaItems[currentMediaIndex];
+
+  // Helper to get YouTube thumbnail
+  const getYouTubeThumbnailUrl = (url: string) => {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+    return match ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg` : null;
+  };
+
+  // Gallery component with premium styling - VIDEO ALWAYS INTEGRATED AS NAVIGABLE SLIDE
   const GalleryComponent = () => {
-    const images = raffle.prize_images || [];
-    const hasImages = images.length > 0;
-    
-    // If no images and no video, return null
+    // If no media items, return null
+    if (mediaItems.length === 0) return null;
     if (!showGallery && !hasVideo) return null;
-    if (!hasImages && !hasVideo) return null;
+
+    // Render current item (image or video)
+    const renderCurrentItem = (aspectClass = "aspect-[16/10]") => {
+      if (!currentItem) return null;
+      
+      if (currentItem.type === 'image') {
+        return (
+          <motion.div 
+            key={currentMediaIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={`${aspectClass} rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06] cursor-pointer`}
+            onClick={() => {
+              if (currentItem.type === 'image') {
+                setLightboxIndex(currentMediaIndex);
+                setLightboxOpen(true);
+              }
+            }}
+          >
+            <img 
+              src={currentItem.url} 
+              alt={raffle.prize_name} 
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+        );
+      } else {
+        return (
+          <motion.div
+            key={`video-${currentMediaIndex}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <VideoSlide videoUrl={currentItem.url} className={`${aspectClass} !rounded-2xl`} />
+          </motion.div>
+        );
+      }
+    };
+
+    // Render thumbnails for all media items
+    const renderThumbnails = () => {
+      if (mediaItems.length <= 1) return null;
+      
+      return (
+        <div className="flex gap-2 mt-4 justify-center flex-wrap">
+          {mediaItems.map((item, idx) => (
+            <motion.div 
+              key={idx}
+              className={`w-20 h-20 rounded-xl overflow-hidden shadow-md cursor-pointer border-2 transition-all ${
+                idx === currentMediaIndex 
+                  ? 'border-emerald-500 ring-2 ring-emerald-500/50' 
+                  : 'border-white/10 hover:border-white/30'
+              }`}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => {
+                setCurrentMediaIndex(idx);
+                // Reset video playing state when switching
+                if (item.type !== 'video') {
+                  setVideoPlaying(false);
+                }
+              }}
+            >
+              {item.type === 'image' ? (
+                <img src={item.url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="relative w-full h-full">
+                  <img 
+                    src={getYouTubeThumbnailUrl(item.url) || ''} 
+                    alt="Video" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white" fill="white" />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      );
+    };
 
     switch (galleryStyle) {
       case 'grid':
         return (
-          <div className="grid grid-cols-2 gap-4">
-            {images.slice(0, hasVideo ? 3 : 4).map((img, idx) => (
-              <motion.div 
-                key={idx}
-                className="aspect-square rounded-xl overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
-                whileHover={{ scale: 1.02 }}
-                onClick={() => {
-                  setLightboxIndex(idx);
-                  setLightboxOpen(true);
-                }}
-              >
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </motion.div>
-            ))}
-            {/* Video as last grid item */}
-            {hasVideo && raffle.prize_video_url && (
-              <motion.div 
-                className="aspect-square rounded-xl overflow-hidden"
-                whileHover={{ scale: 1.02 }}
-              >
-                <VideoSlide videoUrl={raffle.prize_video_url} className="!aspect-square !rounded-xl" />
-              </motion.div>
-            )}
+          <div className="space-y-4">
+            {renderCurrentItem("aspect-[16/10]")}
+            <div className="grid grid-cols-4 gap-2">
+              {mediaItems.map((item, idx) => (
+                <motion.div 
+                  key={idx}
+                  className={`aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border-2 transition-all ${
+                    idx === currentMediaIndex 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/50' 
+                      : 'border-white/[0.06] hover:border-white/20'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  onClick={() => {
+                    setCurrentMediaIndex(idx);
+                    if (item.type !== 'video') setVideoPlaying(false);
+                  }}
+                >
+                  {item.type === 'image' ? (
+                    <img src={item.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={getYouTubeThumbnailUrl(item.url) || ''} 
+                        alt="Video" 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Play className="w-5 h-5 text-white" fill="white" />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </div>
         );
       
       case 'single-focus':
         return (
           <div className="space-y-4">
-            {hasImages && (
-              <div className="relative">
-                <motion.div 
-                  className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer shadow-2xl border border-white/[0.06]"
-                  whileHover={{ scale: 1.01 }}
-                  onClick={() => setLightboxOpen(true)}
-                >
-                  <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-                </motion.div>
-                {images.length > 1 && (
-                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {images.slice(0, 4).map((_, idx) => (
-                      <div 
-                        key={idx}
-                        className={`w-2 h-2 rounded-full transition-colors ${idx === 0 ? 'bg-emerald-400' : 'bg-white/20'}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Video after images */}
-            {hasVideo && raffle.prize_video_url && (
-              <VideoSlide videoUrl={raffle.prize_video_url} />
-            )}
+            <div className="relative">
+              {renderCurrentItem("aspect-[4/3]")}
+              {mediaItems.length > 1 && (
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {mediaItems.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setCurrentMediaIndex(idx);
+                        if (item.type !== 'video') setVideoPlaying(false);
+                      }}
+                      className={`w-3 h-3 rounded-full transition-all ${
+                        idx === currentMediaIndex 
+                          ? 'bg-emerald-400 scale-125' 
+                          : 'bg-white/30 hover:bg-white/50'
+                      } ${item.type === 'video' ? 'ring-1 ring-white/50' : ''}`}
+                      aria-label={item.type === 'video' ? 'Ver video' : `Ver imagen ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       
       case 'masonry':
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              {hasImages && (
-                <>
-                  <motion.div 
-                    className="col-span-2 row-span-2 aspect-square rounded-xl overflow-hidden cursor-pointer shadow-xl border border-white/[0.06]"
-                    whileHover={{ scale: 1.01 }}
-                    onClick={() => setLightboxOpen(true)}
-                  >
-                    <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-                  </motion.div>
-                  {images.slice(1, 3).map((img, idx) => (
-                    <motion.div 
-                      key={idx}
-                      className="aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => {
-                        setLightboxIndex(idx + 1);
-                        setLightboxOpen(true);
-                      }}
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </motion.div>
-                  ))}
-                </>
-              )}
+            {renderCurrentItem("aspect-[16/10]")}
+            <div className="grid grid-cols-4 gap-2">
+              {mediaItems.slice(0, 4).map((item, idx) => (
+                <motion.div 
+                  key={idx}
+                  className={`aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border-2 transition-all ${
+                    idx === currentMediaIndex 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/50' 
+                      : 'border-white/[0.06] hover:border-white/20'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => {
+                    setCurrentMediaIndex(idx);
+                    if (item.type !== 'video') setVideoPlaying(false);
+                  }}
+                >
+                  {item.type === 'image' ? (
+                    <img src={item.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="relative w-full h-full">
+                      <img 
+                        src={getYouTubeThumbnailUrl(item.url) || ''} 
+                        alt="Video" 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Play className="w-5 h-5 text-white" fill="white" />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
             </div>
-            {/* Video after masonry grid */}
-            {hasVideo && raffle.prize_video_url && (
-              <VideoSlide videoUrl={raffle.prize_video_url} />
-            )}
           </div>
         );
       
       case 'carousel':
       default:
         return (
-          <div className="space-y-6">
-            {hasImages && (
-              <div className="relative">
-                <div className="aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06]">
-                  <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-                </div>
-                {images.length > 1 && (
-                  <div className="flex gap-2 mt-4 justify-center">
-                    {images.slice(0, 4).map((img, idx) => (
-                      <motion.div 
-                        key={idx}
-                        className={`w-20 h-20 rounded-xl overflow-hidden shadow-md cursor-pointer border-2 ${
-                          idx === 0 ? 'border-emerald-500' : 'border-white/10'
-                        }`}
-                        whileHover={{ scale: 1.1 }}
-                        onClick={() => {
-                          setLightboxIndex(idx);
-                          setLightboxOpen(true);
-                        }}
-                      >
-                        <img src={img} alt="" className="w-full h-full object-cover" />
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Video as last item in carousel view */}
-            {hasVideo && raffle.prize_video_url && (
-              <VideoSlide videoUrl={raffle.prize_video_url} />
-            )}
+          <div className="space-y-4">
+            {renderCurrentItem("aspect-[16/10]")}
+            {renderThumbnails()}
           </div>
         );
     }
