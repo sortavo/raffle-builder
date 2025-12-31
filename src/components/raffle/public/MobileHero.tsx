@@ -205,20 +205,20 @@ export function MobileHero({
           </div>
         )}
 
-        {/* Prize info overlay - Clean typography */}
+        {/* Prize info overlay - DRAMATIC PREMIUM typography */}
         <div className="absolute bottom-0 left-0 right-0 p-5 space-y-3 pointer-events-none">
           {/* Title - Large and dramatic */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[0.95] tracking-[-0.03em]">
             {raffle.title}
           </h1>
           
           {/* Prize name with value */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-white/80 text-base">
+            <span className="text-white/80 text-base tracking-tight">
               {raffle.prize_name}
             </span>
             {raffle.prize_value && (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400">
+              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-400 shimmer-badge">
                 {formatCurrency(raffle.prize_value, currency)}
               </span>
             )}
@@ -226,18 +226,18 @@ export function MobileHero({
         </div>
       </div>
 
-      {/* Ticket Price Section - Dark premium */}
+      {/* Ticket Price Section - DRAMATIC PREMIUM */}
       <div className="py-5 px-5 bg-ultra-dark">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500/10">
-              <Ticket className="w-6 h-6 text-emerald-400" />
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-emerald-500/10 ambient-glow">
+              <Ticket className="w-7 h-7 text-emerald-400" />
             </div>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-ultra-dark-dimmed">
+              <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-ultra-dark-dimmed">
                 Precio por boleto
               </p>
-              <p className="text-3xl font-black text-white tracking-tight">
+              <p className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-[-0.03em]">
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>
@@ -286,13 +286,13 @@ export function MobileHero({
         </p>
       </div>
 
-      {/* Primary CTA - White button (inverted) */}
+      {/* Primary CTA - White button (inverted) with premium touch feedback */}
       <div className="px-5 py-5 bg-ultra-dark">
-        <motion.div whileTap={{ scale: 0.98 }}>
+        <motion.div whileTap={{ scale: 0.97 }}>
           <Button
             variant="inverted"
             size="lg"
-            className="w-full h-14 text-base font-semibold rounded-xl shadow-lg"
+            className="w-full h-14 text-base font-bold rounded-xl shadow-lg touch-active btn-mobile tracking-tight"
             onClick={onScrollToTickets}
           >
             Comprar Boletos

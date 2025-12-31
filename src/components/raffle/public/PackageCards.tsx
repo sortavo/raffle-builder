@@ -61,31 +61,31 @@ export function PackageCards({
             <motion.button
               key={pkg.id}
               onClick={() => onSelect(pkg.quantity)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.03, y: -4 }}
+              whileTap={{ scale: 0.97 }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={cn(
                 "relative flex-shrink-0 w-[150px] md:w-full snap-center",
-                "rounded-xl p-4 text-left transition-all duration-200",
-                "border backdrop-blur-sm",
-                // Default state - dark glassmorphism
-                !isSelected && !isBest && "border-ultra-dark-subtle bg-ultra-dark-card",
-                // Best value (not selected) - subtle emerald
-                !isSelected && isBest && "border-emerald-500/30 bg-emerald-500/5",
-                // Selected state - emerald solid
-                isSelected && "bg-emerald-500/10 border-emerald-500"
+                "rounded-xl p-4 text-left transition-all duration-300",
+                "border backdrop-blur-sm touch-active",
+                // Default state - dark glassmorphism with hover glow
+                !isSelected && !isBest && "border-ultra-dark-subtle bg-ultra-dark-card hover:border-white/[0.12] hover:shadow-lg hover:shadow-emerald-500/5",
+                // Best value (not selected) - subtle emerald with animated border
+                !isSelected && isBest && "border-emerald-500/30 bg-emerald-500/5 gradient-border-animated hover:shadow-lg hover:shadow-emerald-500/20",
+                // Selected state - emerald solid with glow
+                isSelected && "bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/25"
               )}
             >
-              {/* Best value badge */}
+              {/* Best value badge with shimmer */}
               {isBest && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10"
                 >
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-400">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 shimmer-badge">
                     Mejor Valor
                   </span>
                 </motion.div>
