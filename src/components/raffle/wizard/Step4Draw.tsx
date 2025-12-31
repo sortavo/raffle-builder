@@ -5,13 +5,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Calendar, Clock, Video, Dices, Globe, Hand } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, Video, Dices, Globe, Hand, Sparkles, Loader2 } from 'lucide-react';
 import { CLOSE_SALE_OPTIONS, CLOSE_SALE_TIME_UNITS, MAX_CLOSE_SALE_HOURS, formatCloseSaleTime } from '@/lib/raffle-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Step4Props {
   form: UseFormReturn<any>;
@@ -21,6 +24,7 @@ export const Step4Draw = ({ form }: Step4Props) => {
   const { organization } = useAuth();
   const drawMethod = form.watch('draw_method') || 'manual';
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   
   // Estado para tiempo de cierre personalizado
   const [isCustomCloseSale, setIsCustomCloseSale] = useState(false);
@@ -94,6 +98,42 @@ export const Step4Draw = ({ form }: Step4Props) => {
 
   const drawDateError = getFieldError('draw_date');
   const startDateError = getFieldError('start_date');
+
+  const handleGenerateMethodDescription = async () => {
+    setIsGeneratingDescription(true);
+    try {
+      const raffleName = form.watch('title') || 'Sorteo';
+      const prizeName = form.watch('prize_name') || 'Premio';
+      const orgName = organization?.name || '';
+      
+      const { data, error } = await supabase.functions.invoke('generate-description', {
+        body: {
+          prompt: `Genera una descripción breve y emocionante para el método de sorteo manual de una rifa llamada "${raffleName}" con premio "${prizeName}" organizada por "${orgName}". 
+          
+          La descripción debe:
+          - Ser en español latinoamericano informal y amigable
+          - Incluir 2-3 emojis relevantes (🎁🏆🎉✨🔥💫)
+          - Explicar brevemente que el ganador será seleccionado manualmente en vivo
+          - Generar emoción y confianza
+          - Ser de máximo 150 caracteres
+          - NO incluir fechas específicas ni números de boletos`
+        }
+      });
+
+      if (error) throw error;
+      
+      const generatedDescription = data?.description || data?.text || '';
+      if (generatedDescription) {
+        form.setValue('description', generatedDescription);
+        toast.success('Descripción generada con IA');
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      toast.error('No se pudo generar la descripción');
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   return (
     <div className="space-y-8 md:space-y-10">
@@ -344,7 +384,25 @@ export const Step4Draw = ({ form }: Step4Props) => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Descripción del método</FormLabel>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Descripción del método</FormLabel>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleGenerateMethodDescription}
+                              disabled={isGeneratingDescription}
+                              className="h-7 gap-1.5 text-xs text-primary hover:text-primary/80"
+                            >
+                              {isGeneratingDescription ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3.5 h-3.5" />
+                              )}
+                              <span className="hidden sm:inline">Generar con IA</span>
+                              <span className="sm:hidden">IA</span>
+                            </Button>
+                          </div>
                           <FormControl>
                             <Textarea 
                               placeholder="Describe cómo se realizará el sorteo..."
