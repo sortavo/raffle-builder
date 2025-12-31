@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { BulkActionsToolbar } from '@/components/ui/BulkActionsToolbar';
 import { 
   Plus, 
   Search, 
@@ -51,6 +53,7 @@ import { toast } from 'sonner';
 import { getRafflePublicUrl } from '@/lib/url-utils';
 import { useRaffles, type RaffleFilters as RaffleFiltersType } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 import { RaffleStatusBadge } from '@/components/raffle/RaffleStatusBadge';
 import { RaffleFilters, type FilterState } from '@/components/raffle/RaffleFilters';
 import { ProtectedAction } from '@/components/auth/ProtectedAction';
@@ -76,6 +79,8 @@ export default function RafflesList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
   const { 
     useRafflesList, 
@@ -84,11 +89,38 @@ export default function RafflesList() {
     duplicateRaffle 
   } = useRaffles();
 
+  // Undoable delete for single items
+  const { scheduleDelete, isPending: isDeletePending } = useUndoableDelete({
+    onDelete: async (raffle: { id: string; title: string }) => {
+      await deleteRaffle.mutateAsync(raffle.id);
+    },
+    getDeleteMessage: (raffle) => `Eliminando "${raffle.title}"...`,
+    delay: 5000,
+  });
+
   const copyUrl = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(url);
     toast.success('URL copiada al portapapeles');
   };
+
+  // Selection handlers
+  const toggleSelect = useCallback((id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
   
   // Build the query filters with pagination
   const queryFilters: RaffleFiltersType = {
@@ -110,16 +142,27 @@ export default function RafflesList() {
   const totalPages = paginatedData?.totalPages || 0;
   const totalCount = paginatedData?.totalCount || 0;
 
+  // Select all must be after raffles is defined
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === raffles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(raffles.map(r => r.id)));
+    }
+  }, [raffles, selectedIds.size]);
+
   // Reset page when filters change
   const handleFiltersChange = (newFilters: FilterState) => {
     setFilters(newFilters);
     setCurrentPage(1);
+    clearSelection();
   };
 
   // Reset page when search changes
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
+    clearSelection();
   };
 
   // Keyboard shortcut for creating new raffle
@@ -127,9 +170,40 @@ export default function RafflesList() {
 
   const handleDelete = async () => {
     if (deleteConfirmId) {
-      await deleteRaffle.mutateAsync(deleteConfirmId);
+      const raffle = raffles.find(r => r.id === deleteConfirmId);
+      if (raffle) {
+        scheduleDelete({ id: raffle.id, title: raffle.title });
+      }
       setDeleteConfirmId(null);
     }
+  };
+
+  // Bulk actions
+  const handleBulkPause = async () => {
+    const selected = raffles.filter(r => selectedIds.has(r.id) && r.status === 'active');
+    for (const raffle of selected) {
+      await toggleRaffleStatus.mutateAsync({ id: raffle.id, currentStatus: 'active' });
+    }
+    toast.success(`${selected.length} sorteo(s) pausado(s)`);
+    clearSelection();
+  };
+
+  const handleBulkActivate = async () => {
+    const selected = raffles.filter(r => selectedIds.has(r.id) && r.status === 'paused');
+    for (const raffle of selected) {
+      await toggleRaffleStatus.mutateAsync({ id: raffle.id, currentStatus: 'paused' });
+    }
+    toast.success(`${selected.length} sorteo(s) activado(s)`);
+    clearSelection();
+  };
+
+  const handleBulkDelete = async () => {
+    const selected = raffles.filter(r => selectedIds.has(r.id));
+    for (const raffle of selected) {
+      scheduleDelete({ id: raffle.id, title: raffle.title });
+    }
+    clearSelection();
+    setBulkDeleteConfirm(false);
   };
 
   // Generate pagination range
@@ -151,7 +225,7 @@ export default function RafflesList() {
   return (
     <DashboardLayout>
       <PageTransition>
-      <div className="space-y-6">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -193,11 +267,24 @@ export default function RafflesList() {
                 </Button>
               )}
             </div>
-            {totalCount > 0 && (
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {totalCount} {totalCount === 1 ? 'sorteo' : 'sorteos'}
-              </span>
-            )}
+            </div>
+            <div className="flex items-center gap-3">
+              {raffles.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="hidden sm:flex"
+                >
+                  {selectedIds.size === raffles.length ? 'Deseleccionar' : 'Seleccionar todo'}
+                </Button>
+              )}
+              {totalCount > 0 && (
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {totalCount} {totalCount === 1 ? 'sorteo' : 'sorteos'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -220,14 +307,30 @@ export default function RafflesList() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {raffles.map((raffle) => (
+            {raffles.map((raffle) => {
+              const isSelected = selectedIds.has(raffle.id);
+              const isPendingDelete = isDeletePending(raffle.id);
+              
+              return (
               <Card 
                 key={raffle.id} 
-                className="cursor-pointer"
+                className={`cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''} ${isPendingDelete ? 'opacity-50' : ''}`}
                 onClick={() => navigate(`/dashboard/raffles/${raffle.id}`)}
               >
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-start gap-3 sm:gap-4">
+                    {/* Checkbox for selection */}
+                    <div 
+                      className="pt-1 hidden sm:block"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelect(raffle.id)}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                    </div>
+                    
                     {/* Thumbnail - visible on mobile too */}
                     <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-lg bg-muted overflow-hidden shrink-0">
                       {raffle.prize_images && raffle.prize_images[0] ? (
@@ -376,7 +479,8 @@ export default function RafflesList() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -414,7 +518,18 @@ export default function RafflesList() {
             )}
           </div>
         )}
-      </div>
+        </div>
+      </PageTransition>
+
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedCount={selectedIds.size}
+        onClear={clearSelection}
+        onPause={handleBulkPause}
+        onActivate={handleBulkActivate}
+        onDelete={() => setBulkDeleteConfirm(true)}
+        isVisible={selectedIds.size > 0}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
@@ -422,7 +537,7 @@ export default function RafflesList() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar sorteo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminarán todos los boletos y datos asociados.
+              Esta acción se puede deshacer durante 5 segundos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -436,7 +551,27 @@ export default function RafflesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </PageTransition>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {selectedIds.size} sorteo(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción se puede deshacer durante 5 segundos por cada sorteo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

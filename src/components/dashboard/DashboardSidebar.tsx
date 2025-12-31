@@ -25,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 import { useSimulation } from "@/contexts/SimulationContext";
+import { usePendingApprovals } from "@/hooks/usePendingApprovals";
+import { useActiveRafflesCount } from "@/hooks/useActiveRafflesCount";
 import {
   Ticket,
   LayoutDashboard,
@@ -55,31 +57,37 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
+    badgeKey: null as string | null,
   },
   {
     title: "Sorteos",
     url: "/dashboard/raffles",
     icon: Gift,
+    badgeKey: 'activeRaffles' as string | null,
   },
   {
     title: "Compradores",
     url: "/dashboard/buyers",
     icon: Users,
+    badgeKey: 'pendingApprovals' as string | null,
   },
   {
     title: "Analíticas",
     url: "/dashboard/analytics",
     icon: BarChart3,
+    badgeKey: null as string | null,
   },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
     icon: Megaphone,
+    badgeKey: null as string | null,
   },
   {
     title: "Cupones",
     url: "/dashboard/coupons",
     icon: Tag,
+    badgeKey: null as string | null,
   },
 ];
 
@@ -111,6 +119,8 @@ export function DashboardSidebar() {
   const { profile, organization, signOut } = useAuth();
   const { isPlatformAdmin } = useIsPlatformAdmin();
   const { isSimulating, simulatedUser, simulatedOrg, mode: simulationMode } = useSimulation();
+  const { count: pendingApprovalsCount } = usePendingApprovals();
+  const { count: activeRafflesCount } = useActiveRafflesCount();
   const { state } = useSidebar();
   const [scannerOpen, setScannerOpen] = useState(false);
   const isCollapsed = state === "collapsed";
@@ -190,25 +200,49 @@ export function DashboardSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className={`group transition-all duration-200 ${
-                      isActive(item.url) 
-                        ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-primary/40' 
-                        : 'hover:bg-primary/10'
-                    }`}
-                  >
-                    <Link to={item.url}>
-                      <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-primary'}`} />
-                      <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-primary'}>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const badgeCount = item.badgeKey === 'pendingApprovals' 
+                  ? pendingApprovalsCount 
+                  : item.badgeKey === 'activeRaffles' 
+                    ? activeRafflesCount 
+                    : 0;
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className={`group transition-all duration-200 ${
+                        isActive(item.url) 
+                          ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-primary/40' 
+                          : 'hover:bg-primary/10'
+                      }`}
+                    >
+                      <Link to={item.url} className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <item.icon className={`h-4 w-4 ${isActive(item.url) ? 'text-white' : 'text-muted-foreground group-hover:text-primary'}`} />
+                          <span className={isActive(item.url) ? 'font-medium' : 'group-hover:text-primary'}>{item.title}</span>
+                        </div>
+                        {badgeCount > 0 && !isCollapsed && (
+                          <Badge 
+                            variant={item.badgeKey === 'pendingApprovals' ? 'default' : 'secondary'}
+                            className={`ml-auto text-[10px] px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center ${
+                              isActive(item.url) 
+                                ? 'bg-white/20 text-white border-white/30' 
+                                : item.badgeKey === 'pendingApprovals'
+                                  ? 'bg-amber-500 text-white border-amber-500'
+                                  : ''
+                            }`}
+                          >
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setScannerOpen(true)}
