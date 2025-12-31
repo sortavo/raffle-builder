@@ -69,7 +69,7 @@ export function MobileNav() {
                 {active && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute -top-0.5 w-8 h-1 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full"
+                    className="absolute -top-0.5 w-8 h-1 bg-gradient-to-r from-primary to-accent rounded-full"
                     initial={false}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
@@ -80,7 +80,7 @@ export function MobileNav() {
                   className={cn(
                     "p-2 rounded-xl transition-all duration-300",
                     active
-                      ? "bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/40"
+                      ? "bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20"
                       : "bg-transparent"
                   )}
                   whileTap={{ scale: 0.9 }}
@@ -89,7 +89,7 @@ export function MobileNav() {
                     className={cn(
                       "h-5 w-5 transition-colors duration-300",
                       active
-                        ? "text-violet-600 dark:text-violet-400"
+                        ? "text-primary dark:text-primary"
                         : "text-muted-foreground"
                     )}
                   />
@@ -100,7 +100,7 @@ export function MobileNav() {
                   className={cn(
                     "text-[10px] font-medium transition-colors duration-300",
                     active
-                      ? "text-violet-600 dark:text-violet-400"
+                      ? "text-primary dark:text-primary"
                       : "text-muted-foreground"
                   )}
                 >
@@ -150,10 +150,10 @@ export function MobileNav() {
                 <h3 className="text-lg font-semibold text-center">Menú</h3>
 
                 {/* User info */}
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-2xl">
-                  <Avatar className="h-14 w-14 ring-2 ring-violet-200 dark:ring-violet-800">
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-2xl">
+                  <Avatar className="h-14 w-14 ring-2 ring-primary/20 dark:ring-primary/30">
                     <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white text-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-lg">
                       {getInitials(profile?.full_name)}
                     </AvatarFallback>
                   </Avatar>
@@ -165,7 +165,7 @@ export function MobileNav() {
                       {user?.email}
                     </p>
                     {organization && (
-                      <p className="text-xs text-violet-600 dark:text-violet-400 truncate font-medium">
+                      <p className="text-xs text-primary dark:text-primary truncate font-medium">
                         {organization.name}
                       </p>
                     )}
@@ -178,28 +178,28 @@ export function MobileNav() {
                 <div className="space-y-2">
                   <Button
                     variant="ghost"
-                    className="w-full justify-start h-14 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                    className="w-full justify-start h-14 rounded-xl hover:bg-primary/5 dark:hover:bg-primary/10"
                     onClick={() => {
                       navigate("/pricing");
                       setMenuOpen(false);
                     }}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/40 flex items-center justify-center mr-3">
-                      <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex items-center justify-center mr-3">
+                      <CreditCard className="h-5 w-5 text-primary dark:text-primary" />
                     </div>
                     <span className="font-medium">Ver Planes</span>
                   </Button>
 
                   <Button
                     variant="ghost"
-                    className="w-full justify-start h-14 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                    className="w-full justify-start h-14 rounded-xl hover:bg-primary/5 dark:hover:bg-primary/10"
                     onClick={() => {
                       navigate("/dashboard/settings");
                       setMenuOpen(false);
                     }}
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/40 flex items-center justify-center mr-3">
-                      <User className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex items-center justify-center mr-3">
+                      <User className="h-5 w-5 text-primary dark:text-primary" />
                     </div>
                     <span className="font-medium">Mi Perfil</span>
                   </Button>

@@ -18,6 +18,7 @@ import { formatCurrency } from "@/lib/currency-utils";
 import { WhatsAppContactButton } from "@/components/raffle/public/WhatsAppContactButton";
 import { cn } from "@/lib/utils";
 import { BankBadge } from "@/components/ui/BankBadge";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { 
   Loader2, 
   Upload, 
@@ -44,14 +45,14 @@ import {
 
 // Payment subtype configurations
 const SUBTYPE_CONFIG = {
-  bank_deposit: { label: 'Depósito en ventanilla', icon: Landmark, color: 'text-blue-600' },
-  bank_transfer: { label: 'Transferencia SPEI', icon: ArrowRightLeft, color: 'text-blue-600' },
-  oxxo: { label: 'OXXO Pay', icon: Store, color: 'text-red-600' },
-  pharmacy: { label: 'Farmacias', icon: Pill, color: 'text-green-600' },
-  convenience_store: { label: '7-Eleven / Tiendas', icon: ShoppingBag, color: 'text-orange-600' },
-  paypal: { label: 'PayPal', icon: CreditCard, color: 'text-blue-500' },
-  mercado_pago: { label: 'Mercado Pago', icon: Wallet, color: 'text-sky-500' },
-  cash_in_person: { label: 'Efectivo en persona', icon: HandCoins, color: 'text-emerald-600' },
+  bank_deposit: { label: 'Depósito en ventanilla', icon: Landmark, color: 'text-blue-400' },
+  bank_transfer: { label: 'Transferencia SPEI', icon: ArrowRightLeft, color: 'text-blue-400' },
+  oxxo: { label: 'OXXO Pay', icon: Store, color: 'text-red-400' },
+  pharmacy: { label: 'Farmacias', icon: Pill, color: 'text-green-400' },
+  convenience_store: { label: '7-Eleven / Tiendas', icon: ShoppingBag, color: 'text-orange-400' },
+  paypal: { label: 'PayPal', icon: CreditCard, color: 'text-blue-400' },
+  mercado_pago: { label: 'Mercado Pago', icon: Wallet, color: 'text-sky-400' },
+  cash_in_person: { label: 'Efectivo en persona', icon: HandCoins, color: 'text-emerald-400' },
 } as const;
 
 // localStorage key for persisting reservation state
@@ -102,6 +103,9 @@ function clearPersistedReservation() {
 }
 
 export default function PaymentInstructions() {
+  // Activate Ultra-Dark theme
+  useScopedDarkMode();
+  
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -176,21 +180,21 @@ export default function PaymentInstructions() {
 
   if (!tickets.length || (!isLoadingRaffle && !raffle)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-violet-50 via-white to-indigo-50 relative overflow-hidden">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-ultra-dark relative overflow-hidden">
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
         </div>
         
         <div className="relative z-10 text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-            <AlertTriangle className="h-8 w-8 text-amber-600" />
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-amber-400" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">No hay reservación activa</h1>
+          <h1 className="text-xl font-bold text-white">No hay reservación activa</h1>
           <Button 
             onClick={() => navigate(`/r/${slug}`)}
-            className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25"
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25"
           >
             Volver al sorteo
           </Button>
@@ -201,11 +205,11 @@ export default function PaymentInstructions() {
 
   if (isLoadingRaffle) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 py-8">
+      <div className="min-h-screen bg-ultra-dark py-8">
         <div className="container mx-auto px-4 max-w-2xl space-y-6">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-60 w-full" />
+          <Skeleton className="h-16 w-full bg-white/5" />
+          <Skeleton className="h-40 w-full bg-white/5" />
+          <Skeleton className="h-60 w-full bg-white/5" />
         </div>
       </div>
     );
@@ -364,85 +368,85 @@ export default function PaymentInstructions() {
           )}
           
           {/* Amount */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Monto a depositar</p>
-              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+              <p className="text-sm text-white/60">Monto a depositar</p>
+              <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* CLABE */}
           {method.clabe && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">CLABE Interbancaria</p>
-                <p className="font-mono font-medium">{method.clabe}</p>
+                <p className="text-sm text-white/60">CLABE Interbancaria</p>
+                <p className="font-mono font-medium text-white">{method.clabe}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.clabe!, `clabe-${method.id}`)}>
-                {copied === `clabe-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(method.clabe!, `clabe-${method.id}`)}>
+                {copied === `clabe-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Account Number */}
           {method.account_number && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Número de Cuenta</p>
-                <p className="font-mono font-medium">{method.account_number}</p>
+                <p className="text-sm text-white/60">Número de Cuenta</p>
+                <p className="font-mono font-medium text-white">{method.account_number}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_number!, `account-${method.id}`)}>
-                {copied === `account-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(method.account_number!, `account-${method.id}`)}>
+                {copied === `account-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Card Number */}
           {m.card_number && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Tarjeta de Débito</p>
-                <p className="font-mono font-medium">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
+                <p className="text-sm text-white/60">Tarjeta de Débito</p>
+                <p className="font-mono font-medium text-white">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
-                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
+                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Account Holder */}
           {method.account_holder && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Titular de la Cuenta</p>
-                <p className="font-medium">{method.account_holder}</p>
+                <p className="text-sm text-white/60">Titular de la Cuenta</p>
+                <p className="font-medium text-white">{method.account_holder}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
-                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
+                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Reference */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Concepto / Referencia</p>
-              <p className="font-mono font-medium">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
+              <p className="text-sm text-white/60">Concepto / Referencia</p>
+              <p className="font-mono font-medium text-white">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
-              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Instructions */}
           {method.instructions && (
-            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm">{method.instructions}</p>
+                <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80">{method.instructions}</p>
               </div>
             </div>
           )}
@@ -459,71 +463,71 @@ export default function PaymentInstructions() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-4">
             <Icon className={cn("h-5 w-5", config?.color)} />
-            <span className="font-semibold text-lg">{config?.label || 'Tienda'}</span>
+            <span className="font-semibold text-lg text-white">{config?.label || 'Tienda'}</span>
           </div>
 
           {/* Amount */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Monto a depositar</p>
-              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+              <p className="text-sm text-white/60">Monto a depositar</p>
+              <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Card Number */}
           {m.card_number && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Número de Tarjeta</p>
-                <p className="font-mono font-medium text-lg">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
+                <p className="text-sm text-white/60">Número de Tarjeta</p>
+                <p className="font-mono font-medium text-lg text-white">{m.card_number.replace(/(.{4})/g, '$1 ').trim()}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
-                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(m.card_number!, `card-${method.id}`)}>
+                {copied === `card-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Account Holder */}
           {method.account_holder && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">A nombre de</p>
-                <p className="font-medium">{method.account_holder}</p>
+                <p className="text-sm text-white/60">A nombre de</p>
+                <p className="font-medium text-white">{method.account_holder}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
-                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(method.account_holder!, `holder-${method.id}`)}>
+                {copied === `holder-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
 
           {/* Bank */}
           {method.bank_name && (
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-1">Banco</p>
+            <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
+              <p className="text-sm text-white/60 mb-1">Banco</p>
               <BankBadge bankName={method.bank_name} size="sm" />
             </div>
           )}
 
           {/* Reference */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Referencia</p>
-              <p className="font-mono font-medium">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
+              <p className="text-sm text-white/60">Referencia</p>
+              <p className="font-mono font-medium text-white">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
-              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Instructions */}
           {method.instructions && (
-            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm">{method.instructions}</p>
+                <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80">{method.instructions}</p>
               </div>
             </div>
           )}
@@ -536,30 +540,30 @@ export default function PaymentInstructions() {
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="h-5 w-5 text-blue-500" />
-            <span className="font-semibold text-lg">PayPal</span>
+            <CreditCard className="h-5 w-5 text-blue-400" />
+            <span className="font-semibold text-lg text-white">PayPal</span>
           </div>
 
           {/* Amount */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Monto a pagar</p>
-              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+              <p className="text-sm text-white/60">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* PayPal Email */}
           {m.paypal_email && (
-            <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Email de PayPal</p>
-                <p className="font-medium">{m.paypal_email}</p>
+                <p className="text-sm text-white/60">Email de PayPal</p>
+                <p className="font-medium text-white">{m.paypal_email}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => copyToClipboard(m.paypal_email!, `email-${method.id}`)}>
-                {copied === `email-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(m.paypal_email!, `email-${method.id}`)}>
+                {copied === `email-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           )}
@@ -567,7 +571,7 @@ export default function PaymentInstructions() {
           {/* PayPal Link */}
           {m.paypal_link && (
             <Button 
-              className="w-full" 
+              className="w-full bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] text-white" 
               variant="outline"
               onClick={() => window.open(m.paypal_link, '_blank')}
             >
@@ -577,21 +581,21 @@ export default function PaymentInstructions() {
           )}
 
           {/* Reference */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Nota del pago</p>
-              <p className="font-mono font-medium">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
+              <p className="text-sm text-white/60">Nota del pago</p>
+              <p className="font-mono font-medium text-white">{referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
-              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(referenceCode || `Boletos ${tickets.map(t => t.ticket_number).join(', ')}`, `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {method.instructions && (
-            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm">{method.instructions}</p>
+                <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80">{method.instructions}</p>
               </div>
             </div>
           )}
@@ -604,25 +608,25 @@ export default function PaymentInstructions() {
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-4">
-            <Wallet className="h-5 w-5 text-sky-500" />
-            <span className="font-semibold text-lg">Mercado Pago</span>
+            <Wallet className="h-5 w-5 text-sky-400" />
+            <span className="font-semibold text-lg text-white">Mercado Pago</span>
           </div>
 
           {/* Amount */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Monto a pagar</p>
-              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+              <p className="text-sm text-white/60">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+              {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {/* Payment Link */}
           {m.payment_link && (
             <Button 
-              className="w-full bg-sky-500 hover:bg-sky-600" 
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white" 
               onClick={() => window.open(m.payment_link, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
@@ -631,21 +635,21 @@ export default function PaymentInstructions() {
           )}
 
           {/* Reference */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Referencia</p>
-              <p className="font-mono font-medium">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
+              <p className="text-sm text-white/60">Referencia</p>
+              <p className="font-mono font-medium text-white">{referenceCode || tickets.map(t => t.ticket_number).join('-')}</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
-              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(referenceCode || tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+              {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
 
           {method.instructions && (
-            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm">{method.instructions}</p>
+                <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80">{method.instructions}</p>
               </div>
             </div>
           )}
@@ -658,26 +662,26 @@ export default function PaymentInstructions() {
       return (
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-4">
-            <HandCoins className="h-5 w-5 text-emerald-600" />
-            <span className="font-semibold text-lg">Efectivo en Persona</span>
+            <HandCoins className="h-5 w-5 text-emerald-400" />
+            <span className="font-semibold text-lg text-white">Efectivo en Persona</span>
           </div>
 
           {/* Amount */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Monto a pagar</p>
-              <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+              <p className="text-sm text-white/60">Monto a pagar</p>
+              <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
             </div>
           </div>
 
           {/* Location */}
           {m.location && (
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <MapPin className="h-4 w-4 text-white/60 mt-0.5" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Ubicación</p>
-                  <p className="font-medium">{m.location}</p>
+                  <p className="text-sm text-white/60">Ubicación</p>
+                  <p className="font-medium text-white">{m.location}</p>
                 </div>
               </div>
             </div>
@@ -685,30 +689,30 @@ export default function PaymentInstructions() {
 
           {/* Schedule */}
           {m.schedule && (
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
               <div className="flex items-start gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <Clock className="h-4 w-4 text-white/60 mt-0.5" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Horarios</p>
-                  <p className="font-medium">{m.schedule}</p>
+                  <p className="text-sm text-white/60">Horarios</p>
+                  <p className="font-medium text-white">{m.schedule}</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Reference */}
-          <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+          <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
             <div>
-              <p className="text-sm text-muted-foreground">Boletos</p>
-              <p className="font-mono font-medium">{tickets.map(t => `#${t.ticket_number}`).join(', ')}</p>
+              <p className="text-sm text-white/60">Boletos</p>
+              <p className="font-mono font-medium text-white">{tickets.map(t => `#${t.ticket_number}`).join(', ')}</p>
             </div>
           </div>
 
           {method.instructions && (
-            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm">{method.instructions}</p>
+                <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80">{method.instructions}</p>
               </div>
             </div>
           )}
@@ -720,37 +724,37 @@ export default function PaymentInstructions() {
     return (
       <div className="space-y-4">
         {/* Amount */}
-        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Monto a pagar</p>
-            <p className="font-mono font-bold text-lg">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
+            <p className="text-sm text-white/60">Monto a pagar</p>
+            <p className="font-mono font-bold text-lg text-white">{formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
-            {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(totalAmount.toString(), `amount-${method.id}`)}>
+            {copied === `amount-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
 
         {/* Reference */}
-        <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+        <div className="flex justify-between items-center p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Referencia</p>
-            <p className="font-mono font-medium">{tickets.map(t => t.ticket_number).join('-')}</p>
+            <p className="text-sm text-white/60">Referencia</p>
+            <p className="font-mono font-medium text-white">{tickets.map(t => t.ticket_number).join('-')}</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
-            {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10" onClick={() => copyToClipboard(tickets.map(t => t.ticket_number).join('-'), `ref-${method.id}`)}>
+            {copied === `ref-${method.id}` ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
 
         {/* Instructions */}
         {method.instructions ? (
-          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
             <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-              <p className="text-sm">{method.instructions}</p>
+              <Info className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-white/80">{method.instructions}</p>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/60">
             Contacta directamente al organizador para coordinar el pago.
           </p>
         )}
@@ -762,13 +766,13 @@ export default function PaymentInstructions() {
   const hasPaymentMethods = enabledMethods.length > 0;
 
   return (
-    <div className="min-h-screen bg-background py-8">
+    <div className="min-h-screen bg-ultra-dark py-8">
       <div className="container mx-auto px-4 max-w-2xl space-y-6">
         {/* Countdown Header */}
-        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+        <Card className="border-amber-500/30 bg-amber-500/10 backdrop-blur-sm">
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Tu reservación expira en:</span>
+              <span className="text-sm font-medium text-amber-300">Tu reservación expira en:</span>
               <CountdownTimer
                 targetDate={new Date(reservedUntil)}
                 variant="compact"
@@ -779,32 +783,32 @@ export default function PaymentInstructions() {
         </Card>
 
         {/* Reservation Summary */}
-        <Card>
+        <Card className="bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Ticket className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Ticket className="h-5 w-5 text-emerald-400" />
               Resumen de tu Reservación
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Reference Code - Prominent display */}
             {referenceCode && (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Clave de Reserva</p>
-                    <p className="font-mono text-2xl font-bold text-primary tracking-widest mt-1">{referenceCode}</p>
+                    <p className="text-xs text-white/60 uppercase tracking-wide font-medium">Clave de Reserva</p>
+                    <p className="font-mono text-2xl font-bold text-emerald-400 tracking-widest mt-1">{referenceCode}</p>
                   </div>
                   <Button 
                     size="icon" 
                     variant="outline"
-                    className="h-10 w-10 shrink-0"
+                    className="h-10 w-10 shrink-0 border-white/20 text-white hover:bg-white/10"
                     onClick={() => copyToClipboard(referenceCode, 'referenceCode')}
                   >
-                    {copied === 'referenceCode' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    {copied === 'referenceCode' ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-white/60 mt-2">
                   Guarda esta clave. La necesitarás si tienes algún problema con tu pago.
                 </p>
               </div>
@@ -815,14 +819,14 @@ export default function PaymentInstructions() {
               <div className="flex flex-col gap-1 text-sm">
                 {buyerName && (
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Nombre:</span>
-                    <span className="font-medium">{buyerName}</span>
+                    <span className="text-white/60">Nombre:</span>
+                    <span className="font-medium text-white">{buyerName}</span>
                   </div>
                 )}
                 {buyerEmail && (
                   <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="font-medium">{buyerEmail}</span>
+                    <span className="text-white/60">Email:</span>
+                    <span className="font-medium text-white">{buyerEmail}</span>
                   </div>
                 )}
               </div>
@@ -831,16 +835,16 @@ export default function PaymentInstructions() {
             {/* Ticket numbers */}
             <div className="flex flex-wrap gap-2">
               {tickets.map(t => (
-                <Badge key={t.id} variant="secondary" className="text-lg px-3 py-1">
+                <Badge key={t.id} variant="secondary" className="text-lg px-3 py-1 bg-white/[0.06] text-white border-white/10">
                   #{t.ticket_number}
                 </Badge>
               ))}
             </div>
 
             {/* Total */}
-            <div className="flex justify-between items-center pt-4 border-t">
-              <span className="font-medium">Total a pagar:</span>
-              <span className="text-2xl font-bold text-primary">
+            <div className="flex justify-between items-center pt-4 border-t border-white/10">
+              <span className="font-medium text-white">Total a pagar:</span>
+              <span className="text-2xl font-bold text-emerald-400">
                 {formatCurrency(totalAmount, raffle!.currency_code || 'MXN')}
               </span>
             </div>
@@ -848,45 +852,40 @@ export default function PaymentInstructions() {
         </Card>
 
         {/* Payment Methods */}
-        <Card>
+        <Card className="bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Instrucciones de Pago</CardTitle>
+            <CardTitle className="text-white">Instrucciones de Pago</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingMethods ? (
               <div className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-10 w-full bg-white/5" />
+                <Skeleton className="h-32 w-full bg-white/5" />
               </div>
             ) : !hasPaymentMethods ? (
-              <div className="text-center py-6 text-muted-foreground">
+              <div className="text-center py-6 text-white/60">
                 <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">Métodos de pago no configurados</p>
+                <p className="font-medium text-white">Métodos de pago no configurados</p>
                 <p className="text-sm mt-1">Contacta directamente al organizador para coordinar tu pago.</p>
               </div>
             ) : enabledMethods.length === 1 ? (
-              // Single method - no tabs needed
-              <div className="pt-2">
-                {renderPaymentDetails(enabledMethods[0])}
-              </div>
+              renderPaymentDetails(enabledMethods[0])
             ) : (
-              // Multiple methods - show tabs
-              <Tabs defaultValue={enabledMethods[0]?.id}>
-                <TabsList className={cn(
-                  "grid w-full",
-                  enabledMethods.length === 2 && "grid-cols-2",
-                  enabledMethods.length === 3 && "grid-cols-3",
-                  enabledMethods.length >= 4 && "grid-cols-4"
-                )}>
-                  {enabledMethods.slice(0, 4).map((method) => (
-                    <TabsTrigger key={method.id} value={method.id} className="gap-1 sm:gap-2 px-2 sm:px-3">
+              <Tabs defaultValue={enabledMethods[0].id} className="w-full">
+                <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-white/[0.03] p-1">
+                  {enabledMethods.map(method => (
+                    <TabsTrigger 
+                      key={method.id} 
+                      value={method.id}
+                      className="flex-1 min-w-[100px] gap-2 data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400 text-white/60"
+                    >
                       {getMethodIcon(method)}
-                      <span className="hidden sm:inline truncate">{method.name}</span>
+                      <span className="hidden sm:inline text-xs">{getMethodLabel(method)}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                {enabledMethods.map((method) => (
-                  <TabsContent key={method.id} value={method.id} className="pt-4">
+                {enabledMethods.map(method => (
+                  <TabsContent key={method.id} value={method.id} className="mt-4">
                     {renderPaymentDetails(method)}
                   </TabsContent>
                 ))}
@@ -895,155 +894,155 @@ export default function PaymentInstructions() {
           </CardContent>
         </Card>
 
-        {/* Upload Proof */}
-        <Card className={existingProof ? "border-green-500" : undefined}>
+        {/* Upload Payment Proof */}
+        <Card className="bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Subir Comprobante de Pago</span>
-              {existingProof && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Comprobante registrado
-                </Badge>
-              )}
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Upload className="h-5 w-5 text-emerald-400" />
+              Subir Comprobante de Pago
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Existing proof indicator */}
             {existingProof && !showReplaceConfirm && (
-              <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                    <ImageIcon className="h-5 w-5 text-green-600" />
-                  </div>
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-green-800 dark:text-green-300">
-                      Ya subiste un comprobante
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-400 mt-0.5">
-                      El organizador está revisando tu pago. Recibirás confirmación pronto.
-                    </p>
-                    <a 
-                      href={existingProof} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-green-600 hover:text-green-800 mt-2 underline"
+                    <p className="font-medium text-emerald-300">Comprobante registrado</p>
+                    <p className="text-sm text-white/60">Ya subiste un comprobante para esta reservación</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/20 text-white hover:bg-white/10"
+                      onClick={() => window.open(existingProof, '_blank')}
                     >
-                      <ExternalLink className="h-3 w-3" />
-                      Ver comprobante actual
-                    </a>
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      Ver
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/20 text-white hover:bg-white/10"
+                      onClick={() => setShowReplaceConfirm(true)}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Reemplazar
+                    </Button>
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-3 w-full border-green-300 text-green-700 hover:bg-green-100"
-                  onClick={() => setShowReplaceConfirm(true)}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Reemplazar comprobante
-                </Button>
               </div>
             )}
 
             {/* Replace confirmation */}
-            {existingProof && showReplaceConfirm && !file && (
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            {showReplaceConfirm && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-amber-800 dark:text-amber-300">
-                      ¿Reemplazar comprobante?
+                  <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-300">¿Reemplazar comprobante?</p>
+                    <p className="text-sm text-white/60 mt-1">
+                      El comprobante anterior será reemplazado. Asegúrate de subir la imagen correcta.
                     </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-                      El comprobante anterior será reemplazado por el nuevo.
-                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-white/20 text-white hover:bg-white/10"
+                        onClick={() => setShowReplaceConfirm(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-amber-500 hover:bg-amber-600 text-black"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Sí, subir nuevo
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setShowReplaceConfirm(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Seleccionar nuevo
-                  </Button>
                 </div>
               </div>
             )}
 
-            {/* File upload - show when no existing proof OR when replacing */}
+            {/* File upload area - only show if no existing proof or replacing */}
             {(!existingProof || showReplaceConfirm) && (
               <>
-                <div className="space-y-2">
-                  <Label>Imagen del comprobante (máx. 5MB)</Label>
-                  <Input 
-                    ref={fileInputRef} 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleFileChange}
-                    className={existingProof ? "hidden" : undefined}
-                  />
-                </div>
-                {preview && (
-                  <img src={preview} alt="Preview" className="max-h-48 rounded-lg object-contain" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                
+                {preview ? (
+                  <div className="space-y-4">
+                    <div className="relative rounded-lg overflow-hidden bg-white/[0.03]">
+                      <img src={preview} alt="Preview" className="w-full max-h-64 object-contain" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-2 right-2 border-white/20 text-white hover:bg-white/10"
+                        onClick={() => {
+                          setFile(null);
+                          setPreview(null);
+                        }}
+                      >
+                        Cambiar
+                      </Button>
+                    </div>
+                    <Button
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                      onClick={handleUpload}
+                      disabled={uploadProof.isPending}
+                    >
+                      {uploadProof.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Subiendo...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Enviar Comprobante
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center cursor-pointer hover:border-emerald-500/50 hover:bg-white/[0.02] transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-10 w-10 mx-auto mb-3 text-white/40" />
+                    <p className="font-medium text-white">Clic para seleccionar imagen</p>
+                    <p className="text-sm text-white/60 mt-1">JPG, PNG o WEBP (máx. 5MB)</p>
+                  </div>
                 )}
-                <Button 
-                  className="w-full" 
-                  onClick={async () => {
-                    await handleUpload();
-                    setShowReplaceConfirm(false);
-                    refetchProof();
-                  }} 
-                  disabled={!file || uploadProof.isPending}
-                >
-                  {uploadProof.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  {existingProof ? 'Reemplazar Comprobante' : 'Subir Comprobante'}
-                </Button>
               </>
             )}
           </CardContent>
         </Card>
 
         {/* WhatsApp Contact */}
-        <WhatsAppContactButton
-          organizationPhone={raffle!.organization?.phone}
-          organizationName={raffle!.organization?.name}
-          organizationLogo={raffle!.organization?.logo_url}
-          raffleTitle={raffle!.title}
-          ticketNumbers={tickets.map(t => t.ticket_number)}
-          totalAmount={totalAmount}
-          currencyCode={raffle!.currency_code || 'MXN'}
-          buyerName={buyerName}
-          variant="card"
-        />
-
-        {/* Success indicator after upload */}
-        {uploadProof.isSuccess && (
-          <Card className="border-green-500 bg-green-50 dark:bg-green-950/20">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-3 text-green-700 dark:text-green-400">
-                <CheckCircle2 className="w-6 h-6" />
-                <div>
-                  <p className="font-semibold">¡Comprobante enviado!</p>
-                  <p className="text-sm opacity-80">El organizador revisará tu pago pronto</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {raffle?.organization?.whatsapp_number && (
+          <WhatsAppContactButton
+            organizationPhone={raffle.organization.whatsapp_number}
+            organizationName={raffle.organization.name}
+            organizationLogo={raffle.organization.logo_url}
+            raffleTitle={raffle.title}
+            ticketNumbers={tickets.map(t => t.ticket_number)}
+            totalAmount={totalAmount}
+            currencyCode={raffle.currency_code || 'MXN'}
+            buyerName={buyerName}
+            referenceCode={referenceCode}
+            variant="expanded"
+          />
         )}
-
-        <Button variant="outline" className="w-full" onClick={() => navigate(`/r/${slug}`)}>
-          Volver al Sorteo
-        </Button>
       </div>
     </div>
   );

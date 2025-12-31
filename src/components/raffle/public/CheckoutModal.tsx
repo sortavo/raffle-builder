@@ -297,7 +297,7 @@ export function CheckoutModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[95vw] max-w-lg sm:w-full p-0 overflow-hidden">
         {/* Premium header with gradient */}
-        <div className="bg-gradient-to-r from-primary to-accent p-6 text-primary-foreground">
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Finalizar Compra</h2>
             <Button
@@ -319,8 +319,8 @@ export function CheckoutModal({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all",
                       currentStep >= item.step
-                        ? "bg-primary-foreground text-primary"
-                        : "bg-primary-foreground/20 text-primary-foreground/60"
+                        ? "bg-white text-emerald-600"
+                        : "bg-white/20 text-white/60"
                     )}
                   >
                     {currentStep > item.step ? (
@@ -332,7 +332,7 @@ export function CheckoutModal({
                   <span
                     className={cn(
                       "text-xs mt-1 font-medium",
-                      currentStep >= item.step ? "text-primary-foreground" : "text-primary-foreground/60"
+                      currentStep >= item.step ? "text-white" : "text-white/60"
                     )}
                   >
                     {item.label}
@@ -343,7 +343,7 @@ export function CheckoutModal({
                   <div
                     className={cn(
                       "w-12 h-0.5 mx-2 transition-all",
-                      currentStep > item.step ? "bg-primary-foreground" : "bg-primary-foreground/20"
+                      currentStep > item.step ? "bg-white" : "bg-white/20"
                     )}
                   />
                 )}
@@ -366,11 +366,11 @@ export function CheckoutModal({
                 className="space-y-4"
               >
                 {/* Selected tickets summary */}
-                <div className="p-4 bg-gradient-to-br from-primary/5 to-accent/5 dark:from-primary/10 dark:to-accent/10 rounded-xl border border-primary/20 dark:border-primary/30">
+                <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                        <Ticket className="h-5 w-5 text-primary-foreground" />
+                      <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                        <Ticket className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">
@@ -382,7 +382,7 @@ export function CheckoutModal({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold text-primary">
+                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
                       </p>
                     </div>
@@ -411,7 +411,7 @@ export function CheckoutModal({
                               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input
                                 placeholder="Juan Pérez"
-                                className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                 {...field}
                               />
                             </div>
@@ -433,7 +433,7 @@ export function CheckoutModal({
                               <Input
                                 type="email"
                                 placeholder="juan@ejemplo.com"
-                                className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                 {...field}
                               />
                             </div>
@@ -456,7 +456,7 @@ export function CheckoutModal({
                                 <Input
                                   type="tel"
                                   placeholder="55 1234 5678"
-                                  className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                  className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                   {...field}
                                 />
                               </div>
@@ -477,7 +477,7 @@ export function CheckoutModal({
                                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   placeholder="CDMX"
-                                  className="pl-10 h-12 border-2 focus:border-violet-600 rounded-xl"
+                                  className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                   {...field}
                                 />
                               </div>
@@ -525,15 +525,15 @@ export function CheckoutModal({
                 {/* Trust badges */}
                 <div className="flex items-center justify-center gap-4 pt-2">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Shield className="h-4 w-4 text-green-600" />
+                    <Shield className="h-4 w-4 text-emerald-500" />
                     Pago Seguro
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="h-4 w-4 text-green-600" />
+                    <Lock className="h-4 w-4 text-emerald-500" />
                     Datos Encriptados
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <BadgeCheck className="h-4 w-4 text-green-600" />
+                    <BadgeCheck className="h-4 w-4 text-emerald-500" />
                     100% Verificable
                   </div>
                 </div>
@@ -548,7 +548,7 @@ export function CheckoutModal({
                     Cancelar
                   </Button>
                   <Button
-                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                     onClick={handleContinueToPayment}
                   >
                     Continuar
@@ -573,11 +573,11 @@ export function CheckoutModal({
                   <h3 className="font-semibold text-foreground">Método de Pago</h3>
 
                   {/* Transfer/deposit info card */}
-                  <div className="p-4 rounded-xl border-2 border-primary bg-primary/5 dark:bg-primary/10">
+                  <div className="p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-primary" />
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 dark:bg-emerald-500/30 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">
@@ -611,7 +611,7 @@ export function CheckoutModal({
                   </div>
 
                   {discount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
+                    <div className="flex justify-between text-sm text-emerald-600">
                       <span>
                         Descuento ({appliedCoupon?.code})
                       </span>
@@ -626,7 +626,7 @@ export function CheckoutModal({
                       <span className="font-semibold text-foreground">
                         Total a Pagar
                       </span>
-                      <span className="text-xl font-bold text-violet-600">
+                      <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(total, raffle.currency_code || 'MXN')}
                       </span>
                     </div>
@@ -644,7 +644,7 @@ export function CheckoutModal({
                     Volver
                   </Button>
                   <Button
-                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                     onClick={handleCompleteReservation}
                     disabled={isProcessing || reserveTickets.isPending}
                   >
@@ -681,8 +681,8 @@ export function CheckoutModal({
                   transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                   className="relative mx-auto w-20 h-20"
                 >
-                  <div className="absolute inset-0 bg-green-100 dark:bg-green-900/30 rounded-full animate-pulse" />
-                  <div className="absolute inset-2 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                  <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900/30 rounded-full animate-pulse" />
+                  <div className="absolute inset-2 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
                     <Check className="h-8 w-8 text-white" />
                   </div>
                 </motion.div>
@@ -710,9 +710,9 @@ export function CheckoutModal({
                 )}
 
                 {/* Ticket numbers */}
-                <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-xl p-4 border border-violet-100 dark:border-violet-800">
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800">
                   <p className="text-sm text-muted-foreground mb-2">Tus boletos:</p>
-                  <p className="text-lg font-bold text-violet-600">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                     {selectedTickets.join(', ')}
                   </p>
                 </div>
@@ -750,7 +750,7 @@ export function CheckoutModal({
                 {/* Actions */}
                 <div className="flex gap-3">
                   <Button
-                    className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                     onClick={handleClose}
                   >
                     Ver Instrucciones de Pago

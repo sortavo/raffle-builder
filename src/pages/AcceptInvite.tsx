@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Trophy, CheckCircle, XCircle, UserPlus, Users, Sparkles } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 
 interface Invitation {
   id: string;
@@ -27,6 +28,9 @@ interface Invitation {
 }
 
 export default function AcceptInvite() {
+  // Activate Ultra-Dark theme
+  useScopedDarkMode();
+  
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
@@ -226,8 +230,8 @@ export default function AcceptInvite() {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
       </div>
     );
   }
@@ -238,11 +242,11 @@ export default function AcceptInvite() {
         <Helmet>
           <title>Invitación - Sortavo</title>
         </Helmet>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-4 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-ultra-dark p-4 relative overflow-hidden">
           {/* Background blobs */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
           </div>
           
           <motion.div
@@ -250,17 +254,17 @@ export default function AcceptInvite() {
             animate={{ opacity: 1, scale: 1 }}
             className="relative z-10"
           >
-            <Card className="w-full max-w-md shadow-xl shadow-violet-500/10 border-violet-100">
+            <Card className="w-full max-w-md shadow-xl bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center">
-                  <div className="p-4 rounded-full bg-gradient-to-br from-red-100 to-rose-100 mb-4">
-                    <XCircle className="h-8 w-8 text-red-500" />
+                  <div className="p-4 rounded-full bg-red-500/10 border border-red-500/20 mb-4">
+                    <XCircle className="h-8 w-8 text-red-400" />
                   </div>
-                  <h2 className="text-xl font-bold mb-2 text-gray-900">Invitación Inválida</h2>
-                  <p className="text-gray-600 mb-6">{error}</p>
+                  <h2 className="text-xl font-bold mb-2 text-white">Invitación Inválida</h2>
+                  <p className="text-white/60 mb-6">{error}</p>
                   <Button 
                     onClick={() => navigate("/")}
-                    className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25"
                   >
                     Ir al Inicio
                   </Button>
@@ -282,12 +286,12 @@ export default function AcceptInvite() {
       <Helmet>
         <title>Aceptar Invitación - Sortavo</title>
       </Helmet>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-4 relative overflow-hidden">
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark p-4 relative overflow-hidden">
         {/* Background blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/10 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
         </div>
 
         <motion.div
@@ -297,31 +301,31 @@ export default function AcceptInvite() {
         >
           {/* Logo */}
           <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
               <Trophy className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
               Sortavo
             </span>
           </Link>
 
-          <Card className="shadow-xl shadow-violet-500/10 border-violet-100 overflow-hidden">
-            <CardHeader className="text-center pb-4 bg-gradient-to-br from-violet-50 to-indigo-50/50">
+          <Card className="shadow-xl bg-white/[0.03] border-white/[0.06] backdrop-blur-sm overflow-hidden">
+            <CardHeader className="text-center pb-4 bg-white/[0.02]">
               <div className="flex justify-center mb-4">
                 <motion.div 
-                  className="p-4 rounded-full bg-gradient-to-br from-violet-100 to-indigo-100 relative"
+                  className="p-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 relative"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ repeat: Infinity, duration: 2 }}
                 >
-                  <Users className="h-8 w-8 text-violet-600" />
-                  <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-500" />
+                  <Users className="h-8 w-8 text-emerald-400" />
+                  <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-400" />
                 </motion.div>
               </div>
-              <CardTitle className="text-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <CardTitle className="text-2xl bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                 ¡Has sido invitado!
               </CardTitle>
-              <CardDescription className="text-base mt-2 text-gray-600">
-                Te han invitado a unirte a <strong className="text-violet-700">{invitation.organization.name}</strong> como <strong className="text-violet-700">{roleLabel}</strong>
+              <CardDescription className="text-base mt-2 text-white/60">
+                Te han invitado a unirte a <strong className="text-emerald-400">{invitation.organization.name}</strong> como <strong className="text-emerald-400">{roleLabel}</strong>
               </CardDescription>
             </CardHeader>
 
@@ -329,16 +333,16 @@ export default function AcceptInvite() {
               {user ? (
                 // User is logged in
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 text-center">
-                    <p className="text-sm text-gray-600 mb-1">Sesión iniciada como</p>
-                    <p className="font-semibold text-gray-900">{user.email}</p>
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                    <p className="text-sm text-white/60 mb-1">Sesión iniciada como</p>
+                    <p className="font-semibold text-white">{user.email}</p>
                   </div>
 
                   {user.email === invitation.email ? (
                     <Button
                       onClick={handleAcceptAsExistingUser}
                       disabled={isAccepting}
-                      className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 hover:-translate-y-0.5 transition-all duration-300"
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5 transition-all duration-300"
                       size="lg"
                     >
                       {isAccepting ? (
@@ -350,7 +354,7 @@ export default function AcceptInvite() {
                     </Button>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-sm text-red-600 text-center bg-red-50 p-3 rounded-lg border border-red-100">
+                      <p className="text-sm text-red-400 text-center bg-red-500/10 p-3 rounded-lg border border-red-500/20">
                         Esta invitación es para <strong>{invitation.email}</strong>. 
                         Inicia sesión con esa cuenta para aceptarla.
                       </p>
@@ -360,7 +364,7 @@ export default function AcceptInvite() {
                           supabase.auth.signOut();
                           navigate(`/auth?redirect=/invite/${token}`);
                         }}
-                        className="w-full border-violet-200 hover:bg-violet-50"
+                        className="w-full border-white/20 text-white hover:bg-white/10"
                       >
                         Cambiar de Cuenta
                       </Button>
@@ -370,24 +374,25 @@ export default function AcceptInvite() {
               ) : showRegistration ? (
                 // Registration form
                 <form onSubmit={handleRegisterAndAccept} className="space-y-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 text-center">
-                    <p className="text-sm font-medium text-gray-900">{invitation.email}</p>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                    <p className="text-sm font-medium text-white">{invitation.email}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-gray-700">Nombre Completo</Label>
+                    <Label htmlFor="fullName" className="text-white/80">Nombre Completo</Label>
                     <Input
                       id="fullName"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Tu nombre"
                       required
-                      className="border-violet-200 focus:border-violet-400 focus:ring-violet-400"
+                      variant="dark"
+                      className="border-white/20 focus:border-emerald-500"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-gray-700">Contraseña</Label>
+                    <Label htmlFor="password" className="text-white/80">Contraseña</Label>
                     <Input
                       id="password"
                       type="password"
@@ -395,12 +400,13 @@ export default function AcceptInvite() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Mínimo 6 caracteres"
                       required
-                      className="border-violet-200 focus:border-violet-400 focus:ring-violet-400"
+                      variant="dark"
+                      className="border-white/20 focus:border-emerald-500"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-gray-700">Confirmar Contraseña</Label>
+                    <Label htmlFor="confirmPassword" className="text-white/80">Confirmar Contraseña</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -408,14 +414,15 @@ export default function AcceptInvite() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Repite tu contraseña"
                       required
-                      className="border-violet-200 focus:border-violet-400 focus:ring-violet-400"
+                      variant="dark"
+                      className="border-white/20 focus:border-emerald-500"
                     />
                   </div>
 
                   <Button 
                     type="submit" 
                     disabled={isAccepting} 
-                    className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 hover:-translate-y-0.5 transition-all duration-300" 
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5 transition-all duration-300" 
                     size="lg"
                   >
                     {isAccepting ? (
@@ -430,7 +437,7 @@ export default function AcceptInvite() {
                     type="button"
                     variant="ghost"
                     onClick={() => setShowRegistration(false)}
-                    className="w-full text-gray-600 hover:text-violet-600"
+                    className="w-full text-white/60 hover:text-white hover:bg-white/10"
                   >
                     Volver
                   </Button>
@@ -438,27 +445,27 @@ export default function AcceptInvite() {
               ) : (
                 // Initial options
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 text-center">
-                    <p className="text-sm text-gray-600">Invitación para</p>
-                    <p className="font-semibold text-gray-900">{invitation.email}</p>
+                  <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-center">
+                    <p className="text-sm text-white/60">Invitación para</p>
+                    <p className="font-semibold text-white">{invitation.email}</p>
                   </div>
 
                   <Button
                     onClick={() => setShowRegistration(true)}
-                    className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 hover:-translate-y-0.5 transition-all duration-300"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5 transition-all duration-300"
                     size="lg"
                   >
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Crear Cuenta Nueva
+                    Crear Nueva Cuenta
                   </Button>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-violet-200" />
+                      <span className="w-full border-t border-white/10" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-gray-500">
-                        o si ya tienes cuenta
+                      <span className="bg-ultra-dark-card px-2 text-white/40">
+                        ¿Ya tienes cuenta?
                       </span>
                     </div>
                   </div>
@@ -466,16 +473,13 @@ export default function AcceptInvite() {
                   <Button
                     variant="outline"
                     onClick={() => navigate(`/auth?redirect=/invite/${token}`)}
-                    className="w-full border-violet-200 hover:bg-violet-50 hover:border-violet-300"
+                    className="w-full border-white/20 text-white hover:bg-white/10"
+                    size="lg"
                   >
                     Iniciar Sesión
                   </Button>
                 </div>
               )}
-
-              <p className="text-xs text-center text-gray-500 pt-2">
-                Al aceptar, te unes al equipo de {invitation.organization.name} y aceptas nuestros términos de servicio.
-              </p>
             </CardContent>
           </Card>
         </motion.div>
