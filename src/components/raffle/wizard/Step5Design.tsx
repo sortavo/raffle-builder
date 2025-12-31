@@ -496,44 +496,6 @@ export const Step5Design = ({
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
-        <CardHeader className="px-0 md:px-6">
-          <CardTitle className="text-lg md:text-xl">Textos Personalizados</CardTitle>
-          <CardDescription>Personaliza los textos principales</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0 md:px-6 space-y-3 sm:space-y-4">
-          <FormItem>
-            <FormLabel className="text-sm">Titular Principal</FormLabel>
-            <Input
-              placeholder="¡Gana un increíble premio!"
-              value={customization.headline || ''}
-              onChange={(e) => updateCustomization('headline', e.target.value)}
-              className="h-9 text-sm"
-            />
-          </FormItem>
-
-          <FormItem>
-            <FormLabel className="text-sm">Subtitular</FormLabel>
-            <Input
-              placeholder="Participa ahora y sé parte de este gran sorteo"
-              value={customization.subheadline || ''}
-              onChange={(e) => updateCustomization('subheadline', e.target.value)}
-              className="h-9 text-sm"
-            />
-          </FormItem>
-
-          <FormItem>
-            <FormLabel className="text-sm">Texto del Botón</FormLabel>
-            <Input
-              placeholder="¡Comprar Boletos!"
-              value={customization.cta_text || ''}
-              onChange={(e) => updateCustomization('cta_text', e.target.value)}
-              className="h-9 text-sm"
-            />
-          </FormItem>
-        </CardContent>
-      </Card>
-
       {/* FAQ Editor */}
       <FAQEditor form={form} />
     </div>
