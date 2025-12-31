@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Plus, Trash2, Sparkles, Clock, Tag } from 'lucide-react';
 import { 
   TICKET_COUNT_OPTIONS, 
@@ -294,11 +295,11 @@ export const Step3Tickets = ({ form }: Step3Props) => {
               name="total_tickets"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-1">
+                  <FormLabel className="flex items-center gap-1.5">
                     Total de Boletos
                     <span className="text-destructive">*</span>
+                    <HelpTooltip content="Este es el número total de boletos disponibles para venta. Una vez publicado el sorteo, no podrás reducir esta cantidad." />
                   </FormLabel>
-                  
                   {/* Botones de selección rápida */}
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-2">
@@ -367,9 +368,10 @@ export const Step3Tickets = ({ form }: Step3Props) => {
               name="ticket_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-1">
+                  <FormLabel className="flex items-center gap-1.5">
                     Precio por Boleto
                     <span className="text-destructive">*</span>
+                    <HelpTooltip content="El precio individual de cada boleto. Los paquetes se calcularán automáticamente basándose en este precio base." />
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -395,12 +397,15 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="ticket_number_format"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Formato de Numeración</FormLabel>
+            <FormField
+              control={form.control}
+              name="ticket_number_format"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    Formato de Numeración
+                    <HelpTooltip content="Secuencial: números consecutivos (001, 002...). Con Prefijo: agrega texto antes del número (TKT-001). Aleatorio: números no consecutivos para mayor emoción." />
+                  </FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={(value) => {

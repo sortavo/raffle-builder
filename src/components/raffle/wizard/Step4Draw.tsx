@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { Calendar, Clock, Video, Dices, Globe, Hand, Sparkles, Loader2 } from 'lucide-react';
 import { CLOSE_SALE_OPTIONS, CLOSE_SALE_TIME_UNITS, MAX_CLOSE_SALE_HOURS, formatCloseSaleTime } from '@/lib/raffle-utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -190,6 +191,7 @@ export const Step4Draw = ({ form }: Step4Props) => {
                     <Dices className="w-4 h-4" />
                     Fecha del Sorteo
                     <span className="text-destructive">*</span>
+                    <HelpTooltip content="Fecha y hora exacta en que se realizará el sorteo. Los compradores verán una cuenta regresiva hacia este momento." />
                   </FormLabel>
                   <FormControl>
                     <Input 

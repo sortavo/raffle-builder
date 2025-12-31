@@ -329,7 +329,7 @@ export const useRaffles = () => {
     },
   });
 
-  // Pause/Resume raffle
+  // Pause/Resume raffle with optimistic updates
   const toggleRaffleStatus = useMutation({
     mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
       const newStatus = currentStatus === 'active' ? 'paused' : 'active';
@@ -343,9 +343,43 @@ export const useRaffles = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    // Optimistic update
+    onMutate: async ({ id, currentStatus }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['raffles'] });
+      
+      // Snapshot previous value
+      const previousRaffles = queryClient.getQueriesData({ queryKey: ['raffles'] });
+      
+      // Optimistically update to new value
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      queryClient.setQueriesData({ queryKey: ['raffles'] }, (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((raffle: Raffle) =>
+            raffle.id === id ? { ...raffle, status: newStatus } : raffle
+          ),
+        };
+      });
+      
+      return { previousRaffles };
+    },
+    onError: (_err, _variables, context) => {
+      // Rollback on error
+      if (context?.previousRaffles) {
+        context.previousRaffles.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast({ title: 'Error', description: 'No se pudo actualizar el estado', variant: 'destructive' });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['raffles'] });
-      toast({ title: 'Estado actualizado' });
+    },
+    onSuccess: (_data, { currentStatus }) => {
+      const newStatus = currentStatus === 'active' ? 'pausado' : 'activado';
+      toast({ title: `Sorteo ${newStatus}` });
     },
   });
 
