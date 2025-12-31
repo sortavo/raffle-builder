@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCurrency } from "@/lib/currency-utils";
 import { CountdownTimer } from "./CountdownTimer";
 import { getVideoEmbedUrl } from "@/lib/video-utils";
+import { cn } from "@/lib/utils";
 
 
 interface MobileHeroProps {
@@ -45,6 +46,7 @@ interface MobileHeroProps {
   onScrollToTickets: () => void;
   onShare: () => void;
   onImageClick?: (index: number) => void;
+  logoPosition?: 'top-left' | 'top-center' | 'top-right';
 }
 
 export function MobileHero({
@@ -54,6 +56,7 @@ export function MobileHero({
   onScrollToTickets,
   onShare,
   onImageClick,
+  logoPosition = 'top-left',
 }: MobileHeroProps) {
   const images = raffle.prize_images || [];
   const hasVideo = !!raffle.prize_video_url;
@@ -145,11 +148,28 @@ export function MobileHero({
       
       {/* Premium Header - TIER S Glassmorphism */}
       <div className="relative backdrop-blur-2xl border-b bg-ultra-dark/95 border-white/[0.08]">
-        {/* Top row: Avatar, Name, Share */}
-        <div className="flex items-center justify-between px-5 py-4">
+        {/* Top row: Avatar, Name, Share - Position based on logoPosition */}
+        <div className={cn(
+          "flex items-center px-5 py-4",
+          logoPosition === 'top-center' ? "flex-col gap-3" : "justify-between"
+        )}>
+          {/* Share button - only show on left for right-aligned logo */}
+          {logoPosition === 'top-right' && (
+            <button
+              onClick={onShare}
+              className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border border-white/[0.08]"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          )}
+          
           <Link 
             to={organization.slug ? `/${organization.slug}` : '#'}
-            className="flex items-center gap-4 flex-1 min-w-0"
+            className={cn(
+              "flex items-center gap-4 min-w-0",
+              logoPosition === 'top-center' ? "flex-col text-center" : "flex-1",
+              logoPosition === 'top-right' && "flex-row-reverse"
+            )}
           >
             <div className="relative">
               {/* Enhanced glow behind avatar */}
@@ -161,8 +181,16 @@ export function MobileHero({
                 </AvatarFallback>
               </Avatar>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+            <div className={cn(
+              "min-w-0",
+              logoPosition === 'top-center' ? "text-center" : "flex-1",
+              logoPosition === 'top-right' && "text-right"
+            )}>
+              <div className={cn(
+                "flex items-center gap-2",
+                logoPosition === 'top-center' && "justify-center",
+                logoPosition === 'top-right' && "justify-end"
+              )}>
                 <h2 className="font-bold text-white truncate tracking-tight text-lg">
                   {organization.name}
                 </h2>
@@ -177,12 +205,19 @@ export function MobileHero({
               )}
             </div>
           </Link>
-          <button
-            onClick={onShare}
-            className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border border-white/[0.08]"
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
+          
+          {/* Share button - show on right for left-aligned or centered logo */}
+          {logoPosition !== 'top-right' && (
+            <button
+              onClick={onShare}
+              className={cn(
+                "h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border border-white/[0.08]",
+                logoPosition === 'top-center' && "absolute right-5 top-4"
+              )}
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Menu row - TIER S subtle buttons */}

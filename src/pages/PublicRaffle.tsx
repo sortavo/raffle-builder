@@ -288,6 +288,7 @@ export default function PublicRaffle() {
                 whatsapp_number: org?.whatsapp_number || (org as any)?.whatsapp_numbers?.[0],
               }}
               currency={currency}
+              logoPosition={customization.logo_position || 'top-left'}
               onScrollToTickets={scrollToTickets}
               onShare={showShareButtons ? shareRaffle : undefined}
               onImageClick={(index) => {
