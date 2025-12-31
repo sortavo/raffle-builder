@@ -501,14 +501,11 @@ export default function PublicRaffle() {
           </footer>
         )}
 
-        {/* Mobile Sticky Footer */}
+        {/* Mobile Sticky Footer - only shows when no tickets selected */}
         <MobileStickyFooter
           visible={isMobile && showStickyFooter}
           selectedCount={selectedTickets.length}
-          totalAmount={calculateTotalAmount()}
-          currency={currency}
           onScrollToTickets={scrollToTickets}
-          onCheckout={() => setCheckoutOpen(true)}
         />
 
         {/* Floating WhatsApp Button */}
