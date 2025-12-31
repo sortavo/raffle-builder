@@ -45,15 +45,6 @@ interface TicketRange {
   to: number;
 }
 
-// Presets de promociones populares (fuera del componente para estabilidad)
-const PROMO_PRESETS = [
-  { label: '3×2', description: 'Paga 2, lleva 3', quantity: 2, bonus_tickets: 1, discount_percent: 0, icon: '🎁' },
-  { label: '5×4', description: 'Paga 4, lleva 5', quantity: 4, bonus_tickets: 1, discount_percent: 0, icon: '🔥' },
-  { label: '10+2', description: 'Compra 10, lleva 12', quantity: 10, bonus_tickets: 2, discount_percent: 0, icon: '⭐' },
-  { label: '20+5', description: 'Compra 20, lleva 25', quantity: 20, bonus_tickets: 5, discount_percent: 0, icon: '💎' },
-  { label: '-10%', description: '10% de descuento', quantity: 5, bonus_tickets: 0, discount_percent: 10, icon: '💰' },
-  { label: '-20%', description: '20% de descuento', quantity: 10, bonus_tickets: 0, discount_percent: 20, icon: '🏷️' },
-] as const;
 
 export const Step3Tickets = ({ form }: Step3Props) => {
   const { organization } = useAuth();
@@ -183,23 +174,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     }]);
   };
 
-  const addPresetPackage = (preset: typeof PROMO_PRESETS[number]) => {
-    const normalPrice = basePrice * preset.quantity;
-    const discountedPrice = Math.round(normalPrice * (1 - preset.discount_percent / 100));
-    
-    const newPackage: Package = {
-      quantity: preset.quantity,
-      price: discountedPrice,
-      discount_percent: preset.discount_percent,
-      label: preset.label,
-      display_order: packages.length,
-      bonus_tickets: preset.bonus_tickets,
-    };
-    
-    const updated = [...packages, newPackage];
-    setPackages(updated);
-    form.setValue('packages', updated);
-  };
 
   const removePackage = (index: number) => {
     setPackages(packages.filter((_, i) => i !== index));
@@ -693,33 +667,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 md:px-6">
-          <div className="space-y-4">
-            {/* Presets rápidos de promociones */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Agregar promoción rápida
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {PROMO_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addPresetPackage(preset)}
-                    className="h-auto py-1.5 px-3 hover:bg-primary/10 hover:border-primary transition-all"
-                  >
-                    <span className="mr-1.5">{preset.icon}</span>
-                    <span className="font-semibold">{preset.label}</span>
-                    <span className="text-xs text-muted-foreground ml-1.5 hidden sm:inline">
-                      ({preset.description})
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
+          <div className="space-y-3">
             {/* Desktop header - hide on mobile */}
             <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
               <div className="col-span-1">Cant.</div>
