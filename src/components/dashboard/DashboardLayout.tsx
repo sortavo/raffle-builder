@@ -9,6 +9,7 @@ import { Trophy, Eye, LogOut, Users } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { TrialBanner } from "./TrialBanner";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useSimulation } from "@/contexts/SimulationContext";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 import { useAuth } from "@/hooks/useAuth";
@@ -210,6 +211,9 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
         
         {/* Mobile Bottom Navigation */}
         {isMobile && <MobileNav />}
+        
+        {/* Onboarding Tour for new users */}
+        <OnboardingTour />
       </SidebarInset>
     </SidebarProvider>
   );

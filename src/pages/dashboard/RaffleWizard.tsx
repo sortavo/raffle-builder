@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useWizardValidation } from '@/hooks/useWizardValidation';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
+import { useFormShortcuts } from '@/hooks/useGlobalShortcuts';
 import { WizardProgress } from '@/components/raffle/wizard/WizardProgress';
 import { Step1BasicInfo } from '@/components/raffle/wizard/Step1BasicInfo';
 import { Step2Prize } from '@/components/raffle/wizard/Step2Prize';
@@ -356,6 +357,12 @@ export default function RaffleWizard() {
       toast({ title: 'Error al guardar', description: 'No se pudieron guardar los cambios', variant: 'destructive' });
     }
   };
+
+  // Keyboard shortcuts - Cmd+S to save
+  useFormShortcuts({
+    onSave: handleSaveDraft,
+    disabled: createRaffle.isPending || updateRaffle.isPending,
+  });
 
   const handlePublish = async () => {
     // Check payment methods first
