@@ -45,6 +45,16 @@ interface TicketRange {
   to: number;
 }
 
+// Presets de promociones populares (fuera del componente para estabilidad)
+const PROMO_PRESETS = [
+  { label: '3×2', description: 'Paga 2, lleva 3', quantity: 2, bonus_tickets: 1, discount_percent: 0, icon: '🎁' },
+  { label: '5×4', description: 'Paga 4, lleva 5', quantity: 4, bonus_tickets: 1, discount_percent: 0, icon: '🔥' },
+  { label: '10+2', description: 'Compra 10, lleva 12', quantity: 10, bonus_tickets: 2, discount_percent: 0, icon: '⭐' },
+  { label: '20+5', description: 'Compra 20, lleva 25', quantity: 20, bonus_tickets: 5, discount_percent: 0, icon: '💎' },
+  { label: '-10%', description: '10% de descuento', quantity: 5, bonus_tickets: 0, discount_percent: 10, icon: '💰' },
+  { label: '-20%', description: '20% de descuento', quantity: 10, bonus_tickets: 0, discount_percent: 20, icon: '🏷️' },
+] as const;
+
 export const Step3Tickets = ({ form }: Step3Props) => {
   const { organization } = useAuth();
   const ticketLimit = getTicketLimitByTier(organization?.subscription_tier || null);
@@ -157,15 +167,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     setCustomValue(value);
     setCustomUnit(unit);
   };
-  // Presets de promociones populares
-  const PROMO_PRESETS = [
-    { label: '3×2', description: 'Paga 2, lleva 3', quantity: 2, bonus_tickets: 1, discount_percent: 0, icon: '🎁' },
-    { label: '5×4', description: 'Paga 4, lleva 5', quantity: 4, bonus_tickets: 1, discount_percent: 0, icon: '🔥' },
-    { label: '10+2', description: 'Compra 10, lleva 12', quantity: 10, bonus_tickets: 2, discount_percent: 0, icon: '⭐' },
-    { label: '20+5', description: 'Compra 20, lleva 25', quantity: 20, bonus_tickets: 5, discount_percent: 0, icon: '💎' },
-    { label: '-10%', description: '10% de descuento', quantity: 5, bonus_tickets: 0, discount_percent: 10, icon: '💰' },
-    { label: '-20%', description: '20% de descuento', quantity: 10, bonus_tickets: 0, discount_percent: 20, icon: '🏷️' },
-  ];
 
   const addPackage = () => {
     const lastQuantity = packages.length > 0 ? packages[packages.length - 1].quantity : 1;
@@ -182,7 +183,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     }]);
   };
 
-  const addPresetPackage = (preset: typeof PROMO_PRESETS[0]) => {
+  const addPresetPackage = (preset: typeof PROMO_PRESETS[number]) => {
     const normalPrice = basePrice * preset.quantity;
     const discountedPrice = Math.round(normalPrice * (1 - preset.discount_percent / 100));
     
