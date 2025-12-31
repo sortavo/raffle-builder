@@ -8,14 +8,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart, AlertCircle, Settings } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Palette, Type, Layout, ImagePlus, Sparkles, Megaphone, Eye, ShoppingCart, Zap, Bell, Star, BarChart3, Trophy, Shuffle, Heart, AlertCircle, Settings, Wand2 } from 'lucide-react';
 import { RAFFLE_TEMPLATES, GOOGLE_FONTS_TITLES, GOOGLE_FONTS_BODY, DESIGN_SECTIONS } from '@/lib/raffle-utils';
 import { cn } from '@/lib/utils';
 import { FAQEditor } from './FAQEditor';
 import { ValidationSummary } from './ValidationSummary';
+import { TemplatePreview } from './TemplatePreview';
 import type { StepValidation } from '@/hooks/useWizardValidation';
 
 interface OrganizationInfo {
@@ -138,54 +139,153 @@ export const Step5Design = ({
           <CardDescription>Selecciona un diseño base para tu sorteo</CardDescription>
         </CardHeader>
         <CardContent className="px-0 md:px-6">
-          <FormField
-            control={form.control}
-            name="template_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || 'modern'}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
-                  >
-                    {RAFFLE_TEMPLATES.map((template) => (
-                      <div key={template.id}>
-                        <RadioGroupItem
-                          value={template.id}
-                          id={template.id}
-                          className="peer sr-only"
-                        />
-                        <label
-                          htmlFor={template.id}
-                          className={cn(
-                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
-                            "peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-                          )}
-                        >
-                          <div className="w-full h-24 bg-gradient-to-br from-muted to-muted-foreground/20 rounded mb-3 flex items-center justify-center">
-                            <span className="text-2xl">
-                              {template.id === 'modern' && '◼️'}
-                              {template.id === 'classic' && '🏛️'}
-                              {template.id === 'minimal' && '⬜'}
-                              {template.id === 'festive' && '🎉'}
-                              {template.id === 'elegant' && '✨'}
-                              {template.id === 'sports' && '⚽'}
-                            </span>
+          {/* Template selector with live preview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Template options */}
+            <div>
+              <FormField
+                control={form.control}
+                name="template_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || 'modern'}
+                        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3"
+                      >
+                        {RAFFLE_TEMPLATES.map((template) => (
+                          <div key={template.id}>
+                            <RadioGroupItem
+                              value={template.id}
+                              id={template.id}
+                              className="peer sr-only"
+                            />
+                            <label
+                              htmlFor={template.id}
+                              className={cn(
+                                "flex flex-col items-center justify-center rounded-lg border-2 border-muted p-2 sm:p-3 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                "peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 peer-data-[state=checked]:shadow-md"
+                              )}
+                            >
+                              <div 
+                                className="w-full aspect-video rounded mb-2 flex items-center justify-center relative overflow-hidden"
+                                style={{ 
+                                  background: `linear-gradient(135deg, ${template.colors.background}, ${template.colors.cardBg})`,
+                                  borderRadius: template.effects.borderRadius,
+                                }}
+                              >
+                                {/* Mini layout preview */}
+                                <div className="absolute inset-1 flex gap-1">
+                                  {template.layout.heroStyle === 'side-by-side' && (
+                                    <>
+                                      <div className="w-1/2 bg-gray-300/50 rounded" />
+                                      <div className="w-1/2 flex flex-col gap-0.5 p-0.5">
+                                        <div className="h-1.5 w-3/4 rounded" style={{ backgroundColor: template.colors.primary }} />
+                                        <div className="h-1 w-full bg-gray-300/50 rounded" />
+                                        <div className="flex-1" />
+                                        <div className="h-2 rounded" style={{ background: template.effects.gradient }} />
+                                      </div>
+                                    </>
+                                  )}
+                                  {template.layout.heroStyle === 'centered' && (
+                                    <div className="w-full flex flex-col items-center gap-0.5 p-0.5">
+                                      <div className="w-3/4 h-6 bg-gray-300/50 rounded" />
+                                      <div className="h-1.5 w-1/2 rounded" style={{ backgroundColor: template.colors.primary }} />
+                                      <div className="h-2 w-2/3 rounded mt-auto" style={{ background: template.effects.gradient }} />
+                                    </div>
+                                  )}
+                                  {template.layout.heroStyle === 'full-width' && (
+                                    <div className="w-full flex flex-col gap-0.5">
+                                      <div className="flex-1 bg-gray-300/50 rounded relative">
+                                        <div className="absolute bottom-0.5 left-0.5 right-0.5 h-3 rounded" style={{ backgroundColor: template.colors.cardBg }} />
+                                      </div>
+                                    </div>
+                                  )}
+                                  {template.layout.heroStyle === 'asymmetric' && (
+                                    <>
+                                      <div className="w-2/5 flex flex-col gap-0.5 p-0.5">
+                                        <div className="h-1.5 w-3/4 rounded" style={{ backgroundColor: template.colors.primary }} />
+                                        <div className="h-1 w-full bg-gray-300/50 rounded" />
+                                        <div className="flex-1" />
+                                        <div className="h-2 rounded" style={{ background: template.effects.gradient }} />
+                                      </div>
+                                      <div className="w-3/5 bg-gray-300/50 rounded" />
+                                    </>
+                                  )}
+                                </div>
+                                
+                                {/* Template icon overlay */}
+                                <span className="text-lg relative z-10 opacity-30">
+                                  {template.icon}
+                                </span>
+                              </div>
+                              <span className="font-medium text-xs sm:text-sm">{template.name}</span>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground text-center">
+                                {template.description}
+                              </span>
+                              
+                              {/* Layout badge */}
+                              <Badge variant="outline" className="mt-1 text-[8px] sm:text-[10px] px-1.5 py-0">
+                                {template.layout.heroStyle === 'side-by-side' && 'Lado a lado'}
+                                {template.layout.heroStyle === 'centered' && 'Centrado'}
+                                {template.layout.heroStyle === 'full-width' && 'Ancho completo'}
+                                {template.layout.heroStyle === 'asymmetric' && 'Asimétrico'}
+                              </Badge>
+                            </label>
                           </div>
-                          <span className="font-medium">{template.name}</span>
-                          <span className="text-xs text-muted-foreground text-center mt-1">
-                            {template.description}
-                          </span>
-                        </label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Right: Live preview */}
+            <div className="hidden lg:block">
+              <div className="sticky top-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wand2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">Vista Previa en Tiempo Real</span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    <Sparkles className="w-2.5 h-2.5 mr-1" />
+                    Interactivo
+                  </Badge>
+                </div>
+                <div className="w-full max-w-[200px] mx-auto">
+                  <TemplatePreview
+                    templateId={selectedTemplate}
+                    prizeName={form.watch('prizes')?.[0]?.name || form.watch('prize_name') || 'Premio Principal'}
+                    prizeImage={form.watch('prize_images')?.[0]}
+                    organizationName={organization?.name || 'Tu Organización'}
+                    organizationLogo={organization?.logo_url}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  El diseño se actualiza al seleccionar diferentes plantillas
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Mobile preview - shows below template selector */}
+          <div className="lg:hidden mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2 mb-3">
+              <Wand2 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Vista Previa</span>
+            </div>
+            <div className="w-full max-w-[180px] mx-auto">
+              <TemplatePreview
+                templateId={selectedTemplate}
+                prizeName={form.watch('prizes')?.[0]?.name || form.watch('prize_name') || 'Premio Principal'}
+                prizeImage={form.watch('prize_images')?.[0]}
+                organizationName={organization?.name || 'Tu Organización'}
+                organizationLogo={organization?.logo_url}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
