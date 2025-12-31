@@ -118,61 +118,55 @@ export const useRaffles = () => {
         if (!raffle) return null;
 
         // Extract organization data
-        const organization = raffle.organizations as { name: string; logo_url: string | null } | null;
+        const organizationData = raffle.organizations as { name: string; logo_url: string | null } | null;
 
-        // Get ticket stats using aggregation to avoid Supabase 1000 row limit
-        // Count tickets by status using separate count queries for accuracy
-        const [availableResult, soldResult, reservedResult, revenueResult] = await Promise.all([
-          supabase
-            .from('tickets')
-            .select('id', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'available'),
-          supabase
-            .from('tickets')
-            .select('id', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'sold'),
-          supabase
-            .from('tickets')
-            .select('id', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'reserved'),
-          // Get revenue by summing unique order_total per payment_reference group
-          supabase
+        // Try to get ticket stats using RPC (bypasses RLS) first, fallback to direct query
+        let stats = {
+          tickets_sold: 0,
+          tickets_available: 0,
+          tickets_reserved: 0,
+          total_revenue: 0,
+        };
+
+        try {
+          // Use RPC function that bypasses RLS for public access
+          const { data: ticketCounts } = await supabase
+            .rpc('get_public_ticket_counts', { p_raffle_id: raffleId });
+
+          if (ticketCounts && ticketCounts[0]) {
+            stats.tickets_sold = ticketCounts[0].sold_count || 0;
+            stats.tickets_available = ticketCounts[0].available_count || 0;
+            stats.tickets_reserved = ticketCounts[0].reserved_count || 0;
+          }
+
+          // Calculate revenue separately - try direct query for authenticated users
+          const { data: revenueData } = await supabase
             .from('tickets')
             .select('payment_reference, order_total')
             .eq('raffle_id', raffleId)
             .eq('status', 'sold')
-            .not('payment_reference', 'is', null),
-        ]);
+            .not('payment_reference', 'is', null);
 
-        // Calculate total revenue from unique payment groups
-        // Each payment_reference group has the same order_total, so we take one per group
-        let totalRevenue = 0;
-        if (revenueResult.data && revenueResult.data.length > 0) {
-          const uniqueGroups = new Map<string, number>();
-          for (const ticket of revenueResult.data) {
-            if (ticket.payment_reference && ticket.order_total !== null) {
-              uniqueGroups.set(ticket.payment_reference, Number(ticket.order_total));
+          if (revenueData && revenueData.length > 0) {
+            const uniqueGroups = new Map<string, number>();
+            for (const ticket of revenueData) {
+              if (ticket.payment_reference && ticket.order_total !== null) {
+                uniqueGroups.set(ticket.payment_reference, Number(ticket.order_total));
+              }
             }
+            stats.total_revenue = Array.from(uniqueGroups.values()).reduce((sum, val) => sum + val, 0);
           }
-          totalRevenue = Array.from(uniqueGroups.values()).reduce((sum, val) => sum + val, 0);
-        }
-        
-        // Fallback: for sold tickets without order_total, use ticket_price
-        const soldWithOrderTotal = revenueResult.data?.filter(t => t.order_total !== null).length || 0;
-        const soldWithoutOrderTotal = (soldResult.count || 0) - soldWithOrderTotal;
-        if (soldWithoutOrderTotal > 0) {
-          totalRevenue += soldWithoutOrderTotal * raffle.ticket_price;
-        }
 
-        const stats = {
-          tickets_sold: soldResult.count || 0,
-          tickets_available: availableResult.count || 0,
-          tickets_reserved: reservedResult.count || 0,
-          total_revenue: totalRevenue,
-        };
+          // Fallback: for sold tickets without order_total, use ticket_price
+          const soldWithOrderTotal = revenueData?.filter(t => t.order_total !== null).length || 0;
+          const soldWithoutOrderTotal = stats.tickets_sold - soldWithOrderTotal;
+          if (soldWithoutOrderTotal > 0) {
+            stats.total_revenue += soldWithoutOrderTotal * raffle.ticket_price;
+          }
+        } catch (error) {
+          console.warn('Could not fetch ticket stats, using defaults:', error);
+          // Stats remain at 0 defaults - page will still render
+        }
 
         // Remove the organizations field from raffle and add organization
         const { organizations: _, ...raffleWithoutOrg } = raffle;
@@ -180,7 +174,7 @@ export const useRaffles = () => {
         return { 
           ...raffleWithoutOrg, 
           ...stats, 
-          organization: organization || undefined 
+          organization: organizationData || undefined 
         } as RaffleWithStats;
       },
       enabled: !!raffleId,
