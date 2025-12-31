@@ -261,16 +261,19 @@ const Index = () => {
 
       {/* Hero Section - Premium Black & Emerald */}
       <section className="relative min-h-screen flex items-center pt-20 lg:pt-0 overflow-hidden">
-        {/* Premium Dark Background with emerald tint */}
-        <div className="absolute inset-0 bg-gradient-to-br from-ultra-dark via-ultra-dark-elevated to-emerald-950/30" />
+        {/* Premium Multi-Layer Background */}
+        <div className="absolute inset-0 bg-premium-hero" />
         
         {/* Animated emerald gradient orbs */}
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl animate-blob" />
-        <div className="absolute top-1/3 -right-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl animate-blob animation-delay-4000" />
+        <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-[100px] animate-blob" />
+        <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-amber-500/15 rounded-full blur-[80px] animate-blob animation-delay-2000" />
+        <div className="absolute bottom-1/4 left-1/3 w-[350px] h-[350px] bg-emerald-500/15 rounded-full blur-[80px] animate-blob animation-delay-4000" />
         
-        {/* Grid pattern overlay - subtle on dark */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        {/* Grid pattern overlay - premium */}
+        <div className="absolute inset-0 bg-grid-premium" />
+        
+        {/* Noise texture for depth */}
+        <div className="absolute inset-0 noise-texture" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -294,9 +297,9 @@ const Index = () => {
                 </span>
               </motion.div>
 
-              {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
-                <span className="text-white">Sorteos que </span>
+              {/* Headline - DRAMATIC PREMIUM TYPOGRAPHY */}
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-[-0.04em]">
+                <span className="text-gradient-premium">Sorteos que </span>
                 <span className="relative">
                   <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
                     Enamoran
@@ -307,8 +310,8 @@ const Index = () => {
                 </span>
               </h1>
 
-              {/* Subheadline */}
-              <p className="text-lg sm:text-xl text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              {/* Subheadline - Enhanced */}
+              <p className="text-xl sm:text-2xl lg:text-3xl text-white/60 max-w-xl mx-auto lg:mx-0 leading-relaxed tracking-tight">
                 La plataforma más potente para gestionar rifas y sorteos. 
                 <span className="text-white font-medium"> Segura, rápida y hermosa.</span>
               </p>
@@ -342,7 +345,7 @@ const Index = () => {
                 </Button>
               </motion.div>
 
-              {/* Stats inline */}
+              {/* Stats inline - PREMIUM */}
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -350,14 +353,20 @@ const Index = () => {
                 className="grid grid-cols-4 gap-4 pt-8 border-t border-white/10"
               >
                 {stats.map((stat, index) => (
-                  <div key={index} className="text-center lg:text-left">
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
+                  <motion.div 
+                    key={index} 
+                    className="text-center lg:text-left"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                  >
+                    <div className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-white tracking-tight">
                       {stat.value}
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-400 mt-1">
+                    <div className="text-[10px] sm:text-xs uppercase tracking-[0.15em] text-white/40 mt-1">
                       {stat.label}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </motion.div>
             </motion.div>
@@ -579,13 +588,13 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative bg-card rounded-2xl p-8 border border-border hover:border-primary/20 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="group relative bg-card rounded-2xl p-8 border border-border hover:border-primary/20 transition-all duration-300 card-lift"
               >
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>
                 
-                <h3 className="text-xl font-bold text-foreground mb-3">
+                <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">
                   {feature.title}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -594,7 +603,7 @@ const Index = () => {
                 
                 <div className="mt-6 flex items-center text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="text-sm">Saber más</span>
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.div>
             ))}

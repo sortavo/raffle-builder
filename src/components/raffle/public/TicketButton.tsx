@@ -39,14 +39,14 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
         ref={ref}
         onClick={onClick}
         disabled={disabled || !isAvailable}
-        whileHover={isAvailable ? { scale: 1.03 } : undefined}
-        whileTap={isAvailable ? { scale: 0.97 } : undefined}
+        whileHover={isAvailable ? { scale: 1.05, y: -2 } : undefined}
+        whileTap={isAvailable ? { scale: 0.95 } : undefined}
         initial={false}
         animate={isSelected ? { scale: 1.02 } : { scale: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 20 }}
         className={cn(
           "relative aspect-square rounded-lg font-mono font-bold text-sm",
-          "transition-all duration-150 touch-manipulation",
+          "transition-all duration-200 touch-manipulation",
           "focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 focus:ring-offset-[#030712]",
           
           // Highlighted state (found via search)
@@ -54,25 +54,26 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
             "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#030712] z-10",
           ],
           
-          // Available - not selected (ultra subtle dark)
+          // Available - not selected (ultra subtle dark with hover lift)
           isAvailable && !isSelected && [
             "bg-white/[0.03] border border-white/[0.08]",
             "text-white/70",
-            "hover:bg-white/[0.06] hover:border-white/[0.12] hover:text-white",
+            "hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white",
+            "hover:shadow-lg hover:shadow-emerald-500/10",
           ],
           
-          // Available - selected (emerald solid)
+          // Available - selected (emerald solid with glow)
           isAvailable && isSelected && [
             "bg-emerald-500 text-white",
             "border border-emerald-400",
-            "shadow-lg shadow-emerald-500/30",
+            "shadow-lg shadow-emerald-500/40",
           ],
           
-          // Sold (very subtle with diagonal pattern)
+          // Sold (subtle with animated diagonal pattern)
           status === 'sold' && [
             "bg-white/[0.02] border border-white/[0.04]",
             "text-white/20 cursor-not-allowed",
-            "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.02)_3px,rgba(255,255,255,0.02)_6px)]",
+            "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.03)_3px,rgba(255,255,255,0.03)_6px)]",
           ],
           
           // Reserved

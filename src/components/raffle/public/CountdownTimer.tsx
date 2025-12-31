@@ -73,22 +73,25 @@ export function CountdownTimer({
 
   const pad = (num: number) => num.toString().padStart(2, '0');
 
-  // Lottery variant - Enterprise dark premium style
+  // Lottery variant - Enterprise dark premium style with glow
   if (variant === 'lottery') {
     const isUrgent = timeLeft.days === 0 && timeLeft.hours < 6;
     
     return (
-      <div className={cn("flex justify-center gap-2 sm:gap-3", className)}>
+      <div className={cn("flex justify-center gap-2 sm:gap-3 relative", className)}>
+        {/* Subtle ambient glow */}
+        <div className="absolute inset-0 -inset-x-8 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent rounded-full blur-xl" />
+        
         <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40">
+        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
           :
         </div>
         <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40">
+        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
           :
         </div>
         <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40">
+        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
           :
         </div>
         <LotteryTimeUnit 
@@ -190,16 +193,16 @@ function LotteryTimeUnit({
         className={cn(
           "relative rounded-xl px-3 py-2 sm:px-4 sm:py-3 min-w-[48px] sm:min-w-[68px] overflow-hidden border",
           urgent 
-            ? "bg-red-500/10 border-red-500/20" 
-            : "bg-emerald-500/10 border-emerald-500/15"
+            ? "bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/10" 
+            : "bg-emerald-500/10 border-emerald-500/15 shadow-lg shadow-emerald-500/5"
         )}
       >
         <AnimatePresence mode="popLayout">
           <motion.span
             key={displayValue}
-            initial={hasChanged ? { y: -30, opacity: 0 } : false}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 30, opacity: 0 }}
+            initial={hasChanged ? { y: -30, opacity: 0, scale: 0.8 } : false}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 30, opacity: 0, scale: 0.8 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
               "block text-2xl sm:text-4xl font-black text-center font-mono tabular-nums tracking-tight",
