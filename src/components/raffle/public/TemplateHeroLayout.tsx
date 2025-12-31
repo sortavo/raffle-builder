@@ -11,6 +11,11 @@ import {
   Zap,
   Users,
   Eye,
+  Play,
+  Gift,
+  Star,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +23,7 @@ import { formatCurrency } from "@/lib/currency-utils";
 import { RaffleTemplate } from "@/lib/raffle-utils";
 import { ViewersCount } from "@/components/marketing/ViewersCount";
 import { UrgencyBadge } from "@/components/marketing/UrgencyBadge";
+import { getVideoEmbedUrl } from "@/lib/video-utils";
 import { PrizeShowcase } from "@/components/raffle/public/PrizeShowcase";
 import { PrizeVideoPlayer } from "@/components/raffle/public/PrizeVideoPlayer";
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
@@ -173,15 +179,76 @@ export function TemplateHeroLayout({
     </header>
   );
 
-  // Gallery component with premium styling
+  // Video slide component for gallery integration
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  
+  const VideoSlide = ({ videoUrl, className = "" }: { videoUrl: string; className?: string }) => {
+    const { type, embedUrl } = getVideoEmbedUrl(videoUrl);
+    
+    // Extract YouTube thumbnail
+    const getYouTubeThumbnail = (url: string) => {
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+      return match ? `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg` : null;
+    };
+    
+    const thumbnail = type === 'youtube' ? getYouTubeThumbnail(videoUrl) : null;
+    
+    if (!embedUrl || !type) return null;
+    
+    if (!videoPlaying && thumbnail) {
+      return (
+        <div 
+          className={`aspect-video rounded-2xl overflow-hidden relative cursor-pointer group shadow-2xl border border-white/[0.06] ${className}`}
+          onClick={() => setVideoPlaying(true)}
+        >
+          <img 
+            src={thumbnail} 
+            alt="Video del premio"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/30 transition-colors">
+            <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform border border-white/30">
+              <Play className="w-10 h-10 text-white ml-1" fill="white" />
+            </div>
+          </div>
+          <div className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-sm font-medium flex items-center gap-2">
+            <Play className="w-4 h-4" />
+            Video del Premio
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06] bg-black ${className}`}>
+        <iframe
+          src={embedUrl}
+          title="Video del premio"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full"
+        />
+      </div>
+    );
+  };
+
+  // Check if video should be included in gallery
+  const hasVideo = showVideo && !!raffle.prize_video_url;
+
+  // Gallery component with premium styling - VIDEO ALWAYS INTEGRATED
   const GalleryComponent = () => {
-    if (!showGallery || !raffle.prize_images?.length) return null;
+    const images = raffle.prize_images || [];
+    const hasImages = images.length > 0;
+    
+    // If no images and no video, return null
+    if (!showGallery && !hasVideo) return null;
+    if (!hasImages && !hasVideo) return null;
 
     switch (galleryStyle) {
       case 'grid':
         return (
           <div className="grid grid-cols-2 gap-4">
-            {raffle.prize_images.slice(0, 4).map((img, idx) => (
+            {images.slice(0, hasVideo ? 3 : 4).map((img, idx) => (
               <motion.div 
                 key={idx}
                 className="aspect-square rounded-xl overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
@@ -194,83 +261,118 @@ export function TemplateHeroLayout({
                 <img src={img} alt="" className="w-full h-full object-cover" />
               </motion.div>
             ))}
+            {/* Video as last grid item */}
+            {hasVideo && raffle.prize_video_url && (
+              <motion.div 
+                className="aspect-square rounded-xl overflow-hidden"
+                whileHover={{ scale: 1.02 }}
+              >
+                <VideoSlide videoUrl={raffle.prize_video_url} className="!aspect-square !rounded-xl" />
+              </motion.div>
+            )}
           </div>
         );
       
       case 'single-focus':
         return (
-          <div className="relative">
-            <motion.div 
-              className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer shadow-2xl border border-white/[0.06]"
-              whileHover={{ scale: 1.01 }}
-              onClick={() => setLightboxOpen(true)}
-            >
-              <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-            </motion.div>
-            {raffle.prize_images.length > 1 && (
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {raffle.prize_images.slice(0, 4).map((_, idx) => (
-                  <div 
-                    key={idx}
-                    className={`w-2 h-2 rounded-full transition-colors ${idx === 0 ? 'bg-emerald-400' : 'bg-white/20'}`}
-                  />
-                ))}
+          <div className="space-y-4">
+            {hasImages && (
+              <div className="relative">
+                <motion.div 
+                  className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer shadow-2xl border border-white/[0.06]"
+                  whileHover={{ scale: 1.01 }}
+                  onClick={() => setLightboxOpen(true)}
+                >
+                  <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
+                </motion.div>
+                {images.length > 1 && (
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {images.slice(0, 4).map((_, idx) => (
+                      <div 
+                        key={idx}
+                        className={`w-2 h-2 rounded-full transition-colors ${idx === 0 ? 'bg-emerald-400' : 'bg-white/20'}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
+            {/* Video after images */}
+            {hasVideo && raffle.prize_video_url && (
+              <VideoSlide videoUrl={raffle.prize_video_url} />
             )}
           </div>
         );
       
       case 'masonry':
         return (
-          <div className="grid grid-cols-3 gap-3">
-            <motion.div 
-              className="col-span-2 row-span-2 aspect-square rounded-xl overflow-hidden cursor-pointer shadow-xl border border-white/[0.06]"
-              whileHover={{ scale: 1.01 }}
-              onClick={() => setLightboxOpen(true)}
-            >
-              <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-            </motion.div>
-            {raffle.prize_images.slice(1, 3).map((img, idx) => (
-              <motion.div 
-                key={idx}
-                className="aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
-                whileHover={{ scale: 1.05 }}
-                onClick={() => {
-                  setLightboxIndex(idx + 1);
-                  setLightboxOpen(true);
-                }}
-              >
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </motion.div>
-            ))}
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {hasImages && (
+                <>
+                  <motion.div 
+                    className="col-span-2 row-span-2 aspect-square rounded-xl overflow-hidden cursor-pointer shadow-xl border border-white/[0.06]"
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
+                  </motion.div>
+                  {images.slice(1, 3).map((img, idx) => (
+                    <motion.div 
+                      key={idx}
+                      className="aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => {
+                        setLightboxIndex(idx + 1);
+                        setLightboxOpen(true);
+                      }}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </motion.div>
+                  ))}
+                </>
+              )}
+            </div>
+            {/* Video after masonry grid */}
+            {hasVideo && raffle.prize_video_url && (
+              <VideoSlide videoUrl={raffle.prize_video_url} />
+            )}
           </div>
         );
       
       case 'carousel':
       default:
         return (
-          <div className="relative">
-            <div className="aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06]">
-              <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-            </div>
-            {raffle.prize_images.length > 1 && (
-              <div className="flex gap-2 mt-4 justify-center">
-                {raffle.prize_images.slice(0, 4).map((img, idx) => (
-                  <motion.div 
-                    key={idx}
-                    className={`w-20 h-20 rounded-xl overflow-hidden shadow-md cursor-pointer border-2 ${
-                      idx === 0 ? 'border-emerald-500' : 'border-white/10'
-                    }`}
-                    whileHover={{ scale: 1.1 }}
-                    onClick={() => {
-                      setLightboxIndex(idx);
-                      setLightboxOpen(true);
-                    }}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </motion.div>
-                ))}
+          <div className="space-y-6">
+            {hasImages && (
+              <div className="relative">
+                <div className="aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06]">
+                  <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
+                </div>
+                {images.length > 1 && (
+                  <div className="flex gap-2 mt-4 justify-center">
+                    {images.slice(0, 4).map((img, idx) => (
+                      <motion.div 
+                        key={idx}
+                        className={`w-20 h-20 rounded-xl overflow-hidden shadow-md cursor-pointer border-2 ${
+                          idx === 0 ? 'border-emerald-500' : 'border-white/10'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        onClick={() => {
+                          setLightboxIndex(idx);
+                          setLightboxOpen(true);
+                        }}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
+            {/* Video as last item in carousel view */}
+            {hasVideo && raffle.prize_video_url && (
+              <VideoSlide videoUrl={raffle.prize_video_url} />
             )}
           </div>
         );
@@ -791,24 +893,9 @@ export function TemplateHeroLayout({
                   </motion.div>
                 </div>
                 
-                {/* 3. PROMINENT VIDEO - Right after gallery */}
-                {showVideo && raffle.prize_video_url && (
-                  <div className="w-full max-w-4xl mx-auto">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: 0.4 }}
-                    >
-                      <PrizeVideoPlayer 
-                        videoUrl={raffle.prize_video_url} 
-                        title={raffle.prize_name}
-                        className="shadow-2xl"
-                      />
-                    </motion.div>
-                  </div>
-                )}
+                {/* Video is now integrated in GalleryComponent above */}
                 
-                {/* 4. PRIZES - After visual content */}
+                {/* 3. PRIZES - After visual content */}
                 <motion.div
                   className="w-full"
                   initial={{ opacity: 0, y: 20 }}
