@@ -31,6 +31,7 @@ import { HowToParticipate } from "@/components/raffle/public/HowToParticipate";
 import { FAQSection } from "@/components/raffle/public/FAQSection";
 import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayout";
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
+import { ContactSection } from "@/components/raffle/public/ContactSection";
 
 export default function PublicRaffle() {
   // Activate dark mode for this page - ensures all design tokens use dark values
@@ -522,14 +523,24 @@ export default function PublicRaffle() {
           </div>
         )}
 
-        {/* Share Section */}
-        {showShareButtons && (
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 text-center">
-            <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/40 mb-3">Compartir</p>
-            <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight mb-3">¡Comparte y gana!</h2>
-            <p className="text-white/50 mb-8">Comparte este sorteo con tus amigos</p>
-            <ShareButtons url={url} title={raffle.title} description={raffle.description || undefined} />
-          </div>
+        {/* Contact Section - replaces Share Section */}
+        {org && (
+          <ContactSection
+            organization={{
+              name: org.name,
+              city: org.city,
+              address: org.address,
+              whatsapp_number: org.whatsapp_number,
+              whatsapp_numbers: org.whatsapp_numbers || [],
+              phones: org.phones || [],
+              emails: org.emails || [],
+              facebook_url: org.facebook_url,
+              instagram_url: org.instagram_url,
+              tiktok_url: org.tiktok_url,
+              website_url: org.website_url,
+            }}
+            raffleTitle={raffle.title}
+          />
         )}
 
         {/* Footer */}
