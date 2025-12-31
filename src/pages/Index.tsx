@@ -747,29 +747,39 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Testimonials Section - Premium */}
-      <section className="py-24 lg:py-32 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Social Proof Section - TIER S: WHITE CONTRAST */}
+      <section className="py-28 lg:py-36 xl:py-44 relative overflow-hidden">
+        {/* Dramatic white/emerald gradient - CONTRAST with dark sections */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-emerald-50/50 to-white" />
+        
+        {/* Subtle emerald orbs for depth */}
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-400/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-teal-400/8 rounded-full blur-[100px]" />
+        
+        {/* Grid pattern - subtle on light bg */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16 lg:mb-20"
+            className="text-center mb-20 lg:mb-24"
           >
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 rounded-full text-amber-600 text-sm font-semibold mb-6">
+            <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 backdrop-blur-sm rounded-full text-emerald-600 text-sm font-semibold mb-8 border border-emerald-500/20">
               <Star className="w-4 h-4 fill-current" />
-              Testimonios
+              Lo Que Dicen
             </span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-6">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-gray-900 mb-6 tracking-[-0.03em]">
               Amados por{" "}
-              <span className="text-primary">Miles</span>
+              <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Miles</span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl lg:text-2xl text-gray-600 max-w-2xl mx-auto">
               Organizadores reales compartiendo sus experiencias reales.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
@@ -777,27 +787,27 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15 }}
-                className="relative bg-card rounded-2xl p-8 border border-border hover:border-primary/20 hover:shadow-xl transition-all duration-300"
+                className="relative bg-white rounded-2xl p-10 border border-gray-200/80 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 group"
               >
-                <Quote className="absolute top-6 right-6 w-10 h-10 text-primary/10" />
+                <Quote className="absolute top-8 right-8 w-12 h-12 text-emerald-500/10 group-hover:text-emerald-500/20 transition-colors" />
                 
-                <div className="flex gap-1 mb-6">
+                <div className="flex gap-1 mb-8">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="w-6 h-6 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
                 
-                <p className="text-foreground leading-relaxed mb-8">
+                <p className="text-gray-700 leading-relaxed mb-10 text-lg">
                   "{testimonial.content}"
                 </p>
                 
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-emerald-500/20">
                     {testimonial.image}
                   </div>
                   <div>
-                    <div className="font-semibold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role} · {testimonial.company}</div>
+                    <div className="font-bold text-gray-900 text-lg">{testimonial.name}</div>
+                    <div className="text-gray-500">{testimonial.role} · {testimonial.company}</div>
                   </div>
                 </div>
               </motion.div>

@@ -36,7 +36,7 @@ export function FloatingCartButton({
         className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-50"
         aria-live="polite"
       >
-        {/* Premium glassmorphism container */}
+        {/* TIER S: Premium glassmorphism with orb */}
         <div 
           className={cn(
             "relative overflow-hidden",
@@ -47,35 +47,41 @@ export function FloatingCartButton({
             "bg-ultra-dark/95"
           )}
         >
+          {/* Animated orb for premium feel */}
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/15 rounded-full blur-[80px] animate-blob" />
+          
           {/* Subtle top accent line */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
           
-          <div className="relative p-4 md:p-5">
+          {/* Noise texture */}
+          <div className="absolute inset-0 opacity-[0.015] [background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
+          
+          <div className="relative p-5 md:p-6">
             {/* Header with ticket count and clear */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                {/* Ticket icon with count badge */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                {/* TIER S: Larger icon container with glow */}
                 <div className="relative">
-                  <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center bg-emerald-500/15">
-                    <Ticket className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/20">
+                    <Ticket className="w-6 h-6 md:w-7 md:h-7 text-emerald-400" />
                   </div>
                   
-                  {/* Count badge */}
+                  {/* TIER S: Shimmer count badge */}
                   <motion.div
                     key={selectedCount}
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-500/30 shimmer-badge"
                   >
                     {selectedCount}
                   </motion.div>
                 </div>
                 
                 <div>
-                  <p className="font-medium text-white text-sm">
+                  <p className="font-semibold text-white text-base">
                     {selectedCount} boleto{selectedCount !== 1 && 's'}
                   </p>
-                  <p className="text-xs truncate max-w-[100px] md:max-w-[160px] text-ultra-dark-muted">
+                  <p className="text-sm truncate max-w-[120px] md:max-w-[180px] text-ultra-dark-muted">
                     {selectedTickets.slice(0, 3).join(', ')}
                     {selectedCount > 3 && ` +${selectedCount - 3}`}
                   </p>
@@ -84,7 +90,7 @@ export function FloatingCartButton({
               
               <button
                 onClick={onClear}
-                className="p-2 rounded-lg transition-colors text-ultra-dark-muted hover:text-white"
+                className="p-2.5 rounded-xl transition-all text-ultra-dark-muted hover:text-white hover:bg-white/10"
                 aria-label="Limpiar selección"
               >
                 <X className="w-5 h-5" />
@@ -92,16 +98,16 @@ export function FloatingCartButton({
             </div>
             
             {/* Price and CTA */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-widest mb-0.5 text-ultra-dark-dimmed">
+                <p className="text-[10px] uppercase tracking-widest mb-1 text-ultra-dark-dimmed">
                   Total
                 </p>
                 <motion.p
                   key={total}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className="text-2xl md:text-3xl font-bold text-white tracking-tight"
+                  className="text-3xl md:text-4xl font-black text-white tracking-tight"
                 >
                   {formatCurrency(total, currency)}
                 </motion.p>
@@ -111,32 +117,33 @@ export function FloatingCartButton({
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-1 mt-1"
+                    className="flex items-center gap-1.5 mt-2"
                   >
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span className="text-xs font-medium text-amber-400">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-sm font-semibold text-amber-400">
                       {winProbability.toFixed(2)}% de ganar
                     </span>
                   </motion.div>
                 )}
               </div>
               
-              {/* White CTA button - inverted for impact */}
+              {/* TIER S: Premium CTA button */}
               <Button
                 onClick={onContinue}
                 variant="inverted"
                 size="lg"
                 className={cn(
-                  "h-12 md:h-14 px-5 md:px-8",
-                  "shadow-lg",
-                  "text-sm font-semibold",
+                  "h-14 md:h-16 px-6 md:px-10",
+                  "shadow-xl shadow-white/10",
+                  "text-base font-bold",
                   "rounded-xl",
-                  "group transition-all duration-200"
+                  "group transition-all duration-200",
+                  "hover:shadow-2xl hover:shadow-white/20 hover:-translate-y-0.5"
                 )}
               >
                 <span className="hidden sm:inline">Continuar</span>
                 <span className="sm:hidden">Pagar</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </div>
