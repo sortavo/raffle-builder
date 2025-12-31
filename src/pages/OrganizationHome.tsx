@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
   AccordionContent,
@@ -22,6 +21,10 @@ import { CoverCarousel, CoverMediaItem } from "@/components/organization/CoverCa
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency-utils";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
+import { Footer } from "@/components/layout/Footer";
+import { motion } from "framer-motion";
 
 // TikTok icon component
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -30,34 +33,49 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
 export default function OrganizationHome() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const { data: organization, isLoading, error } = useOrganizationBySlug(orgSlug);
+  
+  // Enable dark mode for this page
+  useScopedDarkMode();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-primary/5">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
   if (error || !organization) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-muted/30 to-primary/5 gap-4 relative overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-ultra-dark gap-4 relative overflow-hidden">
+        {/* Animated orbs */}
+        <div className="absolute top-[10%] -left-[10%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-[120px] animate-blob" />
+        <div className="absolute bottom-[10%] -right-[10%] w-[400px] h-[400px] bg-teal-500/15 rounded-full blur-[100px] animate-blob animation-delay-2000" />
         
         <div className="relative z-10 text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-            <Building2 className="h-10 w-10 text-primary/60" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-white/[0.05] backdrop-blur-xl border border-white/10 flex items-center justify-center">
+            <Building2 className="h-10 w-10 text-emerald-400/60" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Organización no encontrada</h1>
-          <p className="text-muted-foreground">La organización que buscas no existe o no está disponible.</p>
-          <Button asChild className="bg-gradient-to-r from-primary via-primary/80 to-accent hover:from-primary/90 hover:via-primary/70 hover:to-accent/90 shadow-lg shadow-primary/25">
+          <h1 className="text-2xl font-bold text-white">Organización no encontrada</h1>
+          <p className="text-white/50">La organización que buscas no existe o no está disponible.</p>
+          <Button asChild variant="gradient">
             <Link to="/">Volver al inicio</Link>
           </Button>
         </div>
@@ -65,7 +83,7 @@ export default function OrganizationHome() {
     );
   }
 
-  const brandColor = organization.brand_color || "#2563EB";
+  const brandColor = organization.brand_color || "#10b981";
   const hasSocialLinks = organization.facebook_url || organization.instagram_url || organization.tiktok_url || organization.website_url;
   const hasContactInfo = organization.email || organization.phone || organization.whatsapp_number || organization.city;
   const memberSince = organization.created_at 
@@ -91,9 +109,16 @@ export default function OrganizationHome() {
         <meta name="description" content={organization.description || `Participa en los sorteos de ${organization.name}. Compra tus boletos y gana increíbles premios.`} />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-ultra-dark overflow-x-hidden">
+        {/* Premium Navbar */}
+        <PremiumNavbar variant="transparent" showCTA={false} />
+
         {/* Hero Section with Cover Carousel */}
-        <header className="relative">
+        <header className="relative pt-16">
+          {/* Animated orbs */}
+          <div className="absolute top-[5%] -left-[10%] w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px] animate-blob pointer-events-none" />
+          <div className="absolute top-[20%] -right-[15%] w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none" />
+          
           {/* Cover Media Carousel */}
           <CoverCarousel 
             media={coverMedia} 
@@ -102,14 +127,18 @@ export default function OrganizationHome() {
           />
           
           {/* Profile Section */}
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="relative -mt-16 sm:-mt-20 pb-6">
+          <div className="max-w-6xl mx-auto px-4 relative z-10">
+            <motion.div 
+              className="relative -mt-16 sm:-mt-20 pb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
-                <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-4 border-background shadow-xl ring-4 ring-background">
+                <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-4 border-ultra-dark shadow-xl ring-4 ring-emerald-500/30">
                   <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
                   <AvatarFallback 
-                    className="text-3xl sm:text-4xl font-bold"
-                    style={{ backgroundColor: brandColor, color: "white" }}
+                    className="text-3xl sm:text-4xl font-bold bg-gradient-to-br from-emerald-600 to-teal-500 text-white"
                   >
                     {organization.name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -117,23 +146,20 @@ export default function OrganizationHome() {
                 
                 <div className="flex-1 text-center sm:text-left pb-2">
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{organization.name}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white">{organization.name}</h1>
                     {organization.verified && (
-                      <BadgeCheck 
-                        className="h-6 w-6 flex-shrink-0" 
-                        style={{ color: brandColor }}
-                      />
+                      <BadgeCheck className="h-6 w-6 flex-shrink-0 text-emerald-400" />
                     )}
                   </div>
                   
                   {organization.description && (
-                    <p className="text-muted-foreground mt-1 max-w-xl">
+                    <p className="text-white/60 mt-1 max-w-xl">
                       {organization.description}
                     </p>
                   )}
                   
                   {organization.city && (
-                    <div className="flex items-center justify-center sm:justify-start gap-1 mt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-center sm:justify-start gap-1 mt-2 text-sm text-white/50">
                       <MapPin className="h-4 w-4" />
                       <span>{organization.city}</span>
                     </div>
@@ -144,343 +170,379 @@ export default function OrganizationHome() {
                 {hasSocialLinks && (
                   <div className="flex gap-2 pb-2">
                     {organization.facebook_url && (
-                      <Button size="icon" variant="outline" asChild>
+                      <Button size="icon" variant="ghost" className="bg-white/[0.05] hover:bg-white/10 border border-white/10" asChild>
                         <a href={organization.facebook_url} target="_blank" rel="noopener noreferrer">
-                          <Facebook className="h-4 w-4" />
+                          <Facebook className="h-4 w-4 text-white/70" />
                         </a>
                       </Button>
                     )}
                     {organization.instagram_url && (
-                      <Button size="icon" variant="outline" asChild>
+                      <Button size="icon" variant="ghost" className="bg-white/[0.05] hover:bg-white/10 border border-white/10" asChild>
                         <a href={organization.instagram_url} target="_blank" rel="noopener noreferrer">
-                          <Instagram className="h-4 w-4" />
+                          <Instagram className="h-4 w-4 text-white/70" />
                         </a>
                       </Button>
                     )}
                     {organization.tiktok_url && (
-                      <Button size="icon" variant="outline" asChild>
+                      <Button size="icon" variant="ghost" className="bg-white/[0.05] hover:bg-white/10 border border-white/10" asChild>
                         <a href={organization.tiktok_url} target="_blank" rel="noopener noreferrer">
-                          <TikTokIcon className="h-4 w-4" />
+                          <TikTokIcon className="h-4 w-4 text-white/70" />
                         </a>
                       </Button>
                     )}
                     {organization.website_url && (
-                      <Button size="icon" variant="outline" asChild>
+                      <Button size="icon" variant="ghost" className="bg-white/[0.05] hover:bg-white/10 border border-white/10" asChild>
                         <a href={organization.website_url} target="_blank" rel="noopener noreferrer">
-                          <Globe className="h-4 w-4" />
+                          <Globe className="h-4 w-4 text-white/70" />
                         </a>
                       </Button>
                     )}
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </header>
 
-        {/* Stats Section */}
-        <section className="border-y border-border bg-gradient-to-r from-muted/50 via-background to-primary/5">
+        {/* Stats Section - Glassmorphism */}
+        <motion.section 
+          className="border-y border-white/10 bg-white/[0.02] backdrop-blur-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           <div className="max-w-6xl mx-auto px-4 py-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
               <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
-                  <Ticket className="h-4 w-4" />
+                <div className="flex items-center justify-center gap-2 text-white/50 mb-1">
+                  <Ticket className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">Sorteos</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{organization.stats.totalRaffles}</p>
+                <p className="text-2xl font-bold text-white">{organization.stats.totalRaffles}</p>
               </div>
               <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
-                  <Users className="h-4 w-4" />
+                <div className="flex items-center justify-center gap-2 text-white/50 mb-1">
+                  <Users className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">Boletos Vendidos</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{organization.stats.totalTicketsSold.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-white">{organization.stats.totalTicketsSold.toLocaleString()}</p>
               </div>
               <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
-                  <Trophy className="h-4 w-4" />
+                <div className="flex items-center justify-center gap-2 text-white/50 mb-1">
+                  <Trophy className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">Ganadores</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{organization.stats.totalWinners}</p>
+                <p className="text-2xl font-bold text-white">{organization.stats.totalWinners}</p>
               </div>
               <div className="text-center">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-1">
-                  <Clock className="h-4 w-4" />
+                <div className="flex items-center justify-center gap-2 text-white/50 mb-1">
+                  <Clock className="h-4 w-4 text-emerald-400" />
                   <span className="text-sm">En la plataforma</span>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{memberSince || "-"}</p>
+                <p className="text-2xl font-bold text-white">{memberSince || "-"}</p>
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <main className="max-w-6xl mx-auto px-4 py-8 space-y-12">
+        <main className="max-w-6xl mx-auto px-4 py-12 space-y-16 relative">
+          {/* More animated orbs for depth */}
+          <div className="absolute top-[30%] -left-[20%] w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[20%] -right-[15%] w-[350px] h-[350px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+
           {/* Active Raffles Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-              <Ticket className="h-6 w-6" style={{ color: brandColor }} />
+          <motion.section
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.h2 
+              variants={itemVariants}
+              className="text-2xl sm:text-3xl font-bold text-white mb-8 flex items-center gap-3"
+            >
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 flex items-center justify-center">
+                <Ticket className="h-5 w-5 text-white" />
+              </div>
               Sorteos Activos
-            </h2>
+            </motion.h2>
             
             {organization.raffles.length === 0 ? (
-              <Card className="p-8 text-center">
-                <Ticket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  No hay sorteos activos
-                </h3>
-                <p className="text-muted-foreground">
-                  Esta organización no tiene sorteos disponibles en este momento.
-                </p>
-              </Card>
+              <motion.div variants={itemVariants}>
+                <Card className="p-8 text-center bg-white/[0.03] backdrop-blur-xl border-white/10">
+                  <Ticket className="h-12 w-12 mx-auto text-white/30 mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    No hay sorteos activos
+                  </h3>
+                  <p className="text-white/50">
+                    Esta organización no tiene sorteos disponibles en este momento.
+                  </p>
+                </Card>
+              </motion.div>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {organization.raffles.map((raffle) => {
+                {organization.raffles.map((raffle, index) => {
                   const progressPercent = raffle.total_tickets > 0 
                     ? (raffle.tickets_sold / raffle.total_tickets) * 100 
                     : 0;
                   const prizeImage = raffle.prize_images?.[0];
 
                   return (
-                    <Card 
-                      key={raffle.id} 
-                      className="overflow-hidden hover:shadow-lg transition-shadow group"
+                    <motion.div
+                      key={raffle.id}
+                      variants={itemVariants}
+                      transition={{ delay: index * 0.1 }}
                     >
-                      <div className="aspect-video relative overflow-hidden bg-muted">
-                        {prizeImage ? (
-                          <img 
-                            src={prizeImage} 
-                            alt={raffle.prize_name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Ticket className="h-12 w-12 text-muted-foreground" />
-                          </div>
-                        )}
-                        <Badge 
-                          className="absolute top-3 right-3"
-                          style={{ backgroundColor: brandColor }}
-                        >
-                          {formatCurrency(raffle.ticket_price, raffle.currency_code || "MXN")}
-                        </Badge>
-                      </div>
-
-                      <CardContent className="p-4 space-y-4">
-                        <div>
-                          <h3 className="font-semibold text-foreground line-clamp-1">
-                            {raffle.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {raffle.prize_name}
-                          </p>
+                      <Card className="overflow-hidden bg-white/[0.03] backdrop-blur-xl border-white/10 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 group">
+                        <div className="aspect-video relative overflow-hidden bg-white/[0.02]">
+                          {prizeImage ? (
+                            <img 
+                              src={prizeImage} 
+                              alt={raffle.prize_name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Ticket className="h-12 w-12 text-white/20" />
+                            </div>
+                          )}
+                          <Badge className="absolute top-3 right-3 bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-0">
+                            {formatCurrency(raffle.ticket_price, raffle.currency_code || "MXN")}
+                          </Badge>
                         </div>
 
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>{raffle.tickets_sold} vendidos</span>
-                            <span>{raffle.tickets_available} disponibles</span>
+                        <CardContent className="p-4 space-y-4">
+                          <div>
+                            <h3 className="font-semibold text-white line-clamp-1">
+                              {raffle.title}
+                            </h3>
+                            <p className="text-sm text-white/50 line-clamp-1">
+                              {raffle.prize_name}
+                            </p>
                           </div>
-                          <Progress value={progressPercent} className="h-2" />
-                        </div>
 
-                        {raffle.draw_date && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              Sorteo: {format(new Date(raffle.draw_date), "d 'de' MMMM, yyyy", { locale: es })}
-                            </span>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-white/50">
+                              <span>{raffle.tickets_sold} vendidos</span>
+                              <span>{raffle.tickets_available} disponibles</span>
+                            </div>
+                            <Progress value={progressPercent} className="h-2 bg-white/10" />
                           </div>
-                        )}
 
-                        <Button 
-                          asChild 
-                          className="w-full group/btn"
-                          style={{ backgroundColor: brandColor }}
-                        >
-                          <Link to={`/${orgSlug}/${raffle.slug}`}>
-                            Participar
-                            <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
+                          {raffle.draw_date && (
+                            <div className="flex items-center gap-2 text-sm text-white/50">
+                              <Calendar className="h-4 w-4 text-emerald-400" />
+                              <span>
+                                Sorteo: {format(new Date(raffle.draw_date), "d 'de' MMMM, yyyy", { locale: es })}
+                              </span>
+                            </div>
+                          )}
+
+                          <Button 
+                            asChild 
+                            variant="gradient"
+                            className="w-full group/btn"
+                          >
+                            <Link to={`/${orgSlug}/${raffle.slug}`}>
+                              Participar
+                              <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                            </Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   );
                 })}
               </div>
             )}
-          </section>
+          </motion.section>
 
           {/* Raffle History Section */}
           {organization.completedRaffles.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                <Trophy className="h-6 w-6" style={{ color: brandColor }} />
+            <motion.section
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <motion.h2 
+                variants={itemVariants}
+                className="text-2xl sm:text-3xl font-bold text-white mb-8 flex items-center gap-3"
+              >
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                  <Trophy className="h-5 w-5 text-white" />
+                </div>
                 Historial de Sorteos
-              </h2>
+              </motion.h2>
               
-              <Accordion type="single" collapsible className="space-y-2">
-                {organization.completedRaffles.map((raffle) => {
+              <Accordion type="single" collapsible className="space-y-3">
+                {organization.completedRaffles.map((raffle, index) => {
                   const prizeImage = raffle.prize_images?.[0];
                   const winnerName = raffle.winner_data?.buyer_name;
                   const winnerTicket = raffle.winner_data?.ticket_number;
 
                   return (
-                    <AccordionItem 
-                      key={raffle.id} 
-                      value={raffle.id}
-                      className="border rounded-lg px-4"
+                    <motion.div
+                      key={raffle.id}
+                      variants={itemVariants}
+                      transition={{ delay: index * 0.05 }}
                     >
-                      <AccordionTrigger className="hover:no-underline py-4">
-                        <div className="flex items-center gap-4 text-left">
-                          <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                            {prizeImage ? (
-                              <img src={prizeImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Ticket className="h-6 w-6 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">{raffle.title}</p>
-                            <p className="text-sm text-muted-foreground truncate">{raffle.prize_name}</p>
-                          </div>
-                          {raffle.winner_announced && (
-                            <Badge variant="secondary" className="hidden sm:flex items-center gap-1">
-                              <Trophy className="h-3 w-3" />
-                              Sorteado
-                            </Badge>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-4">
-                        <div className="grid sm:grid-cols-2 gap-4 pt-2">
-                          <div className="space-y-2">
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Premio:</span>{" "}
-                              <span className="font-medium">{raffle.prize_name}</span>
-                            </p>
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Boletos vendidos:</span>{" "}
-                              <span className="font-medium">{raffle.tickets_sold.toLocaleString()}</span>
-                            </p>
-                            {raffle.draw_date && (
-                              <p className="text-sm">
-                                <span className="text-muted-foreground">Fecha del sorteo:</span>{" "}
-                                <span className="font-medium">
-                                  {format(new Date(raffle.draw_date), "d 'de' MMMM, yyyy", { locale: es })}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                          {raffle.winner_announced && winnerName && (
-                            <Card className="bg-muted/50 border-0">
-                              <CardContent className="p-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Trophy className="h-5 w-5" style={{ color: brandColor }} />
-                                  <span className="font-semibold text-foreground">Ganador</span>
+                      <AccordionItem 
+                        value={raffle.id}
+                        className="border border-white/10 rounded-xl px-4 bg-white/[0.02] backdrop-blur-sm data-[state=open]:border-emerald-500/30"
+                      >
+                        <AccordionTrigger className="hover:no-underline py-4">
+                          <div className="flex items-center gap-4 text-left">
+                            <div className="h-12 w-12 rounded-lg overflow-hidden bg-white/[0.05] flex-shrink-0">
+                              {prizeImage ? (
+                                <img src={prizeImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Ticket className="h-6 w-6 text-white/30" />
                                 </div>
-                                <p className="text-foreground font-medium">{winnerName}</p>
-                                {winnerTicket && (
-                                  <p className="text-sm text-muted-foreground">Boleto #{winnerTicket}</p>
-                                )}
-                              </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white truncate">{raffle.title}</p>
+                              <p className="text-sm text-white/50 truncate">{raffle.prize_name}</p>
+                            </div>
+                            {raffle.winner_announced && (
+                              <Badge className="hidden sm:flex items-center gap-1 bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                <Trophy className="h-3 w-3" />
+                                Sorteado
+                              </Badge>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-2">
+                              <p className="text-sm">
+                                <span className="text-white/50">Premio:</span>{" "}
+                                <span className="font-medium text-white">{raffle.prize_name}</span>
+                              </p>
+                              <p className="text-sm">
+                                <span className="text-white/50">Boletos vendidos:</span>{" "}
+                                <span className="font-medium text-white">{raffle.tickets_sold.toLocaleString()}</span>
+                              </p>
+                              {raffle.draw_date && (
+                                <p className="text-sm">
+                                  <span className="text-white/50">Fecha del sorteo:</span>{" "}
+                                  <span className="font-medium text-white">
+                                    {format(new Date(raffle.draw_date), "d 'de' MMMM, yyyy", { locale: es })}
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                            {raffle.winner_announced && winnerName && (
+                              <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Trophy className="h-5 w-5 text-amber-400" />
+                                    <span className="font-semibold text-white">Ganador</span>
+                                  </div>
+                                  <p className="text-white font-medium">{winnerName}</p>
+                                  {winnerTicket && (
+                                    <p className="text-sm text-white/50">Boleto #{winnerTicket}</p>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </motion.div>
                   );
                 })}
               </Accordion>
-            </section>
+            </motion.section>
           )}
 
           {/* Contact Section */}
           {hasContactInfo && (
-            <section>
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                <Mail className="h-6 w-6" style={{ color: brandColor }} />
+            <motion.section
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <motion.h2 
+                variants={itemVariants}
+                className="text-2xl sm:text-3xl font-bold text-white mb-8 flex items-center gap-3"
+              >
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-white" />
+                </div>
                 Contacto
-              </h2>
+              </motion.h2>
               
-              <Card>
-                <CardContent className="p-6">
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {organization.email && (
-                      <a 
-                        href={`mailto:${organization.email}`}
-                        className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
-                      >
-                        <div 
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${brandColor}20` }}
+              <motion.div variants={itemVariants}>
+                <Card className="bg-white/[0.03] backdrop-blur-xl border-white/10">
+                  <CardContent className="p-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {organization.email && (
+                        <a 
+                          href={`mailto:${organization.email}`}
+                          className="flex items-center gap-3 text-white hover:text-emerald-400 transition-colors group"
                         >
-                          <Mail className="h-5 w-5" style={{ color: brandColor }} />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium">{organization.email}</p>
-                        </div>
-                      </a>
-                    )}
-                    
-                    {organization.phone && (
-                      <a 
-                        href={`tel:${organization.phone}`}
-                        className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
-                      >
-                        <div 
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${brandColor}20` }}
+                          <div className="h-10 w-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                            <Mail className="h-5 w-5 text-emerald-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-white/50">Email</p>
+                            <p className="font-medium">{organization.email}</p>
+                          </div>
+                        </a>
+                      )}
+                      
+                      {organization.phone && (
+                        <a 
+                          href={`tel:${organization.phone}`}
+                          className="flex items-center gap-3 text-white hover:text-emerald-400 transition-colors group"
                         >
-                          <Phone className="h-5 w-5" style={{ color: brandColor }} />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Teléfono</p>
-                          <p className="font-medium">{organization.phone}</p>
-                        </div>
-                      </a>
-                    )}
-                    
-                    {organization.whatsapp_number && (
-                      <a 
-                        href={`https://wa.me/${organization.whatsapp_number.replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 text-foreground hover:text-primary transition-colors"
-                      >
-                        <div 
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${brandColor}20` }}
+                          <div className="h-10 w-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                            <Phone className="h-5 w-5 text-emerald-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-white/50">Teléfono</p>
+                            <p className="font-medium">{organization.phone}</p>
+                          </div>
+                        </a>
+                      )}
+                      
+                      {organization.whatsapp_number && (
+                        <a 
+                          href={`https://wa.me/${organization.whatsapp_number.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 text-white hover:text-green-400 transition-colors group"
                         >
-                          <MessageCircle className="h-5 w-5" style={{ color: brandColor }} />
+                          <div className="h-10 w-10 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                            <MessageCircle className="h-5 w-5 text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-white/50">WhatsApp</p>
+                            <p className="font-medium">{organization.whatsapp_number}</p>
+                          </div>
+                        </a>
+                      )}
+                      
+                      {organization.city && (
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                            <MapPin className="h-5 w-5 text-emerald-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-white/50">Ubicación</p>
+                            <p className="font-medium text-white">{organization.city}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">WhatsApp</p>
-                          <p className="font-medium">{organization.whatsapp_number}</p>
-                        </div>
-                      </a>
-                    )}
-                    
-                    {organization.city && (
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="h-10 w-10 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: `${brandColor}20` }}
-                        >
-                          <MapPin className="h-5 w-5" style={{ color: brandColor }} />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Ubicación</p>
-                          <p className="font-medium text-foreground">{organization.city}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.section>
           )}
         </main>
 
@@ -490,39 +552,39 @@ export default function OrganizationHome() {
             href={`https://wa.me/${organization.whatsapp_number.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110"
+            className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg shadow-green-500/30 transition-all hover:scale-110 hover:shadow-xl hover:shadow-green-500/40"
             aria-label="Contactar por WhatsApp"
           >
             <MessageCircle className="h-6 w-6" />
           </a>
         )}
 
-        {/* Footer */}
-        <footer className="border-t bg-muted/30 py-8 px-4 mt-auto">
+        {/* Organization Footer */}
+        <footer className="border-t border-white/10 bg-white/[0.02] py-8 px-4 mt-auto">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 ring-2 ring-emerald-500/30">
                   <AvatarImage src={organization.logo_url || undefined} alt={organization.name} />
-                  <AvatarFallback style={{ backgroundColor: brandColor, color: "white" }}>
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-600 to-teal-500 text-white">
                     {organization.name.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-foreground">{organization.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-semibold text-white">{organization.name}</p>
+                  <p className="text-xs text-white/50">
                     © {new Date().getFullYear()} Todos los derechos reservados
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-4 text-sm text-white/50">
                 <span>Powered by</span>
                 <a 
                   href="https://sortavo.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="font-semibold text-foreground hover:text-primary flex items-center gap-1"
+                  className="font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
                 >
                   Sortavo
                   <ExternalLink className="h-3 w-3" />
