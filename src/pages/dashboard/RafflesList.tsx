@@ -21,6 +21,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { 
   Plus, 
   Search, 
@@ -53,6 +62,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
+const PAGE_SIZE = 20;
+
 export default function RafflesList() {
   const navigate = useNavigate();
   const { role, organization } = useAuth();
@@ -64,6 +75,7 @@ export default function RafflesList() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { 
     useRafflesList, 
@@ -78,34 +90,37 @@ export default function RafflesList() {
     toast.success('URL copiada al portapapeles');
   };
   
-  // Build the query filters
+  // Build the query filters with pagination
   const queryFilters: RaffleFiltersType = {
     status: filters.status.length === 1 ? filters.status[0] : 
             filters.status.length > 1 ? 'all' : 'all',
     search: searchQuery || undefined,
     sortBy: filters.sortBy,
     sortOrder: filters.sortOrder,
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+    startDate: filters.dateRange[0] || undefined,
+    endDate: filters.dateRange[1] || undefined,
   };
 
-  const { data: allRaffles = [], isLoading } = useRafflesList(queryFilters);
+  const { data: paginatedData, isLoading } = useRafflesList(queryFilters);
   
-  // Apply additional client-side filters
-  const raffles = allRaffles.filter(raffle => {
-    // Status filter (supports multiple)
-    if (filters.status.length > 0 && !filters.status.includes(raffle.status || 'draft')) {
-      return false;
-    }
-    
-    // Date range filter
-    if (filters.dateRange[0] && raffle.created_at) {
-      if (new Date(raffle.created_at) < filters.dateRange[0]) return false;
-    }
-    if (filters.dateRange[1] && raffle.created_at) {
-      if (new Date(raffle.created_at) > filters.dateRange[1]) return false;
-    }
-    
-    return true;
-  });
+  // Extract data from paginated response
+  const raffles = paginatedData?.data || [];
+  const totalPages = paginatedData?.totalPages || 0;
+  const totalCount = paginatedData?.totalCount || 0;
+
+  // Reset page when filters change
+  const handleFiltersChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  // Reset page when search changes
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   // Keyboard shortcut for creating new raffle
   useKeyboardShortcut('n', () => navigate('/dashboard/raffles/new'), { ctrl: true });
@@ -115,6 +130,22 @@ export default function RafflesList() {
       await deleteRaffle.mutateAsync(deleteConfirmId);
       setDeleteConfirmId(null);
     }
+  };
+
+  // Generate pagination range
+  const getPaginationRange = () => {
+    const delta = 2;
+    const range: (number | 'ellipsis')[] = [];
+    
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      } else if (range[range.length - 1] !== 'ellipsis') {
+        range.push('ellipsis');
+      }
+    }
+    
+    return range;
   };
 
   return (
@@ -140,15 +171,15 @@ export default function RafflesList() {
 
         {/* Filters */}
         <div className="space-y-4">
-          <RaffleFilters filters={filters} onFiltersChange={setFilters} />
+          <RaffleFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
             <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por título..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9"
               />
               {searchQuery && (
@@ -156,12 +187,17 @@ export default function RafflesList() {
                   variant="ghost"
                   size="icon"
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => handleSearchChange('')}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
+            {totalCount > 0 && (
+              <span className="text-sm text-muted-foreground hidden sm:inline">
+                {totalCount} {totalCount === 1 ? 'sorteo' : 'sorteos'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -341,6 +377,41 @@ export default function RafflesList() {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination className="mt-6">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {getPaginationRange().map((item, idx) => (
+                    <PaginationItem key={idx}>
+                      {item === 'ellipsis' ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <PaginationLink
+                          onClick={() => setCurrentPage(item)}
+                          isActive={currentPage === item}
+                          className="cursor-pointer"
+                        >
+                          {item}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
         )}
       </div>

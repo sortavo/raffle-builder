@@ -13,6 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useWizardValidation } from '@/hooks/useWizardValidation';
+import { useAutoSave } from '@/hooks/useAutoSave';
+import { useUnsavedChangesWarning } from '@/hooks/useUnsavedChangesWarning';
 import { WizardProgress } from '@/components/raffle/wizard/WizardProgress';
 import { Step1BasicInfo } from '@/components/raffle/wizard/Step1BasicInfo';
 import { Step2Prize } from '@/components/raffle/wizard/Step2Prize';
@@ -21,6 +23,8 @@ import { Step4Draw } from '@/components/raffle/wizard/Step4Draw';
 import { Step5Design } from '@/components/raffle/wizard/Step5Design';
 import { RafflePreview } from '@/components/raffle/wizard/RafflePreview';
 import { UpgradePlanModal } from '@/components/raffle/UpgradePlanModal';
+import { AutoSaveIndicator } from '@/components/ui/AutoSaveIndicator';
+import { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 import { checkRaffleLimit, checkTicketLimit, getSubscriptionLimits, SubscriptionTier } from '@/lib/subscription-limits';
 import { parsePrizes, serializePrizes } from '@/types/prize';
 import { supabase } from '@/integrations/supabase/client';
@@ -85,6 +89,7 @@ export default function RaffleWizard() {
   const [upgradeReason, setUpgradeReason] = useState('');
   const [showPaymentMethodsWarning, setShowPaymentMethodsWarning] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [hasManualSave, setHasManualSave] = useState(false);
 
   // Check if there are enabled payment methods
   const enabledPaymentMethods = paymentMethods?.filter(m => m.enabled) || [];
@@ -168,6 +173,20 @@ export default function RaffleWizard() {
     canPublish, 
     validateStep 
   } = useWizardValidation(form, currentStep);
+
+  // Auto-save hook - only for new raffles (not editing)
+  const autoSaveKey = id || 'new';
+  const { lastSaved, isSaving, hasDraft, clearDraft, saveDraft } = useAutoSave(form, {
+    key: autoSaveKey,
+    interval: 30000, // 30 seconds
+    enabled: !isEditing, // Only auto-save for new raffles
+  });
+
+  // Unsaved changes warning
+  const { showDialog, confirmNavigation, cancelNavigation } = useUnsavedChangesWarning({
+    isDirty: form.formState.isDirty && !hasManualSave,
+    enabled: true,
+  });
 
   // Prepare step statuses and errors for WizardProgress
   const stepStatuses = stepValidations.map(sv => sv.step === currentStep ? 'current' as const : sv.isValid ? 'complete' as const : 'incomplete' as const);
@@ -297,6 +316,8 @@ export default function RaffleWizard() {
       } else {
         const result = await createRaffle.mutateAsync(cleanedData as unknown as TablesInsert<'raffles'>);
         raffleId = result.id;
+        // Clear auto-save draft after successful server save
+        clearDraft();
       }
       
       // Guardar paquetes de boletos
@@ -320,6 +341,9 @@ export default function RaffleWizard() {
           await supabase.from('raffle_packages').insert(packagesToInsert);
         }
       }
+      
+      // Mark as manually saved to disable unsaved changes warning
+      setHasManualSave(true);
       
       if (isEditing && id) {
         toast({ title: 'Cambios guardados', description: 'La configuración se actualizó correctamente' });
@@ -530,9 +554,18 @@ export default function RaffleWizard() {
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                     {isEditing ? 'Editar Sorteo' : 'Crear Sorteo'}
                   </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Paso {currentStep} de {STEPS.length} • {STEPS[currentStep - 1].description}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Paso {currentStep} de {STEPS.length} • {STEPS[currentStep - 1].description}
+                    </p>
+                    {!isEditing && (
+                      <AutoSaveIndicator 
+                        lastSaved={lastSaved} 
+                        isSaving={isSaving} 
+                        className="hidden sm:flex" 
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -688,6 +721,13 @@ export default function RaffleWizard() {
         requestedValue={form.watch('total_tickets') || 0}
         feature="boletos por sorteo"
         reason={upgradeReason}
+      />
+
+      {/* Unsaved Changes Warning Dialog */}
+      <UnsavedChangesDialog
+        open={showDialog}
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
       />
     </DashboardLayout>
   );

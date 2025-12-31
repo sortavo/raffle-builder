@@ -28,6 +28,16 @@ export interface RaffleFilters {
   endDate?: Date;
   sortBy?: 'created_at' | 'title' | 'draw_date' | 'total_tickets';
   sortOrder?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PaginatedRaffles {
+  data: Raffle[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export const useRaffles = () => {
@@ -35,18 +45,24 @@ export const useRaffles = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get all raffles for the organization
+  // Get all raffles for the organization with pagination
   const useRafflesList = (filters?: RaffleFilters) => {
     return useQuery({
       queryKey: ['raffles', organization?.id, filters],
-      queryFn: async () => {
-        if (!organization?.id) return [];
+      queryFn: async (): Promise<PaginatedRaffles> => {
+        if (!organization?.id) return { data: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0 };
+
+        const page = filters?.page || 1;
+        const pageSize = filters?.pageSize || 20;
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize - 1;
 
         let query = supabase
           .from('raffles')
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('organization_id', organization.id)
-          .order(filters?.sortBy || 'created_at', { ascending: filters?.sortOrder === 'asc' });
+          .order(filters?.sortBy || 'created_at', { ascending: filters?.sortOrder === 'asc' })
+          .range(from, to);
 
         if (filters?.status && filters.status !== 'all') {
           query = query.eq('status', filters.status as 'draft' | 'active' | 'paused' | 'completed' | 'canceled');
@@ -64,10 +80,20 @@ export const useRaffles = () => {
           query = query.lte('draw_date', filters.endDate.toISOString());
         }
 
-        const { data, error } = await query;
+        const { data, error, count } = await query;
 
         if (error) throw error;
-        return data as Raffle[];
+        
+        const totalCount = count || 0;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        
+        return {
+          data: data as Raffle[],
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
+        };
       },
       enabled: !!organization?.id,
       staleTime: 30000, // Cache for 30 seconds
