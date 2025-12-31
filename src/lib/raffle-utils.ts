@@ -213,6 +213,12 @@ export interface RaffleTemplate {
     shadow: string;
     gradient: string;
     pattern?: string;
+    glassmorphism?: {
+      enabled: boolean;
+      blur: string;
+      opacity: number;
+      border?: string;
+    };
   };
   layout: TemplateLayout;
 }
@@ -221,14 +227,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'modern',
     name: 'Moderno',
-    description: 'Diseño limpio y contemporáneo',
+    description: 'Diseño premium con glassmorphism',
     icon: '🎯',
     colors: {
-      primary: '#2563EB',
-      secondary: '#3B82F6',
-      accent: '#F59E0B',
+      primary: '#7C3AED',      // Violet-600
+      secondary: '#6366F1',    // Indigo-500
+      accent: '#F59E0B',       // Amber-500 (CTA)
       background: '#FFFFFF',
-      cardBg: '#F8FAFC',
+      cardBg: 'rgba(255, 255, 255, 0.8)',
       text: '#0F172A',
       textMuted: '#64748B',
     },
@@ -238,8 +244,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
     },
     effects: {
       borderRadius: '1rem',
-      shadow: '0 10px 40px -10px rgba(0,0,0,0.15)',
-      gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+      shadow: '0 10px 40px -10px rgba(124, 58, 237, 0.25)',
+      gradient: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.8,
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+      },
     },
     layout: {
       heroStyle: 'side-by-side',
@@ -253,14 +265,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'classic',
     name: 'Clásico',
-    description: 'Estilo tradicional elegante',
+    description: 'Elegancia tradicional con acentos premium',
     icon: '🏛️',
     colors: {
-      primary: '#7C3AED',
-      secondary: '#8B5CF6',
-      accent: '#D97706',
+      primary: '#8B5CF6',      // Violet-500
+      secondary: '#A78BFA',    // Violet-400
+      accent: '#D97706',       // Amber-600
       background: '#FFFBF5',
-      cardBg: '#FEF7ED',
+      cardBg: 'rgba(254, 247, 237, 0.9)',
       text: '#1C1917',
       textMuted: '#78716C',
     },
@@ -270,8 +282,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
     },
     effects: {
       borderRadius: '0.5rem',
-      shadow: '0 4px 20px rgba(0,0,0,0.1)',
-      gradient: 'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)',
+      shadow: '0 4px 20px rgba(139, 92, 246, 0.15)',
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-md',
+        opacity: 0.9,
+        border: '1px solid rgba(139, 92, 246, 0.1)',
+      },
     },
     layout: {
       heroStyle: 'centered',
@@ -285,14 +303,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'minimal',
     name: 'Minimalista',
-    description: 'Simple y enfocado',
+    description: 'Simple con toques sutiles de color',
     icon: '⬜',
     colors: {
-      primary: '#18181B',
-      secondary: '#27272A',
-      accent: '#EF4444',
+      primary: '#4F46E5',      // Indigo-600
+      secondary: '#6366F1',    // Indigo-500
+      accent: '#10B981',       // Emerald-500 (Success)
       background: '#FFFFFF',
-      cardBg: '#FAFAFA',
+      cardBg: 'rgba(250, 250, 250, 0.95)',
       text: '#09090B',
       textMuted: '#71717A',
     },
@@ -301,9 +319,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       body: 'Inter',
     },
     effects: {
-      borderRadius: '0.375rem',
-      shadow: '0 1px 3px rgba(0,0,0,0.08)',
-      gradient: 'linear-gradient(135deg, #18181B 0%, #3F3F46 100%)',
+      borderRadius: '0.75rem',
+      shadow: '0 2px 8px rgba(79, 70, 229, 0.08)',
+      gradient: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+      glassmorphism: {
+        enabled: false,
+        blur: 'backdrop-blur-sm',
+        opacity: 0.95,
+      },
     },
     layout: {
       heroStyle: 'asymmetric',
@@ -317,14 +340,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'festive',
     name: 'Festivo',
-    description: 'Colorido y celebratorio',
+    description: 'Vibrante y celebratorio con gradientes premium',
     icon: '🎉',
     colors: {
-      primary: '#E11D48',
-      secondary: '#F43F5E',
-      accent: '#FBBF24',
+      primary: '#EC4899',      // Pink-500
+      secondary: '#F472B6',    // Pink-400
+      accent: '#F59E0B',       // Amber-500
       background: '#FFF7ED',
-      cardBg: '#FFFBEB',
+      cardBg: 'rgba(255, 251, 235, 0.85)',
       text: '#1F2937',
       textMuted: '#6B7280',
     },
@@ -334,9 +357,15 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
     },
     effects: {
       borderRadius: '1.5rem',
-      shadow: '0 20px 50px -15px rgba(225,29,72,0.25)',
-      gradient: 'linear-gradient(135deg, #E11D48 0%, #FB7185 50%, #FBBF24 100%)',
+      shadow: '0 20px 50px -15px rgba(236, 72, 153, 0.3)',
+      gradient: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #F59E0B 100%)',
       pattern: 'radial-gradient(circle at 2px 2px, rgba(251,191,36,0.3) 1px, transparent 0)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.85,
+        border: '1px solid rgba(236, 72, 153, 0.2)',
+      },
     },
     layout: {
       heroStyle: 'full-width',
@@ -350,14 +379,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'elegant',
     name: 'Elegante',
-    description: 'Sofisticado y lujoso',
+    description: 'Ultra premium oscuro con glassmorphism',
     icon: '✨',
     colors: {
-      primary: '#0F172A',
-      secondary: '#1E293B',
-      accent: '#D4AF37',
-      background: '#0F172A',
-      cardBg: '#1E293B',
+      primary: '#7C3AED',      // Violet-600 primary
+      secondary: '#6366F1',    // Indigo-500
+      accent: '#D4AF37',       // Gold
+      background: '#030712',   // Gray-950
+      cardBg: 'rgba(15, 23, 42, 0.7)',
       text: '#F8FAFC',
       textMuted: '#94A3B8',
     },
@@ -366,9 +395,15 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       body: 'Raleway',
     },
     effects: {
-      borderRadius: '0.25rem',
-      shadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-      gradient: 'linear-gradient(135deg, #D4AF37 0%, #F5E6A3 50%, #D4AF37 100%)',
+      borderRadius: '1rem',
+      shadow: '0 25px 50px -12px rgba(124, 58, 237, 0.4)',
+      gradient: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #10B981 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-2xl',
+        opacity: 0.7,
+        border: '1px solid rgba(124, 58, 237, 0.3)',
+      },
     },
     layout: {
       heroStyle: 'asymmetric',
@@ -382,14 +417,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'sports',
     name: 'Deportivo',
-    description: 'Dinámico y energético',
+    description: 'Dinámico con acentos emerald y amber',
     icon: '⚡',
     colors: {
-      primary: '#16A34A',
-      secondary: '#22C55E',
-      accent: '#EA580C',
+      primary: '#10B981',      // Emerald-500
+      secondary: '#34D399',    // Emerald-400
+      accent: '#F59E0B',       // Amber-500 (CTA)
       background: '#ECFDF5',
-      cardBg: '#F0FDF4',
+      cardBg: 'rgba(240, 253, 244, 0.9)',
       text: '#14532D',
       textMuted: '#4D7C0F',
     },
@@ -399,8 +434,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
     },
     effects: {
       borderRadius: '0.75rem',
-      shadow: '0 10px 30px -5px rgba(22,163,74,0.3)',
-      gradient: 'linear-gradient(135deg, #16A34A 0%, #22C55E 50%, #EA580C 100%)',
+      shadow: '0 10px 30px -5px rgba(16, 185, 129, 0.3)',
+      gradient: 'linear-gradient(135deg, #10B981 0%, #34D399 50%, #F59E0B 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-lg',
+        opacity: 0.9,
+        border: '1px solid rgba(16, 185, 129, 0.2)',
+      },
     },
     layout: {
       heroStyle: 'full-width',
