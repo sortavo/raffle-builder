@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 interface GenerateDescriptionRequest {
-  type?: 'title' | 'description' | 'prize_terms' | 'organization_description';
+  type?: 'title' | 'description' | 'prize_terms' | 'organization_description' | 'draw_method_description';
   title?: string;
   category?: string;
   prizeName?: string;
@@ -15,6 +15,7 @@ interface GenerateDescriptionRequest {
   userContext?: string;
   organizationName?: string;
   city?: string;
+  prompt?: string; // For direct prompts (legacy support)
 }
 
 serve(async (req) => {
@@ -24,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext, organizationName, city }: GenerateDescriptionRequest = await req.json();
+    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext, organizationName, city, prompt: directPrompt }: GenerateDescriptionRequest = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -37,8 +38,35 @@ serve(async (req) => {
 
     let prompt: string;
     let logMessage: string;
+    let responseKey: string = 'description';
 
-    if (type === 'title') {
+    // Handle direct prompt (legacy support for draw method description)
+    if (directPrompt) {
+      prompt = directPrompt;
+      logMessage = 'Processing direct prompt';
+      responseKey = 'description';
+    } else if (type === 'draw_method_description') {
+      // Generate draw method description
+      const contextParts = [];
+      if (title) contextParts.push(`Nombre del sorteo: "${title}"`);
+      if (prizeName) contextParts.push(`Premio: ${prizeName}`);
+      if (organizationName) contextParts.push(`Organizado por: ${organizationName}`);
+
+      prompt = `Genera una descripción breve y emocionante para el método de sorteo manual de una rifa${contextParts.length > 0 ? ' con estas características:\n' + contextParts.join('\n') : ''}.
+      
+La descripción debe:
+- Ser en español latinoamericano informal y amigable
+- Incluir 2-3 emojis relevantes (🎁🏆🎉✨🔥💫)
+- Explicar brevemente que el ganador será seleccionado manualmente en vivo
+- Generar emoción y confianza
+- Ser de máximo 150 caracteres
+- NO incluir fechas específicas ni números de boletos
+
+Escribe SOLO la descripción, sin explicaciones adicionales.`;
+
+      logMessage = `Generating draw method description for: ${title || 'raffle'}`;
+      responseKey = 'description';
+    } else if (type === 'title') {
       // Generate title
       const contextParts = [];
       if (category) contextParts.push(`Categoría: ${category}`);
@@ -226,10 +254,10 @@ Escribe SOLO la descripción, sin explicaciones adicionales.`;
 
     console.log(`Successfully generated ${type}:`, generatedContent.substring(0, 50) + "...");
 
-    // Return with appropriate key based on type
-    const responseKey = type === 'title' ? 'title' : type === 'prize_terms' ? 'prize_terms' : 'description';
+    // Return with appropriate key based on type (use responseKey if already set, otherwise determine from type)
+    const finalResponseKey = responseKey || (type === 'title' ? 'title' : type === 'prize_terms' ? 'prize_terms' : 'description');
     return new Response(
-      JSON.stringify({ [responseKey]: generatedContent }),
+      JSON.stringify({ [finalResponseKey]: generatedContent }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

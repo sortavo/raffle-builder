@@ -108,15 +108,10 @@ export const Step4Draw = ({ form }: Step4Props) => {
       
       const { data, error } = await supabase.functions.invoke('generate-description', {
         body: {
-          prompt: `Genera una descripción breve y emocionante para el método de sorteo manual de una rifa llamada "${raffleName}" con premio "${prizeName}" organizada por "${orgName}". 
-          
-          La descripción debe:
-          - Ser en español latinoamericano informal y amigable
-          - Incluir 2-3 emojis relevantes (🎁🏆🎉✨🔥💫)
-          - Explicar brevemente que el ganador será seleccionado manualmente en vivo
-          - Generar emoción y confianza
-          - Ser de máximo 150 caracteres
-          - NO incluir fechas específicas ni números de boletos`
+          type: 'draw_method_description',
+          title: raffleName,
+          prizeName: prizeName,
+          organizationName: orgName
         }
       });
 
@@ -124,7 +119,12 @@ export const Step4Draw = ({ form }: Step4Props) => {
       
       const generatedDescription = data?.description || data?.text || '';
       if (generatedDescription) {
-        form.setValue('description', generatedDescription);
+        // Get current customization and update draw_method_description
+        const currentCustomization = form.getValues('customization') || {};
+        form.setValue('customization', {
+          ...currentCustomization,
+          draw_method_description: generatedDescription
+        });
         toast.success('Descripción generada con IA');
       }
     } catch (error) {
@@ -379,40 +379,38 @@ export const Step4Draw = ({ form }: Step4Props) => {
                     <p className="text-sm text-muted-foreground">
                       Selecciona al ganador manualmente durante un evento en vivo o por otros medios.
                     </p>
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <FormLabel>Descripción del método</FormLabel>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleGenerateMethodDescription}
-                              disabled={isGeneratingDescription}
-                              className="h-7 gap-1.5 text-xs text-primary hover:text-primary/80"
-                            >
-                              {isGeneratingDescription ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-3.5 h-3.5" />
-                              )}
-                              <span className="hidden sm:inline">Generar con IA</span>
-                              <span className="sm:hidden">IA</span>
-                            </Button>
-                          </div>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe cómo se realizará el sorteo..."
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Descripción del método</label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGenerateMethodDescription}
+                          disabled={isGeneratingDescription}
+                          className="h-7 gap-1.5 text-xs text-primary hover:text-primary/80"
+                        >
+                          {isGeneratingDescription ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          <span className="hidden sm:inline">Generar con IA</span>
+                          <span className="sm:hidden">IA</span>
+                        </Button>
+                      </div>
+                      <Textarea 
+                        placeholder="Describe cómo se realizará el sorteo..."
+                        value={form.watch('customization')?.draw_method_description || ''}
+                        onChange={(e) => {
+                          const currentCustomization = form.getValues('customization') || {};
+                          form.setValue('customization', {
+                            ...currentCustomization,
+                            draw_method_description: e.target.value
+                          });
+                        }}
+                      />
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="random_org" className="space-y-4 mt-4">
