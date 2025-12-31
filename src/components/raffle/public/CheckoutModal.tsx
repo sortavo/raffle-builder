@@ -295,7 +295,7 @@ export function CheckoutModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-lg sm:w-full p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-lg sm:w-full p-0 overflow-hidden" hideCloseButton>
         {/* Premium header with gradient */}
         <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-6 text-white">
           <div className="flex items-center justify-between mb-4">
