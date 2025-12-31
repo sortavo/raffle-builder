@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   ArrowLeft, 
   LayoutDashboard, 
@@ -31,13 +30,11 @@ import { ExportMenu } from '@/components/raffle/detail/ExportMenu';
 import { RaffleDetailSkeleton } from '@/components/ui/skeletons';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PageTransition } from '@/components/layout/PageTransition';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function RaffleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { role } = useAuth();
-  const isMobile = useIsMobile();
   
   const { useRaffleById, toggleRaffleStatus } = useRaffles();
   const { data: raffle, isLoading, error } = useRaffleById(id);
@@ -85,7 +82,7 @@ export default function RaffleDetail() {
   return (
     <DashboardLayout>
       <PageTransition>
-      <div className="space-y-4">
+      <div className="space-y-4 w-full max-w-full min-w-0">
         {/* Header */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -151,23 +148,20 @@ export default function RaffleDetail() {
           </div>
         </div>
 
-        {/* Tabs with horizontal scroll on mobile */}
-        <Tabs defaultValue="overview" className="space-y-4">
-          <ScrollArea className="w-full -mx-4 px-4" type="scroll">
-            <TabsList className="inline-flex h-auto w-max gap-0.5 p-1">
-              {tabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 text-xs md:text-sm whitespace-nowrap"
-                >
-                  <tab.icon className="h-4 w-4 shrink-0" />
-                  <span className="sr-only md:not-sr-only">{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <ScrollBar orientation="horizontal" className="h-2" />
-          </ScrollArea>
+        {/* Tabs - grid on mobile, inline on desktop */}
+        <Tabs defaultValue="overview" className="space-y-4 w-full max-w-full min-w-0">
+          <TabsList className="grid grid-cols-5 w-full h-auto gap-0.5 p-1">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 px-1 md:px-2.5 py-2 text-[10px] md:text-sm"
+              >
+                <tab.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate max-w-full">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
           <TabsContent value="overview">
             <OverviewTab 
