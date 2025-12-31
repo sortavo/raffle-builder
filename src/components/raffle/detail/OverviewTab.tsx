@@ -276,7 +276,7 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
   }, 0);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0 overflow-hidden">
       {/* Hero Section - Taller on mobile with centered image */}
       <div className="relative rounded-lg overflow-hidden bg-muted h-44 sm:h-56">
         {raffle.prize_images && raffle.prize_images[0] ? (
@@ -425,17 +425,17 @@ export function OverviewTab({ raffle, onEdit, onToggleStatus, isTogglingStatus }
       </div>
 
       {/* KPI Cards - More compact on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full max-w-full">
         {kpis.map((kpi) => (
-          <Card key={kpi.title}>
+          <Card key={kpi.title} className="min-w-0 overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0.5 sm:pb-2 p-2 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate pr-1">
+              <CardTitle className="text-[10px] sm:text-sm font-medium text-muted-foreground truncate pr-1 min-w-0">
                 {kpi.title}
               </CardTitle>
               <kpi.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 ${kpi.color}`} />
             </CardHeader>
-            <CardContent className="p-2 sm:p-4 pt-0">
-              <div className="text-[13px] sm:text-2xl font-bold leading-tight break-words">
+            <CardContent className="p-2 sm:p-4 pt-0 min-w-0">
+              <div className="text-[13px] sm:text-2xl font-bold leading-tight break-all truncate">
                 {kpi.value}
               </div>
             </CardContent>

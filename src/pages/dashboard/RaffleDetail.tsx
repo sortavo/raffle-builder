@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +39,55 @@ export default function RaffleDetail() {
   
   const { useRaffleById, toggleRaffleStatus } = useRaffles();
   const { data: raffle, isLoading, error } = useRaffleById(id);
+
+  // DEBUG: Detect overflow culprits - REMOVE after fixing
+  useEffect(() => {
+    const checkOverflow = () => {
+      const elements = document.querySelectorAll('*');
+      const culprits: { el: Element; diff: number; classes: string }[] = [];
+      
+      elements.forEach(el => {
+        const htmlEl = el as HTMLElement;
+        // Skip elements inside overflow-x-auto containers (expected scroll)
+        if (htmlEl.closest('[class*="overflow-x-auto"]')) return;
+        
+        if (htmlEl.scrollWidth > htmlEl.clientWidth + 1) {
+          culprits.push({
+            el: htmlEl,
+            diff: htmlEl.scrollWidth - htmlEl.clientWidth,
+            classes: htmlEl.className || htmlEl.tagName
+          });
+        }
+      });
+      
+      // Sort by difference (biggest overflow first)
+      culprits.sort((a, b) => b.diff - a.diff);
+      
+      // Log top 5 culprits
+      if (culprits.length > 0) {
+        console.warn('🔴 OVERFLOW CULPRITS:', culprits.slice(0, 5).map(c => ({
+          element: c.el.tagName,
+          classes: c.classes,
+          overflow: c.diff + 'px'
+        })));
+        
+        // Highlight top 3 with red border
+        culprits.slice(0, 3).forEach(c => {
+          (c.el as HTMLElement).style.outline = '2px solid red';
+        });
+      } else {
+        console.log('✅ No overflow detected');
+      }
+    };
+    
+    const timeout = setTimeout(checkOverflow, 1500);
+    window.addEventListener('resize', checkOverflow);
+    
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [raffle]);
 
   if (isLoading) {
     return (
@@ -149,16 +199,16 @@ export default function RaffleDetail() {
         </div>
 
         {/* Tabs - grid on mobile, inline on desktop */}
-        <Tabs defaultValue="overview" className="space-y-4 w-full max-w-full min-w-0">
+        <Tabs defaultValue="overview" className="space-y-4 w-full max-w-full min-w-0 overflow-hidden">
           <TabsList className="grid grid-cols-5 w-full h-auto gap-0.5 p-1">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 px-1 md:px-2.5 py-2 text-[10px] md:text-sm"
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 px-1 md:px-2.5 py-2 text-[10px] md:text-sm min-w-0 overflow-hidden"
               >
                 <tab.icon className="h-4 w-4 shrink-0" />
-                <span className="truncate max-w-full">{tab.label}</span>
+                <span className="truncate max-w-full block">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
