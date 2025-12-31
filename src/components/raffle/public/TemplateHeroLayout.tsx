@@ -77,37 +77,32 @@ export function TemplateHeroLayout({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const { colors, fonts, effects, layout } = template;
+  const { fonts, effects, layout } = template;
   const { heroStyle, galleryStyle, pricePosition, contentAlignment, decorations } = layout;
 
-  const isDarkTemplate = template.id === 'elegant';
   const progress = (raffle.ticketsSold / raffle.total_tickets) * 100;
   const mainImage = raffle.prize_images?.[0] || '/placeholder.svg';
 
-  // Common header component
+  // Premium Header - Ultra Dark Glassmorphism
   const Header = () => (
     <header
       className={`sticky top-0 z-50 transition-all duration-500 ease-out ${
-        isScrolled ? 'backdrop-blur-xl shadow-xl' : 'backdrop-blur-sm shadow-none'
+        isScrolled 
+          ? 'bg-[#030712]/95 backdrop-blur-2xl shadow-2xl border-b border-white/[0.06]' 
+          : 'bg-[#030712]/80 backdrop-blur-xl'
       }`}
-      style={{ 
-        backgroundColor: isScrolled 
-          ? (isDarkTemplate ? `${colors.cardBg}fa` : `${colors.background}fa`)
-          : (isDarkTemplate ? `${colors.cardBg}40` : `${colors.background}20`),
-        boxShadow: isScrolled ? `0 8px 40px -12px ${colors.primary}25` : 'none'
-      }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top nav row */}
         <div 
-          className={`flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b ${
+          className={`flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b border-white/[0.06] ${
             isScrolled ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100'
           }`}
-          style={{ borderBottomColor: isScrolled ? 'transparent' : `${colors.primary}10` }}
         >
           {isFromOrganization ? (
             <Link 
               to={`/${organization.slug}`}
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all group"
+              className="flex items-center gap-1.5 text-xs font-medium text-white/50 hover:text-white transition-all group"
             >
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span>Volver a {organization.name}</span>
@@ -120,13 +115,14 @@ export function TemplateHeroLayout({
             variant="ghost"
             size="sm"
             onClick={onShare}
-            className="text-xs text-muted-foreground hover:text-foreground h-8 px-3"
+            className="text-xs text-white/50 hover:text-white hover:bg-white/[0.05] h-8 px-3"
           >
             <Share2 className="w-3.5 h-3.5 mr-1.5" />
             Compartir
           </Button>
         </div>
 
+        {/* Organization branding */}
         <div 
           className={`flex items-center justify-center transition-all duration-500 ease-out ${
             isScrolled ? 'py-2' : 'py-5'
@@ -139,26 +135,22 @@ export function TemplateHeroLayout({
             }`}
           >
             <div className="relative">
-              {decorations.includes('glow') && (
-                <div 
-                  className={`absolute inset-0 blur-xl transition-all duration-500 ${
-                    isScrolled ? 'opacity-30' : 'opacity-50 group-hover:opacity-70'
-                  }`}
-                  style={{ backgroundColor: colors.primary }}
-                />
-              )}
+              {/* Emerald glow behind avatar */}
+              <div 
+                className={`absolute inset-0 blur-xl bg-emerald-500 transition-all duration-500 ${
+                  isScrolled ? 'opacity-20' : 'opacity-40 group-hover:opacity-60'
+                }`}
+              />
               <Avatar 
-                className={`relative border-[3px] shadow-xl transition-all duration-500 group-hover:scale-105 ${
+                className={`relative border-2 border-emerald-500/30 shadow-xl transition-all duration-500 group-hover:scale-105 ${
                   isScrolled ? 'h-10 w-10' : 'h-16 w-16'
                 }`}
-                style={{ borderColor: colors.primary }}
               >
                 <AvatarImage src={organization.logo_url || undefined} alt={organization.name} className="object-cover" />
                 <AvatarFallback 
-                  className={`font-bold text-white transition-all duration-500 ${
+                  className={`font-bold text-white bg-emerald-700 transition-all duration-500 ${
                     isScrolled ? 'text-sm' : 'text-xl'
                   }`}
-                  style={{ backgroundColor: colors.primary }}
                 >
                   {organization.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -167,13 +159,9 @@ export function TemplateHeroLayout({
             
             <div className={`text-center transition-all duration-500 ${isScrolled ? 'space-y-0' : 'space-y-1.5'}`}>
               <h2 
-                className={`font-bold tracking-wider uppercase transition-all duration-500 group-hover:opacity-80 ${
+                className={`font-bold tracking-wider uppercase text-white transition-all duration-500 group-hover:opacity-80 ${
                   isScrolled ? 'text-base' : 'text-lg sm:text-xl'
                 }`}
-                style={{ 
-                  color: colors.text,
-                  fontFamily: `"${fonts.title}", sans-serif`
-                }}
               >
                 {organization.name}
               </h2>
@@ -184,7 +172,7 @@ export function TemplateHeroLayout({
     </header>
   );
 
-  // Gallery component based on style
+  // Gallery component with premium styling
   const GalleryComponent = () => {
     if (!showGallery || !raffle.prize_images?.length) return null;
 
@@ -195,8 +183,7 @@ export function TemplateHeroLayout({
             {raffle.prize_images.slice(0, 4).map((img, idx) => (
               <motion.div 
                 key={idx}
-                className="aspect-square rounded-xl overflow-hidden cursor-pointer shadow-lg"
-                style={{ borderRadius: effects.borderRadius }}
+                className="aspect-square rounded-xl overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
                 whileHover={{ scale: 1.02 }}
                 onClick={() => {
                   setLightboxIndex(idx);
@@ -213,8 +200,7 @@ export function TemplateHeroLayout({
         return (
           <div className="relative">
             <motion.div 
-              className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer shadow-2xl"
-              style={{ borderRadius: effects.borderRadius }}
+              className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer shadow-2xl border border-white/[0.06]"
               whileHover={{ scale: 1.01 }}
               onClick={() => setLightboxOpen(true)}
             >
@@ -225,7 +211,7 @@ export function TemplateHeroLayout({
                 {raffle.prize_images.slice(0, 4).map((_, idx) => (
                   <div 
                     key={idx}
-                    className={`w-2 h-2 rounded-full transition-colors ${idx === 0 ? 'bg-primary' : 'bg-gray-300'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${idx === 0 ? 'bg-emerald-400' : 'bg-white/20'}`}
                   />
                 ))}
               </div>
@@ -237,8 +223,7 @@ export function TemplateHeroLayout({
         return (
           <div className="grid grid-cols-3 gap-3">
             <motion.div 
-              className="col-span-2 row-span-2 aspect-square rounded-xl overflow-hidden cursor-pointer shadow-xl"
-              style={{ borderRadius: effects.borderRadius }}
+              className="col-span-2 row-span-2 aspect-square rounded-xl overflow-hidden cursor-pointer shadow-xl border border-white/[0.06]"
               whileHover={{ scale: 1.01 }}
               onClick={() => setLightboxOpen(true)}
             >
@@ -247,8 +232,7 @@ export function TemplateHeroLayout({
             {raffle.prize_images.slice(1, 3).map((img, idx) => (
               <motion.div 
                 key={idx}
-                className="aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg"
-                style={{ borderRadius: effects.borderRadius }}
+                className="aspect-square rounded-lg overflow-hidden cursor-pointer shadow-lg border border-white/[0.06]"
                 whileHover={{ scale: 1.05 }}
                 onClick={() => {
                   setLightboxIndex(idx + 1);
@@ -265,10 +249,7 @@ export function TemplateHeroLayout({
       default:
         return (
           <div className="relative">
-            <div 
-              className="aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl"
-              style={{ borderRadius: effects.borderRadius }}
-            >
+            <div className="aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border border-white/[0.06]">
               <img src={mainImage} alt={raffle.prize_name} className="w-full h-full object-cover" />
             </div>
             {raffle.prize_images.length > 1 && (
@@ -276,8 +257,9 @@ export function TemplateHeroLayout({
                 {raffle.prize_images.slice(0, 4).map((img, idx) => (
                   <motion.div 
                     key={idx}
-                    className="w-20 h-20 rounded-xl overflow-hidden border-2 shadow-md cursor-pointer"
-                    style={{ borderColor: idx === 0 ? colors.primary : 'white', borderRadius: effects.borderRadius }}
+                    className={`w-20 h-20 rounded-xl overflow-hidden shadow-md cursor-pointer border-2 ${
+                      idx === 0 ? 'border-emerald-500' : 'border-white/10'
+                    }`}
                     whileHover={{ scale: 1.1 }}
                     onClick={() => {
                       setLightboxIndex(idx);
@@ -294,11 +276,11 @@ export function TemplateHeroLayout({
     }
   };
 
-  // Price display based on position
+  // Price display with premium styling
   const PriceDisplay = () => {
     const priceContent = (
       <div className="text-white">
-        <p className="text-xs font-medium opacity-90">Valor del Premio</p>
+        <p className="text-xs font-medium text-white/70">Valor del Premio</p>
         <p className="text-2xl font-bold">
           {formatCurrency(Number(raffle.prize_value), currency)}
         </p>
@@ -310,19 +292,13 @@ export function TemplateHeroLayout({
     switch (pricePosition) {
       case 'overlay':
         return (
-          <div 
-            className="absolute bottom-4 left-4 px-6 py-3 rounded-2xl shadow-xl pointer-events-none"
-            style={{ background: effects.gradient }}
-          >
+          <div className="absolute bottom-4 left-4 px-6 py-3 rounded-2xl shadow-xl pointer-events-none bg-gradient-to-r from-emerald-600 to-teal-600">
             {priceContent}
           </div>
         );
       case 'badge':
         return (
-          <div 
-            className="absolute top-4 left-4 px-4 py-2 rounded-full shadow-xl pointer-events-none"
-            style={{ background: effects.gradient }}
-          >
+          <div className="absolute top-4 left-4 px-4 py-2 rounded-full shadow-xl pointer-events-none bg-gradient-to-r from-emerald-600 to-teal-600">
             <p className="text-white font-bold">{formatCurrency(Number(raffle.prize_value), currency)}</p>
           </div>
         );
@@ -333,14 +309,12 @@ export function TemplateHeroLayout({
     }
   };
 
-  // Info section
+  // Info section with premium ultra-dark styling
   const InfoSection = ({ className = "" }: { className?: string }) => (
     <div className={`space-y-6 ${className}`}>
+      {/* Premium Badge */}
       <div className="flex flex-wrap items-center gap-3">
-        <div 
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white"
-          style={{ background: effects.gradient }}
-        >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 shadow-lg">
           <Zap className="w-4 h-4" />
           Sorteo Activo
         </div>
@@ -355,23 +329,19 @@ export function TemplateHeroLayout({
         />
       )}
 
+      {/* Title with dramatic typography */}
       <div className="space-y-4">
         <h1 
-          className={`text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight ${
+          className={`text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-[0.95] tracking-[-0.03em] text-white ${
             contentAlignment === 'center' ? 'text-center' : ''
           }`}
-          style={{ 
-            fontFamily: `"${fonts.title}", sans-serif`,
-            color: colors.text,
-          }}
         >
           {raffle.title}
         </h1>
         
         {raffle.description && (
           <p 
-            className={`text-base sm:text-lg ${contentAlignment === 'center' ? 'text-center' : ''}`} 
-            style={{ color: colors.textMuted }}
+            className={`text-base sm:text-lg text-white/60 ${contentAlignment === 'center' ? 'text-center' : ''}`}
           >
             {raffle.description}
           </p>
@@ -383,50 +353,43 @@ export function TemplateHeroLayout({
         prizes={raffle.prizes || []}
         displayMode={(raffle.prize_display_mode as any) || 'hierarchical'}
         currency={currency}
-        primaryColor={colors.primary}
-        accentColor={colors.accent}
-        textColor={colors.text}
-        textMuted={colors.textMuted}
-        cardBg={colors.cardBg}
-        isDarkTemplate={isDarkTemplate}
+        primaryColor="#10b981"
+        accentColor="#14b8a6"
+        textColor="#ffffff"
+        textMuted="rgba(255,255,255,0.6)"
+        cardBg="rgba(255,255,255,0.03)"
+        isDarkTemplate={true}
       />
 
+      {/* Info cards with glassmorphism */}
       <div className={`grid grid-cols-2 gap-4 ${contentAlignment === 'center' ? 'max-w-md mx-auto' : ''}`}>
         <motion.div 
-          className="p-4 rounded-xl border shadow-sm"
-          whileHover={{ scale: 1.02 }}
-          style={{ backgroundColor: colors.cardBg, borderColor: `${colors.primary}20`, borderRadius: effects.borderRadius }}
+          className="p-4 rounded-xl border bg-white/[0.03] border-white/[0.06] backdrop-blur-sm"
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
         >
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${colors.primary}20` }}
-            >
-              <Ticket className="w-5 h-5" style={{ color: colors.primary }} />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10">
+              <Ticket className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm" style={{ color: colors.textMuted }}>Precio</p>
-              <p className="text-lg font-bold" style={{ color: colors.text }}>
+              <p className="text-sm text-white/50">Precio</p>
+              <p className="text-lg font-bold text-white">
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>
           </div>
         </motion.div>
         <motion.div 
-          className="p-4 rounded-xl border shadow-sm"
-          whileHover={{ scale: 1.02 }}
-          style={{ backgroundColor: colors.cardBg, borderColor: `${colors.primary}20`, borderRadius: effects.borderRadius }}
+          className="p-4 rounded-xl border bg-white/[0.03] border-white/[0.06] backdrop-blur-sm"
+          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
         >
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${colors.primary}20` }}
-            >
-              <Calendar className="w-5 h-5" style={{ color: colors.primary }} />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10">
+              <Calendar className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm" style={{ color: colors.textMuted }}>Sorteo</p>
-              <p className="text-lg font-bold" style={{ color: colors.text }}>
+              <p className="text-sm text-white/50">Sorteo</p>
+              <p className="text-lg font-bold text-white">
                 {raffle.draw_date 
                   ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
                   : 'Por definir'
@@ -437,42 +400,40 @@ export function TemplateHeroLayout({
         </motion.div>
       </div>
 
+      {/* Progress bar with emerald gradient */}
       {showStats && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium" style={{ color: colors.text }}>
+            <span className="font-medium text-white">
               {raffle.ticketsSold} de {raffle.total_tickets} vendidos
             </span>
-            <span className="font-semibold" style={{ color: colors.primary }}>
+            <span className="font-semibold text-emerald-400">
               {Math.round(progress)}%
             </span>
           </div>
           
-          <div 
-            className="relative h-3 rounded-full overflow-hidden"
-            style={{ backgroundColor: `${colors.primary}20` }}
-          >
+          <div className="relative h-2 rounded-full overflow-hidden bg-white/[0.05]">
             <motion.div 
-              className="absolute inset-y-0 left-0 rounded-full"
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-600 to-teal-400"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
-              style={{ background: effects.gradient }}
             />
           </div>
           
-          <p className="text-sm" style={{ color: colors.textMuted }}>
+          <p className="text-sm text-white/50">
             {raffle.ticketsAvailable} boletos disponibles
           </p>
         </div>
       )}
 
+      {/* CTA Buttons */}
       <div className={`flex gap-4 ${contentAlignment === 'center' ? 'justify-center' : ''}`}>
         <motion.div className="flex-1 max-w-xs" whileTap={{ scale: 0.98 }}>
           <Button
+            variant="inverted"
             size="lg"
-            className="w-full text-lg py-6 shadow-xl text-white"
-            style={{ background: effects.gradient, borderRadius: effects.borderRadius }}
+            className="w-full text-lg py-6 shadow-xl font-bold"
             onClick={onScrollToTickets}
           >
             <Ticket className="w-5 h-5 mr-2" />
@@ -485,8 +446,7 @@ export function TemplateHeroLayout({
           <Button
             size="lg"
             variant="outline"
-            className="border-2 py-6"
-            style={{ borderColor: colors.primary, color: isDarkTemplate ? '#FFFFFF' : colors.primary, borderRadius: effects.borderRadius }}
+            className="border-2 py-6 border-white/20 text-white hover:bg-white/[0.05] hover:border-white/30"
             onClick={onShare}
           >
             <Share2 className="w-5 h-5 mr-2" />
@@ -495,20 +455,20 @@ export function TemplateHeroLayout({
         </motion.div>
       </div>
 
+      {/* Trust badges */}
       <div 
-        className={`flex flex-wrap items-center gap-4 pt-4 border-t ${contentAlignment === 'center' ? 'justify-center' : ''}`}
-        style={{ borderTopColor: `${colors.primary}20` }}
+        className={`flex flex-wrap items-center gap-4 pt-4 border-t border-white/[0.06] ${contentAlignment === 'center' ? 'justify-center' : ''}`}
       >
-        <div className="flex items-center gap-2 text-sm" style={{ color: colors.textMuted }}>
-          <Shield className="w-5 h-5 text-green-600" />
+        <div className="flex items-center gap-2 text-sm text-white/50">
+          <Shield className="w-5 h-5 text-emerald-400" />
           <span>Pago Seguro</span>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: colors.textMuted }}>
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
+        <div className="flex items-center gap-2 text-sm text-white/50">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           <span>Verificable</span>
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: colors.textMuted }}>
-          <Users className="w-5 h-5 text-green-600" />
+        <div className="flex items-center gap-2 text-sm text-white/50">
+          <Users className="w-5 h-5 text-emerald-400" />
           <span>{raffle.ticketsSold}+ participantes</span>
         </div>
       </div>
@@ -520,7 +480,7 @@ export function TemplateHeroLayout({
     if (!decorations.includes('patterns') || !effects.pattern) return null;
     return (
       <div 
-        className="absolute inset-0 opacity-30 pointer-events-none"
+        className="absolute inset-0 opacity-10 pointer-events-none"
         style={{ backgroundImage: effects.pattern, backgroundSize: '20px 20px' }}
       />
     );
@@ -536,7 +496,7 @@ export function TemplateHeroLayout({
             key={i}
             className="absolute w-3 h-3 rounded-full"
             style={{
-              backgroundColor: i % 3 === 0 ? colors.primary : i % 3 === 1 ? colors.accent : colors.secondary,
+              backgroundColor: i % 3 === 0 ? '#10b981' : i % 3 === 1 ? '#14b8a6' : '#8b5cf6',
               left: `${Math.random() * 100}%`,
               top: -20,
             }}
@@ -598,17 +558,14 @@ export function TemplateHeroLayout({
                 alt={raffle.prize_name}
                 className="w-full h-full object-cover"
               />
-              <div 
-                className="absolute inset-0"
-                style={{ background: `linear-gradient(to top, ${colors.background}, transparent 50%)` }}
-              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-[#030712]/50 to-transparent" />
               <PriceDisplay />
               
               {showStats && (
-                <div className="absolute top-4 right-4 px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg">
+                <div className="absolute top-4 right-4 px-4 py-2 bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-full shadow-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-semibold text-gray-900">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <span className="text-sm font-semibold text-white">
                       {raffle.ticketsSold} vendidos
                     </span>
                   </div>
@@ -619,8 +576,7 @@ export function TemplateHeroLayout({
             {/* Content below */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
               <motion.div 
-                className="p-8 rounded-2xl shadow-2xl"
-                style={{ backgroundColor: colors.cardBg, borderRadius: effects.borderRadius }}
+                className="p-8 rounded-2xl shadow-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl"
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5 }}
@@ -636,8 +592,9 @@ export function TemplateHeroLayout({
                   {raffle.prize_images.slice(0, 5).map((img, idx) => (
                     <motion.div 
                       key={idx}
-                      className="w-16 h-16 rounded-lg overflow-hidden shadow-md cursor-pointer border-2"
-                      style={{ borderColor: idx === 0 ? colors.primary : 'transparent', borderRadius: effects.borderRadius }}
+                      className={`w-16 h-16 rounded-lg overflow-hidden shadow-md cursor-pointer border-2 ${
+                        idx === 0 ? 'border-emerald-500' : 'border-white/10'
+                      }`}
                       whileHover={{ scale: 1.1 }}
                       onClick={() => {
                         setLightboxIndex(idx);
@@ -674,15 +631,11 @@ export function TemplateHeroLayout({
                   {/* Side price display */}
                   {pricePosition === 'side' && raffle.prize_value && (
                     <motion.div 
-                      className="mt-6 p-6 rounded-xl shadow-lg"
-                      style={{ backgroundColor: colors.cardBg, borderRadius: effects.borderRadius }}
+                      className="mt-6 p-6 rounded-xl shadow-lg bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm"
                       whileHover={{ scale: 1.02 }}
                     >
-                      <p className="text-sm font-medium" style={{ color: colors.textMuted }}>Valor estimado del premio</p>
-                      <p 
-                        className="text-4xl font-bold mt-1"
-                        style={{ color: colors.primary, fontFamily: `"${fonts.title}", sans-serif` }}
-                      >
+                      <p className="text-sm font-medium text-white/50">Valor estimado del premio</p>
+                      <p className="text-4xl font-bold mt-1 text-emerald-400">
                         {formatCurrency(Number(raffle.prize_value), currency)}
                       </p>
                     </motion.div>
@@ -736,10 +689,15 @@ export function TemplateHeroLayout({
     <>
       <Header />
       
-      <div 
-        className="relative"
-        style={{ backgroundColor: colors.background }}
-      >
+      {/* Force ultra-dark background */}
+      <div className="relative bg-[#030712]">
+        {/* Subtle gradient overlay for depth */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)'
+          }}
+        />
         {renderHero()}
       </div>
 
