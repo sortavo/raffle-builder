@@ -70,8 +70,13 @@ export function MobileHero({
     mediaItems.push({ type: 'image', url: '/placeholder.svg' });
   }
 
-  // Embla carousel setup
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  // Embla carousel setup with touch/swipe enabled
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false,
+    dragFree: false,
+    containScroll: 'trimSnaps',
+    skipSnaps: false,
+  });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const onSelect = useCallback(() => {
