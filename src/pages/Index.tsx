@@ -267,10 +267,10 @@ const Index = () => {
         {/* 6 Animated orbs - TIER S: Stripe/Linear level with 120px blur */}
         <div className="absolute top-[10%] -left-[10%] w-[600px] h-[600px] bg-emerald-600/20 rounded-full blur-[120px] animate-blob" />
         <div className="absolute top-[5%] -right-[15%] w-[500px] h-[500px] bg-amber-500/12 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-        <div className="absolute top-[40%] left-[20%] w-[400px] h-[400px] bg-teal-500/15 rounded-full blur-[100px] animate-blob animation-delay-4000" />
-        <div className="absolute bottom-[30%] right-[10%] w-[350px] h-[350px] bg-violet-500/10 rounded-full blur-[100px] animate-blob animation-delay-1000" />
-        <div className="absolute bottom-[10%] left-[5%] w-[300px] h-[300px] bg-emerald-500/15 rounded-full blur-[80px] animate-blob animation-delay-500" />
-        <div className="absolute top-[60%] right-[30%] w-[250px] h-[250px] bg-teal-400/10 rounded-full blur-[80px] animate-blob animation-delay-300" />
+        <div className="absolute top-[40%] left-[20%] w-[400px] h-[400px] bg-teal-500/15 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+        <div className="absolute bottom-[30%] right-[10%] w-[350px] h-[350px] bg-violet-500/10 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+        <div className="absolute bottom-[10%] left-[5%] w-[350px] h-[350px] bg-emerald-500/15 rounded-full blur-[120px] animate-blob animation-delay-500" />
+        <div className="absolute top-[60%] right-[30%] w-[300px] h-[300px] bg-teal-400/10 rounded-full blur-[120px] animate-blob animation-delay-300" />
         
         {/* Grid pattern overlay - premium 64px */}
         <div className="absolute inset-0 bg-grid-premium" />
@@ -329,21 +329,21 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   variant="gradient"
-                  className="text-base lg:text-lg px-8 py-6 shadow-xl shadow-emerald-600/25 group border-0"
+                  className="text-lg lg:text-xl px-10 py-7 shadow-2xl shadow-emerald-600/30 group border-0 hover:shadow-3xl hover:shadow-emerald-500/40 hover:-translate-y-1 transition-all duration-300"
                   onClick={() => navigate('/auth')}
                 >
                   Comenzar Gratis
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="text-base lg:text-lg px-8 py-6 border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white"
+                  className="text-lg lg:text-xl px-10 py-7 border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white hover:shadow-xl hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300"
                   onClick={() => {
                     document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
-                  <Play className="mr-2 w-5 h-5" />
+                  <Play className="mr-2 w-6 h-6" />
                   Ver Demo
                 </Button>
               </motion.div>

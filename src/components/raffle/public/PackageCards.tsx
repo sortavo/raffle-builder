@@ -85,8 +85,8 @@ export function PackageCards({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={cn(
-                "relative flex-shrink-0 w-[170px] md:w-full snap-center",
-                "rounded-2xl p-6 text-left transition-all duration-300",
+                "relative flex-shrink-0 w-[180px] md:w-full snap-center",
+                "rounded-2xl p-8 lg:p-10 text-left transition-all duration-300",
                 "border backdrop-blur-xl touch-active",
                 // Default state - TIER S glassmorphism with hover glow
                 !isSelected && !isBest && "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.15] hover:bg-white/[0.05] hover:shadow-xl hover:shadow-emerald-500/10",
@@ -122,27 +122,27 @@ export function PackageCards({
               )}
               
               {/* Content - TIER S typography */}
-              <div className="space-y-4">
-                {/* Quantity - Dramatic */}
+              <div className="space-y-5">
+                {/* Quantity - Dramatic TIER S */}
                 <div className="text-center">
                   <motion.span
                     key={pkg.quantity}
                     className={cn(
-                      "text-4xl lg:text-5xl font-black tracking-[-0.04em]",
+                      "text-5xl lg:text-6xl font-black tracking-[-0.05em]",
                       isSelected ? "text-emerald-400" : "text-white"
                     )}
                   >
                     {pkg.quantity}
                   </motion.span>
-                  <p className="text-sm text-white/50 mt-1">
+                  <p className="text-sm text-white/50 mt-1.5">
                     boletos
                   </p>
                 </div>
                 
-                {/* Price - TIER S */}
+                {/* Price - TIER S enhanced */}
                 <div className="text-center space-y-2">
                   <p className={cn(
-                    "text-xl lg:text-2xl font-bold tracking-tight",
+                    "text-2xl lg:text-3xl font-bold tracking-tight",
                     isSelected ? "text-emerald-400" : "text-white"
                   )}>
                     {formatCurrency(pkg.price, currency)}

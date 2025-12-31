@@ -253,8 +253,8 @@ export function MobileHero({
 
         {/* Prize info overlay - TIER S DRAMATIC PREMIUM typography */}
         <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4 pointer-events-none">
-          {/* Title - TIER S Large and dramatic */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[0.9] tracking-[-0.04em]">
+          {/* Title - TIER S Extra Large and dramatic */}
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.85] tracking-[-0.05em]">
             {raffle.title}
           </h1>
           
@@ -273,18 +273,18 @@ export function MobileHero({
       </div>
 
       {/* Ticket Price Section - TIER S DRAMATIC PREMIUM */}
-      <div className="relative py-8 px-6 bg-ultra-dark">
+      <div className="relative py-10 px-6 bg-ultra-dark">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-5">
-            {/* TIER S: w-20 h-20 icon container */}
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-xl shadow-emerald-500/20 border border-emerald-500/20">
-              <Ticket className="w-10 h-10 text-emerald-400" />
+          <div className="flex items-center gap-6">
+            {/* TIER S: w-24 h-24 icon container */}
+            <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-xl shadow-emerald-500/20 border border-emerald-500/20">
+              <Ticket className="w-12 h-12 text-emerald-400" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40 mb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40 mb-1.5">
                 Precio por boleto
               </p>
-              <p className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-[-0.04em]">
+              <p className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-[-0.05em]">
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>

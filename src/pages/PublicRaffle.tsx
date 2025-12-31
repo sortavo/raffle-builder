@@ -252,11 +252,12 @@ export default function PublicRaffle() {
           fontFamily: `"${fontBody}", sans-serif`,
         }}
       >
-        {/* Premium animated orbs - like /pricing */}
+        {/* TIER S: Premium animated orbs - 120px blur like Stripe */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[100px] animate-blob" />
-          <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[80px] animate-blob animation-delay-2000" />
-          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] animate-blob animation-delay-4000" />
+          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px] animate-blob" />
+          <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+          <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+          <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-500/8 rounded-full blur-[120px] animate-blob animation-delay-1000" />
           {/* Grid pattern overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
         </div>
