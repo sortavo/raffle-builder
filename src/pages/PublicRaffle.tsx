@@ -1,30 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, 
-  Calendar, 
   Trophy, 
-  Ticket, 
-  Share2, 
-  Shield, 
-  CheckCircle2, 
-  ChevronRight,
-  ChevronLeft,
-  Zap,
-  Users,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency-utils";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
-import { PrizeDisplayMode } from "@/types/prize";
 import { getTemplateById } from "@/lib/raffle-utils";
 import { usePublicRaffle } from "@/hooks/usePublicRaffle";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -33,22 +19,16 @@ import { CheckoutModal } from "@/components/raffle/public/CheckoutModal";
 import { CountdownTimer } from "@/components/raffle/public/CountdownTimer";
 import { ShareButtons } from "@/components/raffle/public/ShareButtons";
 import { OrganizerSection } from "@/components/raffle/public/OrganizerSection";
-import { PrizeShowcase } from "@/components/raffle/public/PrizeShowcase";
 import { FloatingWhatsAppButton } from "@/components/raffle/public/FloatingWhatsAppButton";
-import { PrizeVideoPlayer } from "@/components/raffle/public/PrizeVideoPlayer";
-import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
-import { UrgencyBadge } from "@/components/marketing/UrgencyBadge";
 import { SocialProof } from "@/components/marketing/SocialProof";
 import { PurchaseToast } from "@/components/marketing/PurchaseToast";
-import { ViewersCount } from "@/components/marketing/ViewersCount";
-import { StickyUrgencyBanner } from "@/components/marketing/StickyUrgencyBanner";
 import { MobileHero } from "@/components/raffle/public/MobileHero";
 import { MobileStickyFooter } from "@/components/raffle/public/MobileStickyFooter";
 import { TransparencySection } from "@/components/raffle/public/TransparencySection";
 import { HowToParticipate } from "@/components/raffle/public/HowToParticipate";
 import { FAQSection } from "@/components/raffle/public/FAQSection";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayout";
+import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
 
 export default function PublicRaffle() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug?: string }>();
@@ -318,412 +298,40 @@ export default function PublicRaffle() {
         
         {!isMobile && showHero && (
           <>
-            <header
-              className={`sticky top-0 z-50 transition-all duration-500 ease-out ${
-                isScrolled 
-                  ? 'backdrop-blur-xl shadow-xl' 
-                  : 'backdrop-blur-sm shadow-none'
-              }`}
-              style={{ 
-                backgroundColor: isScrolled 
-                  ? (isDarkTemplate ? `${cardBg}fa` : `${bgColor}fa`)
-                  : (isDarkTemplate ? `${cardBg}40` : `${bgColor}20`),
-                boxShadow: isScrolled ? `0 8px 40px -12px ${primaryColor}25` : 'none'
+            <TemplateHeroLayout
+              raffle={{
+                title: raffle.title,
+                description: raffle.description,
+                prize_name: raffle.prize_name,
+                prize_images: showGallery ? raffle.prize_images : [],
+                prize_video_url: showVideo ? raffle.prize_video_url : null,
+                prize_value: raffle.prize_value ? Number(raffle.prize_value) : null,
+                ticket_price: Number(raffle.ticket_price),
+                draw_date: raffle.draw_date,
+                ticketsSold: showStats ? raffle.ticketsSold : 0,
+                ticketsAvailable: raffle.ticketsAvailable,
+                total_tickets: raffle.total_tickets,
+                prizes: (raffle as any).prizes,
+                prize_display_mode: (raffle as any).prize_display_mode,
               }}
-            >
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Row 1: Subtle Navigation */}
-                <div 
-                  className={`flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b ${
-                    isScrolled ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100'
-                  }`}
-                  style={{ borderBottomColor: isScrolled ? 'transparent' : `${primaryColor}10` }}
-                >
-                  {isFromOrganization ? (
-                    <Link 
-                      to={`/${orgSlugValue}`}
-                      className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all group"
-                    >
-                      <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                      <span>Volver a {orgName}</span>
-                    </Link>
-                  ) : (
-                    <div />
-                  )}
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={shareRaffle}
-                    className="text-xs text-muted-foreground hover:text-foreground h-8 px-3"
-                  >
-                    <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                    Compartir
-                  </Button>
-                </div>
-
-                {/* Row 2: Centered Logo & Brand */}
-                <div 
-                  className={`flex items-center justify-center transition-all duration-500 ease-out ${
-                    isScrolled ? 'py-2' : 'py-5'
-                  }`}
-                >
-                  <Link 
-                    to={orgSlugValue ? `/${orgSlugValue}` : "#"}
-                    className={`flex items-center gap-3 group transition-all duration-500 ${
-                      isScrolled ? 'flex-row' : 'flex-col'
-                    }`}
-                  >
-                    <div className="relative">
-                      <div 
-                        className={`absolute inset-0 blur-xl transition-all duration-500 ${
-                          isScrolled ? 'opacity-30' : 'opacity-50 group-hover:opacity-70'
-                        }`}
-                        style={{ backgroundColor: primaryColor }}
-                      />
-                      <Avatar 
-                        className={`relative border-[3px] shadow-xl transition-all duration-500 group-hover:scale-105 ${
-                          isScrolled ? 'h-10 w-10' : 'h-16 w-16'
-                        }`}
-                        style={{ borderColor: primaryColor }}
-                      >
-                        <AvatarImage src={orgLogo || undefined} alt={orgName} className="object-cover" />
-                        <AvatarFallback 
-                          className={`font-bold text-white transition-all duration-500 ${
-                            isScrolled ? 'text-sm' : 'text-xl'
-                          }`}
-                          style={{ backgroundColor: primaryColor }}
-                        >
-                          {orgName.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    
-                    <div className={`text-center transition-all duration-500 ${isScrolled ? 'space-y-0' : 'space-y-1.5'}`}>
-                      <h2 
-                        className={`font-bold tracking-wider uppercase transition-all duration-500 group-hover:opacity-80 ${
-                          isScrolled ? 'text-base' : 'text-lg sm:text-xl'
-                        }`}
-                        style={{ 
-                          color: textColor,
-                          fontFamily: `"${fontTitle}", sans-serif`
-                        }}
-                      >
-                        {orgName}
-                      </h2>
-                      
-                      {org?.verified && (
-                        <div 
-                          className={`flex items-center justify-center gap-1.5 transition-all duration-500 overflow-hidden ${
-                            isScrolled ? 'h-0 opacity-0' : 'h-5 opacity-100'
-                          }`}
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                          <span className="text-xs font-medium text-blue-600">Organizador verificado</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {org?.verified && isScrolled && (
-                      <CheckCircle2 className="w-4 h-4 text-blue-500 animate-fade-in" />
-                    )}
-                  </Link>
-
-                  {isScrolled && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={shareRaffle}
-                      className="absolute right-4 text-muted-foreground hover:text-foreground h-8 px-3 animate-fade-in"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                  )}
-
-                  {isScrolled && isFromOrganization && (
-                    <Link 
-                      to={`/${orgSlugValue}`}
-                      className="absolute left-4 flex items-center gap-1 text-muted-foreground hover:text-foreground transition-all group animate-fade-in"
-                    >
-                      <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-              
-              <div 
-                className={`h-0.5 w-full transition-opacity duration-500 ${
-                  isScrolled ? 'opacity-80' : 'opacity-40'
-                }`}
-                style={{ background: gradient }}
-              />
-            </header>
-
-            {/* Sticky Urgency Banner */}
-            {showStickyBanner && raffle.draw_date && (
-              <StickyUrgencyBanner
-                drawDate={raffle.draw_date}
-                totalTickets={raffle.total_tickets}
-                ticketsSold={raffle.ticketsSold}
-                onScrollToTickets={scrollToTickets}
-              />
-            )}
-
-            {/* Desktop Hero Section */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/5">
-              <div className="absolute inset-0 opacity-50" style={{
-                backgroundImage: `radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.1) 1px, transparent 0)`,
-                backgroundSize: '24px 24px'
-              }}></div>
-              
-              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
-                  {/* Left: Prize Image */}
-                  <div className="relative group order-2 lg:order-1">
-                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400/20 rounded-full blur-2xl animate-pulse"></div>
-                    <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl animate-pulse"></div>
-                    
-                    <div 
-                      className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setLightboxIndex(0);
-                        setLightboxOpen(true);
-                      }}
-                    >
-                      <img 
-                        src={mainImage} 
-                        alt={raffle.prize_name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none"></div>
-                      
-                      <div className="absolute top-4 right-4 px-4 py-2 bg-white/95 backdrop-blur-sm rounded-full shadow-lg pointer-events-none">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-semibold text-gray-900">
-                            {raffle.ticketsSold} vendidos
-                          </span>
-                        </div>
-                      </div>
-
-                      {raffle.prize_value && (
-                        <div 
-                          className="absolute bottom-4 left-4 px-6 py-3 rounded-2xl shadow-xl pointer-events-none"
-                          style={{ background: gradient }}
-                        >
-                          <div className="text-white">
-                            <p className="text-xs font-medium opacity-90">Valor del Premio</p>
-                            <p className="text-2xl font-bold">
-                              {formatCurrency(Number(raffle.prize_value), currency)}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {raffle.prize_images && raffle.prize_images.length > 1 && (
-                      <div className="flex gap-2 mt-4">
-                        {raffle.prize_images.slice(0, 4).map((img, idx) => (
-                          <div 
-                            key={idx}
-                            className="w-20 h-20 rounded-xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer"
-                            onClick={() => {
-                              setLightboxIndex(idx);
-                              setLightboxOpen(true);
-                            }}
-                          >
-                            <img src={img} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {raffle.prize_video_url && (
-                      <PrizeVideoPlayer 
-                        videoUrl={raffle.prize_video_url} 
-                        title={raffle.prize_name}
-                        className="mt-6"
-                      />
-                    )}
-
-                    {raffle.prize_images && raffle.prize_images.length > 0 && (
-                      <PrizeLightbox
-                        images={raffle.prize_images}
-                        initialIndex={lightboxIndex}
-                        open={lightboxOpen}
-                        onOpenChange={setLightboxOpen}
-                      />
-                    )}
-                  </div>
-
-                  {/* Right: Info */}
-                  <div className="space-y-6 order-1 lg:order-2">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div 
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white"
-                        style={{ background: gradient }}
-                      >
-                        <Zap className="w-4 h-4" />
-                        Sorteo Activo
-                      </div>
-                      {showViewersCount && <ViewersCount />}
-                    </div>
-
-                    {showUrgencyBadge && raffle.draw_date && (
-                      <UrgencyBadge
-                        drawDate={raffle.draw_date}
-                        totalTickets={raffle.total_tickets}
-                        ticketsSold={raffle.ticketsSold}
-                      />
-                    )}
-
-                    <div className="space-y-4">
-                      <h1 
-                        className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight"
-                        style={{ 
-                          fontFamily: `"${fontTitle}", sans-serif`,
-                          color: textColor,
-                        }}
-                      >
-                        {raffle.title}
-                      </h1>
-                      
-                      {raffle.description && (
-                        <p className="text-base sm:text-lg" style={{ color: textMuted }}>{raffle.description}</p>
-                      )}
-                    </div>
-
-                    <PrizeShowcase 
-                      raffle={raffle}
-                      prizes={(raffle as any).prizes || []}
-                      displayMode={((raffle as any).prize_display_mode as PrizeDisplayMode) || 'hierarchical'}
-                      currency={currency}
-                      primaryColor={primaryColor}
-                      accentColor={accentColor}
-                      textColor={textColor}
-                      textMuted={textMuted}
-                      cardBg={cardBg}
-                      isDarkTemplate={isDarkTemplate}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <motion.div 
-                        className="p-4 rounded-xl border shadow-sm"
-                        whileHover={{ scale: 1.02 }}
-                        style={{ backgroundColor: cardBg, borderColor: `${primaryColor}20`, borderRadius }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: `${primaryColor}20` }}
-                          >
-                            <Ticket className="w-5 h-5" style={{ color: primaryColor }} />
-                          </div>
-                          <div>
-                            <p className="text-sm" style={{ color: textMuted }}>Precio</p>
-                            <p className="text-lg font-bold" style={{ color: textColor }}>
-                              {formatCurrency(Number(raffle.ticket_price), currency)}
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                      <motion.div 
-                        className="p-4 rounded-xl border shadow-sm"
-                        whileHover={{ scale: 1.02 }}
-                        style={{ backgroundColor: cardBg, borderColor: `${primaryColor}20`, borderRadius }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: `${primaryColor}20` }}
-                          >
-                            <Calendar className="w-5 h-5" style={{ color: primaryColor }} />
-                          </div>
-                          <div>
-                            <p className="text-sm" style={{ color: textMuted }}>Sorteo</p>
-                            <p className="text-lg font-bold" style={{ color: textColor }}>
-                              {raffle.draw_date 
-                                ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
-                                : 'Por definir'
-                              }
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium" style={{ color: textColor }}>
-                          {raffle.ticketsSold} de {raffle.total_tickets} vendidos
-                        </span>
-                        <span className="font-semibold" style={{ color: primaryColor }}>
-                          {Math.round(progress)}%
-                        </span>
-                      </div>
-                      
-                      <div 
-                        className="relative h-3 rounded-full overflow-hidden"
-                        style={{ backgroundColor: `${primaryColor}20` }}
-                      >
-                        <div 
-                          className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-                          style={{ width: `${progress}%`, background: gradient }}
-                        />
-                      </div>
-                      
-                      <p className="text-sm" style={{ color: textMuted }}>
-                        {raffle.ticketsAvailable} boletos disponibles
-                      </p>
-                    </div>
-
-                    <div className="flex gap-4">
-                      <motion.div className="flex-1" whileTap={{ scale: 0.98 }}>
-                        <Button
-                          size="lg"
-                          className="w-full text-lg py-6 shadow-xl text-white"
-                          style={{ background: gradient, borderRadius }}
-                          onClick={scrollToTickets}
-                        >
-                          <Ticket className="w-5 h-5 mr-2" />
-                          Comprar Boletos
-                          <ChevronRight className="w-5 h-5 ml-2" />
-                        </Button>
-                      </motion.div>
-                      
-                      <motion.div whileTap={{ scale: 0.98 }}>
-                        <Button
-                          size="lg"
-                          variant="outline"
-                          className="border-2 py-6"
-                          style={{ borderColor: primaryColor, color: isDarkTemplate ? '#FFFFFF' : primaryColor, borderRadius }}
-                          onClick={shareRaffle}
-                        >
-                          <Share2 className="w-5 h-5 mr-2" />
-                          Compartir
-                        </Button>
-                      </motion.div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Shield className="w-5 h-5 text-green-600" />
-                        <span>Pago Seguro</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <span>Verificable</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Users className="w-5 h-5 text-green-600" />
-                        <span>{raffle.ticketsSold}+ participantes</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              organization={{
+                name: orgName,
+                logo_url: orgLogo,
+                slug: orgSlugValue,
+                verified: org?.verified,
+              }}
+              template={template}
+              currency={currency}
+              isScrolled={isScrolled}
+              isFromOrganization={isFromOrganization}
+              showViewersCount={showViewersCount}
+              showUrgencyBadge={showUrgencyBadge}
+              showGallery={showGallery}
+              showVideo={showVideo}
+              showStats={showStats}
+              onScrollToTickets={scrollToTickets}
+              onShare={shareRaffle}
+            />
 
             {/* Desktop Countdown */}
             {showCountdown && raffle.draw_date && (

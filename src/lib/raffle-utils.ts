@@ -173,6 +173,23 @@ export const formatReservationTime = (minutes: number): string => {
 
 export const MAX_RESERVATION_MINUTES = 10080; // 7 days
 
+export type TemplateLayoutType = 
+  | 'modern'      // Side-by-side hero, horizontal carousel
+  | 'classic'     // Centered content, grid gallery
+  | 'minimal'     // Single focus, asymmetric whitespace
+  | 'festive'     // Full-width hero, confetti, large carousel
+  | 'elegant'     // Dark asymmetric, luxury feel
+  | 'sports';     // Bold full-width, action-oriented
+
+export interface TemplateLayout {
+  heroStyle: 'side-by-side' | 'centered' | 'full-width' | 'asymmetric';
+  galleryStyle: 'carousel' | 'grid' | 'single-focus' | 'masonry';
+  pricePosition: 'overlay' | 'below' | 'side' | 'badge';
+  contentAlignment: 'left' | 'center' | 'right';
+  sectionSpacing: 'compact' | 'normal' | 'generous';
+  decorations: ('confetti' | 'patterns' | 'glow' | 'borders' | 'none')[];
+}
+
 export interface RaffleTemplate {
   id: string;
   name: string;
@@ -197,6 +214,7 @@ export interface RaffleTemplate {
     gradient: string;
     pattern?: string;
   };
+  layout: TemplateLayout;
 }
 
 export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
@@ -223,6 +241,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       shadow: '0 10px 40px -10px rgba(0,0,0,0.15)',
       gradient: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
     },
+    layout: {
+      heroStyle: 'side-by-side',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'left',
+      sectionSpacing: 'normal',
+      decorations: ['glow'],
+    },
   },
   {
     id: 'classic',
@@ -247,6 +273,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       shadow: '0 4px 20px rgba(0,0,0,0.1)',
       gradient: 'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)',
     },
+    layout: {
+      heroStyle: 'centered',
+      galleryStyle: 'grid',
+      pricePosition: 'below',
+      contentAlignment: 'center',
+      sectionSpacing: 'generous',
+      decorations: ['borders'],
+    },
   },
   {
     id: 'minimal',
@@ -270,6 +304,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       borderRadius: '0.375rem',
       shadow: '0 1px 3px rgba(0,0,0,0.08)',
       gradient: 'linear-gradient(135deg, #18181B 0%, #3F3F46 100%)',
+    },
+    layout: {
+      heroStyle: 'asymmetric',
+      galleryStyle: 'single-focus',
+      pricePosition: 'side',
+      contentAlignment: 'left',
+      sectionSpacing: 'generous',
+      decorations: ['none'],
     },
   },
   {
@@ -296,6 +338,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       gradient: 'linear-gradient(135deg, #E11D48 0%, #FB7185 50%, #FBBF24 100%)',
       pattern: 'radial-gradient(circle at 2px 2px, rgba(251,191,36,0.3) 1px, transparent 0)',
     },
+    layout: {
+      heroStyle: 'full-width',
+      galleryStyle: 'carousel',
+      pricePosition: 'badge',
+      contentAlignment: 'center',
+      sectionSpacing: 'compact',
+      decorations: ['confetti', 'patterns'],
+    },
   },
   {
     id: 'elegant',
@@ -320,6 +370,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       shadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
       gradient: 'linear-gradient(135deg, #D4AF37 0%, #F5E6A3 50%, #D4AF37 100%)',
     },
+    layout: {
+      heroStyle: 'asymmetric',
+      galleryStyle: 'masonry',
+      pricePosition: 'side',
+      contentAlignment: 'left',
+      sectionSpacing: 'generous',
+      decorations: ['glow', 'borders'],
+    },
   },
   {
     id: 'sports',
@@ -343,6 +401,14 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       borderRadius: '0.75rem',
       shadow: '0 10px 30px -5px rgba(22,163,74,0.3)',
       gradient: 'linear-gradient(135deg, #16A34A 0%, #22C55E 50%, #EA580C 100%)',
+    },
+    layout: {
+      heroStyle: 'full-width',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'center',
+      sectionSpacing: 'compact',
+      decorations: ['patterns'],
     },
   },
 ];
