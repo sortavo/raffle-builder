@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
 import { scrollToSection, handleHashScroll } from "@/lib/scroll-utils";
+import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { 
   Menu, 
   Sparkles, 
@@ -29,6 +30,9 @@ import { Footer } from "@/components/layout/Footer";
 import sortavoLogo from "@/assets/sortavo-logo.png";
 
 const Index = () => {
+  // Activate dark mode for this page
+  useScopedDarkMode();
+  
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -258,7 +262,7 @@ const Index = () => {
       {/* Hero Section - Premium Black & Emerald */}
       <section className="relative min-h-screen flex items-center pt-20 lg:pt-0 overflow-hidden">
         {/* Premium Dark Background with emerald tint */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-emerald-950/30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-ultra-dark via-ultra-dark-elevated to-emerald-950/30" />
         
         {/* Animated emerald gradient orbs */}
         <div className="absolute top-1/4 -left-32 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl animate-blob" />
@@ -318,7 +322,8 @@ const Index = () => {
               >
                 <Button 
                   size="lg" 
-                  className="text-base lg:text-lg px-8 py-6 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-600/25 group border-0"
+                  variant="gradient"
+                  className="text-base lg:text-lg px-8 py-6 shadow-xl shadow-emerald-600/25 group border-0"
                   onClick={() => navigate('/auth')}
                 >
                   Comenzar Gratis
@@ -370,7 +375,7 @@ const Index = () => {
                 <div className="absolute -inset-4 bg-gradient-to-r from-emerald-600/20 via-amber-500/10 to-emerald-600/20 rounded-3xl blur-2xl opacity-60" />
                 
                 {/* Dashboard mockup */}
-                <div className="relative bg-gray-900 rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+                <div className="relative bg-ultra-dark-elevated rounded-2xl shadow-2xl border border-ultra-dark overflow-hidden">
                   {/* Header */}
                   <div className="bg-gray-800/50 px-6 py-4 border-b border-white/10 flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/60" />

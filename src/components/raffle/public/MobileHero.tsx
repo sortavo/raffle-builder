@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCurrency } from "@/lib/currency-utils";
 import { CountdownTimer } from "./CountdownTimer";
 import { getVideoEmbedUrl } from "@/lib/video-utils";
-import { PREMIUM_COLORS } from "./design-tokens";
+
 
 interface MobileHeroProps {
   raffle: {

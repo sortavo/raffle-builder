@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency-utils";
 import { ArrowRight, Ticket, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PREMIUM_COLORS } from "./design-tokens";
+
 
 interface FloatingCartButtonProps {
   selectedCount: number;

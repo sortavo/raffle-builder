@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -16,6 +17,8 @@ import { PremiumHero } from '@/components/layout/PremiumBackground';
 import { cn } from '@/lib/utils';
 
 export default function Pricing() {
+  // Activate dark mode for this page
+  useScopedDarkMode();
   const [isAnnual, setIsAnnual] = useState(false);
 
   const plans = [
@@ -123,7 +126,7 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-950 overflow-x-hidden">
+    <div className="min-h-screen bg-ultra-dark overflow-x-hidden">
       {/* Premium Navigation */}
       <PremiumNavbar variant="solid" />
 
@@ -227,7 +230,7 @@ export default function Pricing() {
       <SocialProofSection />
 
       {/* Feature Comparison Table */}
-      <section className="py-20 bg-gray-900/50">
+      <section className="py-20 bg-ultra-dark-elevated">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -315,7 +318,7 @@ export default function Pricing() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gray-950">
+      <section className="py-20 bg-ultra-dark">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -382,7 +385,8 @@ export default function Pricing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                className="text-lg px-8 py-6 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-600/25"
+                variant="gradient"
+                className="text-lg px-8 py-6 shadow-xl shadow-emerald-600/25"
                 asChild
               >
                 <Link to="/auth?tab=signup">

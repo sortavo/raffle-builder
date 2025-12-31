@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
 import { Check, Sparkles } from "lucide-react";
-import { PREMIUM_COLORS } from "./design-tokens";
+
 
 interface Package {
   id: string;
