@@ -253,9 +253,9 @@ export default function Subscription() {
 
   return (
     <DashboardLayout breadcrumbs={[{ label: "Suscripción" }]}>
-      <div className="space-y-6">
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Suscripción</h1>
           <p className="text-muted-foreground">
             Administra tu plan y facturación
