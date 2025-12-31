@@ -54,7 +54,7 @@ export function ProbabilityStats({
   ];
 
   return (
-    <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 overflow-hidden">
+    <Card className="bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm overflow-hidden">
       <CardContent className="pt-6 space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -65,25 +65,25 @@ export function ProbabilityStats({
           >
             <BarChart3 className="w-7 h-7 text-white" />
           </motion.div>
-          <h3 className="text-lg font-bold text-gray-900">Tus Probabilidades</h3>
-          <p className="text-sm text-gray-600">Estadísticas en tiempo real</p>
+          <h3 className="text-lg font-bold text-white">Tus Probabilidades</h3>
+          <p className="text-sm text-white/60">Estadísticas en tiempo real</p>
         </div>
 
         {/* Main probability */}
-        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+        <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.06]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-emerald-600" />
-              <span className="font-medium text-gray-700">Probabilidad por boleto</span>
+              <Target className="w-5 h-5 text-emerald-400" />
+              <span className="font-medium text-white/80">Probabilidad por boleto</span>
             </div>
-            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
               1 de {ticketsAvailable.toLocaleString()}
             </Badge>
           </div>
           
           <div className="text-center py-3">
             <motion.span 
-              className="text-4xl font-bold text-emerald-600"
+              className="text-4xl font-bold text-emerald-400"
               key={stats.probabilityPerTicket}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -96,13 +96,13 @@ export function ProbabilityStats({
         {/* Progress bar - tickets sold */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Boletos vendidos</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-white/60">Boletos vendidos</span>
+            <span className="font-semibold text-white">
               {ticketsSold.toLocaleString()} / {totalTickets.toLocaleString()}
             </span>
           </div>
-          <Progress value={stats.soldPercentage} className="h-3" />
-          <p className="text-xs text-gray-500 text-center">
+          <Progress value={stats.soldPercentage} className="h-3 bg-white/[0.06] [&>div]:bg-emerald-500" />
+          <p className="text-xs text-white/40 text-center">
             {ticketsAvailable.toLocaleString()} boletos disponibles
           </p>
         </div>
@@ -112,10 +112,10 @@ export function ProbabilityStats({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200"
+            className="flex items-center justify-center gap-2 p-3 bg-amber-500/10 rounded-xl border border-amber-500/20"
           >
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            <span className="text-sm font-medium text-amber-700">
+            <Sparkles className="w-5 h-5 text-amber-400" />
+            <span className="text-sm font-medium text-amber-400">
               {stats.timesMoreLikely.toLocaleString()}× más probable que la lotería nacional
             </span>
           </motion.div>
@@ -123,8 +123,8 @@ export function ProbabilityStats({
 
         {/* Package multipliers */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-sm font-medium text-white/80">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
             Aumenta tus probabilidades
           </div>
           
@@ -136,16 +136,16 @@ export function ProbabilityStats({
               return (
                 <div 
                   key={pkg.qty}
-                  className="text-center p-3 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors"
+                  className="text-center p-3 bg-white/[0.03] rounded-lg border border-white/[0.06] hover:border-emerald-500/30 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    <Ticket className="w-3 h-3 text-gray-400" />
-                    <span className="text-xs text-gray-600">{pkg.label}</span>
+                    <Ticket className="w-3 h-3 text-white/40" />
+                    <span className="text-xs text-white/50">{pkg.label}</span>
                   </div>
-                  <p className="text-lg font-bold text-emerald-600">
+                  <p className="text-lg font-bold text-emerald-400">
                     {pkgProbability.toFixed(2)}%
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/40">
                     {formatCurrency(cost, currencyCode)}
                   </p>
                 </div>
