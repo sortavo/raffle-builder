@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { differenceInHours, differenceInMinutes } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Clock, Flame, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface UrgencyBadgeProps {
   drawDate: string;
@@ -51,13 +50,12 @@ export function UrgencyBadge({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 backdrop-blur-xl"
         >
-          <Alert className="border-red-500/50 bg-red-50 dark:bg-red-950/20">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-            <AlertDescription className="text-red-700 dark:text-red-400 font-medium">
-              ⏰ ¡Últimos {minutesUntilDraw} minutos para participar!
-            </AlertDescription>
-          </Alert>
+          <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+          <span className="text-red-300 font-medium">
+            ⏰ ¡Últimos {minutesUntilDraw} minutos para participar!
+          </span>
         </motion.div>
       )}
 
@@ -67,13 +65,12 @@ export function UrgencyBadge({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-xl"
         >
-          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-            <Clock className="w-4 h-4 text-amber-500" />
-            <AlertDescription className="text-amber-700 dark:text-amber-400 font-medium">
-              ⏰ ¡Quedan solo {hoursUntilDraw} horas para participar!
-            </AlertDescription>
-          </Alert>
+          <Clock className="w-5 h-5 text-amber-400 flex-shrink-0" />
+          <span className="text-amber-300 font-medium">
+            ⏰ ¡Quedan solo {hoursUntilDraw} horas para participar!
+          </span>
         </motion.div>
       )}
 
@@ -83,13 +80,12 @@ export function UrgencyBadge({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 backdrop-blur-xl"
         >
-          <Alert className="border-red-500/50 bg-red-50 dark:bg-red-950/20">
-            <Flame className="w-4 h-4 text-red-500" />
-            <AlertDescription className="text-red-700 dark:text-red-400 font-medium">
-              🔥 ¡Solo quedan {ticketsRemaining} boletos disponibles!
-            </AlertDescription>
-          </Alert>
+          <Flame className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <span className="text-rose-300 font-medium">
+            🔥 ¡Solo quedan {ticketsRemaining} boletos disponibles!
+          </span>
         </motion.div>
       )}
 
@@ -99,13 +95,12 @@ export function UrgencyBadge({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 backdrop-blur-xl"
         >
-          <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-            <AlertTriangle className="w-4 h-4 text-orange-500" />
-            <AlertDescription className="text-orange-700 dark:text-orange-400 font-medium">
-              ⚡ {Math.round(percentageSold)}% vendido - ¡Quedan {ticketsRemaining} boletos!
-            </AlertDescription>
-          </Alert>
+          <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0" />
+          <span className="text-orange-300 font-medium">
+            ⚡ {Math.round(percentageSold)}% vendido - ¡Quedan {ticketsRemaining} boletos!
+          </span>
         </motion.div>
       )}
     </div>

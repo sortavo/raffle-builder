@@ -309,12 +309,11 @@ export function TemplateHeroLayout({
     }
   };
 
-  // Info section with premium ultra-dark styling
   const InfoSection = ({ className = "" }: { className?: string }) => (
     <div className={`space-y-6 ${className}`}>
       {/* Premium Badge */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white bg-gradient-to-r from-violet-600 to-purple-600 shadow-lg">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg shadow-emerald-600/25">
           <Zap className="w-4 h-4" />
           Sorteo Activo
         </div>
@@ -329,19 +328,21 @@ export function TemplateHeroLayout({
         />
       )}
 
-      {/* Title with dramatic typography */}
+      {/* Title with emerald gradient - /pricing style */}
       <div className="space-y-4">
         <h1 
-          className={`text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black leading-[0.95] tracking-[-0.03em] text-white ${
+          className={`text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[0.95] tracking-tight ${
             contentAlignment === 'center' ? 'text-center' : ''
           }`}
         >
-          {raffle.title}
+          <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
+            {raffle.title}
+          </span>
         </h1>
         
         {raffle.description && (
           <p 
-            className={`text-base sm:text-lg text-white/60 ${contentAlignment === 'center' ? 'text-center' : ''}`}
+            className={`text-base sm:text-lg lg:text-xl text-gray-300 ${contentAlignment === 'center' ? 'text-center' : ''}`}
           >
             {raffle.description}
           </p>
@@ -361,35 +362,35 @@ export function TemplateHeroLayout({
         isDarkTemplate={true}
       />
 
-      {/* Info cards with glassmorphism */}
+      {/* Info cards with glassmorphism - /pricing style */}
       <div className={`grid grid-cols-2 gap-4 ${contentAlignment === 'center' ? 'max-w-md mx-auto' : ''}`}>
         <motion.div 
-          className="p-4 rounded-xl border bg-white/[0.03] border-white/[0.06] backdrop-blur-sm"
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
+          className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300"
+          whileHover={{ scale: 1.02 }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10">
-              <Ticket className="w-5 h-5 text-emerald-400" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
+              <Ticket className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-white/50">Precio</p>
-              <p className="text-lg font-bold text-white">
+              <p className="text-sm text-gray-400">Precio</p>
+              <p className="text-xl font-bold text-white">
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>
           </div>
         </motion.div>
         <motion.div 
-          className="p-4 rounded-xl border bg-white/[0.03] border-white/[0.06] backdrop-blur-sm"
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
+          className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300"
+          whileHover={{ scale: 1.02 }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10">
-              <Calendar className="w-5 h-5 text-emerald-400" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
+              <Calendar className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-sm text-white/50">Sorteo</p>
-              <p className="text-lg font-bold text-white">
+              <p className="text-sm text-gray-400">Sorteo</p>
+              <p className="text-xl font-bold text-white">
                 {raffle.draw_date 
                   ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
                   : 'Por definir'
@@ -400,40 +401,39 @@ export function TemplateHeroLayout({
         </motion.div>
       </div>
 
-      {/* Progress bar with emerald gradient */}
+      {/* Progress bar with emerald gradient - /pricing style */}
       {showStats && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-white">
+            <span className="font-medium text-gray-200">
               {raffle.ticketsSold} de {raffle.total_tickets} vendidos
             </span>
-            <span className="font-semibold text-emerald-400">
+            <span className="font-bold text-emerald-400">
               {Math.round(progress)}%
             </span>
           </div>
           
-          <div className="relative h-2 rounded-full overflow-hidden bg-white/[0.05]">
+          <div className="relative h-3 rounded-full overflow-hidden bg-gray-800">
             <motion.div 
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-600 to-teal-400"
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
             />
           </div>
           
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-gray-400">
             {raffle.ticketsAvailable} boletos disponibles
           </p>
         </div>
       )}
 
-      {/* CTA Buttons */}
+      {/* CTA Buttons - /pricing style with gradient */}
       <div className={`flex gap-4 ${contentAlignment === 'center' ? 'justify-center' : ''}`}>
         <motion.div className="flex-1 max-w-xs" whileTap={{ scale: 0.98 }}>
           <Button
-            variant="inverted"
             size="lg"
-            className="w-full text-lg py-6 shadow-xl font-bold"
+            className="w-full text-lg py-6 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-xl shadow-emerald-600/25"
             onClick={onScrollToTickets}
           >
             <Ticket className="w-5 h-5 mr-2" />
@@ -446,7 +446,7 @@ export function TemplateHeroLayout({
           <Button
             size="lg"
             variant="outline"
-            className="border-2 py-6 border-white/20 text-white hover:bg-white/[0.05] hover:border-white/30"
+            className="border-2 py-6 border-white/20 text-white hover:bg-white/[0.05] hover:border-emerald-500/50"
             onClick={onShare}
           >
             <Share2 className="w-5 h-5 mr-2" />
@@ -455,20 +455,26 @@ export function TemplateHeroLayout({
         </motion.div>
       </div>
 
-      {/* Trust badges */}
+      {/* Trust badges - /pricing style */}
       <div 
-        className={`flex flex-wrap items-center gap-4 pt-4 border-t border-white/[0.06] ${contentAlignment === 'center' ? 'justify-center' : ''}`}
+        className={`flex flex-wrap items-center gap-6 pt-6 border-t border-white/10 ${contentAlignment === 'center' ? 'justify-center' : ''}`}
       >
-        <div className="flex items-center gap-2 text-sm text-white/50">
-          <Shield className="w-5 h-5 text-emerald-400" />
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
+            <Shield className="w-4 h-4 text-emerald-400" />
+          </div>
           <span>Pago Seguro</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-white/50">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          </div>
           <span>Verificable</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-white/50">
-          <Users className="w-5 h-5 text-emerald-400" />
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
+            <Users className="w-4 h-4 text-emerald-400" />
+          </div>
           <span>{raffle.ticketsSold}+ participantes</span>
         </div>
       </div>

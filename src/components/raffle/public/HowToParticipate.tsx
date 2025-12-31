@@ -28,9 +28,9 @@ interface HowToParticipateProps {
 
 export function HowToParticipate({ className = "" }: HowToParticipateProps) {
   return (
-    <section className={`py-10 ${className}`}>
-      <div className="max-w-4xl mx-auto px-5">
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+    <section className={`py-12 bg-gray-950/50 ${className}`}>
+      <div className="max-w-5xl mx-auto px-5">
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
           {steps.map((step, index) => (
             <motion.div
               key={step.number}
@@ -42,26 +42,26 @@ export function HowToParticipate({ className = "" }: HowToParticipateProps) {
             >
               {/* Connector line for desktop */}
               {index < steps.length - 1 && (
-                <div className="hidden sm:block absolute top-8 left-[60%] w-full h-px bg-white/[0.08]" />
+                <div className="hidden sm:block absolute top-8 left-[60%] w-full h-px bg-gradient-to-r from-emerald-500/30 to-transparent" />
               )}
               
               <div className="flex sm:flex-col items-start sm:items-center gap-4 sm:gap-3 text-left sm:text-center">
-                {/* Icon with number */}
+                {/* Icon with number - /pricing style */}
                 <div className="relative flex-shrink-0">
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
-                    <step.icon className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-gray-900/80 border border-white/10 flex items-center justify-center shadow-lg hover:border-emerald-500/30 transition-all">
+                    <step.icon className="w-8 h-8 text-emerald-400" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <div className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg">
                     <span className="text-sm font-bold text-white">{step.number}</span>
                   </div>
                 </div>
                 
                 {/* Text */}
                 <div className="flex-1 sm:flex-initial">
-                  <h3 className="font-semibold text-white mb-1">
+                  <h3 className="font-semibold text-gray-200 mb-1">
                     {step.title}
                   </h3>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-gray-400">
                     {step.description}
                   </p>
                 </div>

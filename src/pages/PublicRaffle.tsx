@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,11 +244,21 @@ export default function PublicRaffle() {
       </Helmet>
 
       <div 
-        className="min-h-screen transition-colors duration-300 bg-[#030712]"
+        className="min-h-screen transition-colors duration-300 bg-[#030712] relative overflow-hidden"
         style={{ 
           fontFamily: `"${fontBody}", sans-serif`,
         }}
       >
+        {/* Premium animated orbs - like /pricing */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[100px] animate-blob" />
+          <div className="absolute top-1/3 -right-32 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[80px] animate-blob animation-delay-2000" />
+          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] animate-blob animation-delay-4000" />
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        </div>
+        
+        <div className="relative z-10">
         {/* Mobile Hero - Full lottery experience */}
         {isMobile && showHero ? (
           <>
@@ -365,21 +376,28 @@ export default function PublicRaffle() {
         {/* How To Participate - Mobile only shows this compact version */}
         {isMobile && showHowItWorks && <HowToParticipate />}
 
-        {/* Ticket Selection Section */}
+        {/* Ticket Selection Section - /pricing style */}
         {showTicketGrid && (
-          <div ref={ticketsRef} className="py-16 lg:py-24" id="tickets">
+          <div ref={ticketsRef} className="py-20 lg:py-28" id="tickets">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-10 lg:mb-16">
-                <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/40 mb-3">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-center mb-12 lg:mb-16"
+              >
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-400 mb-4">
                   Selección de boletos
                 </p>
-                <h2 className="text-3xl lg:text-5xl font-bold text-white tracking-tight mb-3">
-                  {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos"}
+                <h2 className="text-3xl lg:text-5xl font-bold mb-4">
+                  <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
+                    {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos"}
+                  </span>
                 </h2>
-                <p className="text-base lg:text-lg text-white/50">
+                <p className="text-base lg:text-lg text-gray-400 max-w-xl mx-auto">
                   {isMobile ? "¡La suerte te espera!" : "Elige los números que te llevarán a la victoria"}
                 </p>
-              </div>
+              </motion.div>
 
               <TicketSelector
                 raffleId={raffle.id}
@@ -536,6 +554,7 @@ export default function PublicRaffle() {
           packages={raffle.packages?.map(p => ({ quantity: p.quantity, price: Number(p.price) }))}
           onReservationComplete={handleReservationComplete}
         />
+        </div>
       </div>
     </>
   );
