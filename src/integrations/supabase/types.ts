@@ -410,6 +410,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          address: string | null
           brand_color: string | null
           cancel_at_period_end: boolean | null
           city: string | null
@@ -458,6 +459,7 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          address?: string | null
           brand_color?: string | null
           cancel_at_period_end?: boolean | null
           city?: string | null
@@ -506,6 +508,7 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          address?: string | null
           brand_color?: string | null
           cancel_at_period_end?: boolean | null
           city?: string | null

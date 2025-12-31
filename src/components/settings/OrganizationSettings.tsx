@@ -94,6 +94,7 @@ export function OrganizationSettings() {
   // Experience fields
   const [yearsExperience, setYearsExperience] = useState<number | null>(null);
   const [totalRafflesCompleted, setTotalRafflesCompleted] = useState<number>(0);
+  const [address, setAddress] = useState<string>("");
   
   const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
   const hasExistingSlug = Boolean(organization?.slug);
@@ -127,6 +128,7 @@ export function OrganizationSettings() {
       // Sync experience fields
       setYearsExperience(org.years_experience ?? null);
       setTotalRafflesCompleted(org.total_raffles_completed ?? 0);
+      setAddress(org.address ?? "");
     }
   }, [organization]);
   
@@ -325,6 +327,7 @@ export function OrganizationSettings() {
           // Experience fields
           years_experience: yearsExperience,
           total_raffles_completed: totalRafflesCompleted,
+          address: address || null,
         })
         .eq("id", organization.id);
 
@@ -724,6 +727,19 @@ export function OrganizationSettings() {
                   {...form.register("city")}
                   placeholder="Ciudad de México, MX"
                 />
+              </div>
+
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="address">Dirección Completa (opcional)</Label>
+                <Input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Calle, número, colonia, código postal..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Dirección física de tu organización (solo si deseas mostrarla públicamente)
+                </p>
               </div>
 
               <div className="space-y-2 sm:col-span-2">
