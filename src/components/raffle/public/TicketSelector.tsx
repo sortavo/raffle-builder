@@ -15,6 +15,7 @@ import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TicketButton } from "./TicketButton";
 import { FloatingCartButton } from "./FloatingCartButton";
+import { PackageCards } from "./PackageCards";
 import { SlotMachineAnimation } from "./SlotMachineAnimation";
 import { LuckyNumbersInput } from "./LuckyNumbersInput";
 import { ProbabilityStats } from "./ProbabilityStats";
@@ -593,36 +594,16 @@ export function TicketSelector({
           )}
 
           <TabsContent value="manual" className="space-y-6">
-            {/* Packages quick select */}
+            {/* Premium Package Cards */}
             {packages.length > 0 && (
-              <div className="flex flex-wrap gap-3">
-                {packages.map(pkg => (
-                  <Button
-                    key={pkg.id}
-                    variant={selectedTickets.length === pkg.quantity ? 'default' : 'outline'}
-                    size="lg"
-                    onClick={() => setRandomCount(pkg.quantity)}
-                    className={cn(
-                    "relative border-2 transition-all",
-                      selectedTickets.length === pkg.quantity 
-                        ? "bg-gradient-to-r from-primary to-accent border-transparent" 
-                        : "hover:border-primary hover:text-primary"
-                    )}
-                  >
-                    {pkg.quantity} boletos - {formatCurrency(pkg.price, currencyCode)}
-                    {pkg.discount_percent && pkg.discount_percent > 0 && (
-                      <Badge variant="secondary" className="ml-2 text-xs bg-green-100 text-green-700">
-                        -{pkg.discount_percent}%
-                      </Badge>
-                    )}
-                    {pkg.id === bestPackage?.id && (
-                      <Badge className="absolute -top-2 -right-2 text-[10px] bg-orange-500">
-                        Mejor Valor
-                      </Badge>
-                    )}
-                  </Button>
-                ))}
-              </div>
+              <PackageCards
+                packages={packages}
+                ticketPrice={ticketPrice}
+                currency={currencyCode}
+                selectedQuantity={selectedTickets.length}
+                onSelect={(qty) => setRandomCount(qty)}
+                bestPackageId={bestPackage?.id}
+              />
             )}
 
             {/* Go to ticket input - with live search matching Search tab */}
@@ -807,24 +788,24 @@ export function TicketSelector({
               </div>
             </div>
 
-            {/* Selected tickets banner - improved with clear button */}
+            {/* Selected tickets banner - DESKTOP ONLY (mobile uses FloatingCartButton) */}
             <AnimatePresence>
-              {selectedTickets.length > 0 && (
+              {selectedTickets.length > 0 && !isMobile && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 rounded-xl border-2 border-primary/20 dark:border-primary/30"
                 >
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <motion.div 
                         key={selectedTickets.length}
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center"
+                        className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
                       >
-                        <span className="text-white font-bold">{selectedTickets.length}</span>
+                        <span className="text-primary-foreground font-bold">{selectedTickets.length}</span>
                       </motion.div>
                       <div>
                         <p className="font-semibold text-foreground">
@@ -837,19 +818,19 @@ export function TicketSelector({
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleClearSelection}
-                        className="text-gray-500 hover:text-red-600"
+                        className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
                         Limpiar
                       </Button>
                       <Button
                         size="lg"
-                        className="flex-1 sm:flex-initial bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg"
+                        className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg"
                         onClick={() => onContinue(selectedTickets)}
                       >
                         {formatCurrency(calculateTotal(), currencyCode)}
