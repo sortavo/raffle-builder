@@ -536,8 +536,75 @@ export default function RaffleWizard() {
   if (isEditing && isLoadingRaffle) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Loading Header Skeleton */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block h-10 w-10 rounded-xl bg-muted animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-7 w-40 bg-muted rounded-lg animate-pulse" />
+                <div className="h-4 w-28 bg-muted/70 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="h-9 w-24 bg-muted rounded-lg animate-pulse" />
+          </div>
+
+          {/* Loading Progress Skeleton */}
+          <div className="bg-card/50 rounded-2xl border border-border/50 p-4">
+            <div className="flex items-center justify-between gap-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-xl bg-muted animate-pulse" />
+                    <div className="mt-3 space-y-1.5">
+                      <div className="h-4 w-20 bg-muted/70 rounded animate-pulse mx-auto" />
+                      <div className="h-3 w-16 bg-muted/50 rounded animate-pulse mx-auto" />
+                    </div>
+                  </div>
+                  {i < 5 && <div className="flex-1 mx-4 h-1 bg-muted/50 rounded-full" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Loading Content Skeleton */}
+          <div className="grid gap-6 lg:grid-cols-[1fr,420px]">
+            <div className="space-y-6">
+              <div className="bg-card rounded-2xl border border-border/50 p-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+                  <div className="h-12 w-full bg-muted/70 rounded-xl animate-pulse" />
+                </div>
+                <div className="space-y-4">
+                  <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                  <div className="h-32 w-full bg-muted/70 rounded-xl animate-pulse" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="h-5 w-20 bg-muted rounded animate-pulse" />
+                    <div className="h-12 w-full bg-muted/70 rounded-xl animate-pulse" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                    <div className="h-12 w-full bg-muted/70 rounded-xl animate-pulse" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-card/80 rounded-xl border border-border/50">
+                <div className="h-10 w-24 bg-muted rounded-lg animate-pulse" />
+                <div className="flex gap-3">
+                  <div className="h-10 w-32 bg-muted rounded-lg animate-pulse" />
+                  <div className="h-10 w-28 bg-primary/30 rounded-lg animate-pulse" />
+                </div>
+              </div>
+            </div>
+            <div className="hidden lg:block">
+              <div className="bg-card rounded-2xl border border-border/50 p-4 space-y-4">
+                <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                <div className="aspect-[9/16] bg-muted/50 rounded-xl animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -545,71 +612,79 @@ export default function RaffleWizard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-5 md:space-y-8">
-        {/* Premium Header */}
-        <div className="relative">
-          {/* Gradient accent line */}
-          <div className="absolute -top-4 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent rounded-full" />
-          
-          <div className="flex flex-col gap-2 pt-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
-                  <Rocket className="h-5 w-5" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                    {isEditing ? 'Editar Sorteo' : 'Crear Sorteo'}
-                  </h1>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Paso {currentStep} de {STEPS.length} • {STEPS[currentStep - 1].description}
-                    </p>
-                    {!isEditing && (
-                      <AutoSaveIndicator 
-                        lastSaved={lastSaved} 
-                        isSaving={isSaving} 
-                        className="hidden sm:flex" 
-                      />
-                    )}
-                  </div>
-                </div>
+      <div className="max-w-7xl mx-auto space-y-5 md:space-y-6">
+        {/* Premium Header - More Compact */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => navigate('/dashboard/raffles')}
+              className="shrink-0 h-10 w-10 flex items-center justify-center rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight truncate">
+                  {isEditing ? (existingRaffle?.title || 'Editar Sorteo') : 'Nuevo Sorteo'}
+                </h1>
+                {isEditing && existingRaffle?.status === 'draft' && (
+                  <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning rounded-full border border-warning/20">
+                    Borrador
+                  </span>
+                )}
+                {isEditing && existingRaffle?.status === 'active' && (
+                  <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full border border-success/20">
+                    Activo
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="hidden lg:flex border-border/50 hover:bg-muted/50"
-                >
-                  {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                  {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="px-2.5 hover:bg-muted/50" 
-                  onClick={() => navigate('/dashboard/raffles')}
-                >
-                  <X className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-1">Cancelar</span>
-                </Button>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Paso {currentStep} de {STEPS.length}
+                  <span className="hidden sm:inline"> • {STEPS[currentStep - 1].description}</span>
+                </p>
+                {!isEditing && (
+                  <AutoSaveIndicator 
+                    lastSaved={lastSaved} 
+                    isSaving={isSaving} 
+                    className="hidden sm:flex" 
+                  />
+                )}
               </div>
             </div>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowPreview(!showPreview)}
+              className="hidden lg:flex gap-2 border-border/50 hover:bg-muted/50"
+            >
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span className="hidden xl:inline">{showPreview ? 'Ocultar' : 'Preview'}</span>
+            </Button>
+            {isEditing && existingRaffle && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="hidden sm:flex gap-2 text-muted-foreground hover:text-foreground"
+                onClick={() => window.open(`/r/${organization?.slug}/${existingRaffle.slug}`, '_blank')}
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden md:inline">Ver Página</span>
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Premium Progress */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-2xl" />
-          <div className="relative bg-card/50 backdrop-blur-sm rounded-2xl border border-border/50 p-3 md:p-4 shadow-sm">
-            <WizardProgress 
-              steps={STEPS} 
-              currentStep={currentStep} 
-              stepStatuses={stepStatuses}
-              stepErrors={stepErrors}
-            />
-          </div>
+        {/* Progress - Clean and Compact */}
+        <div className="bg-card rounded-xl border border-border/50 p-3 md:p-4 shadow-sm">
+          <WizardProgress 
+            steps={STEPS} 
+            currentStep={currentStep} 
+            stepStatuses={stepStatuses}
+            stepErrors={stepErrors}
+          />
         </div>
 
         {/* Payment Methods Warning */}
@@ -629,79 +704,64 @@ export default function RaffleWizard() {
         )}
 
         {/* Main Content with Preview */}
-        <div className={`grid gap-5 md:gap-8 ${showPreview ? 'lg:grid-cols-[1fr,420px]' : ''}`}>
+        <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,380px] xl:grid-cols-[1fr,420px]' : ''}`}>
           {/* Left: Form */}
-          <div className="space-y-4 md:space-y-5">
+          <div className="space-y-4">
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()}>
-                {/* Premium Card */}
-                <div className="relative group">
-                  {/* Glow effect on hover (desktop only) */}
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500 hidden md:block" />
-                  
-                  <Card className="relative overflow-hidden border-border/50 shadow-lg shadow-black/5 bg-card/95 backdrop-blur-sm rounded-xl md:rounded-2xl">
-                    {/* Card header accent */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-                    
-                    <CardContent className="p-4 sm:p-5 md:p-8">
-                      {renderStep()}
-                    </CardContent>
-                  </Card>
-                </div>
+                <Card className="overflow-hidden border-border/50 shadow-sm bg-card rounded-xl">
+                  <CardContent className="p-4 sm:p-5 md:p-6">
+                    {renderStep()}
+                  </CardContent>
+                </Card>
               </form>
             </Form>
 
-            {/* Premium Navigation Bar */}
-            <div className="relative">
-              {/* Gradient background for mobile sticky bar */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background to-transparent sm:hidden -mx-4 px-4 -mb-4 pb-4" />
-              
-              <div className="relative flex items-center justify-between gap-3 p-4 -mx-4 sm:mx-0 sm:p-4 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl sm:rounded-2xl shadow-lg shadow-black/5 sticky bottom-3 sm:static z-10">
+            {/* Clean Navigation Bar */}
+            <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-card border border-border/50 rounded-xl shadow-sm sticky bottom-3 z-10">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="gap-1.5"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Anterior</span>
+              </Button>
+
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="default"
-                  onClick={handleBack}
-                  disabled={currentStep === 1}
-                  className="px-4 border-border/50 hover:bg-muted/50 transition-all"
+                  onClick={handleSaveDraft}
+                  disabled={createRaffle.isPending || updateRaffle.isPending}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-1.5" />
-                  <span className="hidden sm:inline">Anterior</span>
+                  <Save className="h-4 w-4" />
+                  <span className="hidden sm:inline">{isEditing ? 'Guardar' : 'Guardar borrador'}</span>
                 </Button>
 
-                <div className="flex items-center gap-2.5">
-                  <Button
-                    variant="ghost"
-                    size="default"
-                    onClick={handleSaveDraft}
-                    disabled={createRaffle.isPending || updateRaffle.isPending}
-                    className="px-4 hover:bg-muted/50"
+                {currentStep < 5 ? (
+                  <Button 
+                    onClick={handleNext} 
+                    size="default" 
+                    className="gap-1.5"
                   >
-                    <Save className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Guardar borrador</span>
-                    <span className="sm:hidden">Guardar</span>
+                    <span>Siguiente</span>
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
-
-                  {currentStep < 5 ? (
-                    <Button 
-                      onClick={handleNext} 
-                      size="default" 
-                      className="px-5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
-                    >
-                      <span>Siguiente</span>
-                      <ArrowRight className="h-4 w-4 ml-1.5" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handlePublish}
-                      size="default"
-                      disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
-                      className="px-5 bg-gradient-to-r from-primary to-success hover:from-primary/90 hover:to-success/90 shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
-                    >
-                      <Rocket className="h-4 w-4 mr-1.5" />
-                      <span>Publicar Sorteo</span>
-                    </Button>
-                  )}
-                </div>
+                ) : (
+                  <Button 
+                    onClick={handlePublish}
+                    size="default"
+                    disabled={publishRaffle.isPending || !canPublish || !hasEnabledPaymentMethods}
+                    className="gap-1.5 bg-success hover:bg-success/90"
+                  >
+                    <Rocket className="h-4 w-4" />
+                    <span className="hidden xs:inline">{isEditing && existingRaffle?.status === 'active' ? 'Guardar Cambios' : 'Publicar'}</span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -709,12 +769,7 @@ export default function RaffleWizard() {
           {/* Right: Preview */}
           {showPreview && (
             <div className="hidden lg:block sticky top-6 h-fit">
-              <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 rounded-2xl blur-sm" />
-                <div className="relative">
-                  <RafflePreview form={form} />
-                </div>
-              </div>
+              <RafflePreview form={form} />
             </div>
           )}
         </div>
