@@ -64,6 +64,7 @@ interface TemplateHeroLayoutProps {
   showStats: boolean;
   onScrollToTickets: () => void;
   onShare: () => void;
+  logoPosition?: 'top-left' | 'top-center' | 'top-right';
 }
 
 export function TemplateHeroLayout({
@@ -80,6 +81,7 @@ export function TemplateHeroLayout({
   showStats,
   onScrollToTickets,
   onShare,
+  logoPosition = 'top-center',
 }: TemplateHeroLayoutProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -129,16 +131,20 @@ export function TemplateHeroLayout({
           </Button>
         </div>
 
-        {/* Organization branding */}
+        {/* Organization branding - Position based on logoPosition */}
         <div 
-          className={`flex items-center justify-center transition-all duration-500 ease-out ${
+          className={`flex items-center transition-all duration-500 ease-out ${
             isScrolled ? 'py-2' : 'py-5'
+          } ${
+            logoPosition === 'top-center' ? 'justify-center' :
+            logoPosition === 'top-right' ? 'justify-end' : 'justify-start'
           }`}
         >
           <Link 
             to={organization.slug ? `/${organization.slug}` : "#"}
             className={`flex items-center gap-3 group transition-all duration-500 ${
-              isScrolled ? 'flex-row' : 'flex-col'
+              isScrolled ? 'flex-row' : 
+              logoPosition === 'top-center' ? 'flex-col' : 'flex-row'
             }`}
           >
             <div className="relative">
@@ -164,7 +170,12 @@ export function TemplateHeroLayout({
               </Avatar>
             </div>
             
-            <div className={`text-center transition-all duration-500 ${isScrolled ? 'space-y-0' : 'space-y-1.5'}`}>
+            <div className={`transition-all duration-500 ${
+              isScrolled ? 'space-y-0' : 'space-y-1.5'
+            } ${
+              logoPosition === 'top-center' && !isScrolled ? 'text-center' :
+              logoPosition === 'top-right' ? 'text-right' : 'text-left'
+            }`}>
               <h2 
                 className={`font-bold tracking-wider uppercase text-white transition-all duration-500 group-hover:opacity-80 ${
                   isScrolled ? 'text-base' : 'text-lg sm:text-xl'

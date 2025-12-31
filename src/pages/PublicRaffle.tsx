@@ -349,6 +349,7 @@ export default function PublicRaffle() {
               showGallery={showGallery}
               showVideo={showVideoInGallery}
               showStats={showStats}
+              logoPosition={customization.logo_position || 'top-center'}
               onScrollToTickets={scrollToTickets}
               onShare={shareRaffle}
             />
