@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.diagnose-vercel-access]
 verify_jwt = false
+
+[functions.list-vercel-domains]
+verify_jwt = false
