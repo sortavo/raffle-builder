@@ -18,6 +18,23 @@ export interface CustomDomain {
   updated_at: string;
 }
 
+export interface DNSDiagnostic {
+  aRecords: string[];
+  cnameRecords: string[];
+  pointsToVercel: boolean;
+  currentTarget: string | null;
+  expectedTarget: string;
+  recordsFound: number;
+  propagationComplete: boolean;
+}
+
+export interface DNSVerificationResult {
+  verified: boolean;
+  domain: string;
+  diagnostic: DNSDiagnostic;
+  error?: string;
+}
+
 export function useCustomDomains() {
   const { organization } = useAuth();
   const queryClient = useQueryClient();
@@ -125,34 +142,55 @@ export function useCustomDomains() {
   });
 
   const verifyDomain = useMutation({
-    mutationFn: async (domainId: string) => {
-      // In a real implementation, this would call an Edge Function
-      // that checks DNS records for verification
+    mutationFn: async (domainId: string): Promise<DNSVerificationResult> => {
+      // Get domain from DB
       const domain = domains.find(d => d.id === domainId);
       if (!domain) throw new Error("Dominio no encontrado");
 
-      // Simulate verification check - in production this would be an Edge Function
-      // that validates DNS TXT record contains the verification_token
-      toast.info("Verificando registros DNS...");
-      
-      // For now, just mark as verified (in production, Edge Function would do this)
-      const { error } = await supabase
+      // Call edge function for real DNS verification
+      const { data, error: fnError } = await supabase.functions.invoke('verify-dns', {
+        body: { domain: domain.domain }
+      });
+
+      if (fnError) {
+        console.error('[verifyDomain] Edge function error:', fnError);
+        throw new Error('Error al verificar DNS');
+      }
+
+      const result = data as DNSVerificationResult;
+
+      if (!result.verified) {
+        // Create detailed error for UI to show diagnostic
+        const error = new Error(
+          `DNS no apunta a Vercel. Actual: ${result.diagnostic.currentTarget || 'No resuelve'}`
+        );
+        (error as any).diagnostic = result.diagnostic;
+        (error as any).domain = result.domain;
+        throw error;
+      }
+
+      // If verified, update DB
+      const { error: updateError } = await supabase
         .from("custom_domains")
         .update({ 
           verified: true, 
           verified_at: new Date().toISOString(),
-          ssl_status: "active"
+          ssl_status: "active",
+          updated_at: new Date().toISOString()
         })
         .eq("id", domainId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["custom-domains"] });
-      toast.success("Dominio verificado correctamente");
+      toast.success(`✅ ${result.domain} verificado y activo`);
     },
-    onError: () => {
-      toast.error("No se pudo verificar el dominio. Asegúrate de configurar los registros DNS.");
+    onError: (error: any) => {
+      // Don't show toast here - let UI handle it with diagnostic modal
+      console.error('[verifyDomain] Verification failed:', error.message);
     },
   });
 

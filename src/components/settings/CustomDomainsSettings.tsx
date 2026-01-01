@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCustomDomains, CustomDomain } from "@/hooks/useCustomDomains";
+import { useCustomDomains, CustomDomain, DNSDiagnostic } from "@/hooks/useCustomDomains";
 import { useAuth } from "@/hooks/useAuth";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { UpgradePlanModal } from "@/components/raffle/UpgradePlanModal";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -38,9 +38,159 @@ import {
   Star,
   RefreshCw,
   Info,
-  Lock
+  Lock,
+  AlertTriangle,
+  XCircle
 } from "lucide-react";
 import { toast } from "sonner";
+
+const VERCEL_IPS = ['76.76.21.21', '76.76.21.164', '76.76.21.241'];
+
+interface DiagnosticModalState {
+  domain: string;
+  diagnostic: DNSDiagnostic;
+}
+
+function DNSDiagnosticModal({ 
+  data, 
+  open, 
+  onOpenChange 
+}: {
+  data: DiagnosticModalState | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!data) return null;
+  
+  const { domain, diagnostic } = data;
+
+  const handleCopy = (value: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success("Copiado al portapapeles");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {diagnostic.pointsToVercel ? (
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+            ) : (
+              <XCircle className="h-5 w-5 text-destructive" />
+            )}
+            Diagnóstico DNS - {domain}
+          </DialogTitle>
+          <DialogDescription>
+            Información técnica sobre la configuración DNS actual
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <Alert variant={diagnostic.pointsToVercel ? "default" : "destructive"}>
+            <AlertTitle className="flex items-center gap-2">
+              {diagnostic.pointsToVercel ? '✅ Configurado Correctamente' : '❌ Configuración Incorrecta'}
+            </AlertTitle>
+            <AlertDescription>
+              {diagnostic.pointsToVercel 
+                ? 'El dominio apunta correctamente a Vercel'
+                : 'El dominio NO apunta a Vercel. Revisa la configuración DNS.'}
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">A Records Encontrados:</h4>
+              {diagnostic.aRecords.length > 0 ? (
+                <div className="bg-muted p-3 rounded-lg space-y-1 font-mono text-sm">
+                  {diagnostic.aRecords.map((ip: string, i: number) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <span>{ip}</span>
+                      {VERCEL_IPS.includes(ip) && (
+                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-xs">
+                          ✓ Vercel
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Ninguno encontrado</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">CNAME Records:</h4>
+              {diagnostic.cnameRecords.length > 0 ? (
+                <div className="bg-muted p-3 rounded-lg space-y-1 font-mono text-sm">
+                  {diagnostic.cnameRecords.map((cname: string, i: number) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <span className="break-all">{cname}</span>
+                      {cname.includes('vercel') && (
+                        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-xs ml-2">
+                          ✓ Vercel
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Ninguno encontrado</p>
+              )}
+            </div>
+
+            {!diagnostic.pointsToVercel && (
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Configuración Correcta:</h4>
+                <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Tipo:</span>
+                    <span className="font-mono">A</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Host:</span>
+                    <span className="font-mono">@</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Valor:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">76.76.21.21</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleCopy("76.76.21.21")}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!diagnostic.propagationComplete && (
+            <Alert>
+              <Clock className="h-4 w-4" />
+              <AlertTitle>DNS Aún Propagando</AlertTitle>
+              <AlertDescription>
+                Los cambios DNS pueden tardar hasta 48 horas en propagarse completamente.
+                Tiempo típico: 30 minutos - 2 horas.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function CustomDomainsSettings() {
   const { 
@@ -58,6 +208,7 @@ export function CustomDomainsSettings() {
   const [showDnsDialog, setShowDnsDialog] = useState<CustomDomain | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [newDomain, setNewDomain] = useState("");
+  const [diagnosticModal, setDiagnosticModal] = useState<DiagnosticModalState | null>(null);
 
   // Determinar si el plan permite custom domains
   const tier = (organization?.subscription_tier || 'basic') as SubscriptionTier;
@@ -70,6 +221,22 @@ export function CustomDomainsSettings() {
     await addDomain.mutateAsync(newDomain);
     setNewDomain("");
     setShowAddDialog(false);
+  };
+
+  const handleVerifyDomain = async (domainId: string) => {
+    try {
+      await verifyDomain.mutateAsync(domainId);
+    } catch (error: any) {
+      // Show diagnostic modal if we have diagnostic data
+      if (error.diagnostic && error.domain) {
+        setDiagnosticModal({
+          domain: error.domain,
+          diagnostic: error.diagnostic
+        });
+      } else {
+        toast.error(error.message || "Error al verificar dominio");
+      }
+    }
   };
 
   const handleCopyToken = (token: string) => {
@@ -191,7 +358,7 @@ export function CustomDomainsSettings() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => verifyDomain.mutate(domain.id)}
+                          onClick={() => handleVerifyDomain(domain.id)}
                           disabled={verifyDomain.isPending}
                         >
                           <RefreshCw className={`h-4 w-4 mr-1 ${verifyDomain.isPending ? 'animate-spin' : ''}`} />
@@ -278,7 +445,7 @@ export function CustomDomainsSettings() {
           <DialogHeader>
             <DialogTitle>Configuración DNS para {showDnsDialog?.domain}</DialogTitle>
             <DialogDescription>
-              Agrega estos registros en tu proveedor de DNS
+              Agrega estos registros en tu proveedor de DNS (apuntando a Vercel)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -296,11 +463,11 @@ export function CustomDomainsSettings() {
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Valor:</span>
                   <div className="flex items-center gap-2">
-                    <span>185.158.133.1</span>
+                    <span>76.76.21.21</span>
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleCopyRecord("185.158.133.1")}
+                      onClick={() => handleCopyRecord("76.76.21.21")}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
@@ -310,26 +477,24 @@ export function CustomDomainsSettings() {
             </div>
 
             <div className="space-y-3">
-              <h4 className="font-medium text-sm">2. Registro TXT (verificación)</h4>
+              <h4 className="font-medium text-sm">2. Registro A para www (opcional)</h4>
               <div className="bg-muted p-3 rounded-lg space-y-2 text-sm font-mono">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Tipo:</span>
-                  <span>TXT</span>
+                  <span>A</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Nombre:</span>
-                  <span>_sortavo</span>
+                  <span>www</span>
                 </div>
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Valor:</span>
                   <div className="flex items-center gap-2">
-                    <span className="break-all text-xs">
-                      sortavo_verify={showDnsDialog?.verification_token}
-                    </span>
+                    <span>76.76.21.21</span>
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => handleCopyToken(`sortavo_verify=${showDnsDialog?.verification_token}`)}
+                      onClick={() => handleCopyRecord("76.76.21.21")}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
@@ -363,6 +528,13 @@ export function CustomDomainsSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DNS Diagnostic Modal */}
+      <DNSDiagnosticModal
+        data={diagnosticModal}
+        open={!!diagnosticModal}
+        onOpenChange={(open) => !open && setDiagnosticModal(null)}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
