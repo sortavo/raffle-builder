@@ -19,6 +19,7 @@ interface TenantContextType {
   tenant: TenantConfig | null;
   isLoading: boolean;
   isMultiTenant: boolean;
+  subdomainSlug: string | null;
   detectTenantFromPath: (slug: string) => Promise<TenantConfig | null>;
 }
 
@@ -28,24 +29,45 @@ interface TenantProviderProps {
   children: ReactNode;
 }
 
+// Reserved subdomains that are NOT tenants
+const RESERVED_SUBDOMAINS = ['www', 'app', 'api', 'admin', 'staging', 'dev'];
+const ROOT_DOMAIN = 'sortavo.com';
+
 export function TenantProvider({ children }: TenantProviderProps) {
   const [tenant, setTenant] = useState<TenantConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if we're on a custom domain (not sortavo.com or localhost)
   const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+  
+  // Detect if it's a subdomain of ROOT_DOMAIN
+  const isSubdomain = hostname.endsWith(`.${ROOT_DOMAIN}`) && 
+    hostname !== `www.${ROOT_DOMAIN}`;
+  
+  // Extract subdomain slug if applicable
+  const subdomainSlug = isSubdomain 
+    ? hostname.replace(`.${ROOT_DOMAIN}`, '') 
+    : null;
+  
+  // Check for custom domain (not sortavo.com or localhost)
   const isCustomDomain = 
     hostname !== "localhost" && 
     !hostname.includes("sortavo.com") && 
     !hostname.includes("lovable.app") &&
-    !hostname.includes("127.0.0.1");
+    !hostname.includes("127.0.0.1") &&
+    !hostname.includes("vercel.app");
 
   useEffect(() => {
     const detectTenant = async () => {
-      if (isCustomDomain) {
-        // Try to find organization by custom domain
+      let tenantSlug: string | null = null;
+      
+      // Priority 1: Subdomain (cliente1.sortavo.com)
+      if (subdomainSlug && !RESERVED_SUBDOMAINS.includes(subdomainSlug.toLowerCase())) {
+        tenantSlug = subdomainSlug;
+      }
+      // Priority 2: Custom domain (cliente1.com)
+      else if (isCustomDomain) {
         try {
-          const { data, error } = await supabase.rpc("get_organization_by_domain", {
+          const { data } = await supabase.rpc("get_organization_by_domain", {
             p_domain: hostname,
           });
 
@@ -64,16 +86,27 @@ export function TenantProvider({ children }: TenantProviderProps) {
               white_label_enabled: org.white_label_enabled || false,
               powered_by_visible: org.powered_by_visible !== false,
             });
+            setIsLoading(false);
+            return;
           }
         } catch (error) {
           console.error("Error detecting tenant by domain:", error);
         }
       }
+      
+      // If we have a tenant slug from subdomain, load the tenant config
+      if (tenantSlug) {
+        const config = await detectTenantFromPath(tenantSlug);
+        if (config) {
+          setTenant(config);
+        }
+      }
+      
       setIsLoading(false);
     };
 
     detectTenant();
-  }, [hostname, isCustomDomain]);
+  }, [hostname, subdomainSlug, isCustomDomain]);
 
   const detectTenantFromPath = async (slug: string): Promise<TenantConfig | null> => {
     try {
@@ -154,7 +187,8 @@ export function TenantProvider({ children }: TenantProviderProps) {
       value={{
         tenant,
         isLoading,
-        isMultiTenant: isCustomDomain && !!tenant,
+        isMultiTenant: (isCustomDomain || !!subdomainSlug) && !!tenant,
+        subdomainSlug,
         detectTenantFromPath,
       }}
     >
