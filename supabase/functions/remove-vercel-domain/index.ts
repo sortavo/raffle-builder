@@ -19,17 +19,19 @@ serve(async (req) => {
 
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN')
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID')
+    const VERCEL_TEAM_ID = Deno.env.get('VERCEL_TEAM_ID')
 
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
       console.error('Missing Vercel credentials')
       throw new Error('Vercel credentials not configured')
     }
 
-    console.log(`[remove-vercel-domain] Removing domain: ${domain} from project: ${VERCEL_PROJECT_ID}`)
+    const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''
+    console.log(`[remove-vercel-domain] Removing domain: ${domain} from project: ${VERCEL_PROJECT_ID}${VERCEL_TEAM_ID ? ` (team: ${VERCEL_TEAM_ID})` : ''}`)
 
     // Call Vercel API
     const response = await fetch(
-      `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(domain)}`,
+      `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(domain)}${teamQuery}`,
       {
         method: 'DELETE',
         headers: {
