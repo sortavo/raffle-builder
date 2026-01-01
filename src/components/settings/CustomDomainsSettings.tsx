@@ -182,10 +182,31 @@ function DNSDiagnosticModal({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            asChild
+            className="text-muted-foreground sm:mr-auto"
+          >
+            <a href="/contact" target="_blank">
+              ¿Necesitas ayuda?
+            </a>
           </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
+            {!diagnostic.pointsToVercel && (
+              <Button onClick={() => {
+                navigator.clipboard.writeText("Tipo: A\nHost: @\nValor: 76.76.21.21");
+                toast.success("Configuración copiada al portapapeles");
+              }}>
+                <Copy className="h-4 w-4 mr-1" />
+                Copiar Todo
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -227,14 +248,18 @@ export function CustomDomainsSettings() {
     try {
       await verifyDomain.mutateAsync(domainId);
     } catch (error: any) {
-      // Show diagnostic modal if we have diagnostic data
+      // Show toast first with user-friendly message
+      toast.error("⚠️ Configuración DNS incorrecta", {
+        description: "Revisa los detalles para corregir",
+        duration: 4000
+      });
+      
+      // Then show diagnostic modal if we have diagnostic data
       if (error.diagnostic && error.domain) {
         setDiagnosticModal({
           domain: error.domain,
           diagnostic: error.diagnostic
         });
-      } else {
-        toast.error(error.message || "Error al verificar dominio");
       }
     }
   };
@@ -422,6 +447,35 @@ export function CustomDomainsSettings() {
               />
               <p className="text-xs text-muted-foreground">
                 No incluyas http:// o www. Solo el dominio base.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ¿No tienes dominio?{" "}
+                <a 
+                  href="https://www.namecheap.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Namecheap
+                </a>
+                {", "}
+                <a 
+                  href="https://domains.google.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Google Domains
+                </a>
+                {" o "}
+                <a 
+                  href="https://www.godaddy.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  GoDaddy
+                </a>
               </p>
             </div>
           </div>
