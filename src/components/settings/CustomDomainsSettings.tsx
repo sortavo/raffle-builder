@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCustomDomains, CustomDomain, DNSDiagnostic } from "@/hooks/useCustomDomains";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { UpgradePlanModal } from "@/components/raffle/UpgradePlanModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -40,9 +42,17 @@ import {
   Info,
   Lock,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Link as LinkIcon,
+  Check,
+  X,
+  Sparkles,
+  Loader2,
+  Save
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { normalizeToSlug, isValidSlug, getOrganizationPublicUrl, isReservedSlug } from "@/lib/url-utils";
 
 const VERCEL_IPS = ['76.76.21.21', '76.76.21.164', '76.76.21.241'];
 
@@ -402,6 +412,14 @@ export function CustomDomainsSettings() {
     diagnoseVercel
   } = useCustomDomains();
   const { organization } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Slug state
+  const [slugInput, setSlugInput] = useState("");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
+  const [isSavingSlug, setIsSavingSlug] = useState(false);
   
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -416,6 +434,121 @@ export function CustomDomainsSettings() {
   const tier = (organization?.subscription_tier || 'basic') as SubscriptionTier;
   const limits = getSubscriptionLimits(tier);
   const canHaveCustomDomains = limits.canHaveCustomDomains;
+  
+  const suggestedSlug = organization?.name ? normalizeToSlug(organization.name) : "";
+  const hasExistingSlug = Boolean(organization?.slug);
+  const isChangingSlug = hasExistingSlug && slugInput !== organization?.slug;
+
+  // Sync slugInput with organization.slug when it loads
+  useEffect(() => {
+    if (organization?.slug && !slugInput) {
+      setSlugInput(organization.slug);
+    }
+  }, [organization?.slug]);
+
+  // Check slug availability with debounce
+  useEffect(() => {
+    setSlugError(null);
+    
+    if (!slugInput || slugInput === organization?.slug) {
+      setSlugAvailable(null);
+      return;
+    }
+
+    if (!isValidSlug(slugInput)) {
+      setSlugAvailable(false);
+      setSlugError("Solo letras minúsculas, números y guiones");
+      return;
+    }
+    
+    if (isReservedSlug(slugInput)) {
+      setSlugAvailable(false);
+      setSlugError("Este nombre está reservado por el sistema");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingSlug(true);
+      try {
+        const { data, error } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", slugInput)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error checking slug:", error);
+          setSlugAvailable(null);
+        } else {
+          setSlugAvailable(!data);
+          if (data) {
+            setSlugError("Este slug ya está en uso");
+          }
+        }
+      } catch (err) {
+        setSlugAvailable(null);
+      } finally {
+        setIsCheckingSlug(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [slugInput, organization?.slug]);
+
+  const handleSaveSlug = async () => {
+    if (!organization?.id) return;
+    
+    if (slugInput && !isValidSlug(slugInput)) {
+      toast.error("El slug solo puede contener letras minúsculas, números y guiones");
+      return;
+    }
+    
+    if (slugInput && isReservedSlug(slugInput)) {
+      toast.error("Este nombre está reservado por el sistema");
+      return;
+    }
+
+    if (slugInput && slugAvailable === false) {
+      toast.error(slugError || "Este slug ya está en uso");
+      return;
+    }
+
+    setIsSavingSlug(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ slug: slugInput || null })
+        .eq("id", organization.id);
+
+      if (error) throw error;
+
+      toast.success("URL pública actualizada correctamente");
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+    } catch (error: any) {
+      if (error.message?.includes("duplicate key")) {
+        toast.error("Este slug ya está en uso por otra organización");
+      } else {
+        toast.error("Error al actualizar: " + error.message);
+      }
+    } finally {
+      setIsSavingSlug(false);
+    }
+  };
+
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copiada al portapapeles");
+    } catch {
+      toast.error("Error al copiar la URL");
+    }
+  };
+
+  const applySuggestedSlug = () => {
+    if (suggestedSlug) {
+      setSlugInput(suggestedSlug);
+    }
+  };
 
   const handleAddDomain = async () => {
     if (!newDomain.trim()) return;
@@ -484,7 +617,213 @@ export function CustomDomainsSettings() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Public URL Section - Available for ALL plans */}
+      <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <LinkIcon className="h-5 w-5 text-primary" />
+                URL Pública de la Organización
+              </CardTitle>
+              <CardDescription>
+                Configura una URL personalizada para tu página de sorteos
+              </CardDescription>
+            </div>
+            {hasExistingSlug && (
+              <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                <Check className="h-3 w-3 mr-1" />
+                Configurado
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="slug">Identificador único (slug)</Label>
+            <div className="relative">
+              <Input
+                id="slug"
+                value={slugInput}
+                onChange={(e) => setSlugInput(normalizeToSlug(e.target.value))}
+                placeholder="mi-organizacion"
+                className="pr-10 w-full"
+              />
+              {isCheckingSlug && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {!isCheckingSlug && slugAvailable === true && slugInput && (
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+              )}
+              {!isCheckingSlug && slugAvailable === false && slugInput && (
+                <X className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Solo letras minúsculas, números y guiones. Ejemplo: mi-organizacion
+            </p>
+            
+            {/* Tu URL Section - Always visible */}
+            <div className="mt-3">
+              <Label className="text-sm font-medium mb-2 block">Tu URL</Label>
+              
+              {/* Case 1: Has valid slugInput */}
+              {slugInput && isValidSlug(slugInput) && (
+                <div className={`p-3 rounded-lg border ${
+                  slugInput === organization?.slug 
+                    ? 'bg-green-500/10 border-green-500/30' 
+                    : 'bg-muted border-border'
+                }`}>
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-1">
+                    <Badge 
+                      variant={slugInput === organization?.slug ? "default" : "secondary"}
+                      className={`${slugInput === organization?.slug ? "bg-green-600" : ""} shrink-0`}
+                    >
+                      {slugInput === organization?.slug ? "URL Activa" : "Vista previa"}
+                    </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyUrl(getOrganizationPublicUrl(slugInput))}
+                        className="h-7 px-2"
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        Copiar
+                      </Button>
+                      {slugInput === organization?.slug && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className="h-7 px-2"
+                        >
+                          <a href={getOrganizationPublicUrl(slugInput)} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            Visitar
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <code className={`text-sm break-all block ${
+                    slugInput === organization?.slug 
+                      ? 'text-green-700 dark:text-green-400' 
+                      : 'text-foreground'
+                  }`}>
+                    {getOrganizationPublicUrl(slugInput)}
+                  </code>
+                  {slugInput !== organization?.slug && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Guarda los cambios para activar esta URL
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Case 2: Empty input but has suggestion */}
+              {!slugInput && suggestedSlug && (
+                <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Badge variant="outline">Sugerencia</Badge>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyUrl(getOrganizationPublicUrl(suggestedSlug))}
+                        className="h-7 px-2"
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" />
+                        <span className="hidden xs:inline">Copiar</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={applySuggestedSlug}
+                        className="h-7"
+                      >
+                        Usar sugerencia
+                      </Button>
+                    </div>
+                  </div>
+                  <code className="text-sm break-all block text-foreground">
+                    {getOrganizationPublicUrl(suggestedSlug)}
+                  </code>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Basada en el nombre de tu organización
+                  </p>
+                </div>
+              )}
+              
+              {/* Case 3: Empty input and no suggestion */}
+              {!slugInput && !suggestedSlug && (
+                <div className="p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Escribe un identificador arriba para ver tu URL
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {slugError && slugInput && !isCheckingSlug && (
+              <p className="text-sm text-destructive">
+                {slugError}
+              </p>
+            )}
+          </div>
+
+          {/* Warning when changing existing slug */}
+          {isChangingSlug && (
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                    ¿Estás seguro de cambiar el slug?
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    Los enlaces existentes dejarán de funcionar. Asegúrate de actualizar todos los enlaces que hayas compartido.
+                  </p>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <p className="text-muted-foreground">
+                      <span className="line-through">{getOrganizationPublicUrl(organization?.slug!)}</span>
+                    </p>
+                    <p className="text-foreground font-medium">
+                      → {getOrganizationPublicUrl(slugInput)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Save Button */}
+          {slugInput !== organization?.slug && slugInput && slugAvailable !== false && !isCheckingSlug && (
+            <Button 
+              onClick={handleSaveSlug} 
+              disabled={isSavingSlug}
+              className="w-full sm:w-auto"
+            >
+              {isSavingSlug ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Guardar URL Pública
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Custom Domains Section */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -838,6 +1177,6 @@ export function CustomDomainsSettings() {
         feature="Dominios Personalizados"
         reason="Los dominios personalizados están disponibles en Plan Pro y superiores. Actualiza tu plan para conectar tu propio dominio."
       />
-    </>
+    </div>
   );
 }
