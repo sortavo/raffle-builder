@@ -10,7 +10,7 @@ import {
   DollarSign,
   Activity,
   UserCircle,
-  Trophy,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,7 @@ const menuItems = [
   { title: "Usuarios", url: "/admin/users-dashboard", icon: UserCircle },
   { title: "Organizaciones", url: "/admin/organizations", icon: Building2 },
   { title: "Suscripciones", url: "/admin/subscriptions", icon: CreditCard },
+  { title: "Dominios", url: "/admin/domains", icon: Globe },
   { title: "Lista Usuarios", url: "/admin/users", icon: Users },
 ];
 
