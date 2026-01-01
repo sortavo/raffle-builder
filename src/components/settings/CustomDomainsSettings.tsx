@@ -51,6 +51,23 @@ interface DiagnosticModalState {
   diagnostic: DNSDiagnostic;
 }
 
+interface VercelDiagnosisResult {
+  configuredSecrets: {
+    hasToken: boolean;
+    hasProjectId: boolean;
+    hasTeamId: boolean;
+    projectId: string;
+    teamId: string | null;
+  };
+  tests: {
+    projectWithTeam: { status: number; found: boolean; error?: string; projectName?: string };
+    projectWithoutTeam: { status: number; found: boolean; error?: string; projectName?: string };
+    listWithTeam: { status: number; foundInList: boolean; projectCount: number; error?: string };
+    listWithoutTeam: { status: number; foundInList: boolean; projectCount: number; error?: string };
+  };
+  recommendation: string;
+}
+
 function DNSDiagnosticModal({ 
   data, 
   open, 
@@ -213,6 +230,167 @@ function DNSDiagnosticModal({
   );
 }
 
+// Vercel Access Diagnostic Modal
+function VercelDiagnosticModal({
+  data,
+  open,
+  onOpenChange,
+  isPending
+}: {
+  data: VercelDiagnosisResult | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+}) {
+  const handleCopyDiagnosis = () => {
+    if (!data) return;
+    const text = `
+VERCEL ACCESS DIAGNOSIS
+=======================
+Secrets Configured:
+- Token: ${data.configuredSecrets.hasToken ? '✅' : '❌'}
+- Project ID: ${data.configuredSecrets.projectId}
+- Team ID: ${data.configuredSecrets.teamId || 'NOT SET'}
+
+Test Results:
+- Project with teamId: ${data.tests.projectWithTeam.found ? '✅ Found' : `❌ ${data.tests.projectWithTeam.error}`}
+- Project without teamId: ${data.tests.projectWithoutTeam.found ? '✅ Found' : `❌ ${data.tests.projectWithoutTeam.error}`}
+- List with teamId: ${data.tests.listWithTeam.foundInList ? '✅' : '❌'} (${data.tests.listWithTeam.projectCount} projects)
+- List without teamId: ${data.tests.listWithoutTeam.foundInList ? '✅' : '❌'} (${data.tests.listWithoutTeam.projectCount} projects)
+
+Recommendation: ${data.recommendation}
+    `.trim();
+    navigator.clipboard.writeText(text);
+    toast.success("Diagnóstico copiado al portapapeles");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Diagnóstico de Acceso a Vercel
+          </DialogTitle>
+          <DialogDescription>
+            Resultados de las pruebas de conectividad con la API de Vercel
+          </DialogDescription>
+        </DialogHeader>
+
+        {isPending ? (
+          <div className="py-8 text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Ejecutando diagnóstico...</p>
+          </div>
+        ) : data ? (
+          <div className="space-y-4 py-4">
+            {/* Secrets Status */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Secrets Configurados:</h4>
+              <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  {data.configuredSecrets.hasToken ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>VERCEL_API_TOKEN</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {data.configuredSecrets.hasProjectId ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span>VERCEL_PROJECT_ID: <code className="text-xs bg-background px-1 rounded">{data.configuredSecrets.projectId}</code></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {data.configuredSecrets.hasTeamId ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-amber-500" />
+                  )}
+                  <span>VERCEL_TEAM_ID: <code className="text-xs bg-background px-1 rounded">{data.configuredSecrets.teamId || 'NOT SET'}</code></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Test Results */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Pruebas de Acceso:</h4>
+              <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>GET /projects/{'{id}'} con teamId</span>
+                  {data.tests.projectWithTeam.found ? (
+                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                      ✅ OK
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/10">
+                      ❌ {data.tests.projectWithTeam.status}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>GET /projects/{'{id}'} sin teamId</span>
+                  {data.tests.projectWithoutTeam.found ? (
+                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                      ✅ OK
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/10">
+                      ❌ {data.tests.projectWithoutTeam.status}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Lista proyectos con teamId</span>
+                  <span className="text-muted-foreground text-xs">
+                    {data.tests.listWithTeam.projectCount} proyectos
+                    {data.tests.listWithTeam.foundInList && ' (encontrado)'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Lista proyectos sin teamId</span>
+                  <span className="text-muted-foreground text-xs">
+                    {data.tests.listWithoutTeam.projectCount} proyectos
+                    {data.tests.listWithoutTeam.foundInList && ' (encontrado)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <Alert variant={data.recommendation.includes('✅') ? 'default' : 'destructive'}>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Recomendación</AlertTitle>
+              <AlertDescription className="mt-2 whitespace-pre-wrap">
+                {data.recommendation}
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-muted-foreground">
+            <p>Haz clic en "Diagnosticar" para iniciar el diagnóstico</p>
+          </div>
+        )}
+
+        <DialogFooter>
+          {data && (
+            <Button variant="outline" onClick={handleCopyDiagnosis} className="mr-auto">
+              <Copy className="h-4 w-4 mr-1" />
+              Copiar
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CustomDomainsSettings() {
   const { 
     domains, 
@@ -220,7 +398,8 @@ export function CustomDomainsSettings() {
     addDomain, 
     removeDomain, 
     setPrimaryDomain,
-    verifyDomain 
+    verifyDomain,
+    diagnoseVercel
   } = useCustomDomains();
   const { organization } = useAuth();
   
@@ -229,6 +408,8 @@ export function CustomDomainsSettings() {
   const [showDnsDialog, setShowDnsDialog] = useState<CustomDomain | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [newDomain, setNewDomain] = useState("");
+  const [vercelDiagnosisModal, setVercelDiagnosisModal] = useState(false);
+  const [vercelDiagnosisData, setVercelDiagnosisData] = useState<VercelDiagnosisResult | null>(null);
   const [diagnosticModal, setDiagnosticModal] = useState<DiagnosticModalState | null>(null);
 
   // Determinar si el plan permite custom domains
@@ -242,6 +423,15 @@ export function CustomDomainsSettings() {
     await addDomain.mutateAsync(newDomain);
     setNewDomain("");
     setShowAddDialog(false);
+  };
+
+  const handleRunVercelDiagnosis = async () => {
+    setVercelDiagnosisModal(true);
+    setVercelDiagnosisData(null);
+    const result = await diagnoseVercel.mutateAsync();
+    if (result?.diagnosis) {
+      setVercelDiagnosisData(result.diagnosis);
+    }
   };
 
   const handleVerifyDomain = async (domainId: string) => {
@@ -307,17 +497,32 @@ export function CustomDomainsSettings() {
                 Conecta tu propio dominio para una experiencia white-label
               </CardDescription>
             </div>
-            {canHaveCustomDomains ? (
-              <Button onClick={() => setShowAddDialog(true)} size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Agregar Dominio
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleRunVercelDiagnosis}
+                disabled={diagnoseVercel.isPending}
+              >
+                {diagnoseVercel.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4" />
+                )}
+                <span className="ml-1 hidden sm:inline">Diagnosticar</span>
               </Button>
-            ) : (
-              <Button onClick={() => setShowUpgradeModal(true)} size="sm" variant="outline">
-                <Lock className="h-4 w-4 mr-1" />
-                Agregar Dominio
-              </Button>
-            )}
+              {canHaveCustomDomains ? (
+                <Button onClick={() => setShowAddDialog(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Agregar Dominio
+                </Button>
+              ) : (
+                <Button onClick={() => setShowUpgradeModal(true)} size="sm" variant="outline">
+                  <Lock className="h-4 w-4 mr-1" />
+                  Agregar Dominio
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -588,6 +793,14 @@ export function CustomDomainsSettings() {
         data={diagnosticModal}
         open={!!diagnosticModal}
         onOpenChange={(open) => !open && setDiagnosticModal(null)}
+      />
+
+      {/* Vercel Access Diagnostic Modal */}
+      <VercelDiagnosticModal
+        data={vercelDiagnosisData}
+        open={vercelDiagnosisModal}
+        onOpenChange={setVercelDiagnosisModal}
+        isPending={diagnoseVercel.isPending}
       />
 
       {/* Delete Confirmation */}

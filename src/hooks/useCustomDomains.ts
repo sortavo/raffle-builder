@@ -79,12 +79,14 @@ export function useCustomDomains() {
 
       if (vercelError) {
         console.error('[addDomain] Vercel function error:', vercelError);
-        throw new Error('Error al conectar con Vercel');
+        throw new Error(`Error de conexión: ${vercelError.message || 'Error al conectar con Vercel'}`);
       }
 
       if (!vercelResult?.success) {
-        console.error('[addDomain] Vercel API error:', vercelResult?.error);
-        throw new Error(vercelResult?.error || 'Error al registrar dominio en Vercel');
+        const errorDetail = vercelResult?.error || 'Error desconocido';
+        const statusCode = vercelResult?.statusCode || '';
+        console.error('[addDomain] Vercel API error:', { error: errorDetail, status: statusCode });
+        throw new Error(`Vercel API: ${errorDetail}${statusCode ? ` (HTTP ${statusCode})` : ''}`);
       }
 
       console.log('[addDomain] Vercel registration successful:', vercelResult.vercelDomain);
@@ -242,6 +244,32 @@ export function useCustomDomains() {
     },
   });
 
+  const diagnoseVercel = useMutation({
+    mutationFn: async () => {
+      console.log('[diagnoseVercel] Starting Vercel access diagnosis...');
+      const { data, error } = await supabase.functions.invoke('diagnose-vercel-access');
+      
+      if (error) {
+        console.error('[diagnoseVercel] Function error:', error);
+        throw new Error('Error al ejecutar diagnóstico');
+      }
+      
+      console.log('[diagnoseVercel] Full diagnosis result:', data);
+      return data;
+    },
+    onSuccess: (result) => {
+      if (result?.diagnosis?.recommendation) {
+        toast.success("Diagnóstico completado", {
+          description: "Revisa el resultado en el modal",
+          duration: 3000
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return {
     domains,
     isLoading,
@@ -250,5 +278,6 @@ export function useCustomDomains() {
     removeDomain,
     setPrimaryDomain,
     verifyDomain,
+    diagnoseVercel,
   };
 }
