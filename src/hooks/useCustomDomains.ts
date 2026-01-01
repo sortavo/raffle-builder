@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 
 export interface CustomDomain {
   id: string;
@@ -42,6 +43,13 @@ export function useCustomDomains() {
   const addDomain = useMutation({
     mutationFn: async (domain: string) => {
       if (!organization?.id) throw new Error("No organization");
+
+      // Validar que el plan permite custom domains
+      const tier = (organization.subscription_tier || 'basic') as SubscriptionTier;
+      const limits = getSubscriptionLimits(tier);
+      if (!limits.canHaveCustomDomains) {
+        throw new Error("Los dominios personalizados requieren Plan Pro o superior");
+      }
 
       const normalizedDomain = domain.toLowerCase().trim();
       

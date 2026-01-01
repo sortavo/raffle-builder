@@ -16,6 +16,7 @@ export interface SubscriptionLimits {
   hasLotteryIntegration: boolean;
   hasTelegramBot: boolean;
   hasApiAccess: boolean;
+  canHaveCustomDomains: boolean;
 }
 
 export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimits {
@@ -34,6 +35,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
         hasLotteryIntegration: true,
         hasTelegramBot: true,
         hasApiAccess: true,
+        canHaveCustomDomains: true,
       };
 
     case 'premium':
@@ -50,6 +52,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
         hasLotteryIntegration: true,
         hasTelegramBot: true,
         hasApiAccess: false,
+        canHaveCustomDomains: true,
       };
     
     case 'pro':
@@ -66,6 +69,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
         hasLotteryIntegration: true,
         hasTelegramBot: false,
         hasApiAccess: false,
+        canHaveCustomDomains: true,
       };
     
     case 'basic':
@@ -83,6 +87,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
         hasLotteryIntegration: false,
         hasTelegramBot: false,
         hasApiAccess: false,
+        canHaveCustomDomains: false,
       };
   }
 }

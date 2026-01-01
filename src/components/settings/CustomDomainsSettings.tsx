@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useCustomDomains, CustomDomain } from "@/hooks/useCustomDomains";
+import { useAuth } from "@/hooks/useAuth";
+import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
+import { UpgradePlanModal } from "@/components/raffle/UpgradePlanModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +37,8 @@ import {
   ExternalLink,
   Star,
   RefreshCw,
-  Info
+  Info,
+  Lock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,11 +51,18 @@ export function CustomDomainsSettings() {
     setPrimaryDomain,
     verifyDomain 
   } = useCustomDomains();
+  const { organization } = useAuth();
   
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDnsDialog, setShowDnsDialog] = useState<CustomDomain | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [newDomain, setNewDomain] = useState("");
+
+  // Determinar si el plan permite custom domains
+  const tier = (organization?.subscription_tier || 'basic') as SubscriptionTier;
+  const limits = getSubscriptionLimits(tier);
+  const canHaveCustomDomains = limits.canHaveCustomDomains;
 
   const handleAddDomain = async () => {
     if (!newDomain.trim()) return;
@@ -104,10 +115,17 @@ export function CustomDomainsSettings() {
                 Conecta tu propio dominio para una experiencia white-label
               </CardDescription>
             </div>
-            <Button onClick={() => setShowAddDialog(true)} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Agregar Dominio
-            </Button>
+            {canHaveCustomDomains ? (
+              <Button onClick={() => setShowAddDialog(true)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Agregar Dominio
+              </Button>
+            ) : (
+              <Button onClick={() => setShowUpgradeModal(true)} size="sm" variant="outline">
+                <Lock className="h-4 w-4 mr-1" />
+                Agregar Dominio
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -372,6 +390,15 @@ export function CustomDomainsSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Upgrade Plan Modal */}
+      <UpgradePlanModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        currentTier={tier}
+        feature="Dominios Personalizados"
+        reason="Los dominios personalizados están disponibles en Plan Pro y superiores. Actualiza tu plan para conectar tu propio dominio."
+      />
     </>
   );
 }

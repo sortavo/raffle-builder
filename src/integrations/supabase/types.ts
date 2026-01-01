@@ -1386,6 +1386,7 @@ export type Database = {
         Args: { p_numbering_config?: Json; p_raffle_id: string }
         Returns: number
       }
+      can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       generate_reference_code: { Args: never; Returns: string }
       generate_ticket_batch: {
         Args: {
