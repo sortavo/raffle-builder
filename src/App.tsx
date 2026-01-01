@@ -1,3 +1,4 @@
+// Updated for production - 2026-01-01
 import { Toaster } from "@/components/ui/toaster";
 import Settings from "./pages/dashboard/Settings";
 import { Toaster as Sonner } from "@/components/ui/sonner";
