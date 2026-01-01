@@ -47,18 +47,19 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('[add-vercel-domain] Vercel API error:', data)
       
-      // Specific error handling
-      if (response.status === 409) {
-        throw new Error('Este dominio ya está registrado en otro proyecto de Vercel')
-      }
-      if (response.status === 400) {
-        throw new Error('Formato de dominio inválido')
-      }
-      if (response.status === 403) {
-        throw new Error('Token de Vercel inválido o sin permisos')
-      }
+      const errorMessage = data.error?.message || 'Error al registrar dominio en Vercel';
       
-      throw new Error(data.error?.message || 'Error al registrar dominio en Vercel')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: errorMessage,
+          statusCode: response.status
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log(`[add-vercel-domain] Successfully added domain: ${domain}`, data)
