@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.get-payment-method]
 verify_jwt = false
+
+[functions.verify-dns]
+verify_jwt = false
