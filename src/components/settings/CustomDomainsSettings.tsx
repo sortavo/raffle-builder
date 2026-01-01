@@ -960,14 +960,6 @@ export function CustomDomainsSettings() {
             </div>
           )}
 
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Nota:</strong> Los dominios personalizados requieren exportar tu proyecto a Vercel 
-              para funcionar completamente. Dentro de Lovable, puedes usar rutas como{" "}
-              <code className="bg-muted px-1 rounded">sortavo.com/tu-organizacion</code>
-            </AlertDescription>
-          </Alert>
         </CardContent>
       </Card>
 
