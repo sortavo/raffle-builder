@@ -68,7 +68,24 @@ export function useCustomDomains() {
         throw new Error("Los dominios personalizados requieren Plan Pro o superior");
       }
 
+      // Validar límite de dominios por tier
+      const currentDomainCount = domains.length;
+      if (currentDomainCount >= limits.maxCustomDomains) {
+        throw new Error(`Has alcanzado el límite de ${limits.maxCustomDomains} dominios para tu plan. Actualiza para agregar más.`);
+      }
+
       const normalizedDomain = domain.toLowerCase().trim();
+      
+      // Validar formato del dominio
+      const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+      if (!domainRegex.test(normalizedDomain)) {
+        throw new Error("Formato de dominio inválido. Ejemplo: midominio.com");
+      }
+      
+      // Validar longitud máxima (253 caracteres según RFC)
+      if (normalizedDomain.length > 253) {
+        throw new Error("El dominio es demasiado largo (máximo 253 caracteres)");
+      }
       
       // Step 1: Register domain in Vercel FIRST
       console.log('[addDomain] Registering domain in Vercel:', normalizedDomain);

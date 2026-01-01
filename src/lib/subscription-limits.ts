@@ -6,6 +6,7 @@ export type SubscriptionTier = 'basic' | 'pro' | 'premium' | 'enterprise' | null
 export interface SubscriptionLimits {
   maxActiveRaffles: number;
   maxTicketsPerRaffle: number;
+  maxCustomDomains: number;
   templatesAvailable: number;
   canRemoveBranding: boolean;
   hasAdvancedAnalytics: boolean;
@@ -25,6 +26,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
       return {
         maxActiveRaffles: 999,
         maxTicketsPerRaffle: 10000000,
+        maxCustomDomains: 100,
         templatesAvailable: 6,
         canRemoveBranding: true,
         hasAdvancedAnalytics: true,
@@ -42,6 +44,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
       return {
         maxActiveRaffles: 15,
         maxTicketsPerRaffle: 100000,
+        maxCustomDomains: 10,
         templatesAvailable: 6,
         canRemoveBranding: true,
         hasAdvancedAnalytics: true,
@@ -59,6 +62,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
       return {
         maxActiveRaffles: 7,
         maxTicketsPerRaffle: 30000,
+        maxCustomDomains: 3,
         templatesAvailable: 6,
         canRemoveBranding: true,
         hasAdvancedAnalytics: true,
@@ -77,6 +81,7 @@ export function getSubscriptionLimits(tier: SubscriptionTier): SubscriptionLimit
       return {
         maxActiveRaffles: 2,
         maxTicketsPerRaffle: 2000,
+        maxCustomDomains: 0,
         templatesAvailable: 1,
         canRemoveBranding: false,
         hasAdvancedAnalytics: false,

@@ -1,8 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from "../_shared/rate-limiter.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Domain validation regex
+const DOMAIN_REGEX = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+
+function isValidDomain(domain: string): boolean {
+  if (!domain || typeof domain !== 'string') return false;
+  const normalized = domain.toLowerCase().trim();
+  return normalized.length > 0 && normalized.length <= 253 && DOMAIN_REGEX.test(normalized);
 }
 
 serve(async (req) => {
@@ -11,11 +21,37 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting: 5 domain removals per minute per IP
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(clientIP, { 
+      ...RATE_LIMITS.STRICT, 
+      maxRequests: 5,
+      keyPrefix: 'remove-domain' 
+    });
+    
+    if (!rateLimitResult.allowed) {
+      console.warn(`[remove-vercel-domain] Rate limit exceeded for IP: ${clientIP}`);
+      return rateLimitResponse(rateLimitResult, corsHeaders);
+    }
+
     const { domain } = await req.json()
     
     if (!domain) {
       throw new Error('Domain is required')
     }
+    
+    // Validate domain format
+    if (!isValidDomain(domain)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid domain format' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const normalizedDomain = domain.toLowerCase().trim();
 
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN')
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID')
@@ -27,11 +63,11 @@ serve(async (req) => {
     }
 
     const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''
-    console.log(`[remove-vercel-domain] Removing domain: ${domain} from project: ${VERCEL_PROJECT_ID}${VERCEL_TEAM_ID ? ` (team: ${VERCEL_TEAM_ID})` : ''}`)
+    console.log(`[remove-vercel-domain] Removing domain: ${normalizedDomain} from project: ${VERCEL_PROJECT_ID}${VERCEL_TEAM_ID ? ` (team: ${VERCEL_TEAM_ID})` : ''}`)
 
     // Call Vercel API
     const response = await fetch(
-      `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(domain)}${teamQuery}`,
+      `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains/${encodeURIComponent(normalizedDomain)}${teamQuery}`,
       {
         method: 'DELETE',
         headers: {
@@ -47,7 +83,7 @@ serve(async (req) => {
       throw new Error(data.error?.message || 'Error al eliminar dominio de Vercel')
     }
 
-    console.log(`[remove-vercel-domain] Successfully removed domain: ${domain}`)
+    console.log(`[remove-vercel-domain] Successfully removed domain: ${normalizedDomain}`)
 
     return new Response(
       JSON.stringify({ success: true }),
