@@ -101,3 +101,9 @@ verify_jwt = false
 
 [functions.verify-dns]
 verify_jwt = false
+
+[functions.add-vercel-domain]
+verify_jwt = false
+
+[functions.remove-vercel-domain]
+verify_jwt = false
