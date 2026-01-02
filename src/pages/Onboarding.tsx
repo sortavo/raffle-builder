@@ -751,6 +751,9 @@ export default function Onboarding() {
                               <p className="text-[10px] text-emerald-600">
                                 Sin cargo hasta terminar la prueba
                               </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Tu tarjeta se valida pero no se cobra hoy
+                              </p>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
