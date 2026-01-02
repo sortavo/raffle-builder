@@ -424,7 +424,7 @@ export function CustomDomainsSettings() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDnsDialog, setShowDnsDialog] = useState<CustomDomain | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<CustomDomain | null>(null);
   const [newDomain, setNewDomain] = useState("");
   const [vercelDiagnosisModal, setVercelDiagnosisModal] = useState(false);
   const [vercelDiagnosisData, setVercelDiagnosisData] = useState<VercelDiagnosisResult | null>(null);
@@ -950,7 +950,7 @@ export function CustomDomainsSettings() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => setDeleteConfirm(domain.id)}
+                      onClick={() => setDeleteConfirm(domain)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1134,14 +1134,37 @@ export function CustomDomainsSettings() {
         isPending={diagnoseVercel.isPending}
       />
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation - Enhanced for primary domains */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar dominio?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. El dominio dejará de estar conectado 
-              a tu organización.
+            <AlertDialogTitle className="flex items-center gap-2">
+              {deleteConfirm?.is_primary && (
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+              )}
+              ¿Eliminar dominio{deleteConfirm?.is_primary ? ' principal' : ''}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="block">
+                Esta acción no se puede deshacer. El dominio <strong>{deleteConfirm?.domain}</strong> dejará 
+                de estar conectado a tu organización.
+              </span>
+              
+              {deleteConfirm?.is_primary && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Advertencia:</strong> Este es tu dominio principal. Al eliminarlo:
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Los enlaces compartidos dejarán de funcionar</li>
+                        <li>Tus clientes no podrán acceder desde {deleteConfirm?.domain}</li>
+                        <li>Deberás configurar otro dominio como principal</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1150,12 +1173,12 @@ export function CustomDomainsSettings() {
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => {
                 if (deleteConfirm) {
-                  removeDomain.mutate(deleteConfirm);
+                  removeDomain.mutate(deleteConfirm.id);
                   setDeleteConfirm(null);
                 }
               }}
             >
-              Eliminar
+              {deleteConfirm?.is_primary ? 'Eliminar Dominio Principal' : 'Eliminar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

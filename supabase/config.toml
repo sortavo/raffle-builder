@@ -116,3 +116,9 @@ verify_jwt = false
 
 [functions.check-domains]
 verify_jwt = false
+
+[functions.sync-domains]
+verify_jwt = false
+
+[functions.monitor-domains]
+verify_jwt = false
