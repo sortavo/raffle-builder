@@ -695,7 +695,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                     )}
 
                     {/* Campos de edición */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                       <div className="min-w-0">
                         <label className="text-xs text-muted-foreground mb-1 block">Cantidad</label>
                         <Input
@@ -716,6 +716,21 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                           value={pkg.bonus_tickets || 0}
                           onChange={(e) => updatePackage(index, 'bonus_tickets', parseInt(e.target.value) || 0)}
                           min={0}
+                          placeholder="0"
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
+                          <Percent className="w-3 h-3" />
+                          % Desc.
+                        </label>
+                        <Input
+                          type="number"
+                          value={pkg.discount_percent || 0}
+                          onChange={(e) => updatePackage(index, 'discount_percent', parseInt(e.target.value) || 0)}
+                          min={0}
+                          max={99}
                           placeholder="0"
                           className="h-9 text-sm"
                         />
