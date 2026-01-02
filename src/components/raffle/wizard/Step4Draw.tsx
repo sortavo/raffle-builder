@@ -364,10 +364,11 @@ export const Step4Draw = ({ form }: Step4Props) => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="2">2 dígitos</SelectItem>
-                                <SelectItem value="3">3 dígitos</SelectItem>
-                                <SelectItem value="4">4 dígitos</SelectItem>
-                                <SelectItem value="5">5 dígitos</SelectItem>
+                                {Array.from({ length: 11 }, (_, i) => (
+                                  <SelectItem key={i} value={i.toString()}>
+                                    {i === 0 ? 'Sin dígitos' : i === 1 ? '1 dígito' : `${i} dígitos`}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
