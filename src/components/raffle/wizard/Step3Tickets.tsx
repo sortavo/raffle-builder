@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { Plus, Trash2, Sparkles, Clock, Tag } from 'lucide-react';
+import { Plus, Trash2, Sparkles, Clock, Tag, Gift, Zap, TrendingDown, Percent, ArrowRight } from 'lucide-react';
 import { 
   TICKET_COUNT_OPTIONS, 
   RESERVATION_TIME_OPTIONS, 
@@ -15,7 +15,7 @@ import {
   formatReservationTime,
   getTicketLimitByTier 
 } from '@/lib/raffle-utils';
-import { CURRENCIES } from '@/lib/currency-utils';
+import { CURRENCIES, formatCurrency } from '@/lib/currency-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,54 @@ interface Package {
   display_order: number;
   bonus_tickets?: number;
 }
+
+// Templates de promociones populares
+const PACKAGE_TEMPLATES = [
+  {
+    id: '3x2',
+    name: 'Paga 2, Lleva 3',
+    shortName: '3x2',
+    icon: Gift,
+    description: '1 boleto gratis',
+    quantity: 2,
+    bonus_tickets: 1,
+    discount_percent: 0,
+    label: '🎁 3x2',
+  },
+  {
+    id: '5x4',
+    name: 'Paga 4, Lleva 5',
+    shortName: '5x4',
+    icon: Zap,
+    description: '20% más boletos',
+    quantity: 4,
+    bonus_tickets: 1,
+    discount_percent: 0,
+    label: '⚡ 5x4',
+  },
+  {
+    id: '10-off',
+    name: '10 boletos -10%',
+    shortName: '-10%',
+    icon: TrendingDown,
+    description: 'Descuento en volumen',
+    quantity: 10,
+    bonus_tickets: 0,
+    discount_percent: 10,
+    label: '💰 Ahorro',
+  },
+  {
+    id: '20-off',
+    name: '20 boletos -15%',
+    shortName: '-15%',
+    icon: Percent,
+    description: 'Máximo descuento',
+    quantity: 20,
+    bonus_tickets: 0,
+    discount_percent: 15,
+    label: '🔥 Mejor Valor',
+  },
+];
 
 
 export const Step3Tickets = ({ form }: Step3Props) => {
@@ -200,7 +248,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     form.setValue('packages', updated);
   };
 
-  // Helper para calcular ahorro y total de boletos
+  // Helper para calcular ahorro y total de boletos (mejorado)
   const getSavingsInfo = (pkg: Package) => {
     const normalPrice = basePrice * pkg.quantity;
     const finalPrice = pkg.price || normalPrice;
@@ -210,7 +258,56 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     const totalTickets = pkg.quantity + (pkg.bonus_tickets || 0);
     const hasBonus = (pkg.bonus_tickets || 0) > 0;
     
-    return { normalPrice, finalPrice, savings, savingsPercent, hasDiscount, totalTickets, hasBonus };
+    // Nuevo: calcular precio efectivo por boleto
+    const effectivePricePerTicket = totalTickets > 0 ? finalPrice / totalTickets : basePrice;
+    const savingsPerTicket = basePrice - effectivePricePerTicket;
+    const savingsPerTicketPercent = basePrice > 0 
+      ? Math.round((savingsPerTicket / basePrice) * 100) 
+      : 0;
+    
+    // Descripción amigable de la promoción
+    const promoDescription = hasBonus 
+      ? `Paga ${pkg.quantity}, lleva ${totalTickets}` 
+      : hasDiscount 
+        ? `${savingsPercent}% de descuento` 
+        : '';
+    
+    return { 
+      normalPrice, 
+      finalPrice, 
+      savings, 
+      savingsPercent, 
+      hasDiscount, 
+      totalTickets, 
+      hasBonus,
+      effectivePricePerTicket,
+      savingsPerTicket,
+      savingsPerTicketPercent,
+      promoDescription
+    };
+  };
+
+  // Agregar paquete desde template
+  const addPackageFromTemplate = (templateId: string) => {
+    const template = PACKAGE_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    
+    const normalPrice = basePrice * template.quantity;
+    const discountedPrice = template.discount_percent > 0 
+      ? Math.round(normalPrice * (1 - template.discount_percent / 100))
+      : normalPrice;
+    
+    const newPackage: Package = {
+      quantity: template.quantity,
+      price: discountedPrice,
+      discount_percent: template.discount_percent,
+      label: template.label,
+      display_order: packages.length,
+      bonus_tickets: template.bonus_tickets,
+    };
+    
+    setPackages([...packages, newPackage]);
+    form.setValue('packages', [...packages, newPackage]);
   };
 
   const availableTicketOptions = TICKET_COUNT_OPTIONS.filter(opt => opt.value <= ticketLimit);
@@ -486,44 +583,72 @@ export const Step3Tickets = ({ form }: Step3Props) => {
       <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles className="w-5 h-5 text-primary" />
             Paquetes de Boletos
           </CardTitle>
           <CardDescription>
-            Crea paquetes con descuentos, promociones tipo "3x2" (paga 2, lleva 3) o muestra precios por cantidad
+            Crea promociones atractivas para incentivar compras de mayor volumen
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-0 md:px-6">
-          <div className="space-y-3">
-            {/* Desktop header - hide on mobile */}
-            <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-              <div className="col-span-1">Cant.</div>
-              <div className="col-span-1">+Bonus</div>
-              <div className="col-span-2">P. Final</div>
-              <div className="col-span-1">%</div>
-              <div className="col-span-2">Total</div>
-              <div className="col-span-4">
-                <div className="flex items-center gap-1">
-                  <Tag className="w-3 h-3" />
-                  Etiqueta
-                </div>
-              </div>
-              <div className="col-span-1"></div>
+        <CardContent className="px-0 md:px-6 space-y-4">
+          {/* Promociones Populares - Templates rápidos */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Gift className="w-4 h-4 text-primary" />
+              Promociones Populares
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {PACKAGE_TEMPLATES.map((template) => {
+                const TemplateIcon = template.icon;
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => addPackageFromTemplate(template.id)}
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors text-center group"
+                  >
+                    <TemplateIcon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-sm font-medium">{template.shortName}</span>
+                    <span className="text-[10px] text-muted-foreground">{template.description}</span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {packages.map((pkg, index) => {
-              const { normalPrice, savings, savingsPercent, hasDiscount, totalTickets, hasBonus } = getSavingsInfo(pkg);
-              
-              return (
-                <div key={index} className="space-y-3 md:space-y-0 p-3 md:p-0 border md:border-0 rounded-lg md:rounded-none bg-muted/30 md:bg-transparent">
-                  {/* Mobile: Stacked compact layout */}
-                  <div className="md:hidden space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Paquete {index + 1}</span>
-                        {hasBonus && (
-                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">
-                            {pkg.quantity}+{pkg.bonus_tickets} Gratis
+          <div className="border-t pt-4">
+            <label className="text-sm font-medium mb-3 block">Tus Paquetes</label>
+            <div className="space-y-3">
+              {packages.map((pkg, index) => {
+                const { 
+                  normalPrice, 
+                  savings, 
+                  savingsPercent, 
+                  hasDiscount, 
+                  totalTickets, 
+                  hasBonus,
+                  effectivePricePerTicket,
+                  savingsPerTicketPercent,
+                  promoDescription
+                } = getSavingsInfo(pkg);
+                
+                const hasPromo = hasBonus || hasDiscount;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={cn(
+                      "rounded-lg border bg-card p-4 space-y-3 transition-shadow",
+                      hasPromo && "ring-1 ring-primary/20"
+                    )}
+                  >
+                    {/* Header con título y eliminar */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">Paquete {index + 1}</span>
+                        {promoDescription && (
+                          <Badge className="bg-primary/10 text-primary text-xs">
+                            {promoDescription}
                           </Badge>
                         )}
                       </div>
@@ -533,39 +658,63 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                         size="icon"
                         onClick={() => removePackage(index)}
                         disabled={packages.length <= 1}
-                        className="h-8 w-8"
+                        className="h-8 w-8 shrink-0"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
-                    
-                    <div className="grid grid-cols-4 gap-2">
+
+                    {/* Visual de la ecuación: X boletos + Y gratis = Z total */}
+                    {hasBonus && (
+                      <div className="flex items-center justify-center gap-2 py-2 px-3 bg-muted/50 rounded-lg text-sm">
+                        <div className="text-center">
+                          <div className="font-bold text-lg">{pkg.quantity}</div>
+                          <div className="text-[10px] text-muted-foreground">paga</div>
+                        </div>
+                        <span className="text-muted-foreground">+</span>
+                        <div className="text-center">
+                          <div className="font-bold text-lg text-primary">{pkg.bonus_tickets}</div>
+                          <div className="text-[10px] text-muted-foreground">gratis</div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                        <div className="text-center">
+                          <div className="font-bold text-lg text-green-600 dark:text-green-400">{totalTickets}</div>
+                          <div className="text-[10px] text-muted-foreground">total</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Campos de edición */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="min-w-0">
-                        <label className="text-[10px] text-muted-foreground truncate block">Cantidad</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Cantidad</label>
                         <Input
                           type="number"
                           value={pkg.quantity}
                           onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
                           min={1}
-                          className="h-9 text-sm px-2"
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div className="min-w-0">
-                        <label className="text-[10px] text-muted-foreground truncate block">+Bonus</label>
+                        <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
+                          <Gift className="w-3 h-3" />
+                          +Bonus
+                        </label>
                         <Input
                           type="number"
                           value={pkg.bonus_tickets || 0}
                           onChange={(e) => updatePackage(index, 'bonus_tickets', parseInt(e.target.value) || 0)}
                           min={0}
                           placeholder="0"
-                          className="h-9 text-sm px-2"
+                          className="h-9 text-sm"
                         />
                       </div>
                       <div className="min-w-0">
-                        <label className="text-[10px] text-muted-foreground truncate block">Precio</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Precio Final</label>
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                            $
+                            {currencyData?.symbol}
                           </span>
                           <Input
                             type="number"
@@ -576,146 +725,51 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <label className="text-[10px] text-muted-foreground truncate block">Dto %</label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            value={pkg.discount_percent || 0}
-                            onChange={(e) => updatePackage(index, 'discount_percent', parseFloat(e.target.value) || 0)}
-                            min={0}
-                            max={99}
-                            className="h-9 pr-5 text-sm"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                            %
+                        <label className="text-xs text-muted-foreground mb-1 block">
+                          <Tag className="w-3 h-3 inline mr-1" />
+                          Etiqueta
+                        </label>
+                        <LabelCombobox
+                          value={pkg.label}
+                          onValueChange={(v) => updatePackage(index, 'label', v)}
+                          placeholder="Ej: Popular"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resumen de ahorro */}
+                    {hasPromo && (
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="font-semibold">{totalTickets} boletos</span>
+                          <span className="text-muted-foreground">por</span>
+                          {hasDiscount && (
+                            <span className="line-through text-muted-foreground">
+                              {currencyData?.symbol}{normalPrice.toLocaleString()}
+                            </span>
+                          )}
+                          <span className="font-semibold text-primary">
+                            {currencyData?.symbol}{(pkg.price || normalPrice).toLocaleString()}
                           </span>
                         </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">
-                        Total: <span className="font-medium text-foreground">{totalTickets} boletos</span>
-                        {hasDiscount && (
-                          <span className="ml-1">por <span className={cn(hasDiscount && "line-through")}>${normalPrice.toLocaleString()}</span> ${pkg.price.toLocaleString()}</span>
-                        )}
-                      </span>
-                      <div className="flex gap-1">
-                        {hasBonus && (
-                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5">
-                            +{pkg.bonus_tickets} gratis
-                          </Badge>
-                        )}
-                        {hasDiscount && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] px-1.5">
-                            -{savingsPercent}%
+                        
+                        {savingsPerTicketPercent > 0 && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            💎 {currencyData?.symbol}{effectivePricePerTicket.toFixed(0)}/boleto ({savingsPerTicketPercent}% menos)
                           </Badge>
                         )}
                       </div>
-                    </div>
-                    
-                    <div className="min-w-0">
-                      <label className="text-[10px] text-muted-foreground mb-1 block">Etiqueta</label>
-                      <LabelCombobox
-                        value={pkg.label}
-                        onValueChange={(v) => updatePackage(index, 'label', v)}
-                        placeholder="Ej: Popular, 3x2, Mejor Valor"
-                      />
-                    </div>
+                    )}
                   </div>
+                );
+              })}
 
-                  {/* Desktop: Grid layout */}
-                  <div className="hidden md:grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-1">
-                      <Input
-                        type="number"
-                        value={pkg.quantity}
-                        onChange={(e) => updatePackage(index, 'quantity', parseInt(e.target.value) || 1)}
-                        min={1}
-                        className="text-center px-1 h-9 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Input
-                        type="number"
-                        value={pkg.bonus_tickets || 0}
-                        onChange={(e) => updatePackage(index, 'bonus_tickets', parseInt(e.target.value) || 0)}
-                        min={0}
-                        placeholder="0"
-                        className="text-center px-1 h-9 text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                          {currencyData?.symbol}
-                        </span>
-                        <Input
-                          type="number"
-                          value={pkg.price || normalPrice}
-                          onChange={(e) => updatePackage(index, 'price', parseFloat(e.target.value) || 0)}
-                          className="pl-5 h-9 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div className="col-span-1">
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          value={pkg.discount_percent || 0}
-                          onChange={(e) => updatePackage(index, 'discount_percent', parseFloat(e.target.value) || 0)}
-                          min={0}
-                          max={99}
-                          className="pr-4 text-center px-1 h-9 text-sm"
-                        />
-                        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">
-                          %
-                        </span>
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium">{totalTickets} boletos</span>
-                        {hasBonus && (
-                          <Badge className="bg-primary/10 text-primary text-[10px] px-1.5 whitespace-nowrap">
-                            +{pkg.bonus_tickets} gratis
-                          </Badge>
-                        )}
-                        {hasDiscount && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px]">
-                            -{savingsPercent}%
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-4">
-                      <LabelCombobox
-                        value={pkg.label}
-                        onValueChange={(v) => updatePackage(index, 'label', v)}
-                        placeholder="Ej: Popular, 3x2, Mejor Valor"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePackage(index)}
-                        disabled={packages.length <= 1}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            <Button type="button" variant="outline" onClick={addPackage} className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Paquete
-            </Button>
+              <Button type="button" variant="outline" onClick={addPackage} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Paquete Personalizado
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
