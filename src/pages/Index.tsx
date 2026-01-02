@@ -165,16 +165,12 @@ const Index = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
-              <a 
-                href="#features" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection('features');
-                }}
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10 cursor-pointer"
+              <Link 
+                to="/features" 
+                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
               >
                 Características
-              </a>
+              </Link>
               <Link 
                 to="/pricing" 
                 className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
@@ -213,16 +209,13 @@ const Index = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] bg-card">
                 <div className="flex flex-col gap-6 mt-8">
-                  <a 
-                    href="#features" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollToSection('features', () => setMobileMenuOpen(false));
-                    }}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors cursor-pointer"
+                  <Link 
+                    to="/features" 
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     Características
-                  </a>
+                  </Link>
                   <Link 
                     to="/pricing" 
                     className="text-lg font-medium text-foreground hover:text-primary transition-colors"
