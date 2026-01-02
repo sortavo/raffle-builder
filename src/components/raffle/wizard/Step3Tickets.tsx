@@ -437,13 +437,41 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             />
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="min_tickets_per_purchase"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    Mín. por compra
+                    <HelpTooltip content="Cantidad mínima de boletos que un comprador debe seleccionar para poder continuar al pago." />
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      placeholder="1" 
+                      min={1}
+                      {...field}
+                      value={field.value || 1}
+                      onChange={(e) => field.onChange(Math.max(1, parseInt(e.target.value) || 1))}
+                    />
+                  </FormControl>
+                  <FormDescription>Mínimo 1</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="max_tickets_per_purchase"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Máx. boletos por compra</FormLabel>
+                  <FormLabel className="flex items-center gap-1.5">
+                    Máx. por compra
+                    <HelpTooltip content="Límite de boletos por transacción. 0 = sin límite." />
+                  </FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
