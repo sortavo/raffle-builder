@@ -275,19 +275,19 @@ export default function Pricing() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="overflow-x-auto"
           >
-            <table className="w-full max-w-5xl mx-auto bg-white/[0.03] backdrop-blur-xl rounded-2xl shadow-2xl border border-white/[0.08] overflow-hidden">
+            <table className="w-full max-w-5xl mx-auto bg-white/[0.03] backdrop-blur-xl rounded-2xl shadow-2xl border border-white/[0.08]">
               <thead>
                 <tr className="bg-gradient-to-r from-emerald-600/20 via-teal-500/20 to-emerald-600/20">
-                  <th className="py-6 px-6 text-left font-semibold text-gray-400">Característica</th>
+                  <th className="py-6 px-6 text-left font-semibold text-gray-400 rounded-tl-2xl">Característica</th>
                   <th className="py-6 px-4 text-center font-semibold text-gray-200">Básico</th>
-                  <th className="py-6 px-4 text-center font-semibold text-emerald-400 bg-emerald-500/10 relative">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-emerald-500 text-white text-xs">Popular</Badge>
+                  <th className="py-6 px-4 pt-10 text-center font-semibold text-emerald-400 bg-emerald-500/10 relative">
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-emerald-500 text-white text-xs shadow-lg shadow-emerald-500/30">Popular</Badge>
                     </div>
                     Pro
                   </th>
                   <th className="py-6 px-4 text-center font-semibold text-amber-400">Premium</th>
-                  <th className="py-6 px-4 text-center font-semibold text-purple-400">Enterprise</th>
+                  <th className="py-6 px-4 text-center font-semibold text-purple-400 rounded-tr-2xl">Enterprise</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
