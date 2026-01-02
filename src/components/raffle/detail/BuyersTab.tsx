@@ -33,7 +33,9 @@ import {
   Copy,
   DollarSign,
   Clock,
-  AlertCircle
+  AlertCircle,
+  TrendingUp,
+  CheckCircle2
 } from 'lucide-react';
 import { useBuyers, Buyer } from '@/hooks/useBuyers';
 import { format } from 'date-fns';
@@ -248,67 +250,71 @@ export function BuyersTab({
   return (
     <TooltipProvider>
       <div className="space-y-3 sm:space-y-4">
-        {/* Summary Cards */}
+        {/* ✅ Summary Cards - ARREGLADO para mobile */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full min-w-0">
+          {/* Card 1: Ingresos */}
           <Card className="min-w-0 w-full">
             <CardContent className="p-3 sm:p-4 min-w-0">
-              <div className="flex flex-col items-center gap-1.5 min-w-0">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
-                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+              <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+                  <DollarSign className="w-full h-full text-green-600" />
                 </div>
-                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 w-full block">
                   Ingresos
                 </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center w-full break-all">
                 {formatCurrency(summaryStats.totalRevenue, currencyCode)}
               </p>
             </CardContent>
           </Card>
 
+          {/* Card 2: Promedio */}
           <Card className="min-w-0 w-full">
             <CardContent className="p-3 sm:p-4 min-w-0">
-              <div className="flex flex-col items-center gap-1.5 min-w-0">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
-                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+              <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+                  <TrendingUp className="w-full h-full text-blue-600" />
                 </div>
-                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 w-full block">
                   Promedio
                 </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center w-full break-all">
                 {formatCurrency(summaryStats.avgPerBuyer, currencyCode)}
               </p>
             </CardContent>
           </Card>
 
+          {/* Card 3: Pendientes */}
           <Card className="min-w-0 w-full">
             <CardContent className="p-3 sm:p-4 min-w-0">
-              <div className="flex flex-col items-center gap-1.5 min-w-0">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
-                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+              <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+                  <Clock className="w-full h-full text-orange-600" />
                 </div>
-                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 w-full block">
                   Pendientes
                 </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center w-full">
                 {summaryStats.pendingCount}
               </p>
             </CardContent>
           </Card>
 
+          {/* Card 4: Confirmados */}
           <Card className="min-w-0 w-full">
             <CardContent className="p-3 sm:p-4 min-w-0">
-              <div className="flex flex-col items-center gap-1.5 min-w-0">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
-                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+              <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+                  <CheckCircle2 className="w-full h-full text-green-600" />
                 </div>
-                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 w-full block">
                   Confirmados
                 </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center w-full">
                 {summaryStats.confirmedCount}
               </p>
             </CardContent>
