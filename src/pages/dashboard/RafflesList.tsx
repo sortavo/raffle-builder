@@ -50,11 +50,11 @@ import {
   Link2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRafflePublicUrl } from '@/lib/url-utils';
 import { useRaffles, type RaffleFilters as RaffleFiltersType } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 import { RaffleStatusBadge } from '@/components/raffle/RaffleStatusBadge';
+import { RafflePublicLinks } from '@/components/raffle/RafflePublicLinks';
 import { RaffleFilters, type FilterState } from '@/components/raffle/RaffleFilters';
 import { ProtectedAction } from '@/components/auth/ProtectedAction';
 import { formatCurrency } from '@/lib/currency-utils';
@@ -377,23 +377,12 @@ export default function RafflesList() {
                           <span className="truncate">{formatCurrency(raffle.ticket_price, raffle.currency_code || 'MXN')}</span>
                         </div>
                         {raffle.status === 'active' && (
-                          <div 
-                            className="flex items-center gap-1 text-primary hover:text-primary/80 cursor-pointer group col-span-2 sm:col-span-1"
-                            onClick={(e) => copyUrl(
-                              getRafflePublicUrl(raffle.slug, organization?.slug),
-                              e
-                            )}
-                            title="Clic para copiar URL"
-                          >
-                            <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                            <span className="truncate max-w-[140px] sm:max-w-[180px]">
-                              {organization?.slug 
-                                ? `/${organization.slug}/${raffle.slug}` 
-                                : `/r/${raffle.slug}`
-                              }
-                            </span>
-                            <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                          </div>
+                          <RafflePublicLinks 
+                            orgSlug={organization?.slug}
+                            raffleSlug={raffle.slug}
+                            organizationId={raffle.organization_id}
+                            compact
+                          />
                         )}
                       </div>
                     </div>
