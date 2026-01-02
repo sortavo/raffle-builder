@@ -38,17 +38,22 @@ import {
   CheckCircle2,
   Phone
 } from 'lucide-react';
-import { useBuyers } from '@/hooks/useBuyers';
-import { Buyer, PaymentMethod } from '@/types/raffle';
+import { useBuyers, Buyer } from '@/hooks/useBuyers';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/lib/utils/currency';
-import { exportBuyersToExcel, exportBuyersToPDF } from '@/lib/exportBuyers';
+import { formatCurrency } from '@/lib/currency-utils';
 import { TicketDetailDialog } from './TicketDetailDialog';
 
-interface BuyersTabProps {
+export interface BuyersTabProps {
   raffleId: string;
-  raffleName: string;
+  raffleTitle: string;
+  raffleSlug: string;
+  prizeName: string;
+  prizeImages: string[];
+  drawDate: string | null;
+  ticketPrice: number;
   currencyCode: string;
+  organizationName: string;
+  organizationLogo?: string | null;
 }
 
 interface SummaryStats {
@@ -58,9 +63,20 @@ interface SummaryStats {
   confirmedCount: number;
 }
 
-export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps) {
+export function BuyersTab({ 
+  raffleId, 
+  raffleTitle,
+  raffleSlug,
+  prizeName,
+  prizeImages,
+  drawDate,
+  ticketPrice,
+  currencyCode,
+  organizationName,
+  organizationLogo,
+}: BuyersTabProps) {
   const { toast } = useToast();
-  const { buyers, isLoading } = useBuyers(raffleId);
+  const { useBuyersList, useCities, exportBuyers, getWhatsAppLink } = useBuyers(raffleId);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -68,6 +84,21 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
   const itemsPerPage = 10;
+
+  // Use the hook-based queries
+  const { data: buyersData, isLoading } = useBuyersList({
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    city: cityFilter === 'all' ? undefined : cityFilter,
+    search: searchTerm || undefined,
+    page: currentPage,
+    pageSize: itemsPerPage,
+  });
+  
+  const { data: citiesData } = useCities();
+  
+  const buyers = buyersData?.buyers || [];
+  const totalCount = buyersData?.count || 0;
+  const cities = citiesData || [];
 
   // Summary stats
   const summaryStats = useMemo<SummaryStats>(() => {
@@ -80,10 +111,10 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
       };
     }
 
-    const totalRevenue = buyers.reduce((sum, buyer) => sum + buyer.total_amount, 0);
-    const avgPerBuyer = totalRevenue / buyers.length;
-    const pendingCount = buyers.filter(b => b.payment_status === 'pending').length;
-    const confirmedCount = buyers.filter(b => b.payment_status === 'confirmed').length;
+    const totalRevenue = buyers.reduce((sum, buyer) => sum + (buyer.orderTotal || 0), 0);
+    const avgPerBuyer = buyers.length > 0 ? totalRevenue / buyers.length : 0;
+    const pendingCount = buyers.filter(b => b.status === 'reserved').length;
+    const confirmedCount = buyers.filter(b => b.status === 'sold').length;
 
     return {
       totalRevenue,
@@ -93,61 +124,24 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
     };
   }, [buyers]);
 
-  // Get unique cities
-  const cities = useMemo(() => {
-    if (!buyers) return [];
-    const citySet = new Set(buyers.map(b => b.city).filter(Boolean));
-    return Array.from(citySet).sort();
-  }, [buyers]);
-
-  // Filtered buyers
-  const filteredBuyers = useMemo(() => {
-    if (!buyers) return [];
-    
-    return buyers.filter(buyer => {
-      const matchesSearch = 
-        buyer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        buyer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        buyer.phone?.includes(searchTerm);
-      
-      const matchesStatus = statusFilter === 'all' || buyer.payment_status === statusFilter;
-      const matchesCity = cityFilter === 'all' || buyer.city === cityFilter;
-      
-      return matchesSearch && matchesStatus && matchesCity;
-    });
-  }, [buyers, searchTerm, statusFilter, cityFilter]);
-
   // Pagination
-  const totalPages = Math.ceil(filteredBuyers.length / itemsPerPage);
-  const paginatedBuyers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredBuyers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredBuyers, currentPage]);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   // Handlers
-  const handleExportExcel = async () => {
+  const handleExportCSV = async () => {
     try {
-      await exportBuyersToExcel(filteredBuyers, raffleName, currencyCode);
-      toast({
-        title: "Excel exportado",
-        description: "La lista de compradores se descargó exitosamente",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo exportar el archivo",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleExportPDF = async () => {
-    try {
-      await exportBuyersToPDF(filteredBuyers, raffleName, currencyCode);
-      toast({
-        title: "PDF exportado",
-        description: "La lista de compradores se descargó exitosamente",
-      });
+      const csv = await exportBuyers();
+      if (csv) {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `compradores-${raffleTitle}.csv`;
+        link.click();
+        toast({
+          title: "CSV exportado",
+          description: "La lista de compradores se descargó exitosamente",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -174,18 +168,19 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
   };
 
   const handleWhatsApp = (phone: string, name: string) => {
-    const message = encodeURIComponent(`Hola ${name}, gracias por tu compra en ${raffleName}`);
-    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    const message = `Hola ${name}, gracias por tu compra en ${raffleTitle}`;
+    window.open(getWhatsAppLink(phone, message), '_blank');
   };
 
   const handleEmail = (email: string, name: string) => {
-    const subject = encodeURIComponent(`Confirmación - ${raffleName}`);
+    const subject = encodeURIComponent(`Confirmación - ${raffleTitle}`);
     const body = encodeURIComponent(`Hola ${name},\n\nGracias por tu compra.`);
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
-  const getPaymentMethodLabel = (method: PaymentMethod): string => {
-    const labels: Record<PaymentMethod, string> = {
+  const getPaymentMethodLabel = (method: string | null): string => {
+    if (!method) return '-';
+    const labels: Record<string, string> = {
       transfer: 'Transferencia',
       cash: 'Efectivo',
       card: 'Tarjeta',
@@ -197,20 +192,22 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      confirmed: 'default',
-      pending: 'secondary',
-      cancelled: 'destructive'
+      sold: 'default',
+      reserved: 'secondary',
+      available: 'outline',
+      canceled: 'destructive'
     } as const;
     
-    const labels = {
-      confirmed: 'Confirmado',
-      pending: 'Pendiente',
-      cancelled: 'Cancelado'
+    const labels: Record<string, string> = {
+      sold: 'Confirmado',
+      reserved: 'Pendiente',
+      available: 'Disponible',
+      canceled: 'Cancelado'
     };
 
     return (
       <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
-        {labels[status as keyof typeof labels] || status}
+        {labels[status] || status}
       </Badge>
     );
   };
@@ -228,7 +225,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* ✅ Summary Cards - ULTRA COMPACTO para mobile */}
+      {/* Summary Cards - ULTRA COMPACTO para mobile */}
       <div className="grid grid-cols-2 gap-1.5 sm:gap-3 w-full min-w-0">
         {/* Card 1: Ingresos */}
         <Card className="min-w-0 w-full">
@@ -305,26 +302,17 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Compradores ({filteredBuyers.length})
+              Compradores ({totalCount})
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportExcel}
-                disabled={filteredBuyers.length === 0}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Excel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPDF}
-                disabled={filteredBuyers.length === 0}
+                onClick={handleExportCSV}
+                disabled={totalCount === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
-                PDF
+                CSV
               </Button>
             </div>
           </div>
@@ -337,24 +325,33 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
               <Input
                 placeholder="Buscar por nombre, email o teléfono..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="pl-9"
               />
             </div>
             
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="confirmed">Confirmados</SelectItem>
-                <SelectItem value="pending">Pendientes</SelectItem>
-                <SelectItem value="cancelled">Cancelados</SelectItem>
+                <SelectItem value="sold">Confirmados</SelectItem>
+                <SelectItem value="reserved">Pendientes</SelectItem>
+                <SelectItem value="canceled">Cancelados</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={cityFilter} onValueChange={setCityFilter}>
+            <Select value={cityFilter} onValueChange={(value) => {
+              setCityFilter(value);
+              setCurrentPage(1);
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas las ciudades" />
               </SelectTrigger>
@@ -369,16 +366,16 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
 
           {/* Mobile: Cards List */}
           <div className="block md:hidden space-y-3">
-            {paginatedBuyers.map((buyer) => (
+            {buyers.map((buyer) => (
               <Card key={buyer.id} className="overflow-hidden">
                 <CardContent className="p-3 space-y-2">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">{buyer.full_name}</h3>
+                      <h3 className="font-semibold text-sm truncate">{buyer.name}</h3>
                       <p className="text-xs text-muted-foreground truncate">{buyer.city}</p>
                     </div>
-                    {getStatusBadge(buyer.payment_status)}
+                    {getStatusBadge(buyer.status)}
                   </div>
 
                   {/* Info Grid */}
@@ -400,7 +397,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total:</span>
-                      <p className="font-semibold">{formatCurrency(buyer.total_amount, currencyCode)}</p>
+                      <p className="font-semibold">{formatCurrency(buyer.orderTotal || 0, currencyCode)}</p>
                     </div>
                   </div>
 
@@ -437,7 +434,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleWhatsApp(buyer.phone!, buyer.full_name)}
+                        onClick={() => handleWhatsApp(buyer.phone!, buyer.name)}
                         className="flex-1 text-xs h-7"
                       >
                         <MessageCircle className="h-3 w-3 mr-1" />
@@ -448,7 +445,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEmail(buyer.email!, buyer.full_name)}
+                        onClick={() => handleEmail(buyer.email!, buyer.name)}
                         className="flex-1 text-xs h-7"
                       >
                         <Mail className="h-3 w-3 mr-1" />
@@ -478,9 +475,9 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedBuyers.map((buyer) => (
+                {buyers.map((buyer) => (
                   <TableRow key={buyer.id}>
-                    <TableCell className="font-medium">{buyer.full_name}</TableCell>
+                    <TableCell className="font-medium">{buyer.name}</TableCell>
                     <TableCell>{buyer.city}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
@@ -542,19 +539,19 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">
-                      {formatCurrency(buyer.total_amount, currencyCode)}
+                      {formatCurrency(buyer.orderTotal || 0, currencyCode)}
                     </TableCell>
-                    <TableCell>{getPaymentMethodLabel(buyer.payment_method)}</TableCell>
+                    <TableCell>{getPaymentMethodLabel(buyer.paymentMethod)}</TableCell>
                     <TableCell>
-                      {buyer.payment_reference ? (
+                      {buyer.paymentReference ? (
                         <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {buyer.payment_reference}
+                          {buyer.paymentReference}
                         </code>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(buyer.payment_status)}</TableCell>
+                    <TableCell>{getStatusBadge(buyer.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <Button
@@ -564,20 +561,11 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {buyer.payment_proof_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(buyer.payment_proof_url!, '_blank')}
-                          >
-                            <Image className="h-4 w-4" />
-                          </Button>
-                        )}
                         {buyer.phone && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleWhatsApp(buyer.phone!, buyer.full_name)}
+                            onClick={() => handleWhatsApp(buyer.phone!, buyer.name)}
                           >
                             <MessageCircle className="h-4 w-4" />
                           </Button>
@@ -586,7 +574,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEmail(buyer.email!, buyer.full_name)}
+                            onClick={() => handleEmail(buyer.email!, buyer.name)}
                           >
                             <Mail className="h-4 w-4" />
                           </Button>
@@ -600,7 +588,7 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
           </div>
 
           {/* Empty State */}
-          {filteredBuyers.length === 0 && (
+          {buyers.length === 0 && (
             <div className="text-center py-12">
               <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
@@ -641,41 +629,35 @@ export function BuyersTab({ raffleId, raffleName, currencyCode }: BuyersTabProps
       </Card>
 
       {/* Ticket Detail Dialog */}
-      <TicketDetailDialog
-        buyer={selectedBuyer}
-        isOpen={!!selectedBuyer}
-        onClose={() => setSelectedBuyer(null)}
-        currencyCode={currencyCode}
-      />
+      {selectedBuyer && (
+        <TicketDetailDialog
+          open={!!selectedBuyer}
+          onOpenChange={(open) => !open && setSelectedBuyer(null)}
+          tickets={selectedBuyer.tickets.map((ticketNumber, idx) => ({
+            id: `${selectedBuyer.id}-${idx}`,
+            ticket_number: ticketNumber,
+            buyer_name: selectedBuyer.name,
+            buyer_email: selectedBuyer.email,
+            buyer_phone: selectedBuyer.phone,
+            buyer_city: selectedBuyer.city,
+            status: selectedBuyer.status,
+          }))}
+          raffle={{
+            id: raffleId,
+            title: raffleTitle,
+            slug: raffleSlug,
+            prize_name: prizeName,
+            prize_images: prizeImages,
+            draw_date: drawDate,
+            ticket_price: ticketPrice,
+            currency_code: currencyCode,
+          }}
+          organization={{
+            name: organizationName,
+            logo_url: organizationLogo,
+          }}
+        />
+      )}
     </div>
   );
 }
-```
-
----
-
-## 🎯 CAMBIOS IMPLEMENTADOS:
-
-### ✅ **Summary Cards (Líneas 251-322)**
-- Grid 2x2 en mobile
-- Íconos reducidos: `h-3.5 w-3.5`
-- Texto reducido: `text-[10px]`
-- Valores reducidos: `text-sm`
-- Gap ultra-compacto: `gap-0.5`
-
-### ✅ **Tabla Responsive (Líneas 405-563)**
-**MOBILE (<768px):**
-- Cards verticales con toda la info
-- Contacto, boletos, total, estado visibles
-- Botones de acción compactos
-- Sin scroll horizontal
-
-**DESKTOP (≥768px):**
-- Tabla completa con todas las columnas
-- Tooltips para boletos adicionales
-- Acciones en línea
-
----
-
-
-```
