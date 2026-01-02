@@ -58,17 +58,10 @@ export default function AcceptInvite() {
 
   const fetchInvitation = async () => {
     try {
+      // Use secure RPC function to get invitation by token
+      // This prevents enumeration of invitation tokens
       const { data, error } = await supabase
-        .from("team_invitations")
-        .select(`
-          id,
-          email,
-          role,
-          expires_at,
-          accepted_at,
-          organization_id
-        `)
-        .eq("token", token)
+        .rpc('get_invitation_by_token', { p_token: token })
         .single();
 
       if (error || !data) {

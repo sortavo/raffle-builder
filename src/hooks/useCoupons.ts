@@ -130,38 +130,61 @@ export function useCoupons() {
     totalAmount: number
   ): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> => {
     try {
+      // Use secure RPC function to validate coupon
+      // This prevents enumeration of coupon codes
       const { data, error } = await supabase
-        .from('coupons' as any)
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('active', true)
-        .maybeSingle();
+        .rpc('validate_coupon_code', { 
+          p_code: code, 
+          p_raffle_id: raffleId,
+          p_total: totalAmount 
+        })
+        .single();
 
-      if (error || !data) {
+      if (error) {
+        return { valid: false, error: 'Error al validar cupón' };
+      }
+
+      // Type assertion for the RPC response
+      const response = data as unknown as { 
+        valid: boolean; 
+        error?: string; 
+        coupon?: { 
+          id: string; 
+          code: string; 
+          name: string; 
+          discount_type: 'percentage' | 'fixed'; 
+          discount_value: number; 
+          min_purchase: number | null;
+        };
+      };
+
+      if (!response.valid) {
+        return { valid: false, error: response.error || 'Cupón no válido' };
+      }
+
+      if (!response.coupon) {
         return { valid: false, error: 'Cupón no válido' };
       }
 
-      const coupon = data as unknown as Coupon;
-
-      if (coupon.valid_until && new Date(coupon.valid_until) < new Date()) {
-        return { valid: false, error: 'Cupón expirado' };
-      }
-
-      if (new Date(coupon.valid_from) > new Date()) {
-        return { valid: false, error: 'Cupón aún no válido' };
-      }
-
-      if (coupon.max_uses && coupon.current_uses >= coupon.max_uses) {
-        return { valid: false, error: 'Cupón agotado' };
-      }
-
-      if (coupon.min_purchase && totalAmount < coupon.min_purchase) {
-        return { valid: false, error: `Compra mínima: $${coupon.min_purchase}` };
-      }
-
-      if (coupon.raffle_id && coupon.raffle_id !== raffleId) {
-        return { valid: false, error: 'Cupón no válido para este sorteo' };
-      }
+      // Map the RPC response to our Coupon interface
+      const coupon: Coupon = {
+        id: response.coupon.id,
+        organization_id: '', // Not exposed by RPC for security
+        code: response.coupon.code,
+        name: response.coupon.name,
+        description: null,
+        discount_type: response.coupon.discount_type,
+        discount_value: response.coupon.discount_value,
+        max_uses: null,
+        current_uses: 0,
+        valid_from: new Date().toISOString(),
+        valid_until: null,
+        active: true,
+        raffle_id: null,
+        min_purchase: response.coupon.min_purchase,
+        created_at: '',
+        updated_at: ''
+      };
 
       return { valid: true, coupon };
     } catch (error) {
