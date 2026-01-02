@@ -270,12 +270,21 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
       );
     }
     
-    return (
-      <span className="flex items-center gap-1 text-green-600 text-sm">
-        <CheckCircle2 className="h-3 w-3" />
-        URL disponible
-      </span>
-    );
+    // No text for available - color indicates it
+    return null;
+  };
+
+  // Determine URL container classes based on availability
+  const getUrlContainerClasses = () => {
+    const hasError = isDuplicateSlug || (slugFormatError && raffleSlug !== 'tu-sorteo');
+    
+    if (isCheckingSlug) {
+      return "border-muted-foreground/30 bg-muted/10";
+    }
+    if (hasError) {
+      return "border-destructive/50 bg-destructive/5";
+    }
+    return "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-950/20";
   };
 
   return (
@@ -392,11 +401,14 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                     Tu sorteo estará disponible en:
                   </p>
                   
-                  <div className="rounded-lg border overflow-hidden divide-y">
+                  <div className={cn(
+                    "rounded-lg border-2 overflow-hidden divide-y transition-colors",
+                    getUrlContainerClasses()
+                  )}>
                     {/* Custom Domain URL - Primary/Highlighted */}
                     {primaryCustomDomain && (
                       <div 
-                        className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer transition-colors group border-l-2 border-l-emerald-500"
+                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/50 dark:hover:bg-white/5 cursor-pointer transition-colors group"
                         onClick={() => copyToClipboard(`https://${primaryCustomDomain}/${raffleSlug}`)}
                       >
                         <Star className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 fill-emerald-600/20" />
