@@ -5,12 +5,13 @@ import {
   Ticket, Users, Settings, Palette, Dices, Zap, Headphones,
   CheckCircle2, ArrowRight, Sparkles, Grid3X3, Heart, Gift,
   QrCode, Trophy, CreditCard, Clock, FileSpreadsheet, FileText,
-  Hash, Wand2, Image, Video, Youtube, EyeOff, Shuffle, Calendar,
+  Hash, Wand2, Image, Youtube, EyeOff, Shuffle, Calendar,
   Bot, Bell, Mail, MessageCircle, UserCheck, Shield
 } from 'lucide-react';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
 
 const categories = [
   {
@@ -106,6 +107,8 @@ const itemVariants = {
 };
 
 export default function Features() {
+  useScopedDarkMode();
+
   return (
     <>
       <Helmet>
@@ -113,48 +116,79 @@ export default function Features() {
         <meta name="description" content="Descubre todas las características de Sortavo: selector visual de boletos, múltiples métodos de pago, notificaciones en tiempo real y más." />
       </Helmet>
 
-      <div className="min-h-screen bg-ultra-dark">
-        {/* Background Effects */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[150px] animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-600/5 rounded-full blur-[180px]" />
+      <div className="min-h-screen bg-ultra-dark text-white overflow-x-hidden">
+        {/* Premium background with 6+ animated orbs - TIER S */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-ultra-dark via-ultra-dark to-ultra-dark" />
+          
+          {/* 6 Animated orbs - TIER S: 120px blur, proper opacity */}
+          <div className="absolute top-[10%] -left-[10%] w-[600px] h-[600px] bg-emerald-600/20 rounded-full blur-[120px] animate-blob" />
+          <div className="absolute top-[5%] -right-[15%] w-[500px] h-[500px] bg-amber-500/12 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+          <div className="absolute top-[40%] left-[20%] w-[400px] h-[400px] bg-teal-500/15 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+          <div className="absolute bottom-[30%] right-[10%] w-[350px] h-[350px] bg-violet-500/10 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+          <div className="absolute bottom-[10%] left-[5%] w-[350px] h-[350px] bg-emerald-500/15 rounded-full blur-[120px] animate-blob animation-delay-500" />
+          <div className="absolute top-[60%] right-[30%] w-[300px] h-[300px] bg-teal-400/10 rounded-full blur-[120px] animate-blob animation-delay-300" />
+          
+          {/* Grid pattern */}
+          <div 
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+              backgroundSize: '64px 64px'
+            }}
+          />
+          
+          {/* Noise texture */}
+          <div className="absolute inset-0 opacity-[0.015]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+          }} />
         </div>
 
         <PremiumNavbar variant="transparent" />
 
-        {/* Hero Section */}
-        <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
+        {/* Hero Section - TIER S Typography */}
+        <section className="relative pt-32 pb-32 lg:pt-40 lg:pb-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-8">
                 <Sparkles className="h-4 w-4" />
                 Plataforma Completa
               </span>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight">
-                Todo lo que necesitas para{' '}
-                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.85] tracking-[-0.05em] mb-8">
+                <span className="bg-gradient-to-r from-white via-white/90 to-white/80 bg-clip-text text-transparent">
+                  Todo lo que necesitas para{' '}
+                </span>
+                <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 bg-clip-text text-transparent">
                   sorteos exitosos
                 </span>
               </h1>
               
-              <p className="text-lg sm:text-xl text-ultra-dark-dimmed max-w-3xl mx-auto mb-10">
+              <p className="text-xl sm:text-2xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed">
                 Desde la creación hasta el sorteo final, Sortavo automatiza cada paso para que te enfoques en lo que importa: hacer crecer tu negocio.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button asChild size="lg" variant="gradient" className="px-8 py-6 text-lg">
+                <Button 
+                  asChild 
+                  variant="gradient" 
+                  className="px-10 py-7 text-lg lg:text-xl shadow-2xl shadow-emerald-600/30 border-0 hover:shadow-[0_25px_60px_-12px_rgba(16,185,129,0.4)] hover:-translate-y-1 transition-all duration-300"
+                >
                   <Link to="/auth?tab=signup">
                     Comenzar Gratis
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="px-8 py-6 text-lg border-white/20 text-white hover:bg-white/10">
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="px-10 py-7 text-lg lg:text-xl border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white hover:shadow-xl hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300"
+                >
                   <Link to="/pricing">
                     Ver Precios
                   </Link>
@@ -168,7 +202,7 @@ export default function Features() {
         {categories.map((category, categoryIndex) => (
           <section 
             key={category.title}
-            className={`relative py-20 lg:py-28 ${categoryIndex % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
+            className={`relative py-24 lg:py-32 ${categoryIndex % 2 === 1 ? 'bg-white/[0.02]' : ''}`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
@@ -176,13 +210,13 @@ export default function Features() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-100px' }}
                 transition={{ duration: 0.5 }}
-                className="text-center mb-12"
+                className="text-center mb-16"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 mb-6">
                   <category.icon className="h-8 w-8 text-emerald-400" />
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{category.title}</h2>
-                <p className="text-lg text-ultra-dark-dimmed max-w-2xl mx-auto">{category.description}</p>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">{category.title}</h2>
+                <p className="text-lg text-white/50 max-w-2xl mx-auto">{category.description}</p>
               </motion.div>
 
               <motion.div
@@ -196,15 +230,15 @@ export default function Features() {
                   <motion.div
                     key={feature.name}
                     variants={itemVariants}
-                    className="group p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm hover:bg-white/[0.06] hover:border-emerald-500/30 transition-all duration-300"
+                    className="group p-6 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl hover:bg-white/[0.08] hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40 transition-all duration-300">
                         <feature.icon className="h-6 w-6 text-emerald-400" />
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-2">{feature.name}</h3>
-                        <p className="text-sm text-ultra-dark-dimmed leading-relaxed">{feature.description}</p>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-emerald-300 transition-colors">{feature.name}</h3>
+                        <p className="text-sm text-white/50 leading-relaxed">{feature.description}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -215,29 +249,37 @@ export default function Features() {
         ))}
 
         {/* CTA Section */}
-        <section className="relative py-24 lg:py-32">
+        <section className="relative py-32 lg:py-40">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20"
+              className="p-10 sm:p-14 rounded-3xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border border-emerald-500/30 backdrop-blur-xl shadow-2xl shadow-emerald-500/10"
             >
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
                 ¿Listo para empezar?
               </h2>
-              <p className="text-lg text-ultra-dark-dimmed mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-white/60 mb-10 max-w-2xl mx-auto">
                 Únete a cientos de organizadores que ya confían en Sortavo para sus sorteos.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button asChild size="lg" variant="gradient" className="px-10 py-7 text-xl">
+                <Button 
+                  asChild 
+                  variant="gradient" 
+                  className="px-10 py-7 text-lg lg:text-xl shadow-2xl shadow-emerald-600/30 border-0 hover:shadow-[0_25px_60px_-12px_rgba(16,185,129,0.4)] hover:-translate-y-1 transition-all duration-300"
+                >
                   <Link to="/auth?tab=signup">
                     Crear Cuenta Gratis
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="px-8 py-6 text-lg border-white/20 text-white hover:bg-white/10">
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="px-10 py-7 text-lg lg:text-xl border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white hover:shadow-xl hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300"
+                >
                   <Link to="/pricing">
                     Comparar Planes
                   </Link>
