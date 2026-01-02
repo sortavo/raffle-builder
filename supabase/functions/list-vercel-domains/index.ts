@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { verifyPlatformAdmin, isCronRequest } from "../_shared/admin-auth.ts";
 
 interface VercelDomain {
   name: string
@@ -27,17 +24,40 @@ interface VercelDomainsResponse {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return handleCorsPrelight(req);
   }
 
   try {
+    // ==========================================
+    // AUTHENTICATION: Allow cron jobs or platform admins
+    // ==========================================
+    const isCron = isCronRequest(req);
+    
+    if (!isCron) {
+      const authResult = await verifyPlatformAdmin(req);
+      
+      if (!authResult.authenticated) {
+        console.warn('[list-vercel-domains] Unauthenticated request rejected');
+        return corsJsonResponse(req, { success: false, error: 'Authentication required' }, 401);
+      }
+      
+      if (!authResult.isPlatformAdmin) {
+        console.warn(`[list-vercel-domains] Non-admin user rejected: ${authResult.userId}`);
+        return corsJsonResponse(req, { success: false, error: 'Platform admin access required' }, 403);
+      }
+      
+      console.log(`[list-vercel-domains] Authenticated admin: ${authResult.userId}`);
+    } else {
+      console.log('[list-vercel-domains] Cron job invocation');
+    }
+
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN')
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID')
     const VERCEL_TEAM_ID = Deno.env.get('VERCEL_TEAM_ID')
 
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
       console.error('[list-vercel-domains] Missing Vercel credentials')
-      throw new Error('Vercel credentials not configured')
+      return corsJsonResponse(req, { success: false, error: 'Vercel credentials not configured' }, 500);
     }
 
     const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''
@@ -58,39 +78,24 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error('[list-vercel-domains] Vercel API error:', data)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: (data as any).error?.message || 'Error fetching domains from Vercel',
-          statusCode: response.status
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+      return corsJsonResponse(req, { 
+        success: false, 
+        error: (data as any).error?.message || 'Error fetching domains from Vercel',
+        statusCode: response.status
+      }, 400);
     }
 
     console.log(`[list-vercel-domains] Found ${data.domains?.length || 0} domains:`, data.domains?.map(d => d.name))
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        domains: data.domains || [],
-        count: data.domains?.length || 0
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return corsJsonResponse(req, { 
+      success: true, 
+      domains: data.domains || [],
+      count: data.domains?.length || 0
+    });
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('[list-vercel-domains] Error:', errorMessage)
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+    return corsJsonResponse(req, { success: false, error: errorMessage }, 400);
   }
 })

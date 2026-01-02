@@ -179,7 +179,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
         }
       }
 
-      // Inject custom CSS if provided
+      // Inject custom CSS if provided (with sanitization)
       if (tenant.custom_css) {
         const styleId = "tenant-custom-css";
         let styleEl = document.getElementById(styleId);
@@ -188,7 +188,14 @@ export function TenantProvider({ children }: TenantProviderProps) {
           styleEl.id = styleId;
           document.head.appendChild(styleEl);
         }
-        styleEl.textContent = tenant.custom_css;
+        // Sanitize CSS: remove any javascript: URLs, expressions, and behavior properties
+        const sanitizedCSS = tenant.custom_css
+          .replace(/javascript\s*:/gi, '')
+          .replace(/expression\s*\(/gi, '')
+          .replace(/behavior\s*:/gi, '')
+          .replace(/@import/gi, '')
+          .replace(/url\s*\(\s*["']?\s*data:/gi, 'url(blocked:');
+        styleEl.textContent = sanitizedCSS;
       }
     }
   }, [tenant]);

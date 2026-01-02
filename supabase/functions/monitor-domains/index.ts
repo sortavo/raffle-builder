@@ -1,13 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const VERCEL_IPS = ['76.76.21.21', '76.76.21.164', '76.76.21.241'];
-const VERCEL_CNAMES = ['cname.vercel-dns.com', 'alias.vercel.com'];
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { verifyPlatformAdmin, isCronRequest } from "../_shared/admin-auth.ts";
+import { VERCEL_IPS, VERCEL_CNAMES } from "../_shared/vercel-config.ts";
 
 interface DomainStatus {
   domain: string;
@@ -56,7 +51,7 @@ async function checkDNS(domain: string): Promise<{
       .filter((r: any) => r.type === 5)
       .map((r: any) => r.data.replace(/\.$/, ''));
 
-    // Check if points to Vercel
+    // Check if points to Vercel using centralized config
     const hasVercelIP = aRecords.some((ip: string) => VERCEL_IPS.includes(ip));
     const hasVercelCNAME = cnameRecords.some((cname: string) => 
       VERCEL_CNAMES.some(vc => cname.toLowerCase().includes(vc))
@@ -76,18 +71,38 @@ async function checkDNS(domain: string): Promise<{
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
+    // ==========================================
+    // AUTHENTICATION: Allow cron jobs or platform admins
+    // ==========================================
+    const isCron = isCronRequest(req);
+    
+    if (!isCron) {
+      const authResult = await verifyPlatformAdmin(req);
+      
+      if (!authResult.authenticated) {
+        console.warn('[monitor-domains] Unauthenticated request rejected');
+        return corsJsonResponse(req, { success: false, error: 'Authentication required' }, 401);
+      }
+      
+      if (!authResult.isPlatformAdmin) {
+        console.warn(`[monitor-domains] Non-admin user rejected: ${authResult.userId}`);
+        return corsJsonResponse(req, { success: false, error: 'Platform admin access required' }, 403);
+      }
+      
+      console.log(`[monitor-domains] Authenticated admin: ${authResult.userId}`);
+    } else {
+      console.log('[monitor-domains] Cron job invocation');
+    }
+
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing Supabase configuration' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Missing Supabase configuration' }, 500);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -102,18 +117,15 @@ serve(async (req) => {
 
     if (dbError) {
       console.error(`[monitor-domains] Database error: ${dbError.message}`);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch domains' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Failed to fetch domains' }, 500);
     }
 
     if (!domains || domains.length === 0) {
       console.log('[monitor-domains] No verified domains to monitor');
-      return new Response(
-        JSON.stringify({ success: true, result: { checked: 0, online: 0, offline: 0, errors: 0, statusChanges: [] } }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        success: true, 
+        result: { checked: 0, online: 0, offline: 0, errors: 0, statusChanges: [] } 
+      });
     }
 
     console.log(`[monitor-domains] Checking ${domains.length} verified domains...`);
@@ -197,16 +209,10 @@ serve(async (req) => {
 
     console.log(`[monitor-domains] Complete. Online: ${result.online}, Offline: ${result.offline}, Errors: ${result.errors}`);
 
-    return new Response(
-      JSON.stringify({ success: true, result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: true, result });
 
   } catch (error) {
     console.error('[monitor-domains] Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: false, error: 'Internal server error' }, 500);
   }
 });

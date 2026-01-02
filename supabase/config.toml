@@ -109,16 +109,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.diagnose-vercel-access]
-verify_jwt = false
+verify_jwt = true
 
 [functions.list-vercel-domains]
-verify_jwt = false
+verify_jwt = true
 
 [functions.check-domains]
 verify_jwt = false
 
 [functions.sync-domains]
-verify_jwt = false
+verify_jwt = true
 
 [functions.monitor-domains]
-verify_jwt = false
+verify_jwt = true

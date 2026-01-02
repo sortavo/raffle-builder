@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { verifyPlatformAdmin } from "../_shared/admin-auth.ts";
 
 interface TestResult {
   status: number;
@@ -184,12 +181,29 @@ function generateRecommendation(tests: DiagnosisResult['tests'], hasTeamId: bool
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   console.log('[diagnose-vercel-access] Starting comprehensive diagnosis...');
 
   try {
+    // ==========================================
+    // AUTHENTICATION: Require platform admin
+    // ==========================================
+    const authResult = await verifyPlatformAdmin(req);
+    
+    if (!authResult.authenticated) {
+      console.warn('[diagnose-vercel-access] Unauthenticated request rejected');
+      return corsJsonResponse(req, { success: false, error: 'Authentication required' }, 401);
+    }
+    
+    if (!authResult.isPlatformAdmin) {
+      console.warn(`[diagnose-vercel-access] Non-admin user rejected: ${authResult.userId}`);
+      return corsJsonResponse(req, { success: false, error: 'Platform admin access required' }, 403);
+    }
+    
+    console.log(`[diagnose-vercel-access] Authenticated admin: ${authResult.userId}`);
+
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN');
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID');
     const VERCEL_TEAM_ID = Deno.env.get('VERCEL_TEAM_ID');
@@ -206,17 +220,14 @@ serve(async (req) => {
     console.log('[diagnose] Secrets configured:', configuredSecrets);
 
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          diagnosis: {
-            configuredSecrets,
-            tests: {},
-            recommendation: "❌ Faltan secrets: Configura VERCEL_API_TOKEN y VERCEL_PROJECT_ID"
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, {
+        success: true,
+        diagnosis: {
+          configuredSecrets,
+          tests: {},
+          recommendation: "❌ Faltan secrets: Configura VERCEL_API_TOKEN y VERCEL_PROJECT_ID"
+        }
+      });
     }
 
     // Run all 4 tests
@@ -249,20 +260,11 @@ serve(async (req) => {
       recommendation
     };
 
-    return new Response(
-      JSON.stringify({ success: true, diagnosis }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: true, diagnosis });
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[diagnose-vercel-access] Fatal error:', errorMessage);
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    return corsJsonResponse(req, { success: false, error: errorMessage }, 500);
   }
 });

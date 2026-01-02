@@ -1,16 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2"
-import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from "../_shared/rate-limiter.ts"
+import { checkRateLimit, getClientIP, RATE_LIMITS } from "../_shared/rate-limiter.ts"
 import { validateDomain, getDomainLimit, canHaveCustomDomains } from "../_shared/vercel-config.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return handleCorsPrelight(req);
   }
 
   try {
@@ -24,7 +20,10 @@ serve(async (req) => {
     
     if (!rateLimitResult.allowed) {
       console.warn(`[add-vercel-domain] Rate limit exceeded for IP: ${clientIP}`);
-      return rateLimitResponse(rateLimitResult, corsHeaders);
+      return corsJsonResponse(req, { 
+        success: false, 
+        error: 'Too many requests. Please try again later.' 
+      }, 429);
     }
 
     // ==========================================
@@ -32,10 +31,7 @@ serve(async (req) => {
     // ==========================================
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Authentication required' }, 401);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -50,10 +46,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
       console.error('[add-vercel-domain] Auth error:', authError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Invalid authentication token' }, 401);
     }
 
     // Create service client for privileged operations
@@ -70,10 +63,7 @@ serve(async (req) => {
 
     if (profileError || !profile?.organization_id) {
       console.error('[add-vercel-domain] Profile error:', profileError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'User organization not found' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'User organization not found' }, 403);
     }
 
     const organizationId = profile.organization_id;
@@ -88,10 +78,7 @@ serve(async (req) => {
 
     if (roleError || !userRole || !['owner', 'admin'].includes(userRole.role)) {
       console.error('[add-vercel-domain] Role check failed:', roleError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Admin access required' }, 403);
     }
 
     // ==========================================
@@ -105,18 +92,12 @@ serve(async (req) => {
 
     if (orgError || !organization) {
       console.error('[add-vercel-domain] Org error:', orgError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Organization not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Organization not found' }, 404);
     }
 
     const tier = organization.subscription_tier || 'basic';
     if (!canHaveCustomDomains(tier)) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Custom domains require Pro plan or higher' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Custom domains require Pro plan or higher' }, 403);
     }
 
     // ==========================================
@@ -130,20 +111,14 @@ serve(async (req) => {
 
     if (countError) {
       console.error('[add-vercel-domain] Count error:', countError.message);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to check domain limit' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Failed to check domain limit' }, 500);
     }
 
     if ((currentDomainCount || 0) >= domainLimit) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Domain limit reached. Your ${tier} plan allows ${domainLimit} custom domains.` 
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        success: false, 
+        error: `Domain limit reached. Your ${tier} plan allows ${domainLimit} custom domains.` 
+      }, 403);
     }
 
     // ==========================================
@@ -154,10 +129,7 @@ serve(async (req) => {
     
     if (!validation.valid) {
       console.error('[add-vercel-domain] Domain validation failed:', validation.error);
-      return new Response(
-        JSON.stringify({ success: false, error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: validation.error }, 400);
     }
 
     const normalizedDomain = validation.normalizedDomain!;
@@ -172,10 +144,7 @@ serve(async (req) => {
 
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
       console.error('[add-vercel-domain] Missing Vercel credentials');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Server configuration error' }, 500);
     }
 
     const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
@@ -206,38 +175,26 @@ serve(async (req) => {
         
         // Handle specific Vercel errors
         if (response.status === 409) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'Domain already exists in Vercel' }),
-            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          return corsJsonResponse(req, { success: false, error: 'Domain already exists in Vercel' }, 409);
         }
         
         const errorMessage = data.error?.message || 'Failed to add domain to Vercel';
-        return new Response(
-          JSON.stringify({ success: false, error: errorMessage }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return corsJsonResponse(req, { success: false, error: errorMessage }, 400);
       }
 
       console.log(`[add-vercel-domain] Successfully added domain: ${normalizedDomain}`);
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          vercelDomain: data,
-          warning: validation.warning 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        success: true, 
+        vercelDomain: data,
+        warning: validation.warning 
+      });
 
     } catch (fetchError: unknown) {
       clearTimeout(timeout);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
         console.error('[add-vercel-domain] Vercel API timeout');
-        return new Response(
-          JSON.stringify({ success: false, error: 'Vercel API timeout. Please try again.' }),
-          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return corsJsonResponse(req, { success: false, error: 'Vercel API timeout. Please try again.' }, 504);
       }
       throw fetchError;
     }
@@ -245,9 +202,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('[add-vercel-domain] Error:', errorMessage);
-    return new Response(
-      JSON.stringify({ success: false, error: 'An unexpected error occurred' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: false, error: 'An unexpected error occurred' }, 500);
   }
 })

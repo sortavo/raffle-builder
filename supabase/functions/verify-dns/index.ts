@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { checkRateLimit, getClientIP, rateLimitResponse, RATE_LIMITS } from "../_shared/rate-limiter.ts";
+import { checkRateLimit, getClientIP, RATE_LIMITS } from "../_shared/rate-limiter.ts";
 import { VERCEL_IPS, VERCEL_CNAMES, validateDomain } from "../_shared/vercel-config.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 
 interface DNSVerificationResult {
   verified: boolean;
@@ -25,14 +21,11 @@ interface DNSVerificationResult {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }), 
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { error: 'Method not allowed' }, 405);
   }
 
   try {
@@ -46,7 +39,9 @@ serve(async (req) => {
     
     if (!rateLimitResult.allowed) {
       console.warn(`[verify-dns] Rate limit exceeded for IP: ${clientIP}`);
-      return rateLimitResponse(rateLimitResult, corsHeaders);
+      return corsJsonResponse(req, { 
+        error: 'Too many requests. Please try again later.' 
+      }, 429);
     }
 
     const { domain } = await req.json();
@@ -54,10 +49,7 @@ serve(async (req) => {
     // Validate domain format
     const validation = validateDomain(domain);
     if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: validation.error }, 400);
     }
 
     const normalizedDomain = validation.normalizedDomain!;
@@ -126,37 +118,25 @@ serve(async (req) => {
 
     console.log(`[verify-dns] Result for ${normalizedDomain}: verified=${result.verified}`);
 
-    return new Response(
-      JSON.stringify(result),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return corsJsonResponse(req, result);
 
   } catch (error) {
     console.error('[verify-dns] Error:', error);
     
     const isTimeout = error instanceof Error && error.name === 'AbortError';
     
-    return new Response(
-      JSON.stringify({ 
-        verified: false,
-        error: isTimeout ? 'DNS lookup timeout' : (error instanceof Error ? error.message : 'Unknown error'),
-        diagnostic: {
-          aRecords: [],
-          cnameRecords: [],
-          pointsToVercel: false,
-          currentTarget: null,
-          expectedTarget: '76.76.21.21 o cname.vercel-dns.com',
-          recordsFound: 0,
-          propagationComplete: false
-        }
-      }),
-      { 
-        status: isTimeout ? 504 : 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    return corsJsonResponse(req, { 
+      verified: false,
+      error: isTimeout ? 'DNS lookup timeout' : (error instanceof Error ? error.message : 'Unknown error'),
+      diagnostic: {
+        aRecords: [],
+        cnameRecords: [],
+        pointsToVercel: false,
+        currentTarget: null,
+        expectedTarget: '76.76.21.21 o cname.vercel-dns.com',
+        recordsFound: 0,
+        propagationComplete: false
       }
-    );
+    }, isTimeout ? 504 : 500);
   }
 });

@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { verifyPlatformAdmin, isCronRequest } from "../_shared/admin-auth.ts";
 
 interface VercelDomain {
   name: string;
@@ -24,10 +21,33 @@ interface SyncResult {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
+    // ==========================================
+    // AUTHENTICATION: Allow cron jobs or platform admins
+    // ==========================================
+    const isCron = isCronRequest(req);
+    
+    if (!isCron) {
+      const authResult = await verifyPlatformAdmin(req);
+      
+      if (!authResult.authenticated) {
+        console.warn('[sync-domains] Unauthenticated request rejected');
+        return corsJsonResponse(req, { success: false, error: 'Authentication required' }, 401);
+      }
+      
+      if (!authResult.isPlatformAdmin) {
+        console.warn(`[sync-domains] Non-admin user rejected: ${authResult.userId}`);
+        return corsJsonResponse(req, { success: false, error: 'Platform admin access required' }, 403);
+      }
+      
+      console.log(`[sync-domains] Authenticated admin: ${authResult.userId}`);
+    } else {
+      console.log('[sync-domains] Cron job invocation');
+    }
+
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN');
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID');
     const VERCEL_TEAM_ID = Deno.env.get('VERCEL_TEAM_ID');
@@ -35,17 +55,11 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!VERCEL_API_TOKEN || !VERCEL_PROJECT_ID) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing Vercel configuration' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Missing Vercel configuration' }, 500);
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing Supabase configuration' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Missing Supabase configuration' }, 500);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -76,10 +90,7 @@ serve(async (req) => {
     if (!vercelResponse.ok) {
       const error = await vercelResponse.text();
       console.error(`[sync-domains] Vercel API error: ${error}`);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch Vercel domains' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Failed to fetch Vercel domains' }, 500);
     }
 
     const vercelData = await vercelResponse.json();
@@ -96,10 +107,7 @@ serve(async (req) => {
 
     if (dbError) {
       console.error(`[sync-domains] Database error: ${dbError.message}`);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch database domains' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Failed to fetch database domains' }, 500);
     }
 
     const dbDomainNames = (dbDomains || []).map(d => d.domain.toLowerCase());
@@ -107,12 +115,10 @@ serve(async (req) => {
     console.log(`[sync-domains] Found ${dbDomainNames.length} domains in database`);
 
     // 3. Find orphaned domains
-    // Domains in Vercel but not in database
     const orphanedInVercel = vercelDomains.filter(
       (domain: string) => !dbDomainNames.includes(domain)
     );
 
-    // Domains in database but not in Vercel
     const orphanedInDatabase = dbDomainNames.filter(
       (domain: string) => !vercelDomains.includes(domain)
     );
@@ -174,20 +180,10 @@ serve(async (req) => {
 
     console.log(`[sync-domains] Sync complete. Cleaned: ${result.cleaned.vercel} Vercel, ${result.cleaned.database} database`);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        dryRun,
-        result 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: true, dryRun, result });
 
   } catch (error) {
     console.error('[sync-domains] Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: false, error: 'Internal server error' }, 500);
   }
 });
