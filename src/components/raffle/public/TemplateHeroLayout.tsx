@@ -611,6 +611,7 @@ export function TemplateHeroLayout({
         textMuted="rgba(255,255,255,0.6)"
         cardBg="rgba(255,255,255,0.03)"
         isDarkTemplate={true}
+        showOnlyMainPrize={true}
       />
     </div>
   );

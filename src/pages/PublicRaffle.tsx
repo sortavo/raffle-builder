@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayou
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
 import { ContactSection } from "@/components/raffle/public/ContactSection";
 import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
+import { UpcomingPreDraws } from "@/components/raffle/public/UpcomingPreDraws";
+import { AnnouncedWinners } from "@/components/raffle/public/AnnouncedWinners";
+import { parsePrizes } from "@/types/prize";
 
 interface PublicRaffleProps {
   tenantOrgSlug?: string;
@@ -223,6 +226,38 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   const limits = getSubscriptionLimits(orgTier);
 
   const mainImage = raffle.prize_images?.[0] || '/placeholder.svg';
+
+  // Parse prizes and separate main prize from pre-draws
+  const allPrizes = parsePrizes((raffle as any).prizes, raffle.prize_name, raffle.prize_value ? Number(raffle.prize_value) : null);
+  
+  // Main prize = prize without scheduled_draw_date, or the last prize if all have dates
+  const mainPrize = allPrizes.find(p => !p.scheduled_draw_date) || allPrizes[allPrizes.length - 1];
+  
+  // Pre-draw prizes = prizes with scheduled_draw_date (excluding main prize)
+  const preDrawPrizes = allPrizes.filter(p => p.scheduled_draw_date && p.id !== mainPrize?.id);
+
+  // Fetch announced draws for this raffle
+  const { data: announcedDrawsData } = useQuery({
+    queryKey: ['announced-draws', raffle.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('raffle_draws')
+        .select('id, prize_id, prize_name, prize_value, ticket_number, winner_name, winner_city, draw_type, drawn_at')
+        .eq('raffle_id', raffle.id)
+        .eq('announced', true)
+        .order('drawn_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!raffle.id,
+  });
+
+  const announcedDraws = announcedDrawsData || [];
+  
+  // Filter out pre-draw prizes that have already been drawn
+  const drawnPrizeIds = new Set(announcedDraws.map(d => d.prize_id));
+  const upcomingPreDrawPrizes = preDrawPrizes.filter(p => !drawnPrizeIds.has(p.id));
 
   // Feature configurations from customization (with sensible defaults)
   const customization = (raffle as any).customization || {};
@@ -496,6 +531,26 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
               )}
             </div>
           </div>
+        )}
+
+        {/* Upcoming Pre-draws Section */}
+        {upcomingPreDrawPrizes.length > 0 && (
+          <UpcomingPreDraws
+            prizes={upcomingPreDrawPrizes}
+            currencyCode={currency}
+            primaryColor={primaryColor}
+            isLightTemplate={isLightTemplate}
+          />
+        )}
+
+        {/* Announced Winners Section */}
+        {announcedDraws.length > 0 && (
+          <AnnouncedWinners
+            draws={announcedDraws}
+            currencyCode={currency}
+            primaryColor={primaryColor}
+            isLightTemplate={isLightTemplate}
+          />
         )}
 
         {/* Transparency Section - shows on both mobile and desktop */}
