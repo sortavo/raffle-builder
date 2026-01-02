@@ -385,33 +385,6 @@ export function NumberingConfigPanel({ form, totalTickets }: NumberingConfigPane
     hasInitializedRef.current = true;
   }, []);
 
-  // Show toast when totalTickets changes and recommendation changes
-  useEffect(() => {
-    if (!hasInitializedRef.current) return;
-    
-    const prevTotal = prevTotalTicketsRef.current;
-    const prevRecommended = getRecommendedPreset(prevTotal);
-    const newRecommended = getRecommendedPreset(totalTickets);
-    
-    if (
-      prevTotal !== totalTickets && 
-      prevRecommended !== newRecommended && 
-      selectedPreset !== newRecommended
-    ) {
-      const recommendedPresetData = NUMBERING_PRESETS.find(p => p.id === newRecommended);
-      
-      toast.info('¿Cambiar formato de numeración?', {
-        description: `Para ${totalTickets.toLocaleString()} boletos te sugerimos "${recommendedPresetData?.name}"`,
-        duration: 6000,
-        action: {
-          label: 'Aplicar',
-          onClick: () => applyPreset(newRecommended),
-        },
-      });
-    }
-    
-    prevTotalTicketsRef.current = totalTickets;
-  }, [totalTickets, selectedPreset]);
 
   // Render a preset button
   const renderPresetButton = (preset: PresetConfig, isRecommended: boolean) => {
