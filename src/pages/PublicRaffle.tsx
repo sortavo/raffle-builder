@@ -14,7 +14,8 @@ import {
 import { formatCurrency } from "@/lib/currency-utils";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { getTemplateById } from "@/lib/raffle-utils";
-import { usePublicRaffle } from "@/hooks/usePublicRaffle";
+import { usePublicRaffle, usePreviewRaffle } from "@/hooks/usePublicRaffle";
+import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TicketSelector } from "@/components/raffle/public/TicketSelector";
 import { CheckoutModal } from "@/components/raffle/public/CheckoutModal";
@@ -32,6 +33,7 @@ import { FAQSection } from "@/components/raffle/public/FAQSection";
 import { TemplateHeroLayout } from "@/components/raffle/public/TemplateHeroLayout";
 import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
 import { ContactSection } from "@/components/raffle/public/ContactSection";
+import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 
 export default function PublicRaffle() {
   // Activate dark mode for this page - ensures all design tokens use dark values
@@ -42,7 +44,23 @@ export default function PublicRaffle() {
   const queryClient = useQueryClient();
   const ticketsRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const { data: raffle, isLoading, error } = usePublicRaffle(slug);
+  const { user } = useAuth();
+  
+  // Try to load active raffle first
+  const { data: publicRaffle, isLoading: isLoadingPublic, error: publicError } = usePublicRaffle(slug);
+  
+  // If no active raffle found and user is authenticated, try preview mode
+  const { 
+    data: previewRaffle, 
+    isLoading: isLoadingPreview 
+  } = usePreviewRaffle(slug, !publicRaffle && !isLoadingPublic && !!user);
+  
+  // Use either active raffle or preview
+  const raffle = publicRaffle || previewRaffle;
+  const isPreviewMode = !publicRaffle && previewRaffle?.isPreviewMode;
+  const isLoading = isLoadingPublic || (isLoadingPreview && !publicRaffle && !!user);
+  const error = publicError;
+  
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -247,8 +265,16 @@ export default function PublicRaffle() {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
+      {/* Preview Banner for organizers viewing draft raffles */}
+      {isPreviewMode && (
+        <PreviewBanner 
+          raffleId={raffle.id} 
+          status={raffle.status || 'draft'} 
+        />
+      )}
+
       <div
-        className="min-h-screen transition-colors duration-300 bg-ultra-dark relative overflow-hidden"
+        className={`min-h-screen transition-colors duration-300 bg-ultra-dark relative overflow-hidden ${isPreviewMode ? 'pt-20 sm:pt-16' : ''}`}
         style={{ 
           fontFamily: `"${fontBody}", sans-serif`,
         }}

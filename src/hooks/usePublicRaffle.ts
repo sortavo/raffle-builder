@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { notifyPaymentPending } from "@/lib/notifications";
+import { useAuth } from "@/hooks/useAuth";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Raffle = Tables<'raffles'>;
@@ -612,5 +613,73 @@ export function useSearchTickets() {
       if (error) throw error;
       return data || [];
     },
+  });
+}
+
+// Preview hook for organizers to see their draft raffles
+export interface PreviewRaffleResult extends RaffleWithStats {
+  isPreviewMode: boolean;
+}
+
+export function usePreviewRaffle(slug: string | undefined, enabled: boolean = false) {
+  const { user, organization } = useAuth();
+
+  return useQuery({
+    queryKey: ['preview-raffle', slug, organization?.id],
+    queryFn: async (): Promise<PreviewRaffleResult | null> => {
+      if (!slug || !user || !organization) return null;
+
+      // Fetch raffle without status filter - authenticated user query
+      const { data: raffle, error } = await supabase
+        .from('raffles')
+        .select(`
+          *,
+          organizations (
+            id, name, logo_url, phone, email, brand_color, slug,
+            description, whatsapp_number, facebook_url, instagram_url,
+            tiktok_url, website_url, city, verified, created_at,
+            emails, phones, whatsapp_numbers, address,
+            years_experience, total_raffles_completed
+          )
+        `)
+        .eq('slug', slug)
+        .eq('organization_id', organization.id) // Only fetch if belongs to user's org
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!raffle) return null;
+
+      // Get ticket counts - user has access via RLS
+      const { data: ticketStats, error: statsError } = await supabase
+        .from('tickets')
+        .select('status')
+        .eq('raffle_id', raffle.id);
+
+      if (statsError) throw statsError;
+
+      const ticketsSold = ticketStats?.filter(t => t.status === 'sold').length || 0;
+      const ticketsReserved = ticketStats?.filter(t => t.status === 'reserved').length || 0;
+      const ticketsAvailable = ticketStats?.filter(t => t.status === 'available').length || 0;
+
+      // Get packages
+      const { data: packages } = await supabase
+        .from('raffle_packages')
+        .select('*')
+        .eq('raffle_id', raffle.id)
+        .order('display_order', { ascending: true });
+
+      return {
+        ...raffle,
+        ticketsSold,
+        ticketsAvailable,
+        ticketsReserved,
+        totalRevenue: 0, // Not important for preview
+        organization: raffle.organizations as RaffleWithStats['organization'],
+        packages: packages || [],
+        isPreviewMode: raffle.status !== 'active',
+      };
+    },
+    enabled: enabled && !!slug && !!user && !!organization,
+    staleTime: 30000,
   });
 }
