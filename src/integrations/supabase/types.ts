@@ -1378,7 +1378,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_custom_domains: {
+        Row: {
+          created_at: string | null
+          domain: string | null
+          id: string | null
+          is_primary: boolean | null
+          organization_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          organization_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          organization_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_custom_numbers: { Args: { p_raffle_id: string }; Returns: number }
@@ -1434,6 +1468,18 @@ export type Database = {
           ticket_count: number
           ticket_numbers: string[]
           total_count: number
+        }[]
+      }
+      get_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: Database["public"]["Enums"]["app_role"]
         }[]
       }
       get_order_by_reference: {
@@ -1532,6 +1578,10 @@ export type Database = {
       set_primary_domain: {
         Args: { p_domain_id: string; p_organization_id: string }
         Returns: boolean
+      }
+      validate_coupon_code: {
+        Args: { p_code: string; p_raffle_id?: string; p_total?: number }
+        Returns: Json
       }
     }
     Enums: {
