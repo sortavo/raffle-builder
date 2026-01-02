@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { 
   Trophy, Rocket, Zap, Crown, Check, X, ArrowRight, 
-  Mail, Building2, Sparkles
+  Mail, Building2, Sparkles, Ticket, Users, Settings, 
+  Palette, Dices, Headphones, HelpCircle
 } from 'lucide-react';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
 import { Footer } from '@/components/layout/Footer';
 import { PricingCard, PricingToggle, SocialProofSection, TrustBadges } from '@/components/pricing';
@@ -291,42 +293,273 @@ export default function Pricing() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
+                {/* Categoría: Capacidad */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Ticket className="h-4 w-4" />
+                      Capacidad
+                    </div>
+                  </td>
+                </tr>
                 {[
                   ['Período de prueba', '7 días gratis', false, false, false],
                   ['Sorteos activos', '2', '7', '15', 'Ilimitados'],
-                  ['Boletos por sorteo', '2,000', '30,000', '100,000', '10,000,000'],
-                  ['Plantillas', '1', '6', '6 + CSS', '6 + CSS'],
-                  ['Sin marca Sortavo', false, true, true, true],
-                  ['Analytics avanzado', false, true, true, true],
-                  ['Lotería Nacional', false, true, true, true],
-                  ['Soporte WhatsApp', false, true, true, true],
-                  ['Bot de Telegram', false, false, true, true],
-                  ['Account Manager', false, false, true, true],
-                  ['API Access', false, false, false, true],
-                  ['SLA 99.9%', false, false, false, true],
-                  ['Soporte 24/7', false, false, false, true],
+                  ['Boletos por sorteo', '2,000', '30,000', '100,000', '10M'],
+                  ['Dominios personalizados', false, '3', '10', '100'],
                 ].map(([feature, basic, pro, premium, enterprise], idx) => (
-                  <tr key={idx} className={cn("hover:bg-white/5 transition-colors", idx === 0 && "bg-emerald-500/5")}>
-                    <td className={cn("py-5 px-6 text-gray-200 font-medium", idx === 0 && "text-emerald-400")}>{feature}</td>
-                    <td className="py-5 px-4 text-center">
+                  <tr key={`cap-${idx}`} className={cn("hover:bg-white/5 transition-colors", idx === 0 && "bg-emerald-500/5")}>
+                    <td className={cn("py-4 px-6 text-gray-200 font-medium", idx === 0 && "text-emerald-400")}>{feature}</td>
+                    <td className="py-4 px-4 text-center">
                       {typeof basic === 'boolean' ? (
                         basic ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
                       ) : <span className={cn("text-gray-400", idx === 0 && "text-emerald-400 font-medium")}>{basic}</span>}
                     </td>
-                    <td className="py-5 px-4 text-center bg-emerald-500/5">
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
                       {typeof pro === 'boolean' ? (
                         pro ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
                       ) : <span className="text-gray-200">{pro}</span>}
                     </td>
-                    <td className="py-5 px-4 text-center">
+                    <td className="py-4 px-4 text-center">
                       {typeof premium === 'boolean' ? (
                         premium ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
                       ) : <span className="text-gray-200">{premium}</span>}
                     </td>
-                    <td className="py-5 px-4 text-center">
+                    <td className="py-4 px-4 text-center">
                       {typeof enterprise === 'boolean' ? (
                         enterprise ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
                       ) : <span className="text-gray-200">{enterprise}</span>}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Experiencia del Comprador */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Users className="h-4 w-4" />
+                      Experiencia del Comprador
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Selector visual de números', tooltip: 'Grid interactivo para elegir boletos disponibles en tiempo real', values: [true, true, true, true] },
+                  { feature: 'Números de la suerte', tooltip: 'Genera números basados en cumpleaños o fechas especiales', values: [true, true, true, true] },
+                  { feature: 'Paquetes con bonificación', tooltip: 'Ofrece promociones como compra 2 lleva 3', values: [true, true, true, true] },
+                  { feature: 'Verificador QR 24/7', tooltip: 'Los compradores verifican sus boletos escaneando el código QR', values: [true, true, true, true] },
+                  { feature: 'Historial de ganadores', tooltip: null, values: [false, true, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`buyer-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Gestión y Ventas */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Settings className="h-4 w-4" />
+                      Gestión y Ventas
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Métodos de pago ilimitados', tooltip: 'Agrega transferencias, efectivo, PayPal y más', values: [true, true, true, true] },
+                  { feature: 'Flujo de aprobación de pagos', tooltip: 'Revisa y aprueba comprobantes de pago antes de confirmar', values: [true, true, true, true] },
+                  { feature: 'Recordatorios automáticos', tooltip: 'Envía recordatorios a compradores con pagos pendientes', values: [false, true, true, true] },
+                  { feature: 'Exportación Excel/CSV', tooltip: null, values: [true, true, true, true] },
+                  { feature: 'Reporte financiero PDF', tooltip: 'Genera reportes detallados de ingresos y ventas', values: [false, true, true, true] },
+                  { feature: 'Numeración personalizada', tooltip: 'Configura prefijos, rangos y formatos de boletos', values: [false, true, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`mgmt-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Diseño y Marca */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Palette className="h-4 w-4" />
+                      Diseño y Marca
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Plantillas premium', tooltip: null, values: ['1', '6', '6 + CSS', '6 + CSS'] },
+                  { feature: 'Galería de premios', tooltip: 'Sube fotos y videos de los premios del sorteo', values: [true, true, true, true] },
+                  { feature: 'Link de transmisión en vivo', tooltip: 'Comparte el link del sorteo en vivo', values: [false, true, true, true] },
+                  { feature: 'Sin marca Sortavo', tooltip: null, values: [false, true, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`design-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {typeof item.values[0] === 'boolean' ? (
+                        item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
+                      ) : <span className="text-gray-400">{item.values[0]}</span>}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {typeof item.values[1] === 'boolean' ? (
+                        item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
+                      ) : <span className="text-gray-200">{item.values[1]}</span>}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {typeof item.values[2] === 'boolean' ? (
+                        item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
+                      ) : <span className="text-gray-200">{item.values[2]}</span>}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {typeof item.values[3] === 'boolean' ? (
+                        item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />
+                      ) : <span className="text-gray-200">{item.values[3]}</span>}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Métodos de Sorteo */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Dices className="h-4 w-4" />
+                      Métodos de Sorteo
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Sorteo manual', tooltip: null, values: [true, true, true, true] },
+                  { feature: 'Método Lotería Nacional', tooltip: 'Usa los últimos dígitos del premio mayor como número ganador', values: [true, true, true, true] },
+                  { feature: 'Sorteo aleatorio seguro', tooltip: 'Utiliza criptografía avanzada para máxima transparencia', values: [true, true, true, true] },
+                  { feature: 'Sorteo automático programado', tooltip: 'Programa el sorteo para que se ejecute automáticamente', values: [false, false, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`draw-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Integraciones */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Zap className="h-4 w-4" />
+                      Integraciones
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Bot Telegram bidireccional', tooltip: 'Compradores y organizadores reciben notificaciones vía Telegram', values: [false, false, true, true] },
+                  { feature: 'Notificaciones en tiempo real', tooltip: null, values: [true, true, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`integ-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Soporte y Equipo */}
+                <tr className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm uppercase tracking-wider">
+                      <Headphones className="h-4 w-4" />
+                      Soporte y Equipo
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Soporte por email', tooltip: null, values: [true, true, true, true] },
+                  { feature: 'Soporte WhatsApp', tooltip: null, values: [false, true, true, true] },
+                  { feature: 'Account Manager dedicado', tooltip: null, values: [false, false, true, true] },
+                  { feature: 'SLA 99.9%', tooltip: null, values: [false, false, false, true] },
+                ].map((item, idx) => (
+                  <tr key={`support-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
                     </td>
                   </tr>
                 ))}
