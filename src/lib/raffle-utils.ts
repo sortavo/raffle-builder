@@ -520,16 +520,16 @@ export const GOOGLE_FONTS_BODY = [
 ];
 
 export const DESIGN_SECTIONS = [
-  { id: 'hero', label: 'Hero', default: true },
-  { id: 'countdown', label: 'Cuenta Regresiva', default: true },
-  { id: 'ticket_grid', label: 'Grid de Boletos', default: true },
-  { id: 'packages', label: 'Paquetes', default: true },
-  { id: 'gallery', label: 'Galería', default: true },
-  { id: 'video', label: 'Video', default: false },
-  { id: 'how_it_works', label: 'Cómo Funciona', default: true },
-  { id: 'testimonials', label: 'Testimonios', default: false },
-  { id: 'faq', label: 'Preguntas Frecuentes', default: true },
-  { id: 'live_feed', label: 'Feed en Vivo', default: false },
-  { id: 'stats', label: 'Estadísticas', default: true },
-  { id: 'share_buttons', label: 'Botones de Compartir', default: true },
+  { id: 'hero', label: 'Hero', description: 'Banner principal con imagen del premio', default: true },
+  { id: 'countdown', label: 'Cuenta Regresiva', description: 'Temporizador hasta el sorteo', default: true },
+  { id: 'ticket_grid', label: 'Grid de Boletos', description: 'Visualización de boletos disponibles', default: true },
+  { id: 'packages', label: 'Paquetes', description: 'Ofertas de boletos múltiples', default: true },
+  { id: 'gallery', label: 'Galería', description: 'Imágenes adicionales del premio', default: true },
+  { id: 'video', label: 'Video', description: 'Video promocional del sorteo', default: false },
+  { id: 'how_it_works', label: 'Cómo Funciona', description: 'Instrucciones de participación', default: true },
+  { id: 'testimonials', label: 'Testimonios', description: 'Reseñas de ganadores anteriores', default: false },
+  { id: 'faq', label: 'FAQ', description: 'Preguntas frecuentes personalizables', default: true },
+  { id: 'live_feed', label: 'Feed en Vivo', description: 'Actividad de compras en tiempo real', default: false },
+  { id: 'stats', label: 'Estadísticas', description: 'Progreso de ventas y probabilidades', default: true },
+  { id: 'share_buttons', label: 'Compartir', description: 'Botones para redes sociales', default: true },
 ];

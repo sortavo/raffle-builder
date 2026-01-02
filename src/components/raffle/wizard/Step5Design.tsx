@@ -359,16 +359,22 @@ export const Step5Design = ({
             </RadioGroup>
           </div>
 
-          {/* Secciones grid compacto */}
+          {/* Secciones - Lista con descripciones */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Secciones visibles</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <p className="text-xs font-medium text-muted-foreground mb-3">Secciones de la página</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {DESIGN_SECTIONS.map((section) => {
                 const sections = customization.sections || {};
                 const isEnabled = sections[section.id] !== false;
 
                 return (
-                  <div key={section.id} className="flex items-center gap-1.5">
+                  <div 
+                    key={section.id} 
+                    className={cn(
+                      "flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                      isEnabled ? "border-primary/30 bg-primary/5" : "border-border"
+                    )}
+                  >
                     <Checkbox
                       id={section.id}
                       checked={isEnabled}
@@ -376,10 +382,11 @@ export const Step5Design = ({
                         const current = customization.sections || {};
                         updateCustomization('sections', { ...current, [section.id]: checked });
                       }}
-                      className="h-3.5 w-3.5"
+                      className="mt-0.5"
                     />
-                    <label htmlFor={section.id} className="text-xs cursor-pointer truncate">
-                      {section.label}
+                    <label htmlFor={section.id} className="cursor-pointer flex-1 min-w-0">
+                      <span className="text-sm font-medium block">{section.label}</span>
+                      <span className="text-xs text-muted-foreground">{section.description}</span>
                     </label>
                   </div>
                 );
@@ -400,11 +407,11 @@ export const Step5Design = ({
         <CardContent className="px-0 md:px-6 space-y-4">
           {/* Experiencia del Comprador */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-primary" />
               Experiencia del Comprador
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {TICKET_SELECTOR_FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
@@ -413,22 +420,25 @@ export const Step5Design = ({
                   <div 
                     key={feature.id} 
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-lg border transition-colors gap-2",
+                      "flex items-start justify-between p-3 rounded-lg border transition-colors gap-3",
                       isEnabled ? "border-primary/30 bg-primary/5" : "border-border"
                     )}
                   >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       <Icon className={cn(
-                        "w-4 h-4 shrink-0",
+                        "w-5 h-5 shrink-0 mt-0.5",
                         isEnabled ? "text-primary" : "text-muted-foreground"
                       )} />
-                      <span className="text-xs font-medium truncate">{feature.label}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium block">{feature.label}</span>
+                        <span className="text-xs text-muted-foreground">{feature.description}</span>
+                      </div>
                     </div>
                     <Switch
                       id={feature.id}
                       checked={isEnabled}
                       onCheckedChange={(checked) => updateCustomization(feature.id, checked)}
-                      className="shrink-0 scale-90"
+                      className="shrink-0"
                     />
                   </div>
                 );
@@ -438,11 +448,11 @@ export const Step5Design = ({
 
           {/* Marketing */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
               <Megaphone className="w-3 h-3 text-warning" />
               Marketing y Urgencia
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {MARKETING_FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 const isEnabled = getFeatureValue(feature.id, feature.defaultValue);
@@ -451,22 +461,25 @@ export const Step5Design = ({
                   <div 
                     key={feature.id} 
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-lg border transition-colors gap-2",
+                      "flex items-start justify-between p-3 rounded-lg border transition-colors gap-3",
                       isEnabled ? "border-warning/30 bg-warning/5" : "border-border"
                     )}
                   >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       <Icon className={cn(
-                        "w-4 h-4 shrink-0",
+                        "w-5 h-5 shrink-0 mt-0.5",
                         isEnabled ? "text-warning" : "text-muted-foreground"
                       )} />
-                      <span className="text-xs font-medium truncate">{feature.label}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium block">{feature.label}</span>
+                        <span className="text-xs text-muted-foreground">{feature.description}</span>
+                      </div>
                     </div>
                     <Switch
                       id={feature.id}
                       checked={isEnabled}
                       onCheckedChange={(checked) => updateCustomization(feature.id, checked)}
-                      className="shrink-0 scale-90"
+                      className="shrink-0"
                     />
                   </div>
                 );
