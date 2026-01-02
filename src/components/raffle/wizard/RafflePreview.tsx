@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { getTemplateById } from '@/lib/raffle-utils';
 
 type ViewMode = 'desktop' | 'mobile';
 
@@ -38,6 +39,11 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('mobile');
   const { organization } = useAuth();
   const values = form.watch();
+  
+  // Get template from form selection
+  const template = getTemplateById(values.template_id);
+  const { colors, fonts, effects } = template;
+  const isDarkTemplate = colors.background === '#030712' || colors.background.startsWith('rgba(3,');
   
   // Get values from form
   const title = values.title || 'Título del Sorteo';
@@ -56,9 +62,9 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
   const prizeCurrency = firstPrize?.currency || currency;
   const hasMultiplePrizes = prizes.length > 1;
   
-  // Customization
+  // Customization - use template primary or custom override
   const customization = values.customization || {};
-  const primaryColor = customization.primary_color || organization?.brand_color || '#2563EB';
+  const primaryColor = customization.primary_color || colors.primary;
   const headline = customization.headline || '';
   const ctaText = customization.cta_text || 'Comprar Boletos';
   
@@ -115,25 +121,38 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
       <div className="flex justify-center bg-muted/50 p-3">
         <div 
           className={cn(
-            "bg-white rounded-lg overflow-hidden shadow-lg transition-all duration-300",
+            "rounded-lg overflow-hidden shadow-lg transition-all duration-300",
             isMobile ? "w-[320px]" : "w-full max-w-[400px]"
           )}
           style={{
+            backgroundColor: colors.background,
+            fontFamily: `"${fonts.body}", sans-serif`,
             maxHeight: '600px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            borderRadius: effects.borderRadius,
+            boxShadow: effects.shadow,
           }}
         >
           {/* Device Frame for Mobile */}
           {isMobile && (
-            <div className="bg-gray-900 h-6 flex items-center justify-center gap-1">
+            <div 
+              className="h-6 flex items-center justify-center gap-1"
+              style={{ backgroundColor: isDarkTemplate ? '#030712' : '#111827' }}
+            >
               <div className="w-12 h-1 bg-gray-700 rounded-full" />
             </div>
           )}
           
           {/* Mini Header */}
           <div 
-            className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur-sm px-3 py-2"
-            style={{ borderBottomColor: `${primaryColor}20` }}
+            className="sticky top-0 z-10 border-b px-3 py-2"
+            style={{ 
+              backgroundColor: effects.glassmorphism?.enabled 
+                ? colors.cardBg 
+                : colors.background,
+              backdropFilter: effects.glassmorphism?.enabled ? 'blur(12px)' : undefined,
+              borderBottomColor: `${primaryColor}20`,
+            }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -146,11 +165,16 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                     {orgName.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <span className={cn("font-medium text-foreground", isMobile ? "text-xs" : "text-sm")}>{orgName}</span>
+                <span 
+                  className={cn("font-medium", isMobile ? "text-xs" : "text-sm")}
+                  style={{ color: colors.text }}
+                >
+                  {orgName}
+                </span>
                 <CheckCircle2 className="w-3 h-3 text-blue-500" />
               </div>
               <Button variant="ghost" size="sm" className="h-6 px-2">
-                <Share2 className="w-3 h-3" />
+                <Share2 className="w-3 h-3" style={{ color: colors.textMuted }} />
               </Button>
             </div>
           </div>
@@ -161,7 +185,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
             {!isMobile ? (
               <div className="grid grid-cols-2 gap-3">
                 {/* Left: Image */}
-                <div className="relative aspect-[4/5] rounded-lg overflow-hidden bg-gray-100">
+                <div 
+                  className="relative aspect-[4/5] rounded-lg overflow-hidden"
+                  style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
+                >
                   <img 
                     src={mainImage} 
                     alt={prizeName}
@@ -172,7 +199,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                   {prizeValue > 0 && (
                     <div 
                       className="absolute bottom-2 left-2 px-2 py-1 rounded-md shadow text-white"
-                      style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
+                      style={{ background: effects.gradient }}
                     >
                       <p className="text-[8px] opacity-80">Valor</p>
                       <p className="text-xs font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
@@ -184,39 +211,56 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 <div className="space-y-2 flex flex-col">
                   <Badge 
                     className="text-[10px] text-white w-fit"
-                    style={{ backgroundColor: primaryColor }}
+                    style={{ background: effects.gradient }}
                   >
                     <Zap className="w-2.5 h-2.5 mr-1" />
                     Activo
                   </Badge>
-                  <h2 className="text-sm font-bold text-gray-900 leading-tight">
+                  <h2 
+                    className="text-sm font-bold leading-tight"
+                    style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+                  >
                     {prizeName}
-                    {hasMultiplePrizes && <span className="text-xs font-normal text-muted-foreground ml-1">+{prizes.length - 1} más</span>}
+                    {hasMultiplePrizes && <span className="text-xs font-normal ml-1" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
                   </h2>
-                  <p className="text-[10px] text-gray-600 line-clamp-1">{title}</p>
+                  <p className="text-[10px] line-clamp-1" style={{ color: colors.textMuted }}>{title}</p>
                   
                   <div className="grid grid-cols-2 gap-1.5 flex-1">
-                    <div className="p-1.5 bg-gray-50 rounded border">
-                      <p className="text-[8px] text-gray-500">Precio</p>
-                      <p className="text-[10px] font-bold">{formatCurrency(Number(ticketPrice), currency)}</p>
+                    <div 
+                      className="p-1.5 rounded border"
+                      style={{ 
+                        backgroundColor: colors.cardBg,
+                        borderColor: `${primaryColor}15`,
+                      }}
+                    >
+                      <p className="text-[8px]" style={{ color: colors.textMuted }}>Precio</p>
+                      <p className="text-[10px] font-bold" style={{ color: colors.text }}>
+                        {formatCurrency(Number(ticketPrice), currency)}
+                      </p>
                     </div>
-                    <div className="p-1.5 bg-gray-50 rounded border">
-                      <p className="text-[8px] text-gray-500">Sorteo</p>
-                      <p className="text-[10px] font-bold">
+                    <div 
+                      className="p-1.5 rounded border"
+                      style={{ 
+                        backgroundColor: colors.cardBg,
+                        borderColor: `${primaryColor}15`,
+                      }}
+                    >
+                      <p className="text-[8px]" style={{ color: colors.textMuted }}>Sorteo</p>
+                      <p className="text-[10px] font-bold" style={{ color: colors.text }}>
                         {drawDate ? format(new Date(drawDate), 'dd MMM', { locale: es }) : 'Por definir'}
                       </p>
                     </div>
                   </div>
                   
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[8px]">
+                    <div className="flex justify-between text-[8px]" style={{ color: colors.textMuted }}>
                       <span className="font-medium">{ticketsSold}/{totalTickets}</span>
                       <span>{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-1.5" />
                   </div>
                   
-                  <Button size="sm" className="w-full text-white text-[10px] h-7" style={{ backgroundColor: primaryColor }}>
+                  <Button size="sm" className="w-full text-white text-[10px] h-7" style={{ background: effects.gradient }}>
                     <ShoppingCart className="w-3 h-3 mr-1" />
                     {ctaText}
                   </Button>
@@ -229,7 +273,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 <div className="flex items-center gap-2">
                   <Badge 
                     className="text-[10px] text-white"
-                    style={{ backgroundColor: primaryColor }}
+                    style={{ background: effects.gradient }}
                   >
                     <Zap className="w-2.5 h-2.5 mr-1" />
                     Sorteo Activo
@@ -237,7 +281,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 </div>
 
                 {/* Prize Image */}
-                <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100">
+                <div 
+                  className="relative aspect-[4/3] rounded-xl overflow-hidden"
+                  style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
+                >
                   <img 
                     src={mainImage} 
                     alt={prizeName}
@@ -246,7 +293,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                   
                   {/* Tickets sold badge */}
-                  <div className="absolute top-2 right-2 px-2 py-1 bg-white/95 rounded-full shadow text-[10px] font-medium flex items-center gap-1">
+                  <div 
+                    className="absolute top-2 right-2 px-2 py-1 rounded-full shadow text-[10px] font-medium flex items-center gap-1"
+                    style={{ backgroundColor: isDarkTemplate ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.95)' }}
+                  >
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     {ticketsSold} vendidos
                   </div>
@@ -255,7 +305,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                   {prizeValue > 0 && (
                     <div 
                       className="absolute bottom-2 left-2 px-3 py-1.5 rounded-lg shadow text-white"
-                      style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` }}
+                      style={{ background: effects.gradient }}
                     >
                       <p className="text-[8px] opacity-80">Valor del Premio</p>
                       <p className="text-sm font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
@@ -265,26 +315,36 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
                 {/* Prize Info */}
                 <div className="space-y-1.5">
-                  {headline && <p className="text-xs text-muted-foreground">{headline}</p>}
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                  {headline && <p className="text-xs" style={{ color: colors.textMuted }}>{headline}</p>}
+                  <h2 
+                    className="text-lg font-bold leading-tight"
+                    style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+                  >
                     {prizeName}
-                    {hasMultiplePrizes && <span className="text-sm font-normal text-muted-foreground ml-2">+{prizes.length - 1} más</span>}
+                    {hasMultiplePrizes && <span className="text-sm font-normal ml-2" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
                   </h2>
-                  <p className="text-sm text-gray-600">{title}</p>
+                  <p className="text-sm" style={{ color: colors.textMuted }}>{title}</p>
                   {description && description !== 'Descripción del sorteo...' && (
-                    <p className="text-xs text-gray-500 line-clamp-2">{description}</p>
+                    <p className="text-xs line-clamp-2" style={{ color: colors.textMuted }}>{description}</p>
                   )}
                   
                   {/* Show additional prizes if any */}
                   {hasMultiplePrizes && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {prizes.slice(1, 4).map((prize: any, idx: number) => (
-                        <span key={prize.id || idx} className="text-[10px] bg-muted px-2 py-0.5 rounded-full">
+                        <span 
+                          key={prize.id || idx} 
+                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                        >
                           {prize.name}
                         </span>
                       ))}
                       {prizes.length > 4 && (
-                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                        <span 
+                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                        >
                           +{prizes.length - 4} más
                         </span>
                       )}
@@ -294,7 +354,13 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 bg-gray-50 rounded-lg border">
+                  <div 
+                    className="p-2.5 rounded-lg border"
+                    style={{ 
+                      backgroundColor: colors.cardBg,
+                      borderColor: `${primaryColor}15`,
+                    }}
+                  >
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-7 h-7 rounded flex items-center justify-center"
@@ -303,14 +369,20 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                         <Ticket className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500">Precio</p>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-[10px]" style={{ color: colors.textMuted }}>Precio</p>
+                        <p className="text-sm font-bold" style={{ color: colors.text }}>
                           {formatCurrency(Number(ticketPrice), currency)}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-2.5 bg-gray-50 rounded-lg border">
+                  <div 
+                    className="p-2.5 rounded-lg border"
+                    style={{ 
+                      backgroundColor: colors.cardBg,
+                      borderColor: `${primaryColor}15`,
+                    }}
+                  >
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-7 h-7 rounded flex items-center justify-center"
@@ -319,8 +391,8 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                         <Calendar className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500">Sorteo</p>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-[10px]" style={{ color: colors.textMuted }}>Sorteo</p>
+                        <p className="text-sm font-bold" style={{ color: colors.text }}>
                           {drawDate 
                             ? format(new Date(drawDate), 'dd MMM', { locale: es })
                             : 'Por definir'
@@ -333,11 +405,11 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
                 {/* Progress */}
                 <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px]">
-                    <span className="font-medium text-gray-700">
+                  <div className="flex justify-between text-[10px]" style={{ color: colors.textMuted }}>
+                    <span className="font-medium">
                       {ticketsSold} de {totalTickets} vendidos
                     </span>
-                    <span className="text-gray-500">{Math.round(progress)}%</span>
+                    <span>{Math.round(progress)}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>
@@ -345,7 +417,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 {/* CTA Button */}
                 <Button 
                   className="w-full text-white"
-                  style={{ backgroundColor: primaryColor }}
+                  style={{ background: effects.gradient }}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   {ctaText}
@@ -355,11 +427,19 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
             {/* Countdown Preview */}
             {drawDate && (
-              <Card className="bg-gradient-to-r from-gray-50 to-gray-100 border p-2">
-                <div className="flex items-center justify-center gap-1.5 text-gray-600 text-[10px]">
+              <Card 
+                className="border p-2"
+                style={{ 
+                  background: isDarkTemplate 
+                    ? `linear-gradient(to right, ${colors.cardBg}, ${colors.cardBg})`
+                    : 'linear-gradient(to right, #f9fafb, #f3f4f6)',
+                  borderColor: `${primaryColor}15`,
+                }}
+              >
+                <div className="flex items-center justify-center gap-1.5 text-[10px]" style={{ color: colors.textMuted }}>
                   <Clock className="w-3 h-3" />
                   <span>Termina: </span>
-                  <span className="font-mono font-bold text-gray-900">
+                  <span className="font-mono font-bold" style={{ color: colors.text }}>
                     {format(new Date(drawDate), 'dd/MM/yyyy HH:mm', { locale: es })}
                   </span>
                 </div>
@@ -368,7 +448,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
 
             {/* Ticket Grid Preview */}
             <div className="space-y-1.5">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-1.5 text-xs">
+              <h3 
+                className="font-semibold flex items-center gap-1.5 text-xs"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
                 <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                 Selecciona tus Boletos
               </h3>
@@ -376,29 +459,50 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 {Array.from({ length: 16 }).map((_, i) => (
                   <div 
                     key={i}
-                    className={cn(
-                      "aspect-square rounded text-[7px] font-medium flex items-center justify-center",
-                      i < 5 ? "bg-gray-200 text-gray-400" : "bg-green-100 text-green-700 border border-green-200"
-                    )}
+                    className="aspect-square rounded text-[7px] font-medium flex items-center justify-center"
+                    style={{
+                      backgroundColor: i < 5 
+                        ? (isDarkTemplate ? 'rgba(100,116,139,0.3)' : '#e5e7eb')
+                        : (isDarkTemplate ? 'rgba(16,185,129,0.2)' : '#dcfce7'),
+                      color: i < 5 
+                        ? colors.textMuted 
+                        : (isDarkTemplate ? '#10B981' : '#15803d'),
+                      border: i < 5 ? 'none' : `1px solid ${isDarkTemplate ? 'rgba(16,185,129,0.3)' : '#bbf7d0'}`,
+                    }}
                   >
                     {String(i + 1).padStart(3, '0')}
                   </div>
                 ))}
               </div>
-              <p className="text-center text-muted-foreground text-[8px]">
+              <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
                 Vista previa de boletos
               </p>
             </div>
 
             {/* FAQ Preview */}
             <div className="space-y-1">
-              <h3 className="font-semibold text-gray-900 text-xs">Preguntas Frecuentes</h3>
+              <h3 
+                className="font-semibold text-xs"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                Preguntas Frecuentes
+              </h3>
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="1" className="border rounded-lg px-2">
-                  <AccordionTrigger className="py-1.5 hover:no-underline text-[10px]">
+                <AccordionItem 
+                  value="1" 
+                  className="rounded-lg px-2"
+                  style={{ 
+                    backgroundColor: colors.cardBg,
+                    borderColor: `${primaryColor}15`,
+                  }}
+                >
+                  <AccordionTrigger 
+                    className="py-1.5 hover:no-underline text-[10px]"
+                    style={{ color: colors.text }}
+                  >
                     ¿Cómo funciona el sorteo?
                   </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground text-[9px]">
+                  <AccordionContent className="text-[9px]" style={{ color: colors.textMuted }}>
                     Selecciona tus boletos favoritos y completa el pago...
                   </AccordionContent>
                 </AccordionItem>
@@ -408,7 +512,10 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
           
           {/* Mobile bottom bar */}
           {isMobile && (
-            <div className="bg-gray-900 h-4 flex items-center justify-center">
+            <div 
+              className="h-4 flex items-center justify-center"
+              style={{ backgroundColor: isDarkTemplate ? '#030712' : '#111827' }}
+            >
               <div className="w-24 h-1 bg-gray-700 rounded-full" />
             </div>
           )}
