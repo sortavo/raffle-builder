@@ -3,8 +3,6 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
@@ -36,14 +34,7 @@ interface Package {
   discount_percent: number;
   label: string;
   display_order: number;
-  bonus_tickets?: number; // Boletos gratis adicionales (ej: 3x2 = quantity:2, bonus:1)
-}
-
-// Rangos de numeración personalizados
-interface TicketRange {
-  id: string;
-  from: number;
-  to: number;
+  bonus_tickets?: number;
 }
 
 
@@ -60,16 +51,10 @@ export const Step3Tickets = ({ form }: Step3Props) => {
   
   // Estado para cantidad personalizada de boletos
   const [isCustomTicketCount, setIsCustomTicketCount] = useState(false);
-  
-  // Estado para rangos personalizados
-  const [ticketRanges, setTicketRanges] = useState<TicketRange[]>([
-    { id: '1', from: 1, to: 100 }
-  ]);
 
   const currency = form.watch('currency_code') || 'MXN';
   const currencyData = CURRENCIES.find(c => c.code === currency);
   const basePrice = form.watch('ticket_price') || 0;
-  const ticketFormat = form.watch('ticket_number_format') || 'sequential';
   const reservationTime = form.watch('reservation_time_minutes') || 15;
   const formPackages = form.watch('packages');
   
@@ -244,42 +229,6 @@ export const Step3Tickets = ({ form }: Step3Props) => {
     }
   }, []);
   
-  // Calcular total de boletos en rangos
-  const totalTicketsInRanges = ticketRanges.reduce((sum, range) => {
-    const count = Math.max(0, range.to - range.from + 1);
-    return sum + count;
-  }, 0);
-  
-  // Funciones para manejar rangos
-  const addRange = () => {
-    const lastRange = ticketRanges[ticketRanges.length - 1];
-    const newFrom = lastRange ? lastRange.to + 1 : 1;
-    setTicketRanges([...ticketRanges, {
-      id: Date.now().toString(),
-      from: newFrom,
-      to: newFrom + 99
-    }]);
-  };
-  
-  const removeRange = (id: string) => {
-    if (ticketRanges.length > 1) {
-      setTicketRanges(ticketRanges.filter(r => r.id !== id));
-    }
-  };
-  
-  const updateRange = (id: string, field: 'from' | 'to', value: number) => {
-    setTicketRanges(ticketRanges.map(r => 
-      r.id === id ? { ...r, [field]: value } : r
-    ));
-  };
-  
-  // Sincronizar rangos con el form
-  useEffect(() => {
-    if (ticketFormat === 'ranged') {
-      form.setValue('ticket_ranges', ticketRanges);
-      form.setValue('total_tickets', totalTicketsInRanges);
-    }
-  }, [ticketRanges, ticketFormat]);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -397,134 +346,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
             />
           </div>
 
-            <FormField
-              control={form.control}
-              name="ticket_number_format"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1.5">
-                    Formato de Numeración
-                    <HelpTooltip content="Secuencial: números consecutivos (001, 002...). Con Prefijo: agrega texto antes del número (TKT-001). Aleatorio: números no consecutivos para mayor emoción." />
-                  </FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      // Si cambia a rangos, inicializar con el total actual
-                      if (value === 'ranged') {
-                        const total = form.getValues('total_tickets') || 100;
-                        setTicketRanges([{ id: '1', from: 1, to: total }]);
-                      }
-                    }}
-                    value={field.value || 'sequential'}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                  >
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="sequential" id="sequential" />
-                      <label htmlFor="sequential" className="text-sm flex items-center gap-2 cursor-pointer flex-1">
-                        Secuencial (001, 002...)
-                        <Badge variant="secondary" className="text-xs">Preferido</Badge>
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="prefixed" id="prefixed" />
-                      <label htmlFor="prefixed" className="text-sm cursor-pointer flex-1">Con Prefijo (TKT-001...)</label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="random" id="random" />
-                      <label htmlFor="random" className="text-sm cursor-pointer flex-1">Aleatorio</label>
-                    </div>
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                      <RadioGroupItem value="ranged" id="ranged" />
-                      <label htmlFor="ranged" className="text-sm cursor-pointer flex-1">Por Rangos (define tus rangos)</label>
-                    </div>
-                  </RadioGroup>
-                </FormControl>
-                
-                {/* UI para rangos personalizados */}
-                {field.value === 'ranged' && (
-                  <Card className="mt-4 border-dashed">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        Rangos de Numeración
-                      </CardTitle>
-                      <CardDescription>Define los rangos de números para tus boletos</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {ticketRanges.map((range, index) => (
-                        <div key={range.id} className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm text-muted-foreground w-16">Rango {index + 1}:</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">Desde</span>
-                            <Input
-                              type="number"
-                              value={range.from}
-                              onChange={(e) => updateRange(range.id, 'from', parseInt(e.target.value) || 0)}
-                              className="w-24"
-                              min={0}
-                            />
-                            <span className="text-sm">Hasta</span>
-                            <Input
-                              type="number"
-                              value={range.to}
-                              onChange={(e) => updateRange(range.id, 'to', parseInt(e.target.value) || 0)}
-                              className="w-24"
-                              min={range.from}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              ({Math.max(0, range.to - range.from + 1).toLocaleString()} boletos)
-                            </span>
-                          </div>
-                          {ticketRanges.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeRange(range.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addRange}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Agregar Rango
-                        </Button>
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">Total: </span>
-                          <span className={cn(
-                            "font-medium",
-                            totalTicketsInRanges > ticketLimit && "text-destructive"
-                          )}>
-                            {totalTicketsInRanges.toLocaleString()} boletos
-                          </span>
-                          {totalTicketsInRanges > ticketLimit && (
-                            <span className="text-xs text-destructive ml-2">
-                              (excede límite de {ticketLimit.toLocaleString()})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* New Advanced Numbering Config */}
+          {/* Numbering Config - Single source of truth */}
           <NumberingConfigPanel form={form} totalTickets={currentTotalTickets || 100} />
           
           {/* Custom Numbers Upload (only show when custom_list mode) */}
