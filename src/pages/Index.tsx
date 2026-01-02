@@ -10,7 +10,7 @@ import {
   Sparkles, 
   Trophy, 
   CheckCircle2, 
-  Play, 
+   
   Zap, 
   Shield, 
   BarChart3, 
@@ -339,12 +339,10 @@ const Index = () => {
                   size="lg" 
                   variant="outline" 
                   className="text-lg lg:text-xl px-10 py-7 border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white hover:shadow-xl hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300"
-                  onClick={() => {
-                    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => navigate('/pricing')}
                 >
-                  <Play className="mr-2 w-6 h-6" />
-                  Ver Demo
+                  <Sparkles className="mr-2 w-6 h-6" />
+                  Ver Planes
                 </Button>
               </motion.div>
 
@@ -643,110 +641,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Demo Section - Premium Black & Emerald */}
-      <section id="demo" className="py-24 lg:py-32 bg-gradient-to-br from-gray-950 via-gray-900 to-emerald-950/30 relative overflow-hidden scroll-mt-20">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.2),transparent)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_80%_at_100%_100%,rgba(212,160,22,0.1),transparent)]" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Content */}
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="text-center lg:text-left"
-            >
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 backdrop-blur-sm rounded-full border border-emerald-500/20 mb-6">
-                <Play className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-medium text-emerald-400">Demo Interactiva</span>
-              </span>
-              
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-                Mira el{" "}
-                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Poder</span>
-                <br />en Acción
-              </h2>
-              
-              <p className="text-lg text-gray-300 mb-8 max-w-lg">
-                Descubre lo fácil que es crear y gestionar sorteos profesionales con Sortavo. 
-                Sin curva de aprendizaje.
-              </p>
-              
-              <div className="space-y-4 mb-8">
-                {[
-                  "Crea tu sorteo en menos de 5 minutos",
-                  "Comparte por WhatsApp y redes sociales",
-                  "Recibe pagos de forma automática",
-                  "Sortea ganadores con total transparencia"
-                ].map((item, index) => (
-                  <motion.div 
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center gap-3 text-gray-200"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <span>{item}</span>
-                  </motion.div>
-                ))}
-              </div>
-              
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-6 bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 shadow-xl shadow-emerald-600/25 group border-0"
-                onClick={() => navigate('/auth')}
-              >
-                Probar Gratis
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.div>
-            
-            {/* Video Preview */}
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
-              <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-2 shadow-2xl">
-                <div className="aspect-video bg-gradient-to-br from-emerald-600/20 to-amber-500/10 rounded-xl flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.1),transparent_50%)]" />
-                  
-                  {/* Play button */}
-                  <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="relative z-10 w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-xl shadow-emerald-600/30 group"
-                  >
-                    <Play className="w-8 h-8 text-white ml-1" />
-                  </motion.button>
-                  
-                  {/* Live indicator */}
-                  <div className="absolute top-4 left-4 bg-emerald-500/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-emerald-500/30">
-                    <span className="flex items-center gap-2 text-sm text-emerald-300">
-                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      En vivo
-                    </span>
-                  </div>
-                  
-                  <div className="absolute bottom-4 right-4 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 text-sm text-white">
-                    2:34
-                  </div>
-                </div>
-              </div>
-              
-              {/* Decorative blurs - emerald and gold */}
-              <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/30 rounded-full blur-2xl" />
-              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-amber-500/20 rounded-full blur-2xl" />
-            </motion.div>
-          </div>
-        </div>
-      </section>
 
       {/* Social Proof Section - TIER S: WHITE CONTRAST */}
       <section className="py-28 lg:py-36 xl:py-44 relative overflow-hidden">
