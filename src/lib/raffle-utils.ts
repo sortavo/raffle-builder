@@ -263,6 +263,45 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
     },
   },
   {
+    id: 'ultra-white',
+    name: 'Ultra White',
+    description: 'Premium luminoso con sombras emerald dramáticas',
+    icon: '☀️',
+    colors: {
+      primary: '#10B981',      // Emerald-500 (Sortavo brand)
+      secondary: '#14B8A6',    // Teal-500
+      accent: '#F59E0B',       // Amber-500 (CTA dorado)
+      background: '#FFFFFF',   // Blanco puro
+      cardBg: 'rgba(248, 250, 252, 0.9)', // Slate-50 glass
+      text: '#0F172A',         // Slate-900
+      textMuted: '#64748B',    // Slate-500
+    },
+    fonts: {
+      title: 'Montserrat',
+      body: 'Inter',
+    },
+    effects: {
+      borderRadius: '1.25rem',
+      shadow: '0 25px 80px -20px rgba(16, 185, 129, 0.25)',
+      gradient: 'linear-gradient(135deg, #10B981 0%, #14B8A6 50%, #F59E0B 100%)',
+      pattern: 'radial-gradient(circle at 1px 1px, rgba(16,185,129,0.05) 1px, transparent 0)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.9,
+        border: '1px solid rgba(16, 185, 129, 0.15)',
+      },
+    },
+    layout: {
+      heroStyle: 'side-by-side',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'left',
+      sectionSpacing: 'normal',
+      decorations: ['glow', 'patterns'],
+    },
+  },
+  {
     id: 'classic',
     name: 'Clásico',
     description: 'Elegancia tradicional con acentos premium',
