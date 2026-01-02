@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { Plus, Trash2, Sparkles, Clock, Tag, Gift, Zap, TrendingDown, Percent, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, Sparkles, Clock, Tag, Gift, Zap, TrendingDown, Percent, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { 
   TICKET_COUNT_OPTIONS, 
   RESERVATION_TIME_OPTIONS, 
@@ -210,6 +210,22 @@ export const Step3Tickets = ({ form }: Step3Props) => {
 
   const removePackage = (index: number) => {
     setPackages(packages.filter((_, i) => i !== index));
+  };
+
+  const movePackage = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= packages.length) return;
+    
+    const updated = [...packages];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+    
+    // Update display_order
+    updated.forEach((pkg, i) => {
+      pkg.display_order = i;
+    });
+    
+    setPackages(updated);
+    form.setValue('packages', updated);
   };
 
   const updatePackage = (index: number, field: keyof Package, value: string | number) => {
@@ -652,7 +668,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                       hasPromo && "ring-1 ring-primary/20"
                     )}
                   >
-                    {/* Header con título y eliminar */}
+                    {/* Header con título, reordenar y eliminar */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">Paquete {index + 1}</span>
@@ -662,16 +678,38 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                           </Badge>
                         )}
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removePackage(index)}
-                        disabled={false}
-                        className="h-8 w-8 shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => movePackage(index, 'up')}
+                          disabled={index === 0}
+                          className="h-7 w-7 shrink-0"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => movePackage(index, 'down')}
+                          disabled={index === packages.length - 1}
+                          className="h-7 w-7 shrink-0"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removePackage(index)}
+                          disabled={false}
+                          className="h-7 w-7 shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Visual de la ecuación: X boletos + Y gratis = Z total */}
