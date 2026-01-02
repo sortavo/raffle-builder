@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard, Eye, EyeOff, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard, Eye, EyeOff, X, Info } from 'lucide-react';
 import { useRaffles } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -521,7 +521,14 @@ export default function RaffleWizard() {
           />
         );
       case 4:
-        return <Step4Draw form={form} />;
+        return (
+          <Step4Draw 
+            form={form} 
+            raffleStatus={existingRaffle?.status || undefined}
+            originalDrawDate={existingRaffle?.draw_date || null}
+            originalStartDate={existingRaffle?.start_date || null}
+          />
+        );
       case 5:
         return (
           <Step5Design 
@@ -616,9 +623,22 @@ export default function RaffleWizard() {
     );
   }
 
+  const isRafflePublished = existingRaffle && existingRaffle.status !== 'draft';
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-5 md:space-y-6">
+        {/* Banner for published raffle editing */}
+        {isRafflePublished && (
+          <Alert className="bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Editando rifa publicada</AlertTitle>
+            <AlertDescription>
+              Algunos campos están protegidos para mantener la confianza de los compradores. 
+              Los cambios en título, premios y diseño se aplican inmediatamente.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Premium Header - More Compact */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">

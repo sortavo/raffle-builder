@@ -16,13 +16,19 @@ import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FieldLockBadge } from './FieldLockBadge';
+import { isPublished, getFieldRestriction } from '@/lib/raffle-edit-restrictions';
 
 interface Step4Props {
   form: UseFormReturn<any>;
+  raffleStatus?: string;
+  originalDrawDate?: string | null;
+  originalStartDate?: string | null;
 }
 
-export const Step4Draw = ({ form }: Step4Props) => {
+export const Step4Draw = ({ form, raffleStatus, originalDrawDate, originalStartDate }: Step4Props) => {
   const { organization } = useAuth();
+  const isRafflePublished = isPublished(raffleStatus);
   const drawMethod = form.watch('draw_method') || 'manual';
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -155,11 +161,23 @@ export const Step4Draw = ({ form }: Step4Props) => {
             <FormField
               control={form.control}
               name="start_date"
-              render={({ field }) => (
+              render={({ field }) => {
+                // Block editing if date already passed
+                const startDatePassed = originalStartDate && new Date(originalStartDate) < new Date();
+                const isStartDateLocked = isRafflePublished && startDatePassed;
+                
+                return (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     Fecha de Inicio
+                    {isStartDateLocked && (
+                      <FieldLockBadge 
+                        type="locked"
+                        message="La fecha de inicio ya pasó y no puede modificarse"
+                        shortMessage="Fecha pasada"
+                      />
+                    )}
                   </FormLabel>
                   <FormControl>
                     <Input 
@@ -168,6 +186,7 @@ export const Step4Draw = ({ form }: Step4Props) => {
                       value={field.value ? format(new Date(field.value), "yyyy-MM-dd'T'HH:mm") : ''}
                       onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
                       onBlur={() => handleBlur('start_date')}
+                      disabled={isStartDateLocked}
                       className={cn(startDateError && "border-destructive focus-visible:ring-destructive")}
                     />
                   </FormControl>
@@ -179,36 +198,67 @@ export const Step4Draw = ({ form }: Step4Props) => {
                   )}
                   <FormMessage />
                 </FormItem>
-              )}
+              )}}
             />
 
             <FormField
               control={form.control}
               name="draw_date"
-              render={({ field }) => (
+              render={({ field }) => {
+                const drawDateRestriction = getFieldRestriction('draw_date', raffleStatus);
+                
+                return (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Dices className="w-4 h-4" />
                     Fecha del Sorteo
                     <span className="text-destructive">*</span>
                     <HelpTooltip content="Fecha y hora exacta en que se realizará el sorteo. Los compradores verán una cuenta regresiva hacia este momento." />
+                    {drawDateRestriction && (
+                      <FieldLockBadge 
+                        type="restricted"
+                        message={drawDateRestriction.message}
+                        shortMessage={drawDateRestriction.shortMessage}
+                      />
+                    )}
                   </FormLabel>
                   <FormControl>
                     <Input 
                       type="datetime-local"
                       {...field}
                       value={field.value ? format(new Date(field.value), "yyyy-MM-dd'T'HH:mm") : ''}
-                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+                      onChange={(e) => {
+                        const newValue = e.target.value ? new Date(e.target.value).toISOString() : null;
+                        // If published, only allow postponing (new date >= original date)
+                        if (isRafflePublished && originalDrawDate && newValue) {
+                          const newDate = new Date(newValue);
+                          const origDate = new Date(originalDrawDate);
+                          if (newDate < origDate) {
+                            toast.error('La fecha solo puede posponerse, no adelantarse');
+                            return;
+                          }
+                        }
+                        field.onChange(newValue);
+                      }}
                       onBlur={() => handleBlur('draw_date')}
+                      min={isRafflePublished && originalDrawDate 
+                        ? format(new Date(originalDrawDate), "yyyy-MM-dd'T'HH:mm") 
+                        : undefined
+                      }
                       className={cn(drawDateError && "border-destructive focus-visible:ring-destructive")}
                     />
                   </FormControl>
+                  {isRafflePublished && originalDrawDate && (
+                    <FormDescription className="text-amber-600 dark:text-amber-400">
+                      Fecha original: {format(new Date(originalDrawDate), "dd/MM/yyyy HH:mm")} - Solo puede posponerse
+                    </FormDescription>
+                  )}
                   {drawDateError && (
                     <p className="text-sm font-medium text-destructive">{drawDateError}</p>
                   )}
                   <FormMessage />
                 </FormItem>
-              )}
+              )}}
             />
           </div>
 
@@ -295,88 +345,136 @@ export const Step4Draw = ({ form }: Step4Props) => {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-success/10 to-success/5 text-success">
             <Dices className="h-5 w-5" />
           </div>
-          <div>
-            <h2 className="text-lg md:text-xl font-bold tracking-tight">Método de Sorteo</h2>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold tracking-tight">Método de Sorteo</h2>
+              {isRafflePublished && (
+                <FieldLockBadge 
+                  type="locked"
+                  message="El método de sorteo anunciado no puede cambiar después de publicar"
+                  shortMessage="Método bloqueado"
+                />
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">Elige cómo se seleccionará al ganador</p>
           </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="draw_method"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Tabs 
-                  defaultValue={field.value || 'manual'} 
-                  onValueChange={field.onChange}
-                  className="w-full"
-                >
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="lottery_nacional" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                      <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="hidden sm:inline">Lotería Nacional</span>
-                      <span className="sm:hidden">Lotería</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="manual" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                      <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      Manual
-                    </TabsTrigger>
-                    <TabsTrigger value="random_org" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                      <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="hidden sm:inline">Random.org</span>
-                      <span className="sm:hidden">Random</span>
-                    </TabsTrigger>
-                  </TabsList>
+        {isRafflePublished ? (
+          // Show locked state for published raffles
+          <div className="p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              {drawMethod === 'lottery_nacional' && <Globe className="h-5 w-5 text-muted-foreground" />}
+              {drawMethod === 'manual' && <Hand className="h-5 w-5 text-muted-foreground" />}
+              {drawMethod === 'random_org' && <Dices className="h-5 w-5 text-muted-foreground" />}
+              <div>
+                <p className="font-medium">
+                  {drawMethod === 'lottery_nacional' && 'Lotería Nacional'}
+                  {drawMethod === 'manual' && 'Sorteo Manual'}
+                  {drawMethod === 'random_org' && 'Random.org'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  El método de sorteo no puede modificarse después de publicar.
+                </p>
+              </div>
+            </div>
+            
+            {/* Show lottery details if applicable (read-only) */}
+            {drawMethod === 'lottery_nacional' && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-3 rounded bg-background border">
+                  <p className="text-xs text-muted-foreground mb-1">Número de Sorteo</p>
+                  <p className="font-medium">{form.watch('lottery_draw_number') || '—'}</p>
+                </div>
+                <div className="p-3 rounded bg-background border">
+                  <p className="text-xs text-muted-foreground mb-1">Dígitos a Usar</p>
+                  <p className="font-medium">
+                    {form.watch('lottery_digits') === 0 
+                      ? 'Sin dígitos' 
+                      : `${form.watch('lottery_digits') || 3} dígitos`}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Show editable form for draft raffles
+          <FormField
+            control={form.control}
+            name="draw_method"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Tabs 
+                    defaultValue={field.value || 'manual'} 
+                    onValueChange={field.onChange}
+                    className="w-full"
+                  >
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="lottery_nacional" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="hidden sm:inline">Lotería Nacional</span>
+                        <span className="sm:hidden">Lotería</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="manual" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        Manual
+                      </TabsTrigger>
+                      <TabsTrigger value="random_org" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                        <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="hidden sm:inline">Random.org</span>
+                        <span className="sm:hidden">Random</span>
+                      </TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="lottery_nacional" className="space-y-4 mt-4">
-                    <p className="text-sm text-muted-foreground">
-                      El ganador se determina con los últimos dígitos del premio mayor de la Lotería Nacional.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="lottery_draw_number"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número de Sorteo</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ej: Sorteo Especial 257" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="lottery_digits"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Dígitos a Usar</FormLabel>
-                            <Select 
-                              onValueChange={(v) => field.onChange(parseInt(v))} 
-                              defaultValue={field.value?.toString() || '3'}
-                            >
+                    <TabsContent value="lottery_nacional" className="space-y-4 mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        El ganador se determina con los últimos dígitos del premio mayor de la Lotería Nacional.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="lottery_draw_number"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de Sorteo</FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
+                                <Input placeholder="Ej: Sorteo Especial 257" {...field} />
                               </FormControl>
-                              <SelectContent>
-                                {Array.from({ length: 11 }, (_, i) => (
-                                  <SelectItem key={i} value={i.toString()}>
-                                    {i === 0 ? 'Sin dígitos' : i === 1 ? '1 dígito' : `${i} dígitos`}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </TabsContent>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="lottery_digits"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Dígitos a Usar</FormLabel>
+                              <Select 
+                                onValueChange={(v) => field.onChange(parseInt(v))} 
+                                defaultValue={field.value?.toString() || '3'}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.from({ length: 11 }, (_, i) => (
+                                    <SelectItem key={i} value={i.toString()}>
+                                      {i === 0 ? 'Sin dígitos' : i === 1 ? '1 dígito' : `${i} dígitos`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </TabsContent>
 
                   <TabsContent value="manual" className="space-y-4 mt-4">
                     <p className="text-sm text-muted-foreground">
@@ -434,6 +532,7 @@ export const Step4Draw = ({ form }: Step4Props) => {
             </FormItem>
           )}
         />
+        )}
       </div>
 
       {/* Livestream Section */}

@@ -23,6 +23,8 @@ import { REQUIRED_FIELDS } from '@/hooks/useWizardValidation';
 import { LabelCombobox } from './LabelCombobox';
 import { NumberingConfigPanel } from './NumberingConfigPanel';
 import { CustomNumbersUpload } from './CustomNumbersUpload';
+import { FieldLockBadge } from './FieldLockBadge';
+import { isPublished as checkIsPublished, getFieldRestriction } from '@/lib/raffle-edit-restrictions';
 
 interface Step3Props {
   form: UseFormReturn<any>;
@@ -450,12 +452,21 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
             <FormField
               control={form.control}
               name="ticket_price"
-              render={({ field }) => (
+              render={({ field }) => {
+                const priceRestriction = getFieldRestriction('ticket_price', raffleStatus);
+                return (
                 <FormItem>
                   <FormLabel className="flex items-center gap-1.5">
                     Precio por Boleto
                     <span className="text-destructive">*</span>
                     <HelpTooltip content="El precio individual de cada boleto. Los paquetes se calcularán automáticamente basándose en este precio base." />
+                    {priceRestriction && (
+                      <FieldLockBadge 
+                        type={priceRestriction.type === 'locked' ? 'locked' : 'restricted'}
+                        message={priceRestriction.message}
+                        shortMessage={priceRestriction.shortMessage}
+                      />
+                    )}
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -469,6 +480,7 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         onBlur={() => handleBlur('ticket_price')}
+                        disabled={!!priceRestriction}
                       />
                     </div>
                   </FormControl>
@@ -477,20 +489,38 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
                   )}
                   <FormMessage />
                 </FormItem>
-              )}
+              )}}
             />
           </div>
 
           {/* Numbering Config - Single source of truth */}
-          <NumberingConfigPanel form={form} totalTickets={currentTotalTickets || 100} />
-          
-          {/* Custom Numbers Upload (only show when custom_list mode) */}
-          {form.watch('numbering_config')?.mode === 'custom_list' && (
-            <CustomNumbersUpload 
-              form={form} 
-              raffleId={form.watch('id')}
-              totalTickets={currentTotalTickets || 100} 
-            />
+          {checkIsPublished(raffleStatus) ? (
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-medium text-sm">Configuración de Numeración</span>
+                <FieldLockBadge 
+                  type="locked"
+                  message="El formato de numeración está fijado por los boletos ya generados"
+                  shortMessage="Bloqueado"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                La configuración de numeración no puede modificarse después de publicar el sorteo.
+              </p>
+            </div>
+          ) : (
+            <>
+              <NumberingConfigPanel form={form} totalTickets={currentTotalTickets || 100} />
+              
+              {/* Custom Numbers Upload (only show when custom_list mode) */}
+              {form.watch('numbering_config')?.mode === 'custom_list' && (
+                <CustomNumbersUpload 
+                  form={form} 
+                  raffleId={form.watch('id')}
+                  totalTickets={currentTotalTickets || 100} 
+                />
+              )}
+            </>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
