@@ -18,7 +18,7 @@ interface PremiumNavbarProps {
 }
 
 const defaultNavLinks: NavLink[] = [
-  { label: 'Características', href: '/#features' },
+  { label: 'Características', href: '/features' },
   { label: 'Precios', href: '/pricing' },
   { label: 'Ayuda', href: '/help' },
 ];
