@@ -25,28 +25,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a 
-                  href="#features" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection('features');
-                  }}
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
+                <Link to="/features" className="hover:text-emerald-400 transition-colors">
                   Características
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="#demo" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection('demo');
-                  }}
-                  className="hover:text-emerald-400 transition-colors cursor-pointer"
-                >
-                  Demo
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

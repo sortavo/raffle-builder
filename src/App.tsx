@@ -44,6 +44,7 @@ import SystemStatus from "./pages/SystemStatus";
 import LogoPreview from "./pages/LogoPreview";
 import ColorPalette from "./components/design-system/ColorPalette";
 import SentryTest from "./pages/SentryTest";
+import Features from "./pages/Features";
 
 // Admin pages
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -144,6 +145,7 @@ const App = () => (
                   {/* Public Routes */}
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/pricing/compare" element={<PlanComparison />} />
+                  <Route path="/features" element={<Features />} />
                   <Route path="/help" element={<HelpCenter />} />
                   {/* Legacy raffle routes */}
                   <Route path="/r/:slug" element={<PublicRaffle />} />
