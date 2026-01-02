@@ -542,7 +542,7 @@ export default function PlanComparison() {
               ¿Listo para empezar?
             </h2>
             <p className="text-sm lg:text-base text-gray-400 mb-6 lg:mb-8">
-              Prueba gratis por 7 días. Sin tarjeta de crédito.
+              Prueba gratis por 7 días.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button size="lg" asChild className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0">

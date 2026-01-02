@@ -633,7 +633,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Sin tarjeta de crédito</span>
+              <span className="text-sm font-medium">7 días gratis</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
