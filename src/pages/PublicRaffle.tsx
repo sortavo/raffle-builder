@@ -37,10 +37,14 @@ import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 
 interface PublicRaffleProps {
   tenantOrgSlug?: string;
+  raffleSlugOverride?: string;
 }
 
-export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) {
-  const { slug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: PublicRaffleProps = {}) {
+  const { slug: paramSlug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+  
+  // Priority: override (from custom domain router) > route param
+  const slug = raffleSlugOverride || paramSlug;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const ticketsRef = useRef<HTMLDivElement>(null);

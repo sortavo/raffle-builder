@@ -104,13 +104,17 @@ function clearPersistedReservation() {
 
 interface PaymentInstructionsProps {
   tenantOrgSlug?: string;
+  raffleSlugOverride?: string;
 }
 
-export default function PaymentInstructions({ tenantOrgSlug }: PaymentInstructionsProps = {}) {
+export default function PaymentInstructions({ tenantOrgSlug, raffleSlugOverride }: PaymentInstructionsProps = {}) {
   // Activate Ultra-Dark theme
   useScopedDarkMode();
   
-  const { slug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+  const { slug: paramSlug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+  
+  // Priority: override (from custom domain router) > route param
+  const slug = raffleSlugOverride || paramSlug;
   const effectiveOrgSlug = tenantOrgSlug || paramOrgSlug;
   const location = useLocation();
   const navigate = useNavigate();
