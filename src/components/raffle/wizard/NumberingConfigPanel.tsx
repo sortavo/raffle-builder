@@ -229,24 +229,23 @@ function getApplicablePresets(totalTickets: number): { primary: string[]; second
 }
 
 // Función para obtener la recomendación basada en cantidad de boletos
+// "Con Ceros" es siempre el formato recomendado por defecto
 function getRecommendedPreset(totalTickets: number): string {
-  if (totalTickets <= 99) return 'simple';
-  if (totalTickets <= 9999) return 'zeros_auto';
-  return 'lottery_7';
+  return 'zeros_auto';
 }
 
 // Función para obtener texto contextual según cantidad
 function getContextText(totalTickets: number): string {
   if (totalTickets <= 99) {
-    return 'Para rifas pequeñas, los números simples son más fáciles de comunicar';
+    return 'El formato con ceros da un aspecto más profesional a tus boletos';
   }
   if (totalTickets <= 999) {
-    return 'Los ceros dan uniformidad visual en boletos impresos';
+    return 'El formato con ceros ofrece uniformidad visual ideal para impresión';
   }
   if (totalTickets <= 9999) {
-    return 'El formato con ceros se ajusta automáticamente a 4 dígitos';
+    return 'El formato con ceros se ajusta automáticamente a tus boletos';
   }
-  return 'El formato tipo lotería es el estándar para rifas grandes';
+  return 'El formato con ceros maneja perfectamente rifas de cualquier tamaño';
 }
 
 // Función para generar preview de números
