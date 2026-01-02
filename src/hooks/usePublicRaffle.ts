@@ -315,7 +315,7 @@ export function useUploadPaymentProof() {
       // Include referenceCode in path for better organization and auditability
       const storagePath = `${raffleId}/${referenceCode}/${cleanFileName}`;
       
-      console.log('Uploading payment proof:', { raffleId, referenceCode, storagePath });
+      if (import.meta.env.DEV) console.log('Uploading payment proof:', { raffleId, referenceCode, storagePath });
       
       // Upload file to storage
       const { data: upload, error: uploadError } = await supabase.storage
@@ -332,7 +332,7 @@ export function useUploadPaymentProof() {
         .from('payment-proofs')
         .getPublicUrl(upload.path);
 
-      console.log('File uploaded, associating with tickets via edge function:', { publicUrl, referenceCode, buyerEmail });
+      if (import.meta.env.DEV) console.log('File uploaded, associating with tickets via edge function:', { publicUrl, referenceCode, buyerEmail });
 
       // ALWAYS use edge function for reliable association with elevated permissions
       const { data, error } = await supabase.functions.invoke('submit-payment-proof', {
@@ -358,7 +358,7 @@ export function useUploadPaymentProof() {
         throw new Error('No se encontraron boletos para esta reservación. Verifica tu clave: ' + referenceCode);
       }
 
-      console.log('Payment proof associated successfully:', data);
+      if (import.meta.env.DEV) console.log('Payment proof associated successfully:', data);
       return publicUrl;
     },
     onSuccess: () => {
@@ -452,7 +452,7 @@ export function useRandomAvailableTickets() {
     }) => {
       // For large quantities (>100), use the edge function for better performance
       if (count > 100) {
-        console.log(`Using edge function for ${count} random tickets`);
+        if (import.meta.env.DEV) console.log(`Using edge function for ${count} random tickets`);
         
         const { data, error } = await supabase.functions.invoke('select-random-tickets', {
           body: {

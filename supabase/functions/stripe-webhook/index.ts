@@ -153,7 +153,6 @@ serve(async (req) => {
         const errorMessage = err instanceof Error ? err.message : String(err);
         logStep("Webhook signature verification failed", { 
           error: errorMessage,
-          signaturePrefix: signature?.slice(0, 20),
         }, "ERROR");
         return new Response(JSON.stringify({ error: "Invalid signature" }), {
           status: 400,

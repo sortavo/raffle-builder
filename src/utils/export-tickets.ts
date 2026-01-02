@@ -183,7 +183,7 @@ export async function exportTicketsToCSV(
 
   const ticketCount = totalCount || 0;
   
-  console.log(`Export method: ${ticketCount >= SERVER_EXPORT_THRESHOLD ? 'server' : 'client'} (${ticketCount} tickets)`);
+  if (import.meta.env.DEV) console.log(`Export method: ${ticketCount >= SERVER_EXPORT_THRESHOLD ? 'server' : 'client'} (${ticketCount} tickets)`);
 
   if (ticketCount >= SERVER_EXPORT_THRESHOLD) {
     // Use server-side export for large raffles

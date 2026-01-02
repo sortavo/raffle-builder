@@ -17,7 +17,7 @@ async function exportBuyersViaServer(
   statusFilter?: string,
   onProgress?: (loaded: number, total: number) => void
 ): Promise<{ success: boolean; count: number }> {
-  console.log('Using server-side buyer export');
+  if (import.meta.env.DEV) console.log('Using server-side buyer export');
 
   const { data, error } = await supabase.functions.invoke('export-buyers-csv', {
     body: { 
@@ -63,7 +63,7 @@ async function exportBuyersClientSide(
   raffleName?: string,
   onProgress?: (loaded: number, total: number) => void
 ): Promise<{ success: boolean; count: number }> {
-  console.log('Using client-side buyer export');
+  if (import.meta.env.DEV) console.log('Using client-side buyer export');
 
   // Get total count first
   const { data: firstPage } = await supabase.rpc('get_buyers_paginated', {
@@ -182,7 +182,7 @@ export async function exportBuyersToCSV(
 
   const totalCount = firstPage && firstPage.length > 0 ? Number(firstPage[0].total_count) : 0;
 
-  console.log(`Buyer count: ${totalCount}, threshold: ${SERVER_EXPORT_THRESHOLD}`);
+  if (import.meta.env.DEV) console.log(`Buyer count: ${totalCount}, threshold: ${SERVER_EXPORT_THRESHOLD}`);
 
   if (totalCount >= SERVER_EXPORT_THRESHOLD) {
     return exportBuyersViaServer(raffleId, raffleName, undefined, onProgress);
