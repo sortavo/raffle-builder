@@ -667,7 +667,7 @@ export const Step3Tickets = ({ form }: Step3Props) => {
                         variant="ghost"
                         size="icon"
                         onClick={() => removePackage(index)}
-                        disabled={packages.length <= 1}
+                        disabled={false}
                         className="h-8 w-8 shrink-0"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
