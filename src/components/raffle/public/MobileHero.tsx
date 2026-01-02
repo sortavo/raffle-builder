@@ -47,6 +47,7 @@ interface MobileHeroProps {
   onShare: () => void;
   onImageClick?: (index: number) => void;
   logoPosition?: 'top-left' | 'top-center' | 'top-right';
+  isLightTemplate?: boolean;
 }
 
 export function MobileHero({
@@ -57,6 +58,7 @@ export function MobileHero({
   onShare,
   onImageClick,
   logoPosition = 'top-left',
+  isLightTemplate = false,
 }: MobileHeroProps) {
   const images = raffle.prize_images || [];
   const hasVideo = !!raffle.prize_video_url;
@@ -99,55 +101,69 @@ export function MobileHero({
     : null;
 
   return (
-    <div className="relative bg-ultra-dark overflow-hidden">
+    <div className={cn(
+      "relative overflow-hidden",
+      isLightTemplate ? "bg-white" : "bg-ultra-dark"
+    )}>
       {/* TIER S: Noise texture overlay */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none [background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E')]" />
       
-      {/* TIER S: 5 Animated background orbs */}
-      <motion.div 
-        className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"
-        animate={{ 
-          x: [0, 30, 0], 
-          y: [0, -20, 0],
-          scale: [1, 1.1, 1]
-        }}
-        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div 
-        className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-teal-500/8 rounded-full blur-[120px] pointer-events-none"
-        animate={{ 
-          x: [0, -20, 0], 
-          y: [0, 25, 0]
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      />
-      <motion.div 
-        className="absolute top-1/3 left-1/2 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/2"
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.4, 0.7, 0.4]
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-      />
-      <motion.div 
-        className="absolute bottom-0 right-1/3 w-[280px] h-[280px] bg-violet-500/5 rounded-full blur-[120px] pointer-events-none"
-        animate={{ 
-          x: [0, 15, 0], 
-          y: [0, -20, 0]
-        }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-      />
-      <motion.div 
-        className="absolute top-1/2 right-0 w-[250px] h-[250px] bg-teal-400/5 rounded-full blur-[120px] pointer-events-none"
-        animate={{ 
-          x: [0, -25, 0], 
-          y: [0, 15, 0]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 8 }}
-      />
+      {/* TIER S: Animated background orbs - adaptive to light/dark */}
+      {isLightTemplate ? (
+        <>
+          <motion.div 
+            className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-200/40 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-teal-200/30 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, -20, 0], y: [0, 25, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          />
+          <motion.div 
+            className="absolute top-1/3 left-1/2 w-[300px] h-[300px] bg-amber-100/40 rounded-full blur-[120px] pointer-events-none -translate-x-1/2"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          />
+        </>
+      ) : (
+        <>
+          <motion.div 
+            className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-1/4 left-0 w-[350px] h-[350px] bg-teal-500/8 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, -20, 0], y: [0, 25, 0] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          />
+          <motion.div 
+            className="absolute top-1/3 left-1/2 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/2"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          />
+          <motion.div 
+            className="absolute bottom-0 right-1/3 w-[280px] h-[280px] bg-violet-500/5 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, 15, 0], y: [0, -20, 0] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 6 }}
+          />
+          <motion.div 
+            className="absolute top-1/2 right-0 w-[250px] h-[250px] bg-teal-400/5 rounded-full blur-[120px] pointer-events-none"
+            animate={{ x: [0, -25, 0], y: [0, 15, 0] }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 8 }}
+          />
+        </>
+      )}
       
       {/* Premium Header - TIER S Glassmorphism */}
-      <div className="relative backdrop-blur-2xl border-b bg-ultra-dark/95 border-white/[0.08]">
+      <div className={cn(
+        "relative backdrop-blur-2xl border-b",
+        isLightTemplate 
+          ? "bg-white/95 border-gray-200/50" 
+          : "bg-ultra-dark/95 border-white/[0.08]"
+      )}>
         {/* Top row: Avatar, Name, Share - Position based on logoPosition */}
         <div className={cn(
           "flex items-center px-5 py-4",
@@ -157,7 +173,12 @@ export function MobileHero({
           {logoPosition === 'top-right' && (
             <button
               onClick={onShare}
-              className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border border-white/[0.08]"
+              className={cn(
+                "h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors border",
+                isLightTemplate
+                  ? "bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-200"
+                  : "bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border-white/[0.08]"
+              )}
             >
               <Share2 className="w-5 h-5" />
             </button>
@@ -191,15 +212,21 @@ export function MobileHero({
                 logoPosition === 'top-center' && "justify-center",
                 logoPosition === 'top-right' && "justify-end"
               )}>
-                <h2 className="font-bold text-white truncate tracking-tight text-lg">
+                <h2 className={cn(
+                  "font-bold truncate tracking-tight text-lg",
+                  isLightTemplate ? "text-gray-900" : "text-white"
+                )}>
                   {organization.name}
                 </h2>
                 {organization.verified && (
-                  <Check className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+                  <Check className="w-5 h-5 flex-shrink-0 text-emerald-500" />
                 )}
               </div>
               {organization.city && (
-                <p className="text-sm text-white/50">
+                <p className={cn(
+                  "text-sm",
+                  isLightTemplate ? "text-gray-500" : "text-white/50"
+                )}>
                   {organization.city}
                 </p>
               )}
@@ -211,7 +238,10 @@ export function MobileHero({
             <button
               onClick={onShare}
               className={cn(
-                "h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border border-white/[0.08]",
+                "h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors border",
+                isLightTemplate
+                  ? "bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-200"
+                  : "bg-white/[0.05] hover:bg-white/[0.08] text-white/60 border-white/[0.08]",
                 logoPosition === 'top-center' && "absolute right-5 top-4"
               )}
             >
@@ -224,7 +254,12 @@ export function MobileHero({
         <div className="flex items-center gap-3 px-5 pb-4">
           {organization.slug && (
             <Link to={`/${organization.slug}`}>
-              <button className="h-10 px-4 text-sm font-medium rounded-xl flex items-center gap-2 transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/70 border border-white/[0.08]">
+              <button className={cn(
+                "h-10 px-4 text-sm font-medium rounded-xl flex items-center gap-2 transition-colors border",
+                isLightTemplate
+                  ? "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200"
+                  : "bg-white/[0.05] hover:bg-white/[0.08] text-white/70 border-white/[0.08]"
+              )}>
                 <Home className="w-4 h-4" />
                 Ver sorteos
               </button>
@@ -232,7 +267,12 @@ export function MobileHero({
           )}
           {whatsappLink && (
             <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-              <button className="h-10 px-4 text-sm font-medium rounded-xl flex items-center gap-2 transition-colors bg-white/[0.05] hover:bg-white/[0.08] text-white/70 border border-white/[0.08]">
+              <button className={cn(
+                "h-10 px-4 text-sm font-medium rounded-xl flex items-center gap-2 transition-colors border",
+                isLightTemplate
+                  ? "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200"
+                  : "bg-white/[0.05] hover:bg-white/[0.08] text-white/70 border-white/[0.08]"
+              )}>
                 <MessageCircle className="w-4 h-4" />
                 Contactar
               </button>
@@ -265,11 +305,13 @@ export function MobileHero({
           </div>
         </div>
 
-        {/* Elegant gradient overlays */}
+        {/* Elegant gradient overlays - adaptive to light/dark */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{ 
-            background: 'linear-gradient(to bottom, rgba(3,7,18,0.5) 0%, transparent 25%, transparent 45%, rgba(3,7,18,0.97) 100%)' 
+            background: isLightTemplate
+              ? 'linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, transparent 25%, transparent 45%, rgba(255,255,255,0.97) 100%)' 
+              : 'linear-gradient(to bottom, rgba(3,7,18,0.5) 0%, transparent 25%, transparent 45%, rgba(3,7,18,0.97) 100%)' 
           }}
         />
 
@@ -301,17 +343,23 @@ export function MobileHero({
         {/* Prize info overlay - TIER S DRAMATIC PREMIUM typography */}
         <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4 pointer-events-none">
           {/* Title - TIER S Extra Large and dramatic */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.85] tracking-[-0.05em]">
+          <h1 className={cn(
+            "text-5xl sm:text-6xl lg:text-7xl font-black leading-[0.85] tracking-[-0.05em]",
+            isLightTemplate ? "text-gray-900" : "text-white"
+          )}>
             {raffle.title}
           </h1>
           
           {/* Prize name with value */}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-white/80 text-lg tracking-tight">
+            <span className={cn(
+              "text-lg tracking-tight",
+              isLightTemplate ? "text-gray-700" : "text-white/80"
+            )}>
               {raffle.prize_name}
             </span>
             {raffle.prize_value && (
-              <span className="px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-500/15 text-emerald-400 shimmer-badge border border-emerald-500/30">
+              <span className="px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-500/15 text-emerald-600 shimmer-badge border border-emerald-500/30">
                 {formatCurrency(raffle.prize_value, currency)}
               </span>
             )}
@@ -320,18 +368,35 @@ export function MobileHero({
       </div>
 
       {/* Ticket Price Section - TIER S DRAMATIC PREMIUM */}
-      <div className="relative py-10 px-6 bg-ultra-dark">
+      <div className={cn(
+        "relative py-10 px-6",
+        isLightTemplate ? "bg-white" : "bg-ultra-dark"
+      )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             {/* TIER S: w-24 h-24 icon container */}
-            <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-xl shadow-emerald-500/20 border border-emerald-500/20">
-              <Ticket className="w-12 h-12 text-emerald-400" />
+            <div className={cn(
+              "w-24 h-24 rounded-2xl flex items-center justify-center shadow-xl border",
+              isLightTemplate
+                ? "bg-gradient-to-br from-emerald-100 to-teal-100 shadow-emerald-200/50 border-emerald-200"
+                : "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-emerald-500/20 border-emerald-500/20"
+            )}>
+              <Ticket className={cn(
+                "w-12 h-12",
+                isLightTemplate ? "text-emerald-600" : "text-emerald-400"
+              )} />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40 mb-1.5">
+              <p className={cn(
+                "text-[10px] font-semibold uppercase tracking-[0.25em] mb-1.5",
+                isLightTemplate ? "text-gray-400" : "text-white/40"
+              )}>
                 Precio por boleto
               </p>
-              <p className="text-6xl sm:text-7xl lg:text-8xl font-black text-white tracking-[-0.05em]">
+              <p className={cn(
+                "text-6xl sm:text-7xl lg:text-8xl font-black tracking-[-0.05em]",
+                isLightTemplate ? "text-gray-900" : "text-white"
+              )}>
                 {formatCurrency(raffle.ticket_price, currency)}
               </p>
             </div>
@@ -341,8 +406,14 @@ export function MobileHero({
 
       {/* Countdown Timer - TIER S Enterprise lottery style */}
       {raffle.draw_date && (
-        <div className="relative py-8 px-5 bg-ultra-dark">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-center mb-5 text-white/40">
+        <div className={cn(
+          "relative py-8 px-5",
+          isLightTemplate ? "bg-white" : "bg-ultra-dark"
+        )}>
+          <p className={cn(
+            "text-xs font-semibold uppercase tracking-[0.25em] text-center mb-5",
+            isLightTemplate ? "text-gray-400" : "text-white/40"
+          )}>
             El sorteo se realizará en
           </p>
           <CountdownTimer 
@@ -353,17 +424,23 @@ export function MobileHero({
       )}
 
       {/* Progress bar - TIER S Minimal emerald */}
-      <div className="relative px-6 py-8 space-y-4 bg-ultra-dark">
+      <div className={cn(
+        "relative px-6 py-8 space-y-4",
+        isLightTemplate ? "bg-white" : "bg-ultra-dark"
+      )}>
         <div className="flex items-center justify-between text-base">
-          <span className="text-white/60">
+          <span className={isLightTemplate ? "text-gray-500" : "text-white/60"}>
             {raffle.ticketsSold.toLocaleString()} de {raffle.total_tickets.toLocaleString()} vendidos
           </span>
-          <span className="font-bold text-emerald-400 text-lg">
+          <span className="font-bold text-emerald-500 text-lg">
             {Math.round(progress)}%
           </span>
         </div>
         
-        <div className="relative h-2.5 rounded-full overflow-hidden bg-white/[0.06]">
+        <div className={cn(
+          "relative h-2.5 rounded-full overflow-hidden",
+          isLightTemplate ? "bg-gray-100" : "bg-white/[0.06]"
+        )}>
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
@@ -372,19 +449,25 @@ export function MobileHero({
           />
         </div>
         
-        <p className="text-base text-center text-white/50">
-          <span className="font-bold text-emerald-400">
+        <p className={cn(
+          "text-base text-center",
+          isLightTemplate ? "text-gray-500" : "text-white/50"
+        )}>
+          <span className="font-bold text-emerald-500">
             {raffle.ticketsAvailable.toLocaleString()}
           </span>
           {' '}boletos disponibles
         </p>
       </div>
 
-      {/* Primary CTA - TIER S White button (inverted) with premium touch feedback */}
-      <div className="relative px-6 py-8 bg-ultra-dark">
+      {/* Primary CTA - TIER S button with premium touch feedback */}
+      <div className={cn(
+        "relative px-6 py-8",
+        isLightTemplate ? "bg-white" : "bg-ultra-dark"
+      )}>
         <motion.div whileTap={{ scale: 0.97 }}>
           <Button
-            variant="inverted"
+            variant={isLightTemplate ? "default" : "inverted"}
             size="lg"
             className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl touch-active btn-mobile tracking-tight"
             onClick={onScrollToTickets}
@@ -400,10 +483,16 @@ export function MobileHero({
           animate={{ y: [0, 5, 0] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
-          <span className="text-xs uppercase tracking-[0.2em] text-white/40">
+          <span className={cn(
+            "text-xs uppercase tracking-[0.2em]",
+            isLightTemplate ? "text-gray-400" : "text-white/40"
+          )}>
             Desliza para ver boletos
           </span>
-          <ChevronDown className="w-5 h-5 mt-1.5 text-white/40" />
+          <ChevronDown className={cn(
+            "w-5 h-5 mt-1.5",
+            isLightTemplate ? "text-gray-400" : "text-white/40"
+          )} />
         </motion.div>
       </div>
     </div>

@@ -65,6 +65,7 @@ interface TemplateHeroLayoutProps {
   onScrollToTickets: () => void;
   onShare: () => void;
   logoPosition?: 'top-left' | 'top-center' | 'top-right';
+  isLightTemplate?: boolean;
 }
 
 export function TemplateHeroLayout({
@@ -82,6 +83,7 @@ export function TemplateHeroLayout({
   onScrollToTickets,
   onShare,
   logoPosition = 'top-center',
+  isLightTemplate = false,
 }: TemplateHeroLayoutProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);

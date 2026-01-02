@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Helmet } from "react-helmet-async";
@@ -40,9 +40,6 @@ interface PublicRaffleProps {
 }
 
 export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) {
-  // Activate dark mode for this page - ensures all design tokens use dark values
-  useScopedDarkMode();
-  
   const { slug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -67,6 +64,20 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
   const isPreviewMode = !publicRaffle && previewRaffle?.isPreviewMode;
   const isLoading = isLoadingPublic || (isLoadingPreview && !publicRaffle && !!user);
   const error = publicError;
+  
+  // Get template early so we can determine light/dark mode
+  const template = getTemplateById((raffle as any)?.template_id);
+  
+  // Detect if template is light based on background color
+  const isLightTemplate = useMemo(() => {
+    const bg = template.colors.background;
+    // White or very light colors (starts with #F, #E, #D, or is white)
+    return bg === '#FFFFFF' || bg === '#ffffff' || /^#[fFeEdD]/.test(bg);
+  }, [template]);
+  
+  // Only activate dark mode for dark templates
+  useScopedDarkMode(!isLightTemplate);
+  
   
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -246,9 +257,7 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
   const orgSlugValue = org?.slug;
   const hasWhatsApp = !!org?.whatsapp_number;
 
-  // Get template styles - use raffle's template_id or default to 'modern'
-  const template = getTemplateById((raffle as any).template_id);
-  
+  // Template already loaded at component top level for dark mode detection
   // Use template colors as primary, org brand color as accent override
   const primaryColor = template.colors.primary;
   const accentColor = template.colors.accent;
@@ -260,9 +269,6 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
   const fontBody = template.fonts.body;
   const borderRadius = template.effects.borderRadius;
   const gradient = template.effects.gradient;
-
-  // Check if template is dark (elegant template)
-  const isDarkTemplate = template.id === 'elegant';
 
   return (
     <>
@@ -285,19 +291,35 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
       )}
 
       <div
-        className={`min-h-screen transition-colors duration-300 bg-ultra-dark relative overflow-hidden ${isPreviewMode ? 'pt-20 sm:pt-16' : ''}`}
+        className={`min-h-screen transition-colors duration-300 relative overflow-hidden ${isPreviewMode ? 'pt-20 sm:pt-16' : ''}`}
         style={{ 
+          backgroundColor: bgColor,
           fontFamily: `"${fontBody}", sans-serif`,
         }}
       >
-        {/* TIER S: Premium animated orbs - 120px blur like Stripe */}
+        {/* Animated orbs - adaptive to light/dark templates */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px] animate-blob" />
-          <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-          <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000" />
-          <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-500/8 rounded-full blur-[120px] animate-blob animation-delay-1000" />
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+          {isLightTemplate ? (
+            <>
+              {/* Light template: soft pastel orbs */}
+              <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-200/40 rounded-full blur-[120px] animate-blob" />
+              <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-200/30 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+              <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-teal-200/30 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+              <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-200/20 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+              {/* Subtle grid for light templates */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </>
+          ) : (
+            <>
+              {/* Dark template: vibrant emerald orbs */}
+              <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px] animate-blob" />
+              <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+              <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+              <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-500/8 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+              {/* Grid pattern overlay for dark templates */}
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+            </>
+          )}
         </div>
         
         <div className="relative z-10">
@@ -327,6 +349,7 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
               }}
               currency={currency}
               logoPosition={customization.logo_position || 'top-left'}
+              isLightTemplate={isLightTemplate}
               onScrollToTickets={scrollToTickets}
               onShare={showShareButtons ? shareRaffle : undefined}
               onImageClick={(index) => {
@@ -348,9 +371,9 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
           </>
         ) : isMobile ? (
           /* Mobile without hero - simple header */
-          <div className="bg-ultra-dark py-8 px-4 border-b border-white/[0.06]">
-            <h1 className="text-2xl font-bold text-white text-center tracking-tight">{raffle.title}</h1>
-            <p className="text-white/50 text-center mt-2">{raffle.prize_name}</p>
+          <div className={`py-8 px-4 border-b ${isLightTemplate ? 'bg-white border-gray-200' : 'bg-ultra-dark border-white/[0.06]'}`}>
+            <h1 className={`text-2xl font-bold text-center tracking-tight ${isLightTemplate ? 'text-gray-900' : 'text-white'}`}>{raffle.title}</h1>
+            <p className={`text-center mt-2 ${isLightTemplate ? 'text-gray-500' : 'text-white/50'}`}>{raffle.prize_name}</p>
           </div>
         ) : null}
         
@@ -390,14 +413,15 @@ export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) 
               logoPosition={customization.logo_position || 'top-center'}
               onScrollToTickets={scrollToTickets}
               onShare={shareRaffle}
+              isLightTemplate={isLightTemplate}
             />
 
             {/* Desktop Countdown */}
             {showCountdown && raffle.draw_date && (
-              <div className="py-12 bg-ultra-dark border-y border-white/[0.06]">
+              <div className={`py-12 border-y ${isLightTemplate ? 'bg-white border-gray-200' : 'bg-ultra-dark border-white/[0.06]'}`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-6">
-                    <p className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] text-white/40">El sorteo se realizará en</p>
+                    <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] ${isLightTemplate ? 'text-gray-400' : 'text-white/40'}`}>El sorteo se realizará en</p>
                   </div>
                   <CountdownTimer targetDate={new Date(raffle.draw_date)} variant="lottery" />
                 </div>

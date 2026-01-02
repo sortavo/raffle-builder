@@ -5,8 +5,10 @@ import { useEffect } from 'react';
  * and restores the previous state when unmounting.
  * This ensures all Shadcn/design-system tokens use dark mode values.
  */
-export function useScopedDarkMode() {
+export function useScopedDarkMode(enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
+    
     const root = document.documentElement;
     const previouslyHadDark = root.classList.contains('dark');
     
@@ -19,5 +21,5 @@ export function useScopedDarkMode() {
         root.classList.remove('dark');
       }
     };
-  }, []);
+  }, [enabled]);
 }
