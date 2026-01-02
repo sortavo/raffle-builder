@@ -1,4 +1,4 @@
-// Updated for production - 2026-01-01
+// Updated for production - 2026-01-02
 import { Toaster } from "@/components/ui/toaster";
 import Settings from "./pages/dashboard/Settings";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -45,6 +45,9 @@ import LogoPreview from "./pages/LogoPreview";
 import ColorPalette from "./components/design-system/ColorPalette";
 import SentryTest from "./pages/SentryTest";
 import Features from "./pages/Features";
+
+// Tenant-aware routing components
+import { TenantAwareOrgOrRaffle, TenantHome, TenantAwarePayment } from "@/components/routing/TenantAwareRouter";
 
 // Admin pages
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -116,7 +119,8 @@ const App = () => (
                   <ScrollToTop />
                   <SimulationBanner />
                   <Routes>
-                  <Route path="/" element={<Index />} />
+                  {/* Root route - tenant-aware */}
+                  <Route path="/" element={<TenantHome />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/dashboard/raffles" element={<RafflesList />} />
@@ -174,8 +178,11 @@ const App = () => (
                   <Route path="/faq" element={<Navigate to="/help" replace />} />
                   <Route path="/contacto" element={<Navigate to="/contact" replace />} />
                   <Route path="/estado" element={<Navigate to="/status" replace />} />
+                  {/* Tenant-aware single-slug routes - handles custom domains */}
+                  <Route path="/:slug/payment" element={<TenantAwarePayment />} />
                   {/* Organization-based public routes - MUST be last before catch-all */}
-                  <Route path="/:orgSlug" element={<OrganizationHome />} />
+                  {/* This handles both org home AND custom domain raffle pages */}
+                  <Route path="/:orgSlug" element={<TenantAwareOrgOrRaffle />} />
                   <Route path="/:orgSlug/:slug" element={<PublicRaffle />} />
                   <Route path="/:orgSlug/:slug/payment" element={<PaymentInstructions />} />
                   <Route path="*" element={<NotFound />} />

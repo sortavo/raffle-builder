@@ -102,11 +102,16 @@ function clearPersistedReservation() {
   }
 }
 
-export default function PaymentInstructions() {
+interface PaymentInstructionsProps {
+  tenantOrgSlug?: string;
+}
+
+export default function PaymentInstructions({ tenantOrgSlug }: PaymentInstructionsProps = {}) {
   // Activate Ultra-Dark theme
   useScopedDarkMode();
   
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+  const effectiveOrgSlug = tenantOrgSlug || paramOrgSlug;
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -142,7 +147,7 @@ export default function PaymentInstructions() {
     clearPersistedReservation();
   }, []);
 
-  const { data: raffle, isLoading: isLoadingRaffle } = usePublicRaffle(slug);
+  const { data: raffle, isLoading: isLoadingRaffle } = usePublicRaffle(slug, effectiveOrgSlug);
   const { data: paymentMethods, isLoading: isLoadingMethods } = usePublicPaymentMethods(raffle?.organization?.id);
   const uploadProof = useUploadPaymentProof();
 
