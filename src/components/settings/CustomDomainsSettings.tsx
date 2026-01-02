@@ -1062,6 +1062,14 @@ export function CustomDomainsSettings() {
               <p className="text-[11px] sm:text-xs text-muted-foreground">
                 No incluyas http:// o www. Solo el dominio base.
               </p>
+              <div className="p-2 sm:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] sm:text-xs text-blue-700 dark:text-blue-400">
+                    <strong>Tip:</strong> El sistema detecta automáticamente si acceden con o sin "www". Solo necesitas agregar una versión.
+                  </p>
+                </div>
+              </div>
               <p className="text-[11px] sm:text-xs text-muted-foreground">
                 ¿No tienes dominio?{" "}
                 <a 
