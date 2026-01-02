@@ -11,6 +11,7 @@ import {
   Palette, Dices, Headphones, HelpCircle
 } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { FEATURE_TOOLTIPS } from '@/lib/feature-tooltips';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
 import { Footer } from '@/components/layout/Footer';
 import { PricingCard, PricingToggle, SocialProofSection, TrustBadges } from '@/components/pricing';
@@ -343,11 +344,11 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Selector visual de números', tooltip: 'Grid interactivo para elegir boletos disponibles en tiempo real', values: [true, true, true, true] },
-                  { feature: 'Números de la suerte', tooltip: 'Genera números basados en cumpleaños o fechas especiales', values: [true, true, true, true] },
-                  { feature: 'Paquetes con bonificación', tooltip: 'Ofrece promociones como compra 2 lleva 3', values: [true, true, true, true] },
-                  { feature: 'Verificador QR 24/7', tooltip: 'Los compradores verifican sus boletos escaneando el código QR', values: [true, true, true, true] },
-                  { feature: 'Historial de ganadores', tooltip: null, values: [false, true, true, true] },
+                  { feature: 'Selector visual de números', tooltip: FEATURE_TOOLTIPS.selectorVisual, values: [true, true, true, true] },
+                  { feature: 'Números de la suerte', tooltip: FEATURE_TOOLTIPS.numerosSuerte, values: [true, true, true, true] },
+                  { feature: 'Paquetes con bonificación', tooltip: FEATURE_TOOLTIPS.paquetesBonificacion, values: [true, true, true, true] },
+                  { feature: 'Verificador QR 24/7', tooltip: FEATURE_TOOLTIPS.verificadorQR, values: [true, true, true, true] },
+                  { feature: 'Historial de ganadores', tooltip: FEATURE_TOOLTIPS.historialGanadores, values: [false, true, true, true] },
                 ].map((item, idx) => (
                   <tr key={`buyer-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
@@ -381,12 +382,12 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Métodos de pago ilimitados', tooltip: 'Agrega transferencias, efectivo, PayPal y más', values: [true, true, true, true] },
-                  { feature: 'Flujo de aprobación de pagos', tooltip: 'Revisa y aprueba comprobantes de pago antes de confirmar', values: [true, true, true, true] },
-                  { feature: 'Recordatorios automáticos', tooltip: 'Envía recordatorios a compradores con pagos pendientes', values: [false, true, true, true] },
-                  { feature: 'Exportación Excel/CSV', tooltip: null, values: [true, true, true, true] },
-                  { feature: 'Reporte financiero PDF', tooltip: 'Genera reportes detallados de ingresos y ventas', values: [false, true, true, true] },
-                  { feature: 'Numeración personalizada', tooltip: 'Configura prefijos, rangos y formatos de boletos', values: [false, true, true, true] },
+                  { feature: 'Métodos de pago ilimitados', tooltip: FEATURE_TOOLTIPS.metodosPago, values: [true, true, true, true] },
+                  { feature: 'Flujo de aprobación de pagos', tooltip: FEATURE_TOOLTIPS.flujoAprobacion, values: [true, true, true, true] },
+                  { feature: 'Recordatorios automáticos', tooltip: FEATURE_TOOLTIPS.recordatorios, values: [false, true, true, true] },
+                  { feature: 'Exportación Excel/CSV', tooltip: FEATURE_TOOLTIPS.exportacionExcel, values: [true, true, true, true] },
+                  { feature: 'Reporte financiero PDF', tooltip: FEATURE_TOOLTIPS.reporteFinanciero, values: [false, true, true, true] },
+                  { feature: 'Numeración personalizada', tooltip: FEATURE_TOOLTIPS.numeracionPersonalizada, values: [false, true, true, true] },
                 ].map((item, idx) => (
                   <tr key={`mgmt-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
@@ -420,10 +421,10 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Plantillas premium', tooltip: null, values: ['1', '6', '6 + CSS', '6 + CSS'] },
-                  { feature: 'Galería de premios', tooltip: 'Sube fotos y videos de los premios del sorteo', values: [true, true, true, true] },
-                  { feature: 'Link de transmisión en vivo', tooltip: 'Comparte el link del sorteo en vivo', values: [false, true, true, true] },
-                  { feature: 'Sin marca Sortavo', tooltip: null, values: [false, true, true, true] },
+                  { feature: 'Plantillas premium', tooltip: FEATURE_TOOLTIPS.plantillasPremium, values: ['1', '6', '6 + CSS', '6 + CSS'] },
+                  { feature: 'Galería de premios', tooltip: FEATURE_TOOLTIPS.galeriaPremios, values: [true, true, true, true] },
+                  { feature: 'Link de transmisión en vivo', tooltip: FEATURE_TOOLTIPS.linkTransmision, values: [false, true, true, true] },
+                  { feature: 'Sin marca Sortavo', tooltip: FEATURE_TOOLTIPS.sinMarca, values: [false, true, true, true] },
                 ].map((item, idx) => (
                   <tr key={`design-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
@@ -465,10 +466,10 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Sorteo manual', tooltip: null, values: [true, true, true, true] },
-                  { feature: 'Método Lotería Nacional', tooltip: 'Usa los últimos dígitos del premio mayor como número ganador', values: [true, true, true, true] },
-                  { feature: 'Sorteo aleatorio seguro', tooltip: 'Utiliza criptografía avanzada para máxima transparencia', values: [true, true, true, true] },
-                  { feature: 'Sorteo automático programado', tooltip: 'Programa el sorteo para que se ejecute automáticamente', values: [false, false, true, true] },
+                  { feature: 'Sorteo manual', tooltip: FEATURE_TOOLTIPS.sorteoManual, values: [true, true, true, true] },
+                  { feature: 'Método Lotería Nacional', tooltip: FEATURE_TOOLTIPS.metodoLoteria, values: [true, true, true, true] },
+                  { feature: 'Sorteo aleatorio seguro', tooltip: FEATURE_TOOLTIPS.sorteoAleatorio, values: [true, true, true, true] },
+                  { feature: 'Sorteo automático programado', tooltip: FEATURE_TOOLTIPS.sorteoAutomatico, values: [false, false, true, true] },
                 ].map((item, idx) => (
                   <tr key={`draw-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
@@ -502,8 +503,8 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Bot Telegram bidireccional', tooltip: 'Compradores y organizadores reciben notificaciones vía Telegram', values: [false, false, true, true] },
-                  { feature: 'Notificaciones en tiempo real', tooltip: null, values: [true, true, true, true] },
+                  { feature: 'Bot Telegram bidireccional', tooltip: FEATURE_TOOLTIPS.botTelegram, values: [false, false, true, true] },
+                  { feature: 'Notificaciones en tiempo real', tooltip: FEATURE_TOOLTIPS.notificacionesTiempoReal, values: [true, true, true, true] },
                 ].map((item, idx) => (
                   <tr key={`integ-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
@@ -537,10 +538,10 @@ export default function Pricing() {
                   </td>
                 </tr>
                 {[
-                  { feature: 'Soporte por email', tooltip: null, values: [true, true, true, true] },
-                  { feature: 'Soporte WhatsApp', tooltip: null, values: [false, true, true, true] },
-                  { feature: 'Account Manager dedicado', tooltip: null, values: [false, false, true, true] },
-                  { feature: 'SLA 99.9%', tooltip: null, values: [false, false, false, true] },
+                  { feature: 'Soporte por email', tooltip: FEATURE_TOOLTIPS.soporteEmail, values: [true, true, true, true] },
+                  { feature: 'Soporte WhatsApp', tooltip: FEATURE_TOOLTIPS.soporteWhatsApp, values: [false, true, true, true] },
+                  { feature: 'Account Manager dedicado', tooltip: FEATURE_TOOLTIPS.accountManager, values: [false, false, true, true] },
+                  { feature: 'SLA 99.9%', tooltip: FEATURE_TOOLTIPS.sla, values: [false, false, false, true] },
                 ].map((item, idx) => (
                   <tr key={`support-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">

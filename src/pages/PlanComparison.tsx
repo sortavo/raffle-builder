@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Footer } from '@/components/layout/Footer';
+import { FEATURE_TOOLTIPS } from '@/lib/feature-tooltips';
 import { STRIPE_PLANS } from '@/lib/stripe-config';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
@@ -30,7 +31,7 @@ const featureCategories = [
     features: [
       {
         name: 'Sorteos activos simultáneos',
-        tooltip: 'Número de sorteos que puedes tener publicados y vendiendo al mismo tiempo.',
+        tooltip: FEATURE_TOOLTIPS.sorteosActivos,
         basic: '2',
         pro: '7',
         premium: '15',
@@ -38,7 +39,7 @@ const featureCategories = [
       },
       {
         name: 'Boletos por sorteo',
-        tooltip: 'Cantidad máxima de boletos que puedes crear para cada sorteo.',
+        tooltip: FEATURE_TOOLTIPS.boletosPorSorteo,
         basic: '2,000',
         pro: '30,000',
         premium: '100,000',
@@ -46,7 +47,7 @@ const featureCategories = [
       },
       {
         name: 'Dominios personalizados',
-        tooltip: 'Usa tu propio dominio (ej: sorteos.tuempresa.com) en lugar de sortavo.com.',
+        tooltip: FEATURE_TOOLTIPS.dominiosPersonalizados,
         basic: false,
         pro: '3',
         premium: '10',
@@ -59,7 +60,7 @@ const featureCategories = [
     features: [
       {
         name: 'Selector visual de números',
-        tooltip: 'Interfaz visual interactiva para que los compradores seleccionen sus boletos.',
+        tooltip: FEATURE_TOOLTIPS.selectorVisual,
         basic: true,
         pro: true,
         premium: true,
@@ -67,7 +68,7 @@ const featureCategories = [
       },
       {
         name: 'Números de la suerte',
-        tooltip: 'Genera números basados en tu cumpleaños o fechas especiales.',
+        tooltip: FEATURE_TOOLTIPS.numerosSuerte,
         basic: true,
         pro: true,
         premium: true,
@@ -75,7 +76,7 @@ const featureCategories = [
       },
       {
         name: 'Paquetes con bonificación',
-        tooltip: 'Ofrece promociones como compra 2 lleva 3 para incentivar compras mayores.',
+        tooltip: FEATURE_TOOLTIPS.paquetesBonificacion,
         basic: true,
         pro: true,
         premium: true,
@@ -83,7 +84,7 @@ const featureCategories = [
       },
       {
         name: 'Verificador QR 24/7',
-        tooltip: 'Los compradores pueden verificar sus boletos escaneando el código QR en cualquier momento.',
+        tooltip: FEATURE_TOOLTIPS.verificadorQR,
         basic: true,
         pro: true,
         premium: true,
@@ -91,7 +92,7 @@ const featureCategories = [
       },
       {
         name: 'Historial de ganadores',
-        tooltip: 'Muestra los ganadores anteriores en la página pública para generar confianza.',
+        tooltip: FEATURE_TOOLTIPS.historialGanadores,
         basic: false,
         pro: true,
         premium: true,
@@ -104,7 +105,7 @@ const featureCategories = [
     features: [
       {
         name: 'Métodos de pago ilimitados',
-        tooltip: 'Acepta transferencias bancarias, OXXO, PayPal y más sin límite.',
+        tooltip: FEATURE_TOOLTIPS.metodosPago,
         basic: true,
         pro: true,
         premium: true,
@@ -112,7 +113,7 @@ const featureCategories = [
       },
       {
         name: 'Flujo de aprobación de pagos',
-        tooltip: 'Sistema para revisar y aprobar comprobantes de pago manualmente.',
+        tooltip: FEATURE_TOOLTIPS.flujoAprobacion,
         basic: true,
         pro: true,
         premium: true,
@@ -120,7 +121,7 @@ const featureCategories = [
       },
       {
         name: 'Recordatorios automáticos',
-        tooltip: 'Envía recordatorios automáticos a compradores con pagos pendientes.',
+        tooltip: FEATURE_TOOLTIPS.recordatorios,
         basic: false,
         pro: true,
         premium: true,
@@ -128,7 +129,7 @@ const featureCategories = [
       },
       {
         name: 'Exportación Excel/CSV',
-        tooltip: 'Descarga listas de boletos, compradores y ventas en formato Excel o CSV.',
+        tooltip: FEATURE_TOOLTIPS.exportacionExcel,
         basic: true,
         pro: true,
         premium: true,
@@ -136,7 +137,7 @@ const featureCategories = [
       },
       {
         name: 'Reporte financiero PDF',
-        tooltip: 'Genera reportes financieros profesionales en formato PDF.',
+        tooltip: FEATURE_TOOLTIPS.reporteFinanciero,
         basic: false,
         pro: true,
         premium: true,
@@ -144,7 +145,7 @@ const featureCategories = [
       },
       {
         name: 'Numeración personalizada',
-        tooltip: 'Personaliza el formato de numeración de tus boletos (prefijos, rangos, etc.).',
+        tooltip: FEATURE_TOOLTIPS.numeracionPersonalizada,
         basic: false,
         pro: true,
         premium: true,
@@ -157,7 +158,7 @@ const featureCategories = [
     features: [
       {
         name: 'Plantillas premium',
-        tooltip: 'Temas visuales profesionales prediseñados para la página pública de tu sorteo.',
+        tooltip: FEATURE_TOOLTIPS.plantillasPremium,
         basic: '1',
         pro: '6',
         premium: '6 + CSS',
@@ -165,7 +166,7 @@ const featureCategories = [
       },
       {
         name: 'Galería de premios',
-        tooltip: 'Muestra fotos y videos de tus premios en una galería atractiva.',
+        tooltip: FEATURE_TOOLTIPS.galeriaPremios,
         basic: true,
         pro: true,
         premium: true,
@@ -173,7 +174,7 @@ const featureCategories = [
       },
       {
         name: 'Link de transmisión en vivo',
-        tooltip: 'Agrega el enlace de tu transmisión en vivo para el día del sorteo.',
+        tooltip: FEATURE_TOOLTIPS.linkTransmision,
         basic: false,
         pro: true,
         premium: true,
@@ -181,7 +182,7 @@ const featureCategories = [
       },
       {
         name: 'Sin marca Sortavo',
-        tooltip: 'Remueve el logo y enlaces de Sortavo de tu página de sorteo.',
+        tooltip: FEATURE_TOOLTIPS.sinMarca,
         basic: false,
         pro: true,
         premium: true,
@@ -194,7 +195,7 @@ const featureCategories = [
     features: [
       {
         name: 'Sorteo manual',
-        tooltip: 'Selecciona el ganador manualmente desde tu dashboard.',
+        tooltip: FEATURE_TOOLTIPS.sorteoManual,
         basic: true,
         pro: true,
         premium: true,
@@ -202,7 +203,7 @@ const featureCategories = [
       },
       {
         name: 'Método Lotería Nacional',
-        tooltip: 'Usa los últimos dígitos del premio mayor de la Lotería Nacional como número ganador.',
+        tooltip: FEATURE_TOOLTIPS.metodoLoteria,
         basic: true,
         pro: true,
         premium: true,
@@ -210,7 +211,7 @@ const featureCategories = [
       },
       {
         name: 'Sorteo aleatorio seguro',
-        tooltip: 'Utiliza criptografía avanzada para selección aleatoria con máxima transparencia.',
+        tooltip: FEATURE_TOOLTIPS.sorteoAleatorio,
         basic: true,
         pro: true,
         premium: true,
@@ -218,7 +219,7 @@ const featureCategories = [
       },
       {
         name: 'Sorteo automático programado',
-        tooltip: 'Programa el sorteo para que se ejecute automáticamente en la fecha indicada.',
+        tooltip: FEATURE_TOOLTIPS.sorteoAutomatico,
         basic: false,
         pro: false,
         premium: true,
@@ -231,7 +232,7 @@ const featureCategories = [
     features: [
       {
         name: 'Bot Telegram bidireccional',
-        tooltip: 'Compradores y organizadores reciben notificaciones en tiempo real vía Telegram.',
+        tooltip: FEATURE_TOOLTIPS.botTelegram,
         basic: false,
         pro: false,
         premium: true,
@@ -239,7 +240,7 @@ const featureCategories = [
       },
       {
         name: 'Notificaciones en tiempo real',
-        tooltip: 'Recibe alertas instantáneas de reservaciones, pagos y eventos importantes.',
+        tooltip: FEATURE_TOOLTIPS.notificacionesTiempoReal,
         basic: true,
         pro: true,
         premium: true,
@@ -252,7 +253,7 @@ const featureCategories = [
     features: [
       {
         name: 'Soporte por email',
-        tooltip: 'Recibe ayuda por correo electrónico para resolver tus dudas.',
+        tooltip: FEATURE_TOOLTIPS.soporteEmail,
         basic: true,
         pro: true,
         premium: true,
@@ -260,7 +261,7 @@ const featureCategories = [
       },
       {
         name: 'Soporte WhatsApp',
-        tooltip: 'Contacto directo por WhatsApp para atención más rápida.',
+        tooltip: FEATURE_TOOLTIPS.soporteWhatsApp,
         basic: false,
         pro: true,
         premium: true,
@@ -268,7 +269,7 @@ const featureCategories = [
       },
       {
         name: 'Account Manager dedicado',
-        tooltip: 'Un ejecutivo de cuenta asignado exclusivamente a tu organización.',
+        tooltip: FEATURE_TOOLTIPS.accountManager,
         basic: false,
         pro: false,
         premium: true,
@@ -276,7 +277,7 @@ const featureCategories = [
       },
       {
         name: 'SLA 99.9%',
-        tooltip: 'Acuerdo de nivel de servicio con garantía de disponibilidad del 99.9%.',
+        tooltip: FEATURE_TOOLTIPS.sla,
         basic: false,
         pro: false,
         premium: false,
