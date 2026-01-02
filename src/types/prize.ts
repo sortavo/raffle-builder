@@ -3,6 +3,7 @@ export interface Prize {
   name: string;
   value?: number | null;
   currency?: string | null;
+  scheduled_draw_date?: string | null;
 }
 
 export type PrizeDisplayMode = 'hierarchical' | 'equal' | 'numbered';
@@ -18,6 +19,7 @@ export const createEmptyPrize = (): Prize => ({
   name: '',
   value: null,
   currency: null,
+  scheduled_draw_date: null,
 });
 
 export const parsePrizes = (prizes: unknown, fallbackName?: string, fallbackValue?: number | null): Prize[] => {
@@ -27,6 +29,7 @@ export const parsePrizes = (prizes: unknown, fallbackName?: string, fallbackValu
       name: p.name || '',
       value: p.value ?? null,
       currency: p.currency ?? null,
+      scheduled_draw_date: p.scheduled_draw_date ?? null,
     }));
   }
   
@@ -36,14 +39,16 @@ export const parsePrizes = (prizes: unknown, fallbackName?: string, fallbackValu
     name: fallbackName || '',
     value: fallbackValue ?? null,
     currency: null,
+    scheduled_draw_date: null,
   }];
 };
 
-export const serializePrizes = (prizes: Prize[]): Array<{ id: string; name: string; value: number | null; currency: string | null }> => {
+export const serializePrizes = (prizes: Prize[]): Array<{ id: string; name: string; value: number | null; currency: string | null; scheduled_draw_date: string | null }> => {
   return prizes.map(p => ({
     id: p.id,
     name: p.name.trim(),
     value: p.value || null,
     currency: p.currency || null,
+    scheduled_draw_date: p.scheduled_draw_date || null,
   }));
 };
