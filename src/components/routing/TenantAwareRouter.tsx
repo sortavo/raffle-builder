@@ -14,7 +14,8 @@ import Index from "@/pages/Index";
  * - Main domain (e.g., sortavo.com/rifasmanolormz): slug is an orgSlug
  */
 export function TenantAwareOrgOrRaffle() {
-  const { slug } = useParams<{ slug: string }>();
+  // Route is /:orgSlug, so the param is named "orgSlug"
+  const { orgSlug } = useParams<{ orgSlug: string }>();
   const { tenant, isLoading } = useTenant();
 
   if (isLoading) {
@@ -25,12 +26,14 @@ export function TenantAwareOrgOrRaffle() {
     );
   }
 
-  // If tenant detected from custom domain, treat slug as raffleSlug
+  // If tenant detected from custom domain:
+  // - orgSlug IS the raffleSlug (e.g., "reyestech")
+  // - tenant.slug IS the orgSlug (e.g., "rifasmanolormz")
   if (tenant) {
-    return <PublicRaffle tenantOrgSlug={tenant.slug} />;
+    return <PublicRaffle tenantOrgSlug={tenant.slug} raffleSlugOverride={orgSlug} />;
   }
 
-  // Otherwise, slug is an orgSlug (normal Sortavo behavior)
+  // Otherwise, orgSlug is really an orgSlug (normal Sortavo behavior)
   return <OrganizationHome />;
 }
 
@@ -67,6 +70,7 @@ export function TenantHome() {
  * - Main domain: Use standard /:orgSlug/:slug/payment pattern
  */
 export function TenantAwarePayment() {
+  // Route is /:slug/payment, so the param is the raffleSlug
   const { slug } = useParams<{ slug: string }>();
   const { tenant, isLoading } = useTenant();
 
@@ -80,7 +84,7 @@ export function TenantAwarePayment() {
 
   // If tenant detected from custom domain, we're at /:raffleSlug/payment
   if (tenant) {
-    return <PaymentInstructions tenantOrgSlug={tenant.slug} />;
+    return <PaymentInstructions tenantOrgSlug={tenant.slug} raffleSlugOverride={slug} />;
   }
 
   // Otherwise, this route shouldn't exist (use /:orgSlug/:slug/payment)
