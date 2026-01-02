@@ -54,6 +54,7 @@ interface TicketSelectorProps {
   ticketPrice: number;
   currencyCode: string;
   maxPerPurchase: number;
+  minPerPurchase?: number;
   packages: Package[];
   onContinue: (tickets: string[]) => void;
   // Feature toggles
@@ -71,6 +72,7 @@ export function TicketSelector({
   ticketPrice,
   currencyCode,
   maxPerPurchase,
+  minPerPurchase = 1,
   packages,
   onContinue,
   showRandomPicker = true,
@@ -500,6 +502,14 @@ export function TicketSelector({
     return selectedTickets.length * ticketPrice;
   };
 
+  const handleContinue = () => {
+    if (selectedTickets.length < minPerPurchase) {
+      toast.warning(`Debes seleccionar al menos ${minPerPurchase} boleto${minPerPurchase > 1 ? 's' : ''}`);
+      return;
+    }
+    onContinue(selectedTickets);
+  };
+
   const bestPackage = packages.reduce((best, pkg) => {
     if (!best || (pkg.discount_percent || 0) > (best.discount_percent || 0)) {
       return pkg;
@@ -821,7 +831,7 @@ export function TicketSelector({
                       <Button
                         size="lg"
                         className="bg-white text-[#030712] hover:bg-white/90 font-semibold shadow-lg"
-                        onClick={() => onContinue(selectedTickets)}
+                        onClick={handleContinue}
                       >
                         {formatCurrency(calculateTotal(), currencyCode)}
                         <ArrowRight className="w-5 h-5 ml-2" />
@@ -1345,7 +1355,7 @@ export function TicketSelector({
         total={calculateTotal()}
         currency={currencyCode}
         selectedTickets={selectedTickets}
-        onContinue={() => onContinue(selectedTickets)}
+        onContinue={handleContinue}
         onClear={handleClearSelection}
       />
     </div>

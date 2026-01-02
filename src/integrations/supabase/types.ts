@@ -902,6 +902,7 @@ export type Database = {
           lucky_numbers_enabled: boolean | null
           max_tickets_per_person: number | null
           max_tickets_per_purchase: number | null
+          min_tickets_per_purchase: number | null
           numbering_config: Json | null
           organization_id: string
           prize_display_mode: string | null
@@ -947,6 +948,7 @@ export type Database = {
           lucky_numbers_enabled?: boolean | null
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
+          min_tickets_per_purchase?: number | null
           numbering_config?: Json | null
           organization_id: string
           prize_display_mode?: string | null
@@ -992,6 +994,7 @@ export type Database = {
           lucky_numbers_enabled?: boolean | null
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
+          min_tickets_per_purchase?: number | null
           numbering_config?: Json | null
           organization_id?: string
           prize_display_mode?: string | null
