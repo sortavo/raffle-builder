@@ -48,17 +48,17 @@ export interface RaffleWithStats extends Raffle {
   }[];
 }
 
-export function usePublicRaffle(slug: string | undefined) {
+export function usePublicRaffle(slug: string | undefined, orgSlug?: string) {
   return useQuery({
-    queryKey: ['public-raffle', slug],
+    queryKey: ['public-raffle', slug, orgSlug],
     queryFn: async (): Promise<RaffleWithStats | null> => {
       if (!slug) return null;
 
-      const { data: raffle, error } = await supabase
+      let query = supabase
         .from('raffles')
         .select(`
           *,
-          organizations (
+          organizations!inner (
             id, name, logo_url, phone, email, brand_color, slug,
             description, whatsapp_number, facebook_url, instagram_url,
             tiktok_url, website_url, city, verified, created_at,
@@ -67,8 +67,14 @@ export function usePublicRaffle(slug: string | undefined) {
           )
         `)
         .eq('slug', slug)
-        .eq('status', 'active')
-        .maybeSingle();
+        .eq('status', 'active');
+
+      // If orgSlug provided, filter by organization slug
+      if (orgSlug) {
+        query = query.eq('organizations.slug', orgSlug);
+      }
+
+      const { data: raffle, error } = await query.maybeSingle();
 
       if (error) throw error;
       if (!raffle) return null;

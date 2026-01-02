@@ -35,19 +35,26 @@ import { PrizeLightbox } from "@/components/raffle/public/PrizeLightbox";
 import { ContactSection } from "@/components/raffle/public/ContactSection";
 import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 
-export default function PublicRaffle() {
+interface PublicRaffleProps {
+  tenantOrgSlug?: string;
+}
+
+export default function PublicRaffle({ tenantOrgSlug }: PublicRaffleProps = {}) {
   // Activate dark mode for this page - ensures all design tokens use dark values
   useScopedDarkMode();
   
-  const { slug, orgSlug } = useParams<{ slug: string; orgSlug?: string }>();
+  const { slug, orgSlug: paramOrgSlug } = useParams<{ slug: string; orgSlug?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const ticketsRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
-  // Try to load active raffle first
-  const { data: publicRaffle, isLoading: isLoadingPublic, error: publicError } = usePublicRaffle(slug);
+  // Use tenant org slug if provided (custom domain), otherwise use route param
+  const effectiveOrgSlug = tenantOrgSlug || paramOrgSlug;
+  
+  // Try to load active raffle first, with optional org filter
+  const { data: publicRaffle, isLoading: isLoadingPublic, error: publicError } = usePublicRaffle(slug, effectiveOrgSlug);
   
   // If no active raffle found and user is authenticated, try preview mode
   const { 
@@ -80,8 +87,8 @@ export default function PublicRaffle() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Detect if we're coming from organization route
-  const isFromOrganization = !!orgSlug;
+  // Detect if we're coming from organization route (via URL param or tenant)
+  const isFromOrganization = !!effectiveOrgSlug;
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -140,9 +147,13 @@ export default function PublicRaffle() {
   ) => {
     setCheckoutOpen(false);
     // Navigate to payment page, preserving organization context
-    const paymentPath = isFromOrganization 
-      ? `/${orgSlug}/${slug}/payment`
-      : `/r/${slug}/payment`;
+    // For tenant (custom domain), use just /:slug/payment
+    // For org route on main domain, use /:orgSlug/:slug/payment
+    const paymentPath = tenantOrgSlug 
+      ? `/${slug}/payment`
+      : isFromOrganization 
+        ? `/${effectiveOrgSlug}/${slug}/payment`
+        : `/r/${slug}/payment`;
     navigate(paymentPath, {
       state: { tickets, reservedUntil, raffleId: raffle?.id, buyerName: buyerData.name, buyerEmail: buyerData.email, totalAmount, referenceCode },
     });

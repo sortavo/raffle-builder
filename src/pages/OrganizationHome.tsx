@@ -47,8 +47,13 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-export default function OrganizationHome() {
-  const { orgSlug } = useParams<{ orgSlug: string }>();
+interface OrganizationHomeProps {
+  orgSlugOverride?: string;
+}
+
+export default function OrganizationHome({ orgSlugOverride }: OrganizationHomeProps = {}) {
+  const { orgSlug: paramSlug } = useParams<{ orgSlug: string }>();
+  const orgSlug = orgSlugOverride || paramSlug;
   const { data: organization, isLoading, error } = useOrganizationBySlug(orgSlug);
   
   // Enable dark mode for this page
