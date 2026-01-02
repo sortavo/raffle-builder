@@ -250,46 +250,46 @@ export function BuyersTab({
       <div className="space-y-3 sm:space-y-4">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 min-w-0">
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Ingresos</span>
+          <Card className="overflow-hidden">
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 mb-0.5 sm:mb-0" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Ingresos</span>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-0.5 truncate tabular-nums">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums">
                 {formatCurrency(summaryStats.totalRevenue, currencyCode)}
               </p>
             </CardContent>
           </Card>
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Promedio</span>
+          <Card className="overflow-hidden">
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mb-0.5 sm:mb-0" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Promedio</span>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-0.5 truncate tabular-nums">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums">
                 {formatCurrency(summaryStats.avgPerBuyer, currencyCode)}
               </p>
             </CardContent>
           </Card>
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 shrink-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Pendientes</span>
+          <Card className="overflow-hidden">
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 mb-0.5 sm:mb-0" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Pendientes</span>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-0.5">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1">
                 {summaryStats.pendingCount}
               </p>
             </CardContent>
           </Card>
-          <Card className="min-w-0 overflow-hidden">
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 shrink-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Confirmados</span>
+          <Card className="overflow-hidden">
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 mb-0.5 sm:mb-0" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Confirmados</span>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-0.5">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1">
                 {summaryStats.confirmedCount}
               </p>
             </CardContent>
