@@ -135,25 +135,30 @@ export function PhoneInputWithCountry({
   const displayEntries = entries.length === 0 ? [] : entries;
 
   return (
-    <div className="space-y-3">
+    // ✅ AJUSTADO: Spacing responsive
+    <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="flex items-center gap-1.5">
+        {/* ✅ AJUSTADO: Label con typography responsive */}
+        <Label className="flex items-center gap-1.5 text-xs sm:text-sm">
           {icon}
           {label}
         </Label>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] sm:text-xs text-muted-foreground">
           {values.filter(v => v.trim()).length}/{maxItems}
         </span>
       </div>
 
-      <div className="space-y-2">
+      {/* ✅ AJUSTADO: Gap responsive entre inputs */}
+      <div className="space-y-1.5 sm:space-y-2">
         {displayEntries.map((entry, index) => (
-          <div key={index} className="flex gap-2">
+          // ✅ AJUSTADO: Gap responsive en cada fila
+          <div key={index} className="flex gap-1.5 sm:gap-2">
             <Select
               value={entry.countryCode}
               onValueChange={(value) => handleCountryChange(index, value)}
             >
-              <SelectTrigger className="w-[100px] shrink-0">
+              {/* ✅ AJUSTADO: SelectTrigger responsive */}
+              <SelectTrigger className="w-[80px] sm:w-[100px] shrink-0 h-9 sm:h-10 text-xs sm:text-sm">
                 <SelectValue>
                   {COUNTRY_CODES.find(c => c.code === entry.countryCode)?.flag || "🌍"} {entry.countryCode}
                 </SelectValue>
@@ -168,32 +173,32 @@ export function PhoneInputWithCountry({
                     <span className="flex items-center gap-2">
                       <span>{country.flag}</span>
                       <span>{country.code}</span>
-                      <span className="text-muted-foreground text-xs">{country.name}</span>
+                      <span className="text-muted-foreground text-xs hidden sm:inline">{country.name}</span>
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 min-w-0 space-y-1">
               <Input
                 type="tel"
                 value={formatDisplayNumber(entry.number)}
                 onChange={(e) => handleNumberChange(index, e.target.value)}
                 placeholder="55 1234 5678"
-                className={showValidation && isIncompleteNumber(entry.number) ? "border-destructive" : ""}
+                className={`h-9 sm:h-10 text-sm ${showValidation && isIncompleteNumber(entry.number) ? "border-destructive" : ""}`}
               />
               {showValidation && isIncompleteNumber(entry.number) && (
-                <p className="text-xs text-destructive">
+                <p className="text-[10px] sm:text-xs text-destructive">
                   El número debe tener 10 dígitos ({entry.number.length}/10)
                 </p>
               )}
             </div>
+            {/* ✅ AJUSTADO: Botón delete con h-9 w-9 */}
             <Button
               type="button"
               variant="ghost"
-              size="icon"
               onClick={() => handleRemove(index)}
-              className="shrink-0 text-muted-foreground hover:text-destructive"
+              className="h-9 w-9 min-w-[36px] shrink-0 p-0 text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -205,13 +210,13 @@ export function PhoneInputWithCountry({
         <p className="text-xs text-muted-foreground">{helperText}</p>
       )}
 
+      {/* ✅ AJUSTADO: Botón agregar con h-9 */}
       <Button
         type="button"
         variant="outline"
-        size="sm"
         onClick={handleAdd}
         disabled={values.length >= maxItems}
-        className="w-full"
+        className="w-full h-9 min-w-[44px] text-xs sm:text-sm"
       >
         <Plus className="h-4 w-4 mr-1" />
         Agregar {label.toLowerCase()}

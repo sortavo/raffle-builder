@@ -87,7 +87,8 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative group h-24 w-32 rounded-lg overflow-hidden border-2 border-border bg-muted flex-shrink-0",
+        // ✅ AJUSTADO: Thumbnails responsive
+        "relative group h-20 w-24 sm:h-24 sm:w-32 rounded-lg overflow-hidden border-2 border-border bg-muted flex-shrink-0",
         isDragging && "opacity-50 ring-2 ring-primary"
       )}
     >
@@ -99,7 +100,7 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
             className="w-full h-full object-cover" 
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Play className="h-8 w-8 text-white fill-white" />
+            <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
           </div>
         </div>
       ) : item.type === "vimeo" && vimeoId ? (
@@ -114,14 +115,14 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
             }}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Play className="h-8 w-8 text-white fill-white" />
+            <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
           </div>
         </div>
       ) : item.type === "video" ? (
         <div className="relative w-full h-full">
           <video src={item.url} className="w-full h-full object-cover" muted />
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Play className="h-8 w-8 text-white fill-white" />
+            <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
           </div>
         </div>
       ) : (
@@ -129,15 +130,15 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
       )}
       
       {/* Type badge */}
-      <div className="absolute top-1 left-1 bg-black/60 rounded px-1.5 py-0.5 flex items-center gap-1">
+      <div className="absolute top-1 left-1 bg-black/60 rounded px-1 sm:px-1.5 py-0.5 flex items-center gap-1">
         {item.type === "youtube" ? (
-          <Youtube className="h-3 w-3 text-red-500" />
+          <Youtube className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-500" />
         ) : item.type === "vimeo" ? (
-          <Video className="h-3 w-3 text-[#1ab7ea]" />
+          <Video className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-[#1ab7ea]" />
         ) : item.type === "video" ? (
-          <Film className="h-3 w-3 text-white" />
+          <Film className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
         ) : (
-          <ImageIcon className="h-3 w-3 text-white" />
+          <ImageIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
         )}
       </div>
       
@@ -147,7 +148,7 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
         {...listeners}
         className="absolute top-1 right-7 bg-black/60 rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
       >
-        <GripVertical className="h-3 w-3 text-white" />
+        <GripVertical className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
       </button>
       
       {/* Remove button */}
@@ -155,7 +156,7 @@ function SortableMediaItem({ item, onRemove }: SortableMediaItemProps) {
         onClick={onRemove}
         className="absolute top-1 right-1 bg-destructive rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
       >
-        <X className="h-3 w-3 text-white" />
+        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
       </button>
     </div>
   );
@@ -314,8 +315,10 @@ export function CoverMediaUploader({
   }, [media, onChange, organizationId, maxItems]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-4 overflow-x-auto pb-2">
+    // ✅ AJUSTADO: Spacing responsive
+    <div className="space-y-2 sm:space-y-3">
+      {/* ✅ AJUSTADO: Gap responsive y scroll container */}
+      <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto pb-2 -mx-1 px-1">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -337,19 +340,19 @@ export function CoverMediaUploader({
 
         {media.length < maxItems && (
           <div className="flex gap-2 flex-shrink-0">
-            {/* Upload file button */}
+            {/* ✅ AJUSTADO: Botones de subida responsive */}
             <label
               className={cn(
-                "h-24 w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary/50 hover:bg-muted transition-colors",
+                "h-20 w-20 sm:h-24 sm:w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary/50 hover:bg-muted transition-colors",
                 isUploading && "pointer-events-none opacity-50"
               )}
             >
               {isUploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" />
               ) : (
                 <>
-                  <Upload className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground text-center">Subir archivo</span>
+                  <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center px-1">Subir archivo</span>
                 </>
               )}
               <input
@@ -367,15 +370,15 @@ export function CoverMediaUploader({
               type="button"
               onClick={() => setShowVideoInput(!showVideoInput)}
               className={cn(
-                "h-24 w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-muted transition-colors",
+                "h-20 w-20 sm:h-24 sm:w-24 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-primary/50 hover:bg-muted transition-colors",
                 showVideoInput && "border-primary bg-primary/10"
               )}
             >
               <div className="flex items-center gap-1">
-                <Youtube className="h-4 w-4 text-red-500" />
-                <Video className="h-4 w-4 text-[#1ab7ea]" />
+                <Youtube className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+                <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#1ab7ea]" />
               </div>
-              <span className="text-[10px] text-muted-foreground">YouTube/Vimeo</span>
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground">YouTube/Vimeo</span>
             </button>
           </div>
         )}
@@ -383,13 +386,14 @@ export function CoverMediaUploader({
 
       {/* Video URL input */}
       {showVideoInput && (
-        <div className="flex gap-2">
+        // ✅ AJUSTADO: Layout responsive para input de video
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             type="url"
             placeholder="https://youtube.com/... o https://vimeo.com/..."
             value={videoUrl}
             onChange={(e) => setVideoUrl(e.target.value)}
-            className="flex-1"
+            className="flex-1 h-9 sm:h-10 text-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -397,11 +401,12 @@ export function CoverMediaUploader({
               }
             }}
           />
+          {/* ✅ AJUSTADO: Botón con h-9 */}
           <Button 
             type="button" 
-            size="sm" 
             onClick={handleAddVideo}
             disabled={!videoUrl.trim()}
+            className="h-9 min-w-[44px] w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-1" />
             Agregar
@@ -409,7 +414,7 @@ export function CoverMediaUploader({
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[10px] sm:text-xs text-muted-foreground">
         Arrastra para reordenar. Máximo {maxItems} medios. Imágenes: JPG, PNG, GIF, WebP (máx 5MB). Videos: MP4, WebM (máx 50MB), YouTube o Vimeo.
       </p>
     </div>

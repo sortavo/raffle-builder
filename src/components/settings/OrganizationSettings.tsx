@@ -315,31 +315,35 @@ export function OrganizationSettings() {
   };
 
   return (
-    <div className="space-y-6">
+    // ✅ AJUSTADO: Spacing global consistente
+    <div className="space-y-4 sm:space-y-6">
       {/* Logo & Cover Section */}
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Imágenes de la Organización</CardTitle>
-          <CardDescription>
+        {/* ✅ AJUSTADO: Card Header con typography responsive */}
+        <CardHeader className="p-3 sm:p-4 lg:p-6 pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold">Imágenes de la Organización</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Logo y portada que aparecerán en tu página pública
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        {/* ✅ AJUSTADO: Card Content padding responsive */}
+        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-4 sm:space-y-6">
           {/* Logo */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-            <Avatar className="h-24 w-24 ring-2 ring-border/50 ring-offset-2 ring-offset-background shrink-0">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-2 ring-border/50 ring-offset-2 ring-offset-background shrink-0">
               <AvatarImage src={organization?.logo_url || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                <Building2 className="h-10 w-10" />
+              <AvatarFallback className="bg-primary/10 text-primary text-xl sm:text-2xl">
+                <Building2 className="h-8 w-8 sm:h-10 sm:w-10" />
               </AvatarFallback>
             </Avatar>
-            <div className="space-y-2 text-center sm:text-left">
-              <Label className="text-sm font-medium">Logo</Label>
+            <div className="space-y-2 text-center sm:text-left w-full sm:w-auto">
+              <Label className="text-xs sm:text-sm font-medium">Logo</Label>
+              {/* ✅ AJUSTADO: Botón con h-9 y min-w-[44px] */}
               <Button
                 variant="outline"
                 disabled={isUploadingLogo}
                 onClick={() => document.getElementById("logo-upload")?.click()}
-                className="shadow-sm w-full sm:w-auto"
+                className="shadow-sm w-full sm:w-auto h-9 min-w-[44px] px-3"
               >
                 {isUploadingLogo ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -362,9 +366,9 @@ export function OrganizationSettings() {
           </div>
 
           {/* Cover Media (Multiple Images/Videos) */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Medios de Portada</Label>
-            <p className="text-xs text-muted-foreground mb-2">
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-xs sm:text-sm font-medium">Medios de Portada</Label>
+            <p className="text-xs text-muted-foreground">
               Agrega imágenes y videos que se mostrarán como slideshow en tu página pública
             </p>
             {organization?.id && (
@@ -381,61 +385,68 @@ export function OrganizationSettings() {
 
       {/* Organization Details */}
       <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Información de la Organización</CardTitle>
-          <CardDescription>
+        {/* ✅ AJUSTADO: Card Header con typography responsive */}
+        <CardHeader className="p-3 sm:p-4 lg:p-6 pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg font-semibold">Información de la Organización</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Datos básicos de tu organización
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la Organización</Label>
+        {/* ✅ AJUSTADO: Card Content padding responsive */}
+        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
+            {/* ✅ AJUSTADO: Grid con gap responsive */}
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="name" className="text-xs sm:text-sm">Nombre de la Organización</Label>
                 <Input
                   id="name"
                   {...form.register("name")}
                   placeholder="Mi Organización"
+                  className="h-9 sm:h-10 text-sm"
                 />
                 {form.formState.errors.name && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-xs text-destructive">
                     {form.formState.errors.name.message}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="city">
-                  <MapPin className="inline h-4 w-4 mr-1" />
-                  Ciudad / Ubicación
+              <div className="space-y-1.5 sm:space-y-2">
+                {/* ✅ AJUSTADO: Label con flex layout para ícono */}
+                <Label htmlFor="city" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                  <span>Ciudad / Ubicación</span>
                 </Label>
                 <Input
                   id="city"
                   {...form.register("city")}
                   placeholder="Ciudad de México, MX"
+                  className="h-9 sm:h-10 text-sm"
                 />
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address">Dirección Completa (opcional)</Label>
+              <div className="space-y-1.5 sm:space-y-2 sm:col-span-2">
+                <Label htmlFor="address" className="text-xs sm:text-sm">Dirección Completa (opcional)</Label>
                 <Input
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Calle, número, colonia, código postal..."
+                  className="h-9 sm:h-10 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Dirección física de tu organización (solo si deseas mostrarla públicamente)
                 </p>
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="description">Descripción</Label>
+              <div className="space-y-1.5 sm:space-y-2 sm:col-span-2">
+                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+                  <Label htmlFor="description" className="text-xs sm:text-sm">Descripción</Label>
+                  {/* ✅ AJUSTADO: Botón Generar con IA - h-9 */}
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
                     onClick={async () => {
                       setIsGeneratingDescription(true);
                       try {
@@ -475,14 +486,14 @@ export function OrganizationSettings() {
                       }
                     }}
                     disabled={isGeneratingDescription}
-                    className="h-7 text-xs gap-1.5 text-primary hover:text-primary"
+                    className="h-9 px-2 sm:px-3 min-w-[44px] text-xs gap-1.5 text-primary hover:text-primary"
                   >
                     {isGeneratingDescription ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Sparkles className="h-3.5 w-3.5" />
                     )}
-                    Generar con IA
+                    <span>Generar con IA</span>
                   </Button>
                 </div>
                 <Textarea
@@ -490,6 +501,7 @@ export function OrganizationSettings() {
                   {...form.register("description")}
                   placeholder="Cuéntanos sobre tu organización..."
                   rows={3}
+                  className="text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Esta descripción aparecerá en tu página pública
@@ -497,24 +509,25 @@ export function OrganizationSettings() {
               </div>
 
               {/* Experience Section */}
-              <div className="space-y-2">
-                <Label htmlFor="years_experience">Años de Experiencia</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="years_experience" className="text-xs sm:text-sm">Años de Experiencia</Label>
                 <Input
                   id="years_experience"
                   type="number"
                   min="0"
                   max="100"
-                  value={yearsExperience}
+                  value={yearsExperience ?? ""}
                   onChange={(e) => setYearsExperience(e.target.value ? parseInt(e.target.value) : null)}
                   placeholder="Ej: 5"
+                  className="h-9 sm:h-10 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   ¿Cuántos años llevas organizando rifas?
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="total_raffles_completed">Rifas Realizadas</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="total_raffles_completed" className="text-xs sm:text-sm">Rifas Realizadas</Label>
                 <Input
                   id="total_raffles_completed"
                   type="number"
@@ -522,19 +535,20 @@ export function OrganizationSettings() {
                   value={totalRafflesCompleted}
                   onChange={(e) => setTotalRafflesCompleted(e.target.value ? parseInt(e.target.value) : 0)}
                   placeholder="Ej: 25"
+                  className="h-9 sm:h-10 text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
                   Número total de rifas que has organizado
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label>País</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">País</Label>
                 <Select
                   value={form.watch("country_code")}
                   onValueChange={(value) => form.setValue("country_code", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10 text-sm">
                     <SelectValue placeholder="Selecciona un país" />
                   </SelectTrigger>
                   <SelectContent>
@@ -547,13 +561,13 @@ export function OrganizationSettings() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Moneda</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Moneda</Label>
                 <Select
                   value={form.watch("currency_code")}
                   onValueChange={(value) => form.setValue("currency_code", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10 text-sm">
                     <SelectValue placeholder="Selecciona una moneda" />
                   </SelectTrigger>
                   <SelectContent>
@@ -566,13 +580,13 @@ export function OrganizationSettings() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Zona Horaria</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Zona Horaria</Label>
                 <Select
                   value={form.watch("timezone")}
                   onValueChange={(value) => form.setValue("timezone", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10 text-sm">
                     <SelectValue placeholder="Selecciona una zona horaria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -585,36 +599,39 @@ export function OrganizationSettings() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="brand_color">Color de Marca</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="brand_color" className="text-xs sm:text-sm">Color de Marca</Label>
                 <div className="flex gap-2">
                   <Input
                     id="brand_color"
                     type="color"
                     {...form.register("brand_color")}
-                    className="w-14 h-10 p-1 cursor-pointer"
+                    className="w-12 sm:w-14 h-9 sm:h-10 p-1 cursor-pointer"
                   />
                   <Input
                     value={form.watch("brand_color")}
                     onChange={(e) => form.setValue("brand_color", e.target.value)}
                     placeholder="#2563EB"
-                    className="flex-1"
+                    className="flex-1 h-9 sm:h-10 text-sm"
                   />
                 </div>
               </div>
             </div>
 
             {/* Contact Information Section - Multi-contact inputs */}
-            <div className="pt-4 border-t">
-              <h3 className="text-sm font-medium mb-4">Información de Contacto</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Puedes agregar hasta 5 de cada tipo de contacto
-              </p>
-              <div className="space-y-4">
+            {/* ✅ AJUSTADO: Spacing responsive en sección de contacto */}
+            <div className="pt-3 sm:pt-4 border-t space-y-3 sm:space-y-4">
+              <div>
+                <h3 className="text-xs sm:text-sm font-medium">Información de Contacto</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Puedes agregar hasta 5 de cada tipo de contacto
+                </p>
+              </div>
+              <div className="space-y-3 sm:space-y-4">
                 <div className="min-w-0">
                   <MultiContactInput
                     label="Email"
-                    icon={<Mail className="h-4 w-4" />}
+                    icon={<Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                     values={emails}
                     onChange={setEmails}
                     placeholder="contacto@ejemplo.com"
@@ -624,11 +641,12 @@ export function OrganizationSettings() {
                   />
                 </div>
                 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {/* ✅ AJUSTADO: Grid responsive para teléfonos */}
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                   <div className="min-w-0">
                     <PhoneInputWithCountry
                       label="Teléfono"
-                      icon={<Phone className="h-4 w-4" />}
+                      icon={<Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                       values={phones}
                       onChange={setPhones}
                       helperText="Solo los 10 dígitos"
@@ -639,7 +657,7 @@ export function OrganizationSettings() {
                   <div className="min-w-0">
                     <PhoneInputWithCountry
                       label="WhatsApp"
-                      icon={<MessageCircle className="h-4 w-4" />}
+                      icon={<MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                       values={whatsappNumbers}
                       onChange={setWhatsappNumbers}
                       helperText="Solo los 10 dígitos"
@@ -651,62 +669,70 @@ export function OrganizationSettings() {
             </div>
 
             {/* Social Links Section */}
-            <div className="pt-4 border-t">
-              <h3 className="text-sm font-medium mb-4">Redes Sociales</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
+            {/* ✅ AJUSTADO: Spacing responsive en sección de redes sociales */}
+            <div className="pt-3 sm:pt-4 border-t space-y-3 sm:space-y-4">
+              <h3 className="text-xs sm:text-sm font-medium">Redes Sociales</h3>
+              {/* ✅ AJUSTADO: Grid responsive */}
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
 
-                <div className="space-y-2">
-                  <Label htmlFor="website_url">
-                    <Globe className="inline h-4 w-4 mr-1" />
-                    Sitio Web
+                <div className="space-y-1.5 sm:space-y-2">
+                  {/* ✅ AJUSTADO: Label con flex layout */}
+                  <Label htmlFor="website_url" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span>Sitio Web</span>
                   </Label>
                   <Input
                     id="website_url"
                     {...form.register("website_url")}
                     placeholder="https://misitioweb.com"
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="facebook_url">
-                    <Facebook className="inline h-4 w-4 mr-1" />
-                    Facebook
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="facebook_url" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span>Facebook</span>
                   </Label>
                   <Input
                     id="facebook_url"
                     {...form.register("facebook_url")}
                     placeholder="https://facebook.com/miorganizacion"
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="instagram_url">
-                    <Instagram className="inline h-4 w-4 mr-1" />
-                    Instagram
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="instagram_url" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span>Instagram</span>
                   </Label>
                   <Input
                     id="instagram_url"
                     {...form.register("instagram_url")}
                     placeholder="https://instagram.com/miorganizacion"
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tiktok_url">
-                    <TikTokIcon className="inline h-4 w-4 mr-1" />
-                    TikTok
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="tiktok_url" className="flex items-center gap-1.5 text-xs sm:text-sm">
+                    <TikTokIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span>TikTok</span>
                   </Label>
                   <Input
                     id="tiktok_url"
                     {...form.register("tiktok_url")}
                     placeholder="https://tiktok.com/@miorganizacion"
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+            {/* ✅ AJUSTADO: Footer con spacing y botón responsive */}
+            <div className="flex justify-end pt-3 sm:pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto h-10 min-w-[44px]">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Guardar Cambios
               </Button>

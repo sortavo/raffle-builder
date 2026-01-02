@@ -65,35 +65,39 @@ export function MultiContactInput({
   const displayValues = values.length === 0 && required ? [""] : values;
 
   return (
-    <div className="space-y-3">
+    // ✅ AJUSTADO: Spacing responsive
+    <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="flex items-center gap-1.5">
+        {/* ✅ AJUSTADO: Label con typography responsive */}
+        <Label className="flex items-center gap-1.5 text-xs sm:text-sm">
           {icon}
           {label}
           {required && <span className="text-destructive">*</span>}
         </Label>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] sm:text-xs text-muted-foreground">
           {values.filter(v => v.trim()).length}/{maxItems}
         </span>
       </div>
 
-      <div className="space-y-2">
+      {/* ✅ AJUSTADO: Gap responsive entre inputs */}
+      <div className="space-y-1.5 sm:space-y-2">
         {displayValues.map((value, index) => (
-          <div key={index} className="flex gap-2">
+          // ✅ AJUSTADO: Gap responsive en cada fila
+          <div key={index} className="flex gap-1.5 sm:gap-2">
             <Input
               type={type}
               value={value}
               onChange={(e) => handleChange(index, e.target.value)}
               placeholder={placeholder}
-              className="flex-1"
+              className="flex-1 h-9 sm:h-10 text-sm"
             />
+            {/* ✅ AJUSTADO: Botón delete con h-9 w-9 */}
             <Button
               type="button"
               variant="ghost"
-              size="icon"
               onClick={() => handleRemove(index)}
               disabled={required && displayValues.length <= 1}
-              className="shrink-0 text-muted-foreground hover:text-destructive"
+              className="h-9 w-9 min-w-[36px] shrink-0 p-0 text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -107,13 +111,13 @@ export function MultiContactInput({
         <p className="text-xs text-muted-foreground">{helperText}</p>
       )}
 
+      {/* ✅ AJUSTADO: Botón agregar con h-9 */}
       <Button
         type="button"
         variant="outline"
-        size="sm"
         onClick={handleAdd}
         disabled={values.length >= maxItems}
-        className="w-full"
+        className="w-full h-9 min-w-[44px] text-xs sm:text-sm"
       >
         <Plus className="h-4 w-4 mr-1" />
         Agregar {label.toLowerCase()}
