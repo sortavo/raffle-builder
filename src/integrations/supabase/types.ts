@@ -104,6 +104,13 @@ export type Database = {
             foreignKeyName: "analytics_events_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -302,6 +309,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
             referencedColumns: ["id"]
           },
           {
@@ -807,6 +821,13 @@ export type Database = {
             foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -844,6 +865,13 @@ export type Database = {
           raffle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "raffle_packages_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "raffle_packages_raffle_id_fkey"
             columns: ["raffle_id"]
@@ -1249,6 +1277,13 @@ export type Database = {
             foreignKeyName: "ticket_generation_jobs_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_generation_jobs_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -1339,6 +1374,13 @@ export type Database = {
             foreignKeyName: "tickets_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -1406,6 +1448,128 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "custom_domains_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_raffles: {
+        Row: {
+          allow_individual_sale: boolean | null
+          category: string | null
+          close_sale_hours_before: number | null
+          created_at: string | null
+          currency_code: string | null
+          customization: Json | null
+          description: string | null
+          draw_date: string | null
+          draw_method: Database["public"]["Enums"]["draw_method"] | null
+          id: string | null
+          livestream_url: string | null
+          lottery_digits: number | null
+          lottery_draw_number: string | null
+          lucky_numbers_enabled: boolean | null
+          max_tickets_per_person: number | null
+          max_tickets_per_purchase: number | null
+          organization_id: string | null
+          prize_display_mode: string | null
+          prize_images: string[] | null
+          prize_name: string | null
+          prize_terms: string | null
+          prize_value: number | null
+          prize_video_url: string | null
+          prizes: Json | null
+          reservation_time_minutes: number | null
+          slug: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["raffle_status"] | null
+          template_id: string | null
+          ticket_price: number | null
+          title: string | null
+          total_tickets: number | null
+          updated_at: string | null
+          winner_announced: boolean | null
+          winner_ticket_number: string | null
+        }
+        Insert: {
+          allow_individual_sale?: boolean | null
+          category?: string | null
+          close_sale_hours_before?: number | null
+          created_at?: string | null
+          currency_code?: string | null
+          customization?: Json | null
+          description?: string | null
+          draw_date?: string | null
+          draw_method?: Database["public"]["Enums"]["draw_method"] | null
+          id?: string | null
+          livestream_url?: string | null
+          lottery_digits?: number | null
+          lottery_draw_number?: string | null
+          lucky_numbers_enabled?: boolean | null
+          max_tickets_per_person?: number | null
+          max_tickets_per_purchase?: number | null
+          organization_id?: string | null
+          prize_display_mode?: string | null
+          prize_images?: string[] | null
+          prize_name?: string | null
+          prize_terms?: string | null
+          prize_value?: number | null
+          prize_video_url?: string | null
+          prizes?: Json | null
+          reservation_time_minutes?: number | null
+          slug?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["raffle_status"] | null
+          template_id?: string | null
+          ticket_price?: number | null
+          title?: string | null
+          total_tickets?: number | null
+          updated_at?: string | null
+          winner_announced?: boolean | null
+          winner_ticket_number?: string | null
+        }
+        Update: {
+          allow_individual_sale?: boolean | null
+          category?: string | null
+          close_sale_hours_before?: number | null
+          created_at?: string | null
+          currency_code?: string | null
+          customization?: Json | null
+          description?: string | null
+          draw_date?: string | null
+          draw_method?: Database["public"]["Enums"]["draw_method"] | null
+          id?: string | null
+          livestream_url?: string | null
+          lottery_digits?: number | null
+          lottery_draw_number?: string | null
+          lucky_numbers_enabled?: boolean | null
+          max_tickets_per_person?: number | null
+          max_tickets_per_purchase?: number | null
+          organization_id?: string | null
+          prize_display_mode?: string | null
+          prize_images?: string[] | null
+          prize_name?: string | null
+          prize_terms?: string | null
+          prize_value?: number | null
+          prize_video_url?: string | null
+          prizes?: Json | null
+          reservation_time_minutes?: number | null
+          slug?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["raffle_status"] | null
+          template_id?: string | null
+          ticket_price?: number | null
+          title?: string | null
+          total_tickets?: number | null
+          updated_at?: string | null
+          winner_announced?: boolean | null
+          winner_ticket_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raffles_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1562,6 +1726,15 @@ export type Database = {
           ticket_index: number
           ticket_number: string
         }[]
+      }
+      register_buyer: {
+        Args: {
+          p_city?: string
+          p_email: string
+          p_full_name: string
+          p_phone?: string
+        }
+        Returns: string
       }
       release_expired_tickets: { Args: never; Returns: undefined }
       search_public_tickets: {
