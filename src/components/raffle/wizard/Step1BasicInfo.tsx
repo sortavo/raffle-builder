@@ -12,10 +12,12 @@ import { useState, useEffect } from 'react';
 import { useEffectiveAuth } from '@/hooks/useEffectiveAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { validateSlugFormat, normalizeToSlug } from '@/lib/url-utils';
-import { AlertCircle, CheckCircle2, Loader2, Sparkles, Link2, Globe, Copy, ExternalLink } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles, Link2, Globe, Copy, ExternalLink, Check, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Link } from 'react-router-dom';
 interface Step1Props {
   form: UseFormReturn<any>;
 }
@@ -59,10 +61,13 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
   });
 
   const primaryCustomDomain = customDomains?.[0]?.domain;
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const copyToClipboard = (url: string) => {
     navigator.clipboard.writeText(url);
-    toast.success('URL copiada al portapapeles');
+    setCopiedUrl(url);
+    toast.success('URL copiada');
+    setTimeout(() => setCopiedUrl(null), 2000);
   };
 
   // Fetch raffle status to determine if slug can be edited
@@ -380,80 +385,160 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                 )}
               </FormDescription>
               
-              {/* URL Previews */}
+              {/* URL Previews - Improved UX */}
               {raffleSlug && raffleSlug !== 'tu-sorteo' && !slugFormatError && !isDuplicateSlug && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs text-muted-foreground font-medium">
-                    URLs donde estará disponible tu sorteo:
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-xs text-muted-foreground">
+                    Tu sorteo estará disponible en:
                   </p>
                   
-                  {/* Sortavo URL */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border text-sm">
-                    <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="truncate flex-1 text-muted-foreground">
-                      sortavo.com/{orgSlug}/{raffleSlug}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => copyToClipboard(`https://sortavo.com/${orgSlug}/${raffleSlug}`)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0"
-                      asChild
-                    >
-                      <a 
-                        href={`https://sortavo.com/${orgSlug}/${raffleSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </Button>
-                  </div>
-                  
-                  {/* Custom Domain URL */}
-                  {primaryCustomDomain && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-md border border-emerald-200 dark:border-emerald-800 text-sm">
-                      <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span className="truncate flex-1 text-emerald-700 dark:text-emerald-400">
-                        {primaryCustomDomain}/{raffleSlug}
-                      </span>
-                      <Badge variant="secondary" className="text-[10px] shrink-0">
-                        Personalizado
-                      </Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
+                  <div className="rounded-lg border overflow-hidden divide-y">
+                    {/* Custom Domain URL - Primary/Highlighted */}
+                    {primaryCustomDomain && (
+                      <div 
+                        className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer transition-colors group border-l-2 border-l-emerald-500"
                         onClick={() => copyToClipboard(`https://${primaryCustomDomain}/${raffleSlug}`)}
                       >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        asChild
-                      >
-                        <a 
-                          href={`https://${primaryCustomDomain}/${raffleSlug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </Button>
+                        <Star className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 fill-emerald-600/20" />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="truncate text-sm font-medium text-foreground">
+                            {primaryCustomDomain}/{raffleSlug}
+                          </span>
+                          <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-[10px] border-0 shrink-0">
+                            Tu dominio
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyToClipboard(`https://${primaryCustomDomain}/${raffleSlug}`);
+                                }}
+                              >
+                                {copiedUrl === `https://${primaryCustomDomain}/${raffleSlug}` ? (
+                                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copiar URL</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                asChild
+                              >
+                                <a 
+                                  href={`https://${primaryCustomDomain}/${raffleSlug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Abrir en nueva pestaña</TooltipContent>
+                          </Tooltip>
+                        </div>
+                        {/* Mobile: Always show copy icon */}
+                        <div className="flex items-center gap-0.5 group-hover:hidden sm:hidden">
+                          {copiedUrl === `https://${primaryCustomDomain}/${raffleSlug}` ? (
+                            <Check className="h-4 w-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Sortavo URL - Secondary */}
+                    <div 
+                      className="flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors group"
+                      onClick={() => copyToClipboard(`https://sortavo.com/${orgSlug}/${raffleSlug}`)}
+                    >
+                      <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate text-sm text-muted-foreground flex-1">
+                        sortavo.com/{orgSlug}/{raffleSlug}
+                      </span>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(`https://sortavo.com/${orgSlug}/${raffleSlug}`);
+                              }}
+                            >
+                              {copiedUrl === `https://sortavo.com/${orgSlug}/${raffleSlug}` ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Copiar URL</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              asChild
+                            >
+                              <a 
+                                href={`https://sortavo.com/${orgSlug}/${raffleSlug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Abrir en nueva pestaña</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      {/* Mobile: Always show copy icon */}
+                      <div className="flex items-center gap-0.5 group-hover:hidden sm:hidden">
+                        {copiedUrl === `https://sortavo.com/${orgSlug}/${raffleSlug}` ? (
+                          <Check className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <Copy className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
                     </div>
+                  </div>
+                  
+                  {/* CTA for custom domain if not set */}
+                  {!primaryCustomDomain && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <Link 
+                        to="/dashboard/settings?tab=domains" 
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        <Globe className="h-3 w-3" />
+                        Configura tu dominio personalizado
+                      </Link>
+                      {' '}para una URL más profesional
+                    </p>
                   )}
                 </div>
               )}
