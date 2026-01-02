@@ -16,8 +16,8 @@ interface PrizeShowcaseProps {
   textMuted: string;
   cardBg: string;
   isDarkTemplate: boolean;
-  /** When true, only shows the main prize (without scheduled_draw_date or last in list) */
-  showOnlyMainPrize?: boolean;
+  /** When true, excludes pre-draw prizes (with scheduled_draw_date) and shows only main draw prizes */
+  excludePreDraws?: boolean;
 }
 
 export function PrizeShowcase({
@@ -31,18 +31,19 @@ export function PrizeShowcase({
   textMuted,
   cardBg,
   isDarkTemplate,
-  showOnlyMainPrize = false,
+  excludePreDraws = false,
 }: PrizeShowcaseProps) {
   // Use prizes array if available, otherwise create from legacy fields
   let allPrizes: Prize[] = prizes.length > 0 
     ? prizes 
     : [{ id: '1', name: raffle.prize_name, value: raffle.prize_value ? Number(raffle.prize_value) : null, currency: null }];
 
-  // If showOnlyMainPrize, filter to just the main prize
-  // Main prize = prize without scheduled_draw_date, or the last prize if all have dates
-  if (showOnlyMainPrize && allPrizes.length > 0) {
-    const mainPrize = allPrizes.find(p => !p.scheduled_draw_date) || allPrizes[allPrizes.length - 1];
-    allPrizes = [mainPrize];
+  // If excludePreDraws, filter out prizes with scheduled_draw_date (pre-draws)
+  // Keep all prizes without a scheduled date (main draw prizes)
+  // If all prizes have dates, keep only the last one as the main prize
+  if (excludePreDraws && allPrizes.length > 0) {
+    const mainPrizes = allPrizes.filter(p => !p.scheduled_draw_date);
+    allPrizes = mainPrizes.length > 0 ? mainPrizes : [allPrizes[allPrizes.length - 1]];
   }
 
   const containerStyle = {
