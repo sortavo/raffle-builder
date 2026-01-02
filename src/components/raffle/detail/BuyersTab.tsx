@@ -247,50 +247,50 @@ export function BuyersTab({
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="text-xs text-muted-foreground">Ingresos Confirmados</span>
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Ingresos</span>
               </div>
-              <p className="text-lg font-semibold mt-1">
+              <p className="text-sm sm:text-lg font-semibold mt-1">
                 {formatCurrency(summaryStats.totalRevenue, currencyCode)}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="text-xs text-muted-foreground">Promedio/Compra</span>
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Promedio</span>
               </div>
-              <p className="text-lg font-semibold mt-1">
+              <p className="text-sm sm:text-lg font-semibold mt-1">
                 {formatCurrency(summaryStats.avgPerBuyer, currencyCode)}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-yellow-600" />
-                <span className="text-xs text-muted-foreground">Pendientes</span>
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Pendientes</span>
               </div>
-              <p className="text-lg font-semibold mt-1">
-                {summaryStats.pendingCount} órdenes
+              <p className="text-sm sm:text-lg font-semibold mt-1">
+                {summaryStats.pendingCount}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-green-600" />
-                <span className="text-xs text-muted-foreground">Confirmados</span>
+            <CardContent className="p-2.5 sm:p-4">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+                <span className="text-[10px] sm:text-xs text-muted-foreground">Confirmados</span>
               </div>
-              <p className="text-lg font-semibold mt-1">
-                {summaryStats.confirmedCount} compradores
+              <p className="text-sm sm:text-lg font-semibold mt-1">
+                {summaryStats.confirmedCount}
               </p>
             </CardContent>
           </Card>
@@ -344,13 +344,13 @@ export function BuyersTab({
 
         {/* Buyers Table */}
         <Card>
-          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4" />
               Compradores ({buyersData?.count || 0})
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 sm:p-4 sm:pt-0">
+          <CardContent className="p-0 sm:p-4 pt-0">
             {isLoading ? (
               <div className="p-4">
                 <TableSkeleton rows={5} columns={5} />

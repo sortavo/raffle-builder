@@ -504,45 +504,45 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
         </Alert>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Search bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por código, nombre, teléfono o boleto..."
+            placeholder="Buscar por código, nombre o boleto..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-9 text-sm"
           />
           {searchQuery && (
-            <Badge variant="secondary" className="absolute right-3 top-1/2 -translate-y-1/2">
+            <Badge variant="secondary" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] sm:text-xs">
               {filteredOrders.length} pedido{filteredOrders.length !== 1 ? 's' : ''}
             </Badge>
           )}
         </div>
 
         {/* Summary stats */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <span>{orderGroups.length} pedido{orderGroups.length !== 1 ? 's' : ''} pendiente{orderGroups.length !== 1 ? 's' : ''}</span>
           <span>•</span>
           <span>{reservedTickets.length} boleto{reservedTickets.length !== 1 ? 's' : ''} total</span>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           {/* Without Proof Column */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <Card className="border-amber-500/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2 text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="h-4 w-4" />
                   Sin Comprobante ({ordersWithoutProof.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-3 sm:p-4 pt-0 space-y-2.5 sm:space-y-4">
                 {ordersWithoutProof.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No hay pedidos sin comprobante</p>
+                  <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                    <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs sm:text-sm">No hay pedidos sin comprobante</p>
                   </div>
                 ) : (
                   ordersWithoutProof.map((order) => (
@@ -558,19 +558,19 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
           </div>
 
           {/* With Proof Column */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <Card className="border-emerald-500/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-4 w-4" />
                   Con Comprobante ({ordersWithProof.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-3 sm:p-4 pt-0 space-y-2.5 sm:space-y-4">
                 {ordersWithProof.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No hay comprobantes pendientes</p>
+                  <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                    <CheckCircle2 className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs sm:text-sm">No hay comprobantes pendientes</p>
                   </div>
                 ) : (
                   ordersWithProof.map((order) => (

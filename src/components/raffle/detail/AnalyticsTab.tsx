@@ -248,13 +248,13 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">Analíticas del Sorteo</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-base sm:text-lg font-semibold">Analíticas del Sorteo</h2>
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[140px] sm:w-[160px] h-9 text-xs sm:text-sm">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -268,18 +268,18 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {kpis.map((kpi) => (
           <Card key={kpi.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardTitle className="text-[10px] sm:text-sm font-medium text-muted-foreground">
                 {kpi.title}
               </CardTitle>
-              <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+              <kpi.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${kpi.color}`} />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{kpi.value}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">
                 {kpi.description}
               </p>
             </CardContent>
@@ -288,16 +288,16 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       </div>
 
       {/* Charts Row */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {/* Sales Over Time */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
               Ventas por Día
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-4 pt-0">
             {isLoading ? (
               <div className="h-64 flex items-center justify-center">
                 <div className="animate-pulse">Cargando...</div>
@@ -370,13 +370,13 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
 
         {/* Sales by Hour */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4" />
               Ventas por Hora
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-4 pt-0">
             {isLoading ? (
               <div className="h-64 flex items-center justify-center">
                 <div className="animate-pulse">Cargando...</div>
@@ -431,16 +431,16 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       </div>
 
       {/* Geographic & Performance Section */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {/* Sales by City */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
               Ventas por Ciudad
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-4 pt-0">
             {salesByCity.length === 0 ? (
               <div className="h-64 flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
@@ -479,13 +479,13 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
 
         {/* Performance Metrics */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="h-5 w-5" />
+          <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+              <Target className="h-4 w-4" />
               Métricas de Rendimiento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-3 sm:p-4 pt-0 space-y-4 sm:space-y-6">
             {/* Sales Velocity */}
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="flex items-center justify-between mb-2">

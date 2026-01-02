@@ -167,30 +167,30 @@ export function TicketsTab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-        <Card className="p-3 sm:p-4">
-          <div className="text-xs sm:text-sm text-muted-foreground">Total</div>
-          <div className="text-xl sm:text-2xl font-bold">{stats?.total || 0}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        <Card className="p-2.5 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-muted-foreground">Total</div>
+          <div className="text-lg sm:text-2xl font-bold">{stats?.total || 0}</div>
         </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="text-xs sm:text-sm text-green-600">Disponibles</div>
-          <div className="text-xl sm:text-2xl font-bold text-green-600">{stats?.available || 0}</div>
+        <Card className="p-2.5 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-green-600">Disponibles</div>
+          <div className="text-lg sm:text-2xl font-bold text-green-600">{stats?.available || 0}</div>
         </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="text-xs sm:text-sm text-yellow-600">Reservados</div>
-          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats?.reserved || 0}</div>
+        <Card className="p-2.5 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-yellow-600">Reservados</div>
+          <div className="text-lg sm:text-2xl font-bold text-yellow-600">{stats?.reserved || 0}</div>
         </Card>
-        <Card className="p-3 sm:p-4">
-          <div className="text-xs sm:text-sm text-muted-foreground">Vendidos</div>
-          <div className="text-xl sm:text-2xl font-bold">{stats?.sold || 0}</div>
+        <Card className="p-2.5 sm:p-4">
+          <div className="text-[10px] sm:text-xs text-muted-foreground">Vendidos</div>
+          <div className="text-lg sm:text-2xl font-bold">{stats?.sold || 0}</div>
         </Card>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-4">
+        <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -244,8 +244,8 @@ export function TicketsTab({
 
       {/* Ticket Grid */}
       <Card>
-        <CardHeader className="pb-2 sm:pb-4">
-          <CardTitle className="text-base sm:text-lg">
+        <CardHeader className="p-3 sm:p-4 pb-2 sm:pb-3">
+          <CardTitle className="text-sm sm:text-base font-semibold">
             Boletos (Página {currentPage} de {totalPages || 1})
             {debouncedSearch && (
               <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -254,7 +254,7 @@ export function TicketsTab({
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-4 pt-0">
           {isLoading ? (
             <TicketGridSkeleton />
           ) : tickets.length === 0 ? (
