@@ -251,10 +251,10 @@ export function BuyersTab({
     <TooltipProvider>
       <div className="space-y-3 sm:space-y-4">
         {/* ✅ Summary Cards - ARREGLADO para mobile */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full min-w-0">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-3 w-full min-w-0">
           {/* Card 1: Ingresos */}
           <Card className="min-w-0 w-full">
-            <CardContent className="p-3 sm:p-4 min-w-0">
+            <CardContent className="p-2 sm:p-3 min-w-0">
               <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
                   <DollarSign className="w-full h-full text-green-600" />
@@ -271,7 +271,7 @@ export function BuyersTab({
 
           {/* Card 2: Promedio */}
           <Card className="min-w-0 w-full">
-            <CardContent className="p-3 sm:p-4 min-w-0">
+            <CardContent className="p-2 sm:p-3 min-w-0">
               <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
                   <TrendingUp className="w-full h-full text-blue-600" />
@@ -288,7 +288,7 @@ export function BuyersTab({
 
           {/* Card 3: Pendientes */}
           <Card className="min-w-0 w-full">
-            <CardContent className="p-3 sm:p-4 min-w-0">
+            <CardContent className="p-2 sm:p-3 min-w-0">
               <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
                   <Clock className="w-full h-full text-orange-600" />
@@ -305,7 +305,7 @@ export function BuyersTab({
 
           {/* Card 4: Confirmados */}
           <Card className="min-w-0 w-full">
-            <CardContent className="p-3 sm:p-4 min-w-0">
+            <CardContent className="p-2 sm:p-3 min-w-0">
               <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0">
                   <CheckCircle2 className="w-full h-full text-green-600" />
