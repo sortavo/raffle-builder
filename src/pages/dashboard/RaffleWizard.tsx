@@ -511,7 +511,14 @@ export default function RaffleWizard() {
       case 1:
         return <Step1BasicInfo form={form} />;
       case 2:
-        return <Step2Prize form={form} />;
+        return (
+          <Step2Prize 
+            form={form} 
+            drawDate={form.watch('draw_date')}
+            startDate={form.watch('start_date')}
+            isPublished={existingRaffle?.status === 'active'}
+          />
+        );
       case 3:
         return (
           <Step3Tickets 

@@ -5,13 +5,16 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CURRENCIES } from '@/lib/currency-utils';
-import { ImagePlus, Video, X, Loader2, GripVertical, Plus, Trash2, Gift, Sparkles } from 'lucide-react';
+import { ImagePlus, Video, X, Loader2, GripVertical, Plus, Trash2, Gift, Sparkles, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { compressImage, formatBytes } from '@/lib/image-compression';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
   DndContext,
   closestCenter,
@@ -32,6 +35,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Prize, createEmptyPrize, parsePrizes, PRIZE_DISPLAY_MODES } from '@/types/prize';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { format, subDays } from 'date-fns';
 
 interface SortableImageProps {
   id: string;
@@ -102,8 +106,12 @@ interface SortablePrizeRowProps {
   prize: Prize;
   index: number;
   isFirst: boolean;
+  isLastWithoutPreDraw: boolean;
   firstPrizeHasName: boolean;
   defaultCurrency: string;
+  drawDate?: string | null;
+  startDate?: string | null;
+  isPublished?: boolean;
   onUpdate: (index: number, field: keyof Prize, value: string | number | null) => void;
   onRemove: (index: number) => void;
 }
@@ -112,8 +120,12 @@ const SortablePrizeRow = ({
   prize, 
   index, 
   isFirst, 
+  isLastWithoutPreDraw,
   firstPrizeHasName, 
-  defaultCurrency, 
+  defaultCurrency,
+  drawDate,
+  startDate,
+  isPublished,
   onUpdate, 
   onRemove 
 }: SortablePrizeRowProps) => {
@@ -131,6 +143,51 @@ const SortablePrizeRow = ({
     transition,
   };
 
+  const hasPreDraw = !!prize.scheduled_draw_date;
+  const preDrawDatePassed = hasPreDraw && new Date(prize.scheduled_draw_date!) < new Date();
+  const isPreDrawLocked = isPublished && preDrawDatePassed;
+
+  // Format dates for datetime-local input
+  const formatForInput = (isoDate: string | null | undefined) => {
+    if (!isoDate) return '';
+    try {
+      return format(new Date(isoDate), "yyyy-MM-dd'T'HH:mm");
+    } catch {
+      return '';
+    }
+  };
+
+  // Validate pre-draw date
+  const getPreDrawValidation = (): string | null => {
+    if (!prize.scheduled_draw_date) return null;
+    const preDrawDate = new Date(prize.scheduled_draw_date);
+    
+    if (startDate && preDrawDate <= new Date(startDate)) {
+      return 'Debe ser posterior a la fecha de inicio';
+    }
+    if (drawDate && preDrawDate >= new Date(drawDate)) {
+      return 'Debe ser anterior a la fecha del sorteo final';
+    }
+    return null;
+  };
+
+  const validationError = getPreDrawValidation();
+
+  const handleTogglePreDraw = (checked: boolean) => {
+    if (checked) {
+      // Default to 1 day before draw date, or 7 days from now
+      let defaultDate: Date;
+      if (drawDate) {
+        defaultDate = subDays(new Date(drawDate), 1);
+      } else {
+        defaultDate = subDays(new Date(), -7); // 7 days from now
+      }
+      onUpdate(index, 'scheduled_draw_date', defaultDate.toISOString());
+    } else {
+      onUpdate(index, 'scheduled_draw_date', null);
+    }
+  };
+
   return (
     <div 
       ref={setNodeRef}
@@ -138,7 +195,8 @@ const SortablePrizeRow = ({
       className={cn(
         "grid gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border bg-muted/30",
         isFirst && !firstPrizeHasName && "border-destructive/50",
-        isDragging && "z-50 opacity-90 shadow-lg ring-2 ring-primary"
+        isDragging && "z-50 opacity-90 shadow-lg ring-2 ring-primary",
+        hasPreDraw && "border-amber-500/30 bg-amber-500/5"
       )}
     >
       <div className="flex items-center justify-between">
@@ -154,6 +212,16 @@ const SortablePrizeRow = ({
           <span className="text-xs sm:text-sm font-medium text-muted-foreground">
             Premio {index + 1} {isFirst && <span className="text-destructive">*</span>}
           </span>
+          {hasPreDraw && (
+            <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+              Pre-sorteo
+            </Badge>
+          )}
+          {!hasPreDraw && isLastWithoutPreDraw && (
+            <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/50">
+              Sorteo Final
+            </Badge>
+          )}
         </div>
         {!isFirst && (
           <Button
@@ -227,18 +295,71 @@ const SortablePrizeRow = ({
           </Select>
         </div>
       </div>
+
+      {/* Pre-Draw Toggle Section */}
+      <div className="mt-2 pt-3 border-t border-border/50">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`pre-draw-${prize.id}`}
+            checked={hasPreDraw}
+            onCheckedChange={handleTogglePreDraw}
+            disabled={isPreDrawLocked}
+          />
+          <Label 
+            htmlFor={`pre-draw-${prize.id}`} 
+            className={cn(
+              "text-sm cursor-pointer",
+              isPreDrawLocked && "text-muted-foreground cursor-not-allowed"
+            )}
+          >
+            Pre-sorteo individual
+          </Label>
+          {isPreDrawLocked && (
+            <span className="text-[10px] text-muted-foreground">(fecha pasada)</span>
+          )}
+        </div>
+        
+        {hasPreDraw && (
+          <div className="mt-2 ml-6">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="datetime-local"
+                value={formatForInput(prize.scheduled_draw_date)}
+                onChange={(e) => {
+                  const newValue = e.target.value ? new Date(e.target.value).toISOString() : null;
+                  onUpdate(index, 'scheduled_draw_date', newValue);
+                }}
+                min={startDate ? formatForInput(startDate) : undefined}
+                max={drawDate ? formatForInput(drawDate) : undefined}
+                disabled={isPreDrawLocked}
+                className={cn(
+                  "max-w-xs h-9 text-sm",
+                  validationError && "border-destructive focus-visible:ring-destructive"
+                )}
+              />
+            </div>
+            {validationError && (
+              <p className="text-xs text-destructive mt-1 ml-6">{validationError}</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 interface Step2Props {
   form: UseFormReturn<any>;
+  drawDate?: string | null;
+  startDate?: string | null;
+  isPublished?: boolean;
 }
 
 const MAX_IMAGES = 30;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export const Step2Prize = ({ form }: Step2Props) => {
+export const Step2Prize = ({ form, drawDate, startDate, isPublished }: Step2Props) => {
   const defaultCurrency = form.watch('currency_code') || 'MXN';
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -247,6 +368,12 @@ export const Step2Prize = ({ form }: Step2Props) => {
   
   const prizeImages = form.watch('prize_images') || [];
   const prizes: Prize[] = form.watch('prizes') || [];
+  
+  // Find the last prize without a pre-draw date (will be the final draw)
+  const lastWithoutPreDrawIndex = [...prizes].reverse().findIndex(p => !p.scheduled_draw_date);
+  const lastWithoutPreDrawId = lastWithoutPreDrawIndex >= 0 
+    ? prizes[prizes.length - 1 - lastWithoutPreDrawIndex]?.id 
+    : null;
 
   // Initialize prizes from legacy fields if empty
   useEffect(() => {
@@ -519,8 +646,12 @@ export const Step2Prize = ({ form }: Step2Props) => {
                     prize={prize}
                     index={index}
                     isFirst={index === 0}
+                    isLastWithoutPreDraw={prize.id === lastWithoutPreDrawId}
                     firstPrizeHasName={firstPrizeHasName}
                     defaultCurrency={defaultCurrency}
+                    drawDate={drawDate}
+                    startDate={startDate}
+                    isPublished={isPublished}
                     onUpdate={updatePrize}
                     onRemove={removePrize}
                   />

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { Calendar, Clock, Video, Dices, Globe, Hand, Sparkles, Loader2, Gift } from 'lucide-react';
+import { Calendar, Clock, Video, Dices, Globe, Hand, Sparkles, Loader2 } from 'lucide-react';
 import { CLOSE_SALE_OPTIONS, CLOSE_SALE_TIME_UNITS, MAX_CLOSE_SALE_HOURS, formatCloseSaleTime } from '@/lib/raffle-utils';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
@@ -18,8 +18,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FieldLockBadge } from './FieldLockBadge';
 import { isPublished, getFieldRestriction } from '@/lib/raffle-edit-restrictions';
-import { PreDrawScheduler } from './PreDrawScheduler';
-import { Prize } from '@/types/prize';
 
 interface Step4Props {
   form: UseFormReturn<any>;
@@ -537,33 +535,6 @@ export const Step4Draw = ({ form, raffleStatus, originalDrawDate, originalStartD
         )}
       </div>
 
-      {/* Pre-Draws Section - only show if multiple prizes */}
-      {(() => {
-        const prizes: Prize[] = form.watch('prizes') || [];
-        if (prizes.length <= 1) return null;
-        
-        return (
-          <div>
-            <div className="flex items-center gap-3 pb-4 border-b border-border/50 mb-5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 text-amber-600 dark:text-amber-400">
-                <Gift className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg md:text-xl font-bold tracking-tight">Pre-Sorteos</h2>
-                <p className="text-sm text-muted-foreground">Programa sorteos intermedios para cada premio</p>
-              </div>
-            </div>
-            
-            <PreDrawScheduler
-              form={form}
-              prizes={prizes}
-              drawDate={form.watch('draw_date')}
-              startDate={form.watch('start_date')}
-              isPublished={isRafflePublished}
-            />
-          </div>
-        );
-      })()}
 
       {/* Livestream Section */}
       <div>
