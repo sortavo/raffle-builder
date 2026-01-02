@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion } from "framer-motion";
-import { scrollToSection, handleHashScroll } from "@/lib/scroll-utils";
+import { handleHashScroll } from "@/lib/scroll-utils";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
 import { 
-  Menu, 
   Sparkles, 
   Trophy, 
   CheckCircle2, 
-   
   Zap, 
   Shield, 
   BarChart3, 
@@ -32,18 +30,10 @@ import sortavoLogo from "@/assets/sortavo-logo.png";
 const Index = () => {
   // Activate dark mode for this page
   useScopedDarkMode();
-  
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
     handleHashScroll(); // Handle initial hash scroll
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const features = [
@@ -143,114 +133,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Premium Navigation */}
-      <motion.nav 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled 
-            ? 'bg-card/90 backdrop-blur-xl border-b border-border shadow-lg' 
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 lg:h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <img 
-                src={sortavoLogo} 
-                alt="Sortavo" 
-                className="h-8 lg:h-10 w-auto"
-              />
-            </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-2">
-              <Link 
-                to="/features" 
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
-              >
-                Características
-              </Link>
-              <Link 
-                to="/pricing" 
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
-              >
-                Precios
-              </Link>
-              <Link 
-                to="/help" 
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10"
-              >
-                Ayuda
-              </Link>
-            </div>
-
-            <div className="hidden md:flex items-center gap-3">
-              <Link to="/auth">
-                <Button variant="ghost" className="font-medium text-gray-200 hover:text-white hover:bg-white/10">
-                  Iniciar Sesión
-                </Button>
-              </Link>
-              <Button 
-                onClick={() => navigate('/auth')}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-medium"
-              >
-                Comenzar Gratis
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Mobile Menu */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="relative text-gray-200 hover:text-white hover:bg-white/10">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] bg-card">
-                <div className="flex flex-col gap-6 mt-8">
-                  <Link 
-                    to="/features" 
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Características
-                  </Link>
-                  <Link 
-                    to="/pricing" 
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Precios
-                  </Link>
-                  <Link 
-                    to="/help" 
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Ayuda
-                  </Link>
-                  <hr className="border-border" />
-                  <Link 
-                    to="/auth" 
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Iniciar Sesión
-                  </Link>
-                  <Button 
-                    onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }}
-                    className="bg-primary hover:bg-primary/90 w-full"
-                  >
-                    Comenzar Gratis
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </motion.nav>
+      <PremiumNavbar variant="transparent" showCTA={true} />
 
       {/* Hero Section - TIER S: Premium Black & Emerald */}
       <section className="relative min-h-screen flex items-center pt-20 lg:pt-0 overflow-hidden">
