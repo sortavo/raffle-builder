@@ -12,9 +12,10 @@ import { useState, useEffect } from 'react';
 import { useEffectiveAuth } from '@/hooks/useEffectiveAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { validateSlugFormat, normalizeToSlug } from '@/lib/url-utils';
-import { AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Sparkles, Link2, Globe, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 interface Step1Props {
   form: UseFormReturn<any>;
 }
@@ -41,6 +42,28 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
     },
     enabled: !!authOrg?.id,
   });
+
+  // Fetch verified custom domains
+  const { data: customDomains } = useQuery({
+    queryKey: ['custom-domains-verified', authOrg?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('custom_domains')
+        .select('domain, is_primary')
+        .eq('organization_id', authOrg!.id)
+        .eq('verified', true)
+        .order('is_primary', { ascending: false });
+      return data;
+    },
+    enabled: !!authOrg?.id,
+  });
+
+  const primaryCustomDomain = customDomains?.[0]?.domain;
+
+  const copyToClipboard = (url: string) => {
+    navigator.clipboard.writeText(url);
+    toast.success('URL copiada al portapapeles');
+  };
 
   // Fetch raffle status to determine if slug can be edited
   const { data: raffleData } = useQuery({
@@ -315,7 +338,7 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
           )}
         />
 
-        {/* Slug field - separate from title */}
+        {/* Slug field - clean input with URL previews */}
         <FormField
           control={form.control}
           name="slug"
@@ -326,25 +349,21 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                 <span className="text-destructive">*</span>
               </FormLabel>
               <FormControl>
-                <div className="flex flex-col md:flex-row md:items-stretch gap-2 md:gap-0">
-                  <span className="inline-flex items-center px-3 py-2 text-xs md:text-sm text-muted-foreground bg-muted border border-input rounded-md md:rounded-r-none md:border-r-0 whitespace-nowrap truncate">
-                    sortavo.com/{orgSlug}/
-                  </span>
-                  <Input 
-                    {...field}
-                    value={field.value || ''}
-                    placeholder="mi-sorteo"
-                    onChange={(e) => handleSlugChange(e.target.value)}
-                    onBlur={() => handleBlur('slug')}
-                    disabled={!canEditSlug}
-                    maxLength={100}
-                    className={cn(
-                      "h-11 md:h-10 md:rounded-l-none",
-                      (slugFormatError || isDuplicateSlug) && "border-destructive focus-visible:ring-destructive"
-                    )}
-                  />
-                </div>
+                <Input 
+                  {...field}
+                  value={field.value || ''}
+                  placeholder="mi-sorteo-increible"
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  onBlur={() => handleBlur('slug')}
+                  disabled={!canEditSlug}
+                  maxLength={100}
+                  className={cn(
+                    "h-11 md:h-10",
+                    (slugFormatError || isDuplicateSlug) && "border-destructive focus-visible:ring-destructive"
+                  )}
+                />
               </FormControl>
+              
               <FormDescription className="flex flex-col gap-1">
                 {!canEditSlug ? (
                   <span className="flex items-center gap-1 text-muted-foreground text-sm">
@@ -360,6 +379,85 @@ export const Step1BasicInfo = ({ form }: Step1Props) => {
                   </>
                 )}
               </FormDescription>
+              
+              {/* URL Previews */}
+              {raffleSlug && raffleSlug !== 'tu-sorteo' && !slugFormatError && !isDuplicateSlug && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    URLs donde estará disponible tu sorteo:
+                  </p>
+                  
+                  {/* Sortavo URL */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border text-sm">
+                    <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate flex-1 text-muted-foreground">
+                      sortavo.com/{orgSlug}/{raffleSlug}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() => copyToClipboard(`https://sortavo.com/${orgSlug}/${raffleSlug}`)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      asChild
+                    >
+                      <a 
+                        href={`https://sortavo.com/${orgSlug}/${raffleSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  </div>
+                  
+                  {/* Custom Domain URL */}
+                  {primaryCustomDomain && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-md border border-emerald-200 dark:border-emerald-800 text-sm">
+                      <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="truncate flex-1 text-emerald-700 dark:text-emerald-400">
+                        {primaryCustomDomain}/{raffleSlug}
+                      </span>
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        Personalizado
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => copyToClipboard(`https://${primaryCustomDomain}/${raffleSlug}`)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        asChild
+                      >
+                        <a 
+                          href={`https://${primaryCustomDomain}/${raffleSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <FormMessage />
             </FormItem>
           )}
