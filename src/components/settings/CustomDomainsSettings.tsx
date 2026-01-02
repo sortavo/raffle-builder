@@ -48,7 +48,9 @@ import {
   X,
   Sparkles,
   Loader2,
-  Save
+  Save,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -881,6 +883,30 @@ export function CustomDomainsSettings() {
                   className="flex items-center justify-between p-4 border rounded-lg bg-card"
                 >
                   <div className="flex items-center gap-3">
+                    {/* DNS Status Indicator */}
+                    <div className="flex-shrink-0">
+                      {domain.verified ? (
+                        <div className="relative group">
+                          <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <Wifi className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            DNS Online
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative group">
+                          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            DNS Pendiente
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{domain.domain}</span>
@@ -893,18 +919,18 @@ export function CustomDomainsSettings() {
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {domain.verified ? (
-                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                          <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Verificado
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                          <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
                             <Clock className="h-3 w-3 mr-1" />
                             Pendiente
                           </Badge>
                         )}
                         {domain.verified && domain.ssl_status === "active" && (
-                          <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
+                          <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
                             <ShieldCheck className="h-3 w-3 mr-1" />
                             SSL Activo
                           </Badge>
