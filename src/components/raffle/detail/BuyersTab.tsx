@@ -249,47 +249,66 @@ export function BuyersTab({
     <TooltipProvider>
       <div className="space-y-3 sm:space-y-4">
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 min-w-0">
-          <Card className="overflow-hidden">
-            <CardContent className="p-2.5 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
-                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 mb-0.5 sm:mb-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Ingresos</span>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full min-w-0">
+          <Card className="min-w-0 w-full">
+            <CardContent className="p-3 sm:p-4 min-w-0">
+              <div className="flex flex-col items-center gap-1.5 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                  Ingresos
+                </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
                 {formatCurrency(summaryStats.totalRevenue, currencyCode)}
               </p>
             </CardContent>
           </Card>
-          <Card className="overflow-hidden">
-            <CardContent className="p-2.5 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mb-0.5 sm:mb-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Promedio</span>
+
+          <Card className="min-w-0 w-full">
+            <CardContent className="p-3 sm:p-4 min-w-0">
+              <div className="flex flex-col items-center gap-1.5 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                  Promedio
+                </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
                 {formatCurrency(summaryStats.avgPerBuyer, currencyCode)}
               </p>
             </CardContent>
           </Card>
-          <Card className="overflow-hidden">
-            <CardContent className="p-2.5 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
-                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600 mb-0.5 sm:mb-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Pendientes</span>
+
+          <Card className="min-w-0 w-full">
+            <CardContent className="p-3 sm:p-4 min-w-0">
+              <div className="flex flex-col items-center gap-1.5 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                  Pendientes
+                </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
                 {summaryStats.pendingCount}
               </p>
             </CardContent>
           </Card>
-          <Card className="overflow-hidden">
-            <CardContent className="p-2.5 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
-                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 mb-0.5 sm:mb-0" />
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Confirmados</span>
+
+          <Card className="min-w-0 w-full">
+            <CardContent className="p-3 sm:p-4 min-w-0">
+              <div className="flex flex-col items-center gap-1.5 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-muted-foreground min-w-0 block">
+                  Confirmados
+                </p>
               </div>
-              <p className="text-[13px] sm:text-lg font-semibold mt-1">
+              <p className="text-[13px] sm:text-lg font-semibold mt-1 tabular-nums text-center max-w-full">
                 {summaryStats.confirmedCount}
               </p>
             </CardContent>
