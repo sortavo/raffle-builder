@@ -88,6 +88,7 @@ El título debe:
 Escribe SOLO el título, sin explicaciones adicionales.`;
 
       logMessage = `Generating title for category: ${category || 'none'}, prize: ${prizeName || 'none'}`;
+      responseKey = 'title';
     } else if (type === 'prize_terms') {
       // Generate prize terms
       const contextParts = [];
