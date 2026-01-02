@@ -474,7 +474,7 @@ const Index = () => {
           >
             <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500/10 backdrop-blur-sm rounded-full text-amber-400 text-sm font-semibold mb-8 border border-amber-500/20">
               <Sparkles className="w-4 h-4" />
-              Funcionalidades
+              Por qué Sortavo
             </span>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white mb-6 tracking-[-0.03em]">
               Todo para{" "}
