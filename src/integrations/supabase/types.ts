@@ -833,6 +833,103 @@ export type Database = {
           },
         ]
       }
+      raffle_draws: {
+        Row: {
+          announced: boolean | null
+          announced_at: string | null
+          created_at: string | null
+          created_by: string | null
+          draw_metadata: Json | null
+          draw_method: string
+          draw_type: string
+          drawn_at: string | null
+          id: string
+          prize_id: string
+          prize_name: string
+          prize_value: number | null
+          raffle_id: string
+          scheduled_date: string | null
+          ticket_id: string | null
+          ticket_number: string
+          winner_city: string | null
+          winner_email: string | null
+          winner_name: string | null
+          winner_notified: boolean | null
+          winner_notified_at: string | null
+          winner_phone: string | null
+        }
+        Insert: {
+          announced?: boolean | null
+          announced_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          draw_metadata?: Json | null
+          draw_method: string
+          draw_type?: string
+          drawn_at?: string | null
+          id?: string
+          prize_id: string
+          prize_name: string
+          prize_value?: number | null
+          raffle_id: string
+          scheduled_date?: string | null
+          ticket_id?: string | null
+          ticket_number: string
+          winner_city?: string | null
+          winner_email?: string | null
+          winner_name?: string | null
+          winner_notified?: boolean | null
+          winner_notified_at?: string | null
+          winner_phone?: string | null
+        }
+        Update: {
+          announced?: boolean | null
+          announced_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          draw_metadata?: Json | null
+          draw_method?: string
+          draw_type?: string
+          drawn_at?: string | null
+          id?: string
+          prize_id?: string
+          prize_name?: string
+          prize_value?: number | null
+          raffle_id?: string
+          scheduled_date?: string | null
+          ticket_id?: string | null
+          ticket_number?: string
+          winner_city?: string | null
+          winner_email?: string | null
+          winner_name?: string | null
+          winner_notified?: boolean | null
+          winner_notified_at?: string | null
+          winner_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raffle_draws_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raffle_draws_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raffle_draws_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raffle_packages: {
         Row: {
           created_at: string | null
