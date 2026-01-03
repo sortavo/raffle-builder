@@ -27,6 +27,7 @@ interface LuckyNumbersInputProps {
   checkAvailability: (numbers: string[]) => Promise<string[]>;
   isLoading?: boolean;
   showWinnersHistory?: boolean;
+  isLightTemplate?: boolean;
 }
 
 export function LuckyNumbersInput({
@@ -34,7 +35,8 @@ export function LuckyNumbersInput({
   onNumbersGenerated,
   checkAvailability,
   isLoading,
-  showWinnersHistory = true
+  showWinnersHistory = true,
+  isLightTemplate = false
 }: LuckyNumbersInputProps) {
   const [mode, setMode] = useState<'birthday' | 'favorites'>('birthday');
   const [birthdayDate, setBirthdayDate] = useState('');
@@ -43,6 +45,41 @@ export function LuckyNumbersInput({
   const [generatedNumbers, setGeneratedNumbers] = useState<string[]>([]);
   const [availableNumbers, setAvailableNumbers] = useState<string[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+
+  // Theme-aware colors
+  const colors = isLightTemplate ? {
+    cardBg: 'bg-white border-gray-200',
+    text: 'text-gray-900',
+    textMuted: 'text-gray-500',
+    textSubtle: 'text-gray-400',
+    tabsBg: 'bg-gray-100',
+    tabsActive: 'data-[state=active]:bg-white data-[state=active]:text-gray-900',
+    tabsText: 'text-gray-500',
+    inputBg: 'bg-white border-gray-200',
+    inputText: 'text-gray-900',
+    inputPlaceholder: 'placeholder:text-gray-400',
+    previewBg: 'bg-pink-50 border-pink-200',
+    previewText: 'text-pink-700',
+    badgePreview: 'bg-white border-pink-300 text-pink-600',
+    resultsBg: 'bg-gray-50 border-gray-200',
+    suggestBtn: 'border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100',
+  } : {
+    cardBg: 'bg-white/[0.03] border-white/[0.06]',
+    text: 'text-white',
+    textMuted: 'text-white/60',
+    textSubtle: 'text-white/40',
+    tabsBg: 'bg-white/[0.03]',
+    tabsActive: 'data-[state=active]:bg-white/10 data-[state=active]:text-white',
+    tabsText: 'text-white/60',
+    inputBg: 'bg-white/[0.03] border-white/[0.06]',
+    inputText: 'text-white',
+    inputPlaceholder: 'placeholder:text-white/40',
+    previewBg: 'bg-gradient-to-r from-pink-500/10 to-rose-500/10 border-pink-500/20',
+    previewText: 'text-white/60',
+    badgePreview: 'bg-white/[0.03] border-pink-500/30 text-pink-300',
+    resultsBg: 'bg-white/[0.03] border-white/[0.06]',
+    suggestBtn: 'border-white/20 text-white/60 hover:text-white hover:bg-white/10',
+  };
 
   // Generate ticket numbers from birthday
   const generateFromBirthday = useCallback((date: string): string[] => {
@@ -186,7 +223,7 @@ export function LuckyNumbersInput({
         <WinningNumbersHistory onNumberClick={handleHistoryNumberClick} />
       )}
 
-      <Card className="border-2 overflow-hidden bg-white/[0.03] border-white/[0.06] backdrop-blur-sm">
+      <Card className={cn("border-2 overflow-hidden backdrop-blur-sm", colors.cardBg)}>
         <CardContent className="pt-6 space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -197,23 +234,23 @@ export function LuckyNumbersInput({
           >
             <Wand2 className="w-8 h-8 text-white" />
           </motion.div>
-          <h3 className="text-xl font-bold text-white mb-2">Números de la Suerte</h3>
-          <p className="text-white/60">Elige números basados en fechas especiales o favoritos</p>
+          <h3 className={cn("text-xl font-bold mb-2", colors.text)}>Números de la Suerte</h3>
+          <p className={colors.textMuted}>Elige números basados en fechas especiales o favoritos</p>
         </div>
 
         {/* Mode Tabs */}
         <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
-          <TabsList className="grid w-full grid-cols-2 bg-white/[0.03] p-1 rounded-xl">
+          <TabsList className={cn("grid w-full grid-cols-2 p-1 rounded-xl", colors.tabsBg)}>
             <TabsTrigger 
               value="birthday" 
-              className="rounded-lg data-[state=active]:bg-white/10 data-[state=active]:text-white flex items-center gap-2 text-white/60"
+              className={cn("rounded-lg flex items-center gap-2", colors.tabsText, colors.tabsActive)}
             >
               <Cake className="w-4 h-4" />
               Cumpleaños
             </TabsTrigger>
             <TabsTrigger 
               value="favorites" 
-              className="rounded-lg data-[state=active]:bg-white/10 data-[state=active]:text-white flex items-center gap-2 text-white/60"
+              className={cn("rounded-lg flex items-center gap-2", colors.tabsText, colors.tabsActive)}
             >
               <Star className="w-4 h-4" />
               Favoritos
@@ -222,8 +259,8 @@ export function LuckyNumbersInput({
 
           <TabsContent value="birthday" className="space-y-4 mt-4">
             <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-base text-white">
-                <Calendar className="w-4 h-4 text-pink-400" />
+              <Label className={cn("flex items-center gap-2 text-base", colors.text)}>
+                <Calendar className="w-4 h-4 text-pink-500" />
                 Fecha de cumpleaños
               </Label>
               <Input
@@ -234,7 +271,7 @@ export function LuckyNumbersInput({
                   setGeneratedNumbers([]);
                   setAvailableNumbers([]);
                 }}
-                className="h-12 text-lg border-2 bg-white/[0.03] border-white/[0.06] text-white"
+                className={cn("h-12 text-lg border-2", colors.inputBg, colors.inputText)}
               />
             </div>
 
@@ -242,9 +279,9 @@ export function LuckyNumbersInput({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20 rounded-xl"
+                className={cn("p-4 border rounded-xl", colors.previewBg)}
               >
-                <p className="text-sm text-white/60 mb-2">Números que se generarán:</p>
+                <p className={cn("text-sm mb-2", colors.previewText)}>Números que se generarán:</p>
                 <div className="flex flex-wrap gap-2">
                   {generateFromBirthday(birthdayDate).map((num, i) => (
                     <motion.div
@@ -255,7 +292,7 @@ export function LuckyNumbersInput({
                     >
                       <Badge 
                         variant="outline" 
-                        className="text-sm px-3 py-1 bg-white/[0.03] border-pink-500/30 text-pink-300"
+                        className={cn("text-sm px-3 py-1", colors.badgePreview)}
                       >
                         #{num}
                       </Badge>
@@ -268,8 +305,8 @@ export function LuckyNumbersInput({
 
           <TabsContent value="favorites" className="space-y-4 mt-4">
             <div className="space-y-3">
-              <Label className="flex items-center gap-2 text-base text-white">
-                <Hash className="w-4 h-4 text-amber-400" />
+              <Label className={cn("flex items-center gap-2 text-base", colors.text)}>
+                <Hash className="w-4 h-4 text-amber-500" />
                 Agrega tus números favoritos
               </Label>
               <div className="flex gap-2">
@@ -279,7 +316,7 @@ export function LuckyNumbersInput({
                   value={newNumber}
                   onChange={(e) => setNewNumber(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddFavorite()}
-                  className="h-12 text-lg border-2 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/40"
+                  className={cn("h-12 text-lg border-2", colors.inputBg, colors.inputText, colors.inputPlaceholder)}
                   max={Math.pow(10, maxDigits) - 1}
                 />
                 <Button
@@ -325,7 +362,7 @@ export function LuckyNumbersInput({
 
             {/* Quick add suggestions */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-xs text-white/40 w-full mb-1">Números populares:</span>
+              <span className={cn("text-xs w-full mb-1", colors.textSubtle)}>Números populares:</span>
               {['7', '13', '21', '77', '100', '777'].map((num) => (
                 <Button
                   key={num}
@@ -338,7 +375,7 @@ export function LuckyNumbersInput({
                     }
                   }}
                   disabled={favoriteNumbers.includes(num.padStart(maxDigits, '0').slice(-maxDigits))}
-                  className="text-xs border-dashed border-white/20 text-white/60 hover:text-white hover:bg-white/10"
+                  className={cn("text-xs border-dashed", colors.suggestBtn)}
                 >
                   #{num}
                 </Button>
@@ -382,8 +419,8 @@ export function LuckyNumbersInput({
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              <div className="p-4 bg-white/[0.03] border-2 border-white/[0.06] rounded-xl">
-                <p className="font-medium text-center text-white mb-3">
+              <div className={cn("p-4 border-2 rounded-xl", colors.resultsBg)}>
+                <p className={cn("font-medium text-center mb-3", colors.text)}>
                   Resultados de búsqueda:
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -401,7 +438,9 @@ export function LuckyNumbersInput({
                             "text-lg px-4 py-2 transition-all",
                             isAvailable 
                               ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white" 
-                              : "bg-white/10 text-white/40 line-through"
+                              : isLightTemplate 
+                                ? "bg-gray-200 text-gray-400 line-through"
+                                : "bg-white/10 text-white/40 line-through"
                           )}
                         >
                           #{num}
@@ -413,12 +452,12 @@ export function LuckyNumbersInput({
                 </div>
                 
                 <div className="flex justify-center gap-4 mt-4 text-sm">
-                  <span className="flex items-center gap-1 text-emerald-400">
+                  <span className="flex items-center gap-1 text-emerald-500">
                     <span className="w-3 h-3 bg-emerald-500 rounded-full" />
                     Disponible ({availableNumbers.length})
                   </span>
-                  <span className="flex items-center gap-1 text-white/40">
-                    <span className="w-3 h-3 bg-white/20 rounded-full" />
+                  <span className={cn("flex items-center gap-1", colors.textSubtle)}>
+                    <span className={cn("w-3 h-3 rounded-full", isLightTemplate ? "bg-gray-300" : "bg-white/20")} />
                     No disponible ({generatedNumbers.length - availableNumbers.length})
                   </span>
                 </div>

@@ -86,7 +86,7 @@ export function TicketSelector({
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
 
-  // Theme-aware colors
+  // Theme-aware colors - comprehensive palette
   const colors = isLightTemplate ? {
     text: 'text-gray-900',
     textMuted: 'text-gray-500',
@@ -106,6 +106,21 @@ export function TicketSelector({
     tabsActiveText: 'data-[state=active]:text-gray-900',
     buttonOutline: 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900',
     buttonDisabled: 'disabled:opacity-40',
+    // Additional colors for all sections
+    loadingBorder: 'border-gray-200 border-t-emerald-500',
+    paginationText: 'text-gray-500',
+    paginationBtn: 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+    legendCard: 'bg-gray-100 border-gray-200',
+    legendText: 'text-gray-500',
+    emptyState: 'text-gray-400',
+    searchResultBg: 'bg-gray-50 border-gray-200',
+    ticketAvailable: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300',
+    ticketUnavailable: 'bg-gray-100 border-gray-200 text-gray-300',
+    checkBg: 'bg-white',
+    goButton: 'bg-emerald-600 text-white hover:bg-emerald-700',
+    clearButton: 'text-gray-500 hover:text-red-500 hover:bg-red-50',
+    randomCard: 'bg-white border-gray-200',
+    searchCard: 'bg-white border-gray-200',
   } : {
     text: 'text-white',
     textMuted: 'text-white/50',
@@ -125,6 +140,21 @@ export function TicketSelector({
     tabsActiveText: 'data-[state=active]:text-white',
     buttonOutline: 'border-white/[0.08] text-white/70 hover:bg-white/[0.06] hover:text-white hover:border-white/[0.12]',
     buttonDisabled: 'disabled:opacity-30',
+    // Additional colors for all sections
+    loadingBorder: 'border-white/20 border-t-emerald-500',
+    paginationText: 'text-white/40',
+    paginationBtn: 'border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white',
+    legendCard: 'bg-white/[0.03] border-white/[0.08]',
+    legendText: 'text-white/50',
+    emptyState: 'text-white/30',
+    searchResultBg: 'bg-white/[0.02] border-white/[0.06]',
+    ticketAvailable: 'bg-white/[0.03] border-white/[0.06] text-white/70 hover:bg-white/[0.06] hover:border-white/[0.1]',
+    ticketUnavailable: 'bg-white/[0.02] border-white/[0.04] text-white/20',
+    checkBg: 'bg-[#030712]',
+    goButton: 'bg-white text-[#030712] hover:bg-white/90',
+    clearButton: 'text-white/50 hover:text-red-400 hover:bg-red-500/10',
+    randomCard: 'bg-white/[0.03] border-white/[0.06]',
+    searchCard: 'bg-white/[0.03] border-white/[0.06]',
   };
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [mode, setMode] = useState<'manual' | 'random' | 'search' | 'lucky'>('manual');
@@ -580,6 +610,7 @@ export function TicketSelector({
           ticketPrice={ticketPrice}
           currencyCode={currencyCode}
           selectedCount={selectedTickets.length}
+          isLightTemplate={isLightTemplate}
         />
       )}
 
@@ -608,7 +639,10 @@ export function TicketSelector({
             {showRandomPicker && (
               <TabsTrigger 
                 value="random" 
-                className="rounded-lg text-white/40 data-[state=active]:bg-white/[0.06] data-[state=active]:text-white data-[state=active]:shadow-none text-xs sm:text-sm transition-all duration-200"
+                className={cn(
+                  "rounded-lg text-xs sm:text-sm transition-all duration-200 data-[state=active]:shadow-none",
+                  colors.tabsText, colors.tabsActive, colors.tabsActiveText
+                )}
               >
                 Al Azar
               </TabsTrigger>
@@ -616,16 +650,22 @@ export function TicketSelector({
             {showLuckyNumbers && (
               <TabsTrigger 
                 value="lucky" 
-                className="rounded-lg text-white/40 data-[state=active]:bg-white/[0.06] data-[state=active]:text-white data-[state=active]:shadow-none text-xs sm:text-sm flex items-center gap-1 transition-all duration-200"
+                className={cn(
+                  "rounded-lg text-xs sm:text-sm flex items-center gap-1 transition-all duration-200 data-[state=active]:shadow-none",
+                  colors.tabsText, colors.tabsActive, colors.tabsActiveText
+                )}
               >
-                <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+                <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500" />
                 <span className="hidden sm:inline">Mis Números</span>
                 <span className="sm:hidden">Suerte</span>
               </TabsTrigger>
             )}
             <TabsTrigger 
               value="search" 
-              className="rounded-lg text-white/40 data-[state=active]:bg-white/[0.06] data-[state=active]:text-white data-[state=active]:shadow-none text-xs sm:text-sm transition-all duration-200"
+              className={cn(
+                "rounded-lg text-xs sm:text-sm transition-all duration-200 data-[state=active]:shadow-none",
+                colors.tabsText, colors.tabsActive, colors.tabsActiveText
+              )}
             >
               Buscar
             </TabsTrigger>
@@ -638,6 +678,7 @@ export function TicketSelector({
                 totalTickets={totalTickets}
                 onUseSearch={() => setMode('search')}
                 onUseRandom={() => setMode('random')}
+                isLightTemplate={isLightTemplate}
               />
             </div>
           )}
@@ -652,6 +693,7 @@ export function TicketSelector({
                 selectedQuantity={selectedTickets.length}
                 onSelect={(qty) => setRandomCount(qty)}
                 bestPackageId={bestPackage?.id}
+                isLightTemplate={isLightTemplate}
               />
             )}
 
@@ -666,17 +708,17 @@ export function TicketSelector({
                     value={manualFilter}
                     onChange={(e) => setManualFilter(e.target.value.replace(/[^0-9]/g, ''))}
                     onKeyDown={handleManualKeyDown}
-                    className="h-12 text-lg bg-white/[0.03] border-white/[0.08] text-white placeholder:text-white/30 pr-12 focus:border-emerald-500/50 focus:ring-emerald-500/20"
+                    className={cn("h-12 text-lg pr-12 focus:border-emerald-500/50 focus:ring-emerald-500/20", colors.inputBg, colors.inputBorder, colors.inputText, colors.inputPlaceholder)}
                   />
                   {isManualSearching ? (
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <Loader2 className="h-5 w-5 animate-spin text-white/40" />
+                      <Loader2 className={cn("h-5 w-5 animate-spin", colors.textSubtle)} />
                     </div>
                   ) : manualFilter ? (
                     <button
                       type="button"
                       onClick={() => setManualFilter('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                      className={cn("absolute right-4 top-1/2 -translate-y-1/2 transition-colors", colors.textSubtle, "hover:opacity-80")}
                     >
                       ✕
                     </button>
@@ -685,7 +727,7 @@ export function TicketSelector({
                 <Button
                   onClick={handleGoToTicket}
                   disabled={!manualFilter.trim() || isNavigating}
-                  className="h-12 px-4 bg-white text-[#030712] hover:bg-white/90 font-semibold"
+                  className={cn("h-12 px-4 font-semibold", colors.goButton)}
                 >
                   {isNavigating ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -702,18 +744,18 @@ export function TicketSelector({
               {hasManualSearched && (
                 <div className="space-y-4">
                   {manualResults.length === 0 ? (
-                    <div className="p-6 bg-white/[0.02] border border-white/[0.06] rounded-xl text-center">
-                      <Ticket className="w-8 h-8 text-white/30 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-white/50">
+                    <div className={cn("p-6 rounded-xl text-center border", colors.searchResultBg)}>
+                      <Ticket className={cn("w-8 h-8 mx-auto mb-2", colors.emptyState)} />
+                      <p className={cn("text-sm font-medium", colors.textMuted)}>
                         No se encontraron boletos con "{manualFilter}"
                       </p>
                     </div>
                   ) : (
                     <>
                       {/* Results summary */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                      <div className={cn("flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-xl border", colors.searchResultBg)}>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                          <span className="font-medium text-white/70">
+                          <span className={cn("font-medium", colors.textMuted)}>
                             {manualResults.length} encontrados
                           </span>
                           <span className="text-emerald-400">
@@ -746,7 +788,7 @@ export function TicketSelector({
                                 toast.success(`${newTickets.length} boletos agregados`);
                               }
                             }}
-                            className="text-xs w-full sm:w-auto sm:ml-auto bg-white/[0.06] border-white/[0.08] text-white hover:bg-white/[0.1]"
+                            className={cn("text-xs w-full sm:w-auto sm:ml-auto", colors.cardBgSubtle, colors.border, colors.text, "hover:opacity-80")}
                           >
                             <Check className="w-3 h-3 mr-1" />
                             Seleccionar
@@ -763,6 +805,7 @@ export function TicketSelector({
                           columnCount={isMobile ? 5 : 10}
                           height={300}
                           width={isMobile ? 260 : 520}
+                          isLightTemplate={isLightTemplate}
                         />
                       ) : (
                         <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 max-h-[300px] overflow-y-auto p-1">
@@ -779,15 +822,15 @@ export function TicketSelector({
                                 disabled={!isAvailable}
                                 className={cn(
                                   "relative p-2 rounded-lg text-xs font-mono font-bold transition-all duration-200 border",
-                                  isAvailable && !isSelected && "bg-white/[0.03] border-white/[0.06] text-white/70 hover:bg-white/[0.06] hover:border-white/[0.1] cursor-pointer",
+                                  isAvailable && !isSelected && colors.ticketAvailable + " cursor-pointer",
                                   isAvailable && isSelected && "bg-emerald-500 border-emerald-400 text-white",
-                                  !isAvailable && "bg-white/[0.02] border-white/[0.04] text-white/20 cursor-not-allowed"
+                                  !isAvailable && colors.ticketUnavailable + " cursor-not-allowed"
                                 )}
                               >
                                 {ticket.ticket_number}
                                 {isSelected && (
-                                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#030712] rounded-full flex items-center justify-center border border-emerald-500">
-                                    <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                  <span className={cn("absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center border border-emerald-500", colors.checkBg)}>
+                                    <Check className="w-2.5 h-2.5 text-emerald-500" />
                                   </span>
                                 )}
                               </motion.button>
@@ -805,7 +848,7 @@ export function TicketSelector({
                         />
                       )}
 
-                      <p className="text-xs text-white/30 text-center">
+                      <p className={cn("text-xs text-center", colors.emptyState)}>
                         {manualResults.length} boleto{manualResults.length !== 1 ? 's' : ''} cargados
                         {hasMoreManual && ' • Desplaza para ver más'}
                         {manualResults.length > 300 && ' • Vista optimizada'}
@@ -823,12 +866,12 @@ export function TicketSelector({
                     onCheckedChange={setShowOnlyAvailable}
                     className="data-[state=checked]:bg-emerald-500"
                   />
-                  <Label htmlFor="show-available" className="text-sm text-white/60">Solo disponibles</Label>
+                  <Label htmlFor="show-available" className={cn("text-sm", colors.textMuted)}>Solo disponibles</Label>
                 </div>
                 
                 <Button 
                   variant="outline"
-                  className="border border-white/[0.08] text-white/70 hover:border-white/[0.12] hover:text-white hover:bg-white/[0.06] h-12 bg-transparent"
+                  className={cn("h-12 bg-transparent", colors.buttonOutline)}
                   onClick={handleRandomGenerate}
                   disabled={randomMutation.isPending}
                 >
@@ -858,10 +901,10 @@ export function TicketSelector({
                         <span className="text-white font-bold">{selectedTickets.length}</span>
                       </motion.div>
                       <div>
-                        <p className="font-semibold text-white">
+                        <p className={cn("font-semibold", colors.text)}>
                           Boletos seleccionados
                         </p>
-                        <p className="text-sm text-white/50">
+                        <p className={cn("text-sm", colors.textMuted)}>
                           {selectedTickets.slice(0, 5).join(', ')}
                           {selectedTickets.length > 5 && ` +${selectedTickets.length - 5} más`}
                         </p>
@@ -873,14 +916,14 @@ export function TicketSelector({
                         variant="ghost"
                         size="sm"
                         onClick={handleClearSelection}
-                        className="text-white/50 hover:text-red-400 hover:bg-red-500/10"
+                        className={colors.clearButton}
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
                         Limpiar
                       </Button>
                       <Button
                         size="lg"
-                        className="bg-white text-[#030712] hover:bg-white/90 font-semibold shadow-lg"
+                        className={cn("font-semibold shadow-lg", colors.goButton)}
                         onClick={handleContinue}
                       >
                         {formatCurrency(calculateTotal(), currencyCode)}
@@ -895,7 +938,7 @@ export function TicketSelector({
             {/* Premium ticket grid with swipe gestures */}
             {isLoading ? (
               <div className="flex justify-center py-16">
-                <div className="w-10 h-10 border-2 border-white/20 border-t-emerald-500 rounded-full animate-spin" />
+                <div className={cn("w-10 h-10 border-2 rounded-full animate-spin", colors.loadingBorder)} />
               </div>
             ) : (
               <div
@@ -922,6 +965,7 @@ export function TicketSelector({
                         disabled={ticket.status !== 'available'}
                         isLastFew={ticket.status === 'available' && filteredTickets.filter(t => t.status === 'available').length <= 10}
                         isHighlighted={highlightedTicket === ticket.ticket_number}
+                        isLightTemplate={isLightTemplate}
                         ref={(el) => {
                           if (el) ticketRefs.current.set(ticket.ticket_number, el);
                           else ticketRefs.current.delete(ticket.ticket_number);
@@ -933,7 +977,7 @@ export function TicketSelector({
                 
                 {/* Mobile swipe hint */}
                 {isMobile && effectiveTotalPages > 1 && (
-                  <p className="text-xs text-center text-white/30 mt-3">
+                  <p className={cn("text-xs text-center mt-3", colors.emptyState)}>
                     ← Desliza para cambiar de página →
                   </p>
                 )}
@@ -942,10 +986,10 @@ export function TicketSelector({
 
             {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <div className="text-sm text-white/40">
+              <div className={cn("text-sm", colors.paginationText)}>
                 Página {page} de {effectiveTotalPages}
                 {isLargeRaffle && effectiveTotalPages < totalPages && (
-                  <span className="text-amber-400/70 ml-2">
+                  <span className="text-amber-500 ml-2">
                     (usa búsqueda para ver más)
                   </span>
                 )}
@@ -957,7 +1001,7 @@ export function TicketSelector({
                   size="icon"
                   onClick={() => setPage(1)}
                   disabled={page === 1}
-                  className="h-10 w-10 bg-transparent border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                  className={cn("h-10 w-10 bg-transparent disabled:opacity-30", colors.paginationBtn)}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -966,7 +1010,7 @@ export function TicketSelector({
                   size="icon"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="h-10 w-10 bg-transparent border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                  className={cn("h-10 w-10 bg-transparent disabled:opacity-30", colors.paginationBtn)}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -974,10 +1018,10 @@ export function TicketSelector({
                 <select
                   value={page}
                   onChange={(e) => setPage(Number(e.target.value))}
-                  className="h-10 px-3 rounded-lg border border-white/[0.08] bg-white/[0.03] text-white text-sm min-w-[70px] focus:outline-none focus:border-emerald-500/50"
+                  className={cn("h-10 px-3 rounded-lg border text-sm min-w-[70px] focus:outline-none focus:border-emerald-500/50", colors.inputBg, colors.inputBorder, colors.inputText)}
                 >
                   {Array.from({ length: effectiveTotalPages }, (_, i) => i + 1).map(p => (
-                    <option key={p} value={p} className="bg-[#030712] text-white">{p}</option>
+                    <option key={p} value={p} className={colors.selectBg}>{p}</option>
                   ))}
                 </select>
                 
@@ -986,7 +1030,7 @@ export function TicketSelector({
                   size="icon"
                   onClick={() => setPage(p => Math.min(effectiveTotalPages, p + 1))}
                   disabled={page === effectiveTotalPages}
-                  className="h-10 w-10 bg-transparent border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                  className={cn("h-10 w-10 bg-transparent disabled:opacity-30", colors.paginationBtn)}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -995,7 +1039,7 @@ export function TicketSelector({
                   size="icon"
                   onClick={() => setPage(effectiveTotalPages)}
                   disabled={page === effectiveTotalPages}
-                  className="h-10 w-10 bg-transparent border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                  className={cn("h-10 w-10 bg-transparent disabled:opacity-30", colors.paginationBtn)}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -1003,28 +1047,28 @@ export function TicketSelector({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-6 text-sm justify-center pt-4 border-t border-border/50">
+            <div className={cn("flex flex-wrap gap-6 text-sm justify-center pt-4 border-t", colors.border)}>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-card border border-border" />
-                <span className="text-muted-foreground">Disponible</span>
+                <div className={cn("w-6 h-6 rounded-lg border", colors.legendCard)} />
+                <span className={colors.legendText}>Disponible</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-emerald-500" />
-                <span className="text-muted-foreground">Seleccionado</span>
+                <span className={colors.legendText}>Seleccionado</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/50" />
-                <span className="text-muted-foreground">Reservado</span>
+                <span className={colors.legendText}>Reservado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-muted/50 border border-border/50" />
-                <span className="text-muted-foreground">Vendido</span>
+                <div className={cn("w-6 h-6 rounded-lg border", colors.ticketUnavailable)} />
+                <span className={colors.legendText}>Vendido</span>
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="random" className="space-y-6">
-            <Card className="border-2 overflow-hidden">
+            <Card className={cn("border-2 overflow-hidden", colors.randomCard)}>
               <CardContent className="pt-6 space-y-6">
                 {/* Slot Machine Animation - shown when spinning or has numbers */}
                 <AnimatePresence mode="wait">
@@ -1052,17 +1096,17 @@ export function TicketSelector({
                         >
                           <Sparkles className="w-10 h-10 text-amber-950" />
                         </motion.div>
-                        <h3 className="text-xl font-bold text-foreground mb-2">
+                        <h3 className={cn("text-xl font-bold mb-2", colors.text)}>
                           Generando {randomCount.toLocaleString()} boletos...
                         </h3>
-                        <p className="text-muted-foreground text-sm">
+                        <p className={cn("text-sm", colors.textMuted)}>
                           La suerte está trabajando para ti
                         </p>
                       </div>
                       
                       {/* Animated progress bar */}
                       <div className="max-w-xs mx-auto space-y-2">
-                        <div className="h-3 bg-muted rounded-full overflow-hidden">
+                        <div className={cn("h-3 rounded-full overflow-hidden", colors.cardBgSubtle)}>
                           <motion.div
                             className="h-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 rounded-full"
                             initial={{ width: "0%" }}
@@ -1076,7 +1120,7 @@ export function TicketSelector({
                             }}
                           />
                         </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
+                        <div className={cn("flex justify-between text-xs", colors.textMuted)}>
                           <span>Seleccionando...</span>
                           <motion.span
                             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -1092,7 +1136,7 @@ export function TicketSelector({
                         {[0, 1, 2, 3, 4].map((i) => (
                           <motion.div
                             key={i}
-                            className="w-10 h-10 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center font-mono font-bold text-primary"
+                            className={cn("w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-emerald-500", colors.cardBgSubtle)}
                             animate={{
                               y: [0, -8, 0],
                               opacity: [0.5, 1, 0.5],
@@ -1130,11 +1174,11 @@ export function TicketSelector({
                       exit={{ opacity: 0, y: -10 }}
                       className="text-center"
                     >
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Shuffle className="w-8 h-8 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-foreground mb-2">Máquina de la Suerte</h3>
-                      <p className="text-muted-foreground">¡Gira y deja que la suerte elija tus números!</p>
+                      <h3 className={cn("text-xl font-bold mb-2", colors.text)}>Máquina de la Suerte</h3>
+                      <p className={colors.textMuted}>¡Gira y deja que la suerte elija tus números!</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1149,7 +1193,7 @@ export function TicketSelector({
                       className="space-y-6"
                     >
                       <div className="space-y-3">
-                        <Label className="text-base">¿Cuántos boletos quieres?</Label>
+                        <Label className={cn("text-base", colors.text)}>¿Cuántos boletos quieres?</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
@@ -1283,19 +1327,20 @@ export function TicketSelector({
                 checkAvailability={checkTicketsAvailability}
                 isLoading={checkAvailabilityMutation.isPending}
                 showWinnersHistory={showWinnersHistory}
+                isLightTemplate={isLightTemplate}
               />
             </TabsContent>
           )}
 
           <TabsContent value="search" className="space-y-6">
-            <Card className="border-2">
+            <Card className={cn("border-2", colors.searchCard)}>
               <CardContent className="pt-6 space-y-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">Buscar Número</h3>
-                  <p className="text-muted-foreground">Busca todos los boletos que contengan ciertos dígitos</p>
+                  <h3 className={cn("text-xl font-bold mb-2", colors.text)}>Buscar Número</h3>
+                  <p className={colors.textMuted}>Busca todos los boletos que contengan ciertos dígitos</p>
                 </div>
 
                 <div className="relative">
@@ -1303,11 +1348,11 @@ export function TicketSelector({
                     placeholder="Ej: 7 para ver 7, 17, 27, 70, 77..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="h-12 text-lg border-2 pr-12"
+                    className={cn("h-12 text-lg border-2 pr-12", colors.inputBg, colors.inputBorder, colors.inputText, colors.inputPlaceholder)}
                   />
                   {isSearching && (
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      <Loader2 className={cn("h-5 w-5 animate-spin", colors.textMuted)} />
                     </div>
                   )}
                 </div>

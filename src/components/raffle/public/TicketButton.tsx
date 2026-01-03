@@ -14,6 +14,7 @@ interface TicketButtonProps {
   popularNumbers?: string[];
   isLastFew?: boolean;
   isHighlighted?: boolean;
+  isLightTemplate?: boolean;
 }
 
 export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps>(
@@ -28,11 +29,45 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
       popularNumbers = [],
       isLastFew = false,
       isHighlighted = false,
+      isLightTemplate = false,
     },
     ref
   ) {
     const isAvailable = status === 'available';
     const badgeType = isAvailable ? getNumberBadgeType(ticketNumber, luckyNumbers, popularNumbers, isLastFew) : null;
+
+    // Theme-aware colors
+    const colors = isLightTemplate ? {
+      focusRingOffset: 'focus:ring-offset-white',
+      highlightRingOffset: 'ring-offset-white',
+      availableBg: 'bg-gray-50 border border-gray-200',
+      availableText: 'text-gray-700',
+      availableHover: 'hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900',
+      availableHoverShadow: 'hover:shadow-md hover:shadow-emerald-500/10',
+      soldBg: 'bg-gray-100 border border-gray-200',
+      soldText: 'text-gray-300 cursor-not-allowed',
+      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(0,0,0,0.03)_3px,rgba(0,0,0,0.03)_6px)]',
+      reservedBg: 'bg-amber-50 border border-amber-200',
+      reservedText: 'text-amber-400 cursor-not-allowed',
+      canceledBg: 'bg-red-50 border border-red-200',
+      canceledText: 'text-red-300 cursor-not-allowed',
+      checkBg: 'bg-white',
+    } : {
+      focusRingOffset: 'focus:ring-offset-[#030712]',
+      highlightRingOffset: 'ring-offset-[#030712]',
+      availableBg: 'bg-white/[0.03] border border-white/[0.08]',
+      availableText: 'text-white/70',
+      availableHover: 'hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white',
+      availableHoverShadow: 'hover:shadow-lg hover:shadow-emerald-500/10',
+      soldBg: 'bg-white/[0.02] border border-white/[0.04]',
+      soldText: 'text-white/20 cursor-not-allowed',
+      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.03)_3px,rgba(255,255,255,0.03)_6px)]',
+      reservedBg: 'bg-amber-500/10 border border-amber-500/20',
+      reservedText: 'text-amber-500/50 cursor-not-allowed',
+      canceledBg: 'bg-red-500/5 border border-red-500/10',
+      canceledText: 'text-red-500/30 cursor-not-allowed',
+      checkBg: 'bg-[#030712]',
+    };
 
     return (
       <motion.button
@@ -47,19 +82,19 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
         className={cn(
           "relative aspect-square rounded-lg font-mono font-bold text-sm",
           "transition-all duration-200 touch-manipulation",
-          "focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 focus:ring-offset-[#030712]",
+          `focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-1 ${colors.focusRingOffset}`,
           
           // Highlighted state (found via search)
           isHighlighted && [
-            "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#030712] z-10",
+            `ring-2 ring-amber-400 ring-offset-2 ${colors.highlightRingOffset} z-10`,
           ],
           
-          // Available - not selected (ultra subtle dark with hover lift)
+          // Available - not selected
           isAvailable && !isSelected && [
-            "bg-white/[0.03] border border-white/[0.08]",
-            "text-white/70",
-            "hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white",
-            "hover:shadow-lg hover:shadow-emerald-500/10",
+            colors.availableBg,
+            colors.availableText,
+            colors.availableHover,
+            colors.availableHoverShadow,
           ],
           
           // Available - selected (emerald solid with glow)
@@ -69,23 +104,23 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
             "shadow-lg shadow-emerald-500/40",
           ],
           
-          // Sold (subtle with animated diagonal pattern)
+          // Sold
           status === 'sold' && [
-            "bg-white/[0.02] border border-white/[0.04]",
-            "text-white/20 cursor-not-allowed",
-            "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.03)_3px,rgba(255,255,255,0.03)_6px)]",
+            colors.soldBg,
+            colors.soldText,
+            colors.soldPattern,
           ],
           
           // Reserved
           status === 'reserved' && [
-            "bg-amber-500/10 border border-amber-500/20",
-            "text-amber-500/50 cursor-not-allowed",
+            colors.reservedBg,
+            colors.reservedText,
           ],
           
           // Canceled
           status === 'canceled' && [
-            "bg-red-500/5 border border-red-500/10",
-            "text-red-500/30 cursor-not-allowed",
+            colors.canceledBg,
+            colors.canceledText,
           ]
         )}
       >
