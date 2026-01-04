@@ -486,7 +486,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                   <div className="text-center mb-6">
                     <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] ${isLightTemplate ? 'text-gray-600' : 'text-white/40'}`}>El sorteo se realizará en</p>
                   </div>
-                  <CountdownTimer targetDate={new Date(raffle.draw_date)} variant="lottery" isLightTemplate={isLightTemplate} />
+                  <CountdownTimer targetDate={new Date(raffle.draw_date)} variant="lottery" isLightTemplate={isLightTemplate} primaryColor={primaryColor} />
                 </div>
               </div>
             )}
@@ -521,7 +521,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
         {showPurchaseToasts && <PurchaseToast raffleId={raffle.id} />}
 
         {/* How To Participate - Mobile only shows this compact version */}
-        {isMobile && showHowItWorks && <HowToParticipate isLightTemplate={isLightTemplate} />}
+        {isMobile && showHowItWorks && <HowToParticipate isLightTemplate={isLightTemplate} primaryColor={primaryColor} />}
 
         {/* Ticket Selection Section - /pricing style */}
         {showTicketGrid && (
@@ -540,7 +540,10 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                   Selección de boletos
                 </p>
                 <h2 className="text-3xl lg:text-5xl font-bold mb-4">
-                  <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
+                  <span 
+                    className="bg-clip-text text-transparent"
+                    style={{ backgroundImage: `linear-gradient(to right, ${primaryColor}, ${primaryColor}dd, ${primaryColor})` }}
+                  >
                     {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos"}
                   </span>
                 </h2>
@@ -573,7 +576,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
 
               {showSocialProof && (
                 <div className="mt-16">
-                  <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" />
+                  <SocialProof raffleId={raffle.id} className="max-w-2xl mx-auto" primaryColor={primaryColor} isLightTemplate={isLightTemplate} />
                 </div>
               )}
             </div>
@@ -605,6 +608,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           drawMethod={(raffle as any).draw_method}
           livestreamUrl={(raffle as any).livestream_url}
           isLightTemplate={isLightTemplate}
+          primaryColor={primaryColor}
         />
 
         {/* How It Works - Desktop only (mobile uses compact version above) */}
@@ -630,7 +634,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                   isLightTemplate ? "text-gray-500" : "text-white/50"
                 )}>Es muy fácil, solo sigue estos pasos</p>
               </div>
-              <HowToParticipate isLightTemplate={isLightTemplate} />
+              <HowToParticipate isLightTemplate={isLightTemplate} primaryColor={primaryColor} />
             </div>
           </div>
         )}
@@ -692,6 +696,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
             } : null}
             customization={customization}
             isLightTemplate={isLightTemplate}
+            primaryColor={primaryColor}
           />
         )}
 
@@ -745,6 +750,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
             }}
             raffleTitle={raffle.title}
             isLightTemplate={isLightTemplate}
+            primaryColor={primaryColor}
           />
         )}
 

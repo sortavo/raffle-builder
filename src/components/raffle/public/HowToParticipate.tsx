@@ -26,9 +26,10 @@ const steps = [
 interface HowToParticipateProps {
   className?: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
-export function HowToParticipate({ className = "", isLightTemplate = false }: HowToParticipateProps) {
+export function HowToParticipate({ className = "", isLightTemplate = false, primaryColor = '#10b981' }: HowToParticipateProps) {
   // Theme-aware colors
   const colors = isLightTemplate ? {
     sectionBg: 'bg-gray-50/80',
@@ -36,20 +37,16 @@ export function HowToParticipate({ className = "", isLightTemplate = false }: Ho
     textMuted: 'text-gray-500',
     cardBg: 'bg-white',
     cardBorder: 'border-gray-200',
-    hoverBorder: 'hover:border-emerald-500/40',
     iconBg: 'bg-gray-100',
     iconBorder: 'border-gray-200',
-    connectorLine: 'from-emerald-400/30',
   } : {
     sectionBg: 'bg-gray-950/50',
     text: 'text-gray-200',
     textMuted: 'text-gray-400',
     cardBg: 'bg-gray-900/80',
     cardBorder: 'border-white/10',
-    hoverBorder: 'hover:border-emerald-500/30',
     iconBg: 'bg-gray-900/80',
     iconBorder: 'border-white/10',
-    connectorLine: 'from-emerald-500/30',
   };
 
   return (
@@ -67,22 +64,30 @@ export function HowToParticipate({ className = "", isLightTemplate = false }: Ho
             >
               {/* Connector line for desktop */}
               {index < steps.length - 1 && (
-                <div className={cn(
-                  "hidden sm:block absolute top-8 left-[60%] w-full h-px bg-gradient-to-r to-transparent",
-                  colors.connectorLine
-                )} />
+                <div 
+                  className="hidden sm:block absolute top-8 left-[60%] w-full h-px bg-gradient-to-r to-transparent"
+                  style={{ background: `linear-gradient(to right, ${primaryColor}50, transparent)` }}
+                />
               )}
               
               <div className="flex sm:flex-col items-start sm:items-center gap-4 sm:gap-3 text-left sm:text-center">
                 {/* Icon with number */}
                 <div className="relative flex-shrink-0">
-                  <div className={cn(
-                    "w-16 h-16 rounded-2xl border flex items-center justify-center shadow-lg transition-all",
-                    colors.iconBg, colors.iconBorder, colors.hoverBorder
-                  )}>
-                    <step.icon className="w-8 h-8 text-emerald-400" />
+                  <div 
+                    className={cn(
+                      "w-16 h-16 rounded-2xl border flex items-center justify-center shadow-lg transition-all",
+                      colors.iconBg, colors.iconBorder
+                    )}
+                    style={{ 
+                      borderColor: isLightTemplate ? `${primaryColor}30` : `${primaryColor}20`,
+                    }}
+                  >
+                    <step.icon className="w-8 h-8" style={{ color: primaryColor }} />
                   </div>
-                  <div className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg">
+                  <div 
+                    className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-lg"
+                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${primaryColor}dd)` }}
+                  >
                     <span className="text-sm font-bold text-white">{step.number}</span>
                   </div>
                 </div>

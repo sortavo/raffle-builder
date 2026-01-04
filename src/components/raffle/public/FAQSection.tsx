@@ -45,6 +45,7 @@ interface FAQSectionProps {
   };
   className?: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
 interface SmartFAQ {
@@ -70,7 +71,7 @@ const DRAW_METHOD_LABELS: Record<string, string> = {
   random_org: 'Random.org (generador aleatorio certificado)',
 };
 
-export function FAQSection({ raffle, organization, customization, className, isLightTemplate = false }: FAQSectionProps) {
+export function FAQSection({ raffle, organization, customization, className, isLightTemplate = false, primaryColor = '#10b981' }: FAQSectionProps) {
   const sections = customization?.sections || {};
   const faqConfig = customization?.faq_config || { show_default_faqs: true, custom_faqs: [] };
   const showFaqSection = sections.faq !== false;
@@ -285,11 +286,15 @@ export function FAQSection({ raffle, organization, customization, className, isL
   return (
     <div className={cn("max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20", className)}>
       <div className="text-center mb-14">
-        <div className={cn(
-          "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-5 border shadow-lg",
-          colors.badgeBg, colors.badgeText, colors.badgeBorder,
-          isLightTemplate ? "shadow-emerald-500/10" : "shadow-emerald-500/5"
-        )}>
+        <div 
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-5 border shadow-lg"
+          style={{ 
+            backgroundColor: `${primaryColor}15`,
+            color: primaryColor,
+            borderColor: `${primaryColor}30`,
+            boxShadow: `0 10px 25px -5px ${primaryColor}15`
+          }}
+        >
           <HelpCircle className="w-4 h-4" />
           Resolvemos tus dudas
         </div>
@@ -309,8 +314,11 @@ export function FAQSection({ raffle, organization, customization, className, isL
           return (
             <div key={cat.id} className="space-y-4">
               <div className="flex items-center gap-3 px-1">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", colors.badgeBg)}>
-                  <Icon className={cn("w-5 h-5", colors.badgeText)} />
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: `${primaryColor}15` }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: primaryColor }} />
                 </div>
                 <h3 className={cn("font-semibold text-lg", colors.text)}>{cat.label}</h3>
                 <span className={cn("text-sm", colors.textSubtle)}>({faqs.length})</span>

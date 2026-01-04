@@ -29,9 +29,10 @@ interface ContactSectionProps {
   };
   raffleTitle: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
-export function ContactSection({ organization, raffleTitle, isLightTemplate = false }: ContactSectionProps) {
+export function ContactSection({ organization, raffleTitle, isLightTemplate = false, primaryColor = '#10b981' }: ContactSectionProps) {
   // Theme-aware colors
   const colors = isLightTemplate ? {
     text: 'text-gray-900',
@@ -130,7 +131,7 @@ export function ContactSection({ organization, raffleTitle, isLightTemplate = fa
         {allWhatsApps.length > 0 && (
           <div>
             <p className={cn("text-xs uppercase tracking-wider mb-3 flex items-center gap-2", colors.textSubtle)}>
-              <FaWhatsapp className="w-3.5 h-3.5 text-emerald-500" />
+              <FaWhatsapp className="w-3.5 h-3.5" style={{ color: primaryColor }} />
               WhatsApp
             </p>
             <div className="flex flex-wrap gap-2">
@@ -140,10 +141,14 @@ export function ContactSection({ organization, raffleTitle, isLightTemplate = fa
                   href={formatWhatsAppLink(number)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/30 rounded-lg px-4 py-2.5 transition-all group"
+                  className="flex items-center gap-2 rounded-lg px-4 py-2.5 transition-all group border"
+                  style={{ 
+                    backgroundColor: `${primaryColor}10`,
+                    borderColor: `${primaryColor}20`,
+                  }}
                 >
-                  <FaWhatsapp className="w-4 h-4 text-emerald-500" />
-                  <span className={cn("text-sm group-hover:text-emerald-500", isLightTemplate ? "text-gray-700" : "text-white/80")}>
+                  <FaWhatsapp className="w-4 h-4" style={{ color: primaryColor }} />
+                  <span className={cn("text-sm", isLightTemplate ? "text-gray-700" : "text-white/80")} style={{ '--hover-color': primaryColor } as React.CSSProperties}>
                     {number}
                   </span>
                 </a>

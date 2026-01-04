@@ -9,6 +9,7 @@ interface CountdownTimerProps {
   showLabels?: boolean;
   className?: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
 interface TimeLeft {
@@ -44,6 +45,7 @@ export function CountdownTimer({
   showLabels = true,
   className,
   isLightTemplate = false,
+  primaryColor = '#10b981',
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(targetDate));
   const [prevSeconds, setPrevSeconds] = useState(timeLeft.seconds);
@@ -79,25 +81,35 @@ export function CountdownTimer({
   if (variant === 'lottery') {
     const isUrgent = timeLeft.days === 0 && timeLeft.hours < 6;
     
-    const separatorColor = isLightTemplate ? "text-emerald-500" : "text-emerald-400/40";
-    
     return (
       <div className={cn("flex justify-center gap-2 sm:gap-3 relative", className)}>
         {/* Subtle ambient glow */}
         {!isLightTemplate && (
-          <div className="absolute inset-0 -inset-x-8 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent rounded-full blur-xl" />
+          <div 
+            className="absolute inset-0 -inset-x-8 bg-gradient-to-r from-transparent to-transparent rounded-full blur-xl" 
+            style={{ background: `linear-gradient(to right, transparent, ${primaryColor}10, transparent)` }}
+          />
         )}
         
-        <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} isLightTemplate={isLightTemplate} />
-        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
+        <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} isLightTemplate={isLightTemplate} primaryColor={primaryColor} />
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse"
+          style={{ color: isLightTemplate ? primaryColor : `${primaryColor}66` }}
+        >
           :
         </div>
-        <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} isLightTemplate={isLightTemplate} />
-        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
+        <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} isLightTemplate={isLightTemplate} primaryColor={primaryColor} />
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse"
+          style={{ color: isLightTemplate ? primaryColor : `${primaryColor}66` }}
+        >
           :
         </div>
-        <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} isLightTemplate={isLightTemplate} />
-        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
+        <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} isLightTemplate={isLightTemplate} primaryColor={primaryColor} />
+        <div 
+          className="text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse"
+          style={{ color: isLightTemplate ? primaryColor : `${primaryColor}66` }}
+        >
           :
         </div>
         <LotteryTimeUnit 
@@ -107,6 +119,7 @@ export function CountdownTimer({
           prevValue={prevSeconds}
           urgent={isUrgent}
           isLightTemplate={isLightTemplate}
+          primaryColor={primaryColor}
         />
       </div>
     );
@@ -183,7 +196,8 @@ function LotteryTimeUnit({
   animate = false,
   prevValue,
   urgent = false,
-  isLightTemplate = false
+  isLightTemplate = false,
+  primaryColor = '#10b981'
 }: { 
   value: number; 
   label: string;
@@ -191,19 +205,18 @@ function LotteryTimeUnit({
   prevValue?: number;
   urgent?: boolean;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }) {
   const displayValue = value.toString().padStart(2, '0');
   const prevDisplayValue = prevValue?.toString().padStart(2, '0');
   const hasChanged = animate && prevDisplayValue !== displayValue;
   
-  // Dynamic styles based on template
-  const boxStyles = isLightTemplate 
-    ? (urgent 
+  // Dynamic styles based on template and primary color
+  const boxStyles = urgent 
+    ? (isLightTemplate 
         ? "bg-red-50 border-red-300 shadow-lg shadow-red-100" 
-        : "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-lg shadow-emerald-100")
-    : (urgent 
-        ? "bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/10" 
-        : "bg-emerald-500/10 border-emerald-500/15 shadow-lg shadow-emerald-500/5");
+        : "bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/10")
+    : undefined;
   
   const numberStyles = isLightTemplate
     ? (urgent ? "text-red-600" : "text-gray-900")
@@ -213,6 +226,15 @@ function LotteryTimeUnit({
     ? (urgent ? "text-red-600" : "text-gray-600")
     : (urgent ? "text-red-500" : "text-ultra-dark-dimmed");
   
+  // Non-urgent box style uses primary color
+  const dynamicBoxStyle = urgent ? {} : {
+    background: isLightTemplate 
+      ? `linear-gradient(to bottom right, ${primaryColor}15, ${primaryColor}10)` 
+      : `${primaryColor}15`,
+    borderColor: isLightTemplate ? `${primaryColor}40` : `${primaryColor}25`,
+    boxShadow: `0 10px 15px -3px ${primaryColor}15`,
+  };
+  
   return (
     <div className="flex flex-col items-center">
       <div 
@@ -220,6 +242,7 @@ function LotteryTimeUnit({
           "relative rounded-xl px-3 py-2 sm:px-4 sm:py-3 min-w-[48px] sm:min-w-[68px] overflow-hidden border",
           boxStyles
         )}
+        style={dynamicBoxStyle}
       >
         <AnimatePresence mode="popLayout">
           <motion.span

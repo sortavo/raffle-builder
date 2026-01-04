@@ -7,6 +7,7 @@ interface TransparencySectionProps {
   livestreamUrl?: string | null;
   className?: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
 const transparencyItems = [
@@ -36,7 +37,8 @@ export function TransparencySection({
   drawMethod,
   livestreamUrl,
   className = "",
-  isLightTemplate = false
+  isLightTemplate = false,
+  primaryColor = '#10b981'
 }: TransparencySectionProps) {
   // Theme-aware colors
   const colors = isLightTemplate ? {
@@ -127,16 +129,23 @@ export function TransparencySection({
           viewport={{ once: true }}
           className="text-center mb-16 lg:mb-20"
         >
-          <div className={cn(
-            "inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold mb-8 border shadow-lg shimmer-badge",
-            colors.badgeBg, colors.badgeText, colors.badgeBorder,
-            isLightTemplate ? "shadow-emerald-500/10" : "shadow-emerald-500/10"
-          )}>
+          <div 
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold mb-8 border shadow-lg shimmer-badge"
+            style={{ 
+              backgroundColor: isLightTemplate ? `${primaryColor}15` : `${primaryColor}15`,
+              color: primaryColor,
+              borderColor: `${primaryColor}30`,
+              boxShadow: `0 10px 25px -5px ${primaryColor}20`
+            }}
+          >
             <Shield className="w-5 h-5" />
             Garantía de Transparencia
           </div>
           <h2 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black mb-6 tracking-[-0.04em] leading-[0.9]">
-            <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-300 bg-clip-text text-transparent">
+            <span 
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: `linear-gradient(to right, ${primaryColor}, ${primaryColor}cc, ${primaryColor})` }}
+            >
               Sorteo 100% Verificable
             </span>
           </h2>

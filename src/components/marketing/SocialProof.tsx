@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, ShoppingBag, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface Purchase {
   id: string;
@@ -16,9 +17,11 @@ interface Purchase {
 interface SocialProofProps {
   raffleId: string;
   className?: string;
+  primaryColor?: string;
+  isLightTemplate?: boolean;
 }
 
-export function SocialProof({ raffleId, className }: SocialProofProps) {
+export function SocialProof({ raffleId, className, primaryColor = '#10b981', isLightTemplate = false }: SocialProofProps) {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -81,8 +84,11 @@ export function SocialProof({ raffleId, className }: SocialProofProps) {
 
   return (
     <div className={className}>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <ShoppingBag className="w-5 h-5 text-primary" />
+      <h3 className={cn(
+        "text-lg font-semibold mb-4 flex items-center gap-2",
+        isLightTemplate ? "text-gray-900" : "text-white"
+      )}>
+        <ShoppingBag className="w-5 h-5" style={{ color: primaryColor }} />
         Compras Recientes
       </h3>
       <div className="space-y-2">
@@ -94,16 +100,28 @@ export function SocialProof({ raffleId, className }: SocialProofProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ delay: index * 0.1 }}
-              className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-lg",
+                isLightTemplate ? "bg-gray-100" : "bg-white/5"
+              )}
             >
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: `${primaryColor}15` }}
+              >
+                <User className="w-5 h-5" style={{ color: primaryColor }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">
+                <p className={cn(
+                  "font-medium truncate",
+                  isLightTemplate ? "text-gray-900" : "text-white"
+                )}>
                   {anonymizeName(purchase.buyer_name)}
                 </p>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className={cn(
+                  "flex items-center gap-2 text-sm",
+                  isLightTemplate ? "text-gray-500" : "text-white/60"
+                )}>
                   <span>Boleto #{purchase.ticket_number}</span>
                   {purchase.buyer_city && (
                     <>
@@ -116,7 +134,10 @@ export function SocialProof({ raffleId, className }: SocialProofProps) {
                   )}
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground whitespace-nowrap">
+              <div className={cn(
+                "text-xs whitespace-nowrap",
+                isLightTemplate ? "text-gray-400" : "text-white/40"
+              )}>
                 Hace {formatDistanceToNow(new Date(purchase.sold_at), {
                   locale: es,
                   addSuffix: false
