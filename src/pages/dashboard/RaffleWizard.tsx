@@ -99,21 +99,22 @@ export default function RaffleWizard() {
   const rafRef = useRef<number | null>(null);
   const lastProgressRef = useRef<number>(0);
   
-  // Universal scroll listener that captures scroll from any container
+  // Scroll sync: calculate progress based on wizard position in viewport
   useEffect(() => {
     if (!showPreview) return;
     
-    const calculateProgress = (scrollContainer: Element | null) => {
+    const calculateProgress = () => {
       const wizardContent = wizardContentRef.current;
-      if (!wizardContent || !scrollContainer) return;
+      if (!wizardContent) return;
       
-      // Get the scroll container's metrics
-      const scrollTop = scrollContainer.scrollTop;
-      const scrollHeight = scrollContainer.scrollHeight;
-      const clientHeight = scrollContainer.clientHeight;
-      const maxScroll = scrollHeight - clientHeight;
+      const rect = wizardContent.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
       
-      if (maxScroll <= 0) {
+      // Distance the wizard can travel (from top at viewport top to bottom at viewport bottom)
+      const totalScrollableDistance = rect.height - viewportHeight;
+      
+      // If wizard is smaller than viewport, no scroll possible
+      if (totalScrollableDistance <= 0) {
         if (lastProgressRef.current !== 0) {
           lastProgressRef.current = 0;
           setPreviewScrollProgress(0);
@@ -121,7 +122,11 @@ export default function RaffleWizard() {
         return;
       }
       
-      const progress = Math.max(0, Math.min(1, scrollTop / maxScroll));
+      // How much the wizard top has "gone up" (negative = hasn't reached top yet)
+      const scrolledPast = -rect.top;
+      
+      // Calculate progress from 0 to 1
+      const progress = Math.max(0, Math.min(1, scrolledPast / totalScrollableDistance));
       
       // Only update if changed significantly (avoid micro-renders)
       if (Math.abs(progress - lastProgressRef.current) > 0.003) {
@@ -131,10 +136,8 @@ export default function RaffleWizard() {
     };
     
     const handleScroll = (event: Event) => {
-      // Get the actual scrolling element
-      const target = event.target as Element | Document;
-      
       // Ignore scroll events from the preview container
+      const target = event.target as Element | Document;
       if (target instanceof Element) {
         if (target.hasAttribute('data-preview-scroll') || 
             target.closest('[data-preview-scroll]')) {
@@ -142,41 +145,23 @@ export default function RaffleWizard() {
         }
       }
       
-      // Find the scroll container
-      let scrollContainer: Element | null = null;
-      
-      if (target === document || target === document.documentElement) {
-        scrollContainer = document.scrollingElement || document.documentElement;
-      } else if (target instanceof Element) {
-        // Check if this container contains our wizard content
-        const wizardContent = wizardContentRef.current;
-        if (wizardContent && target.contains(wizardContent)) {
-          scrollContainer = target;
-        }
-      }
-      
-      if (!scrollContainer) return;
-      
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        calculateProgress(scrollContainer);
+        calculateProgress();
       });
     };
     
-    // Use capture phase to catch scroll on any element
-    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    window.addEventListener('resize', () => {
-      const scrollContainer = document.scrollingElement || document.documentElement;
-      calculateProgress(scrollContainer);
-    }, { passive: true });
+    // Listen on window scroll (main scroll container)
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', calculateProgress, { passive: true });
     
     // Initial calculation
-    const scrollContainer = document.scrollingElement || document.documentElement;
-    calculateProgress(scrollContainer);
+    calculateProgress();
     
     return () => {
-      document.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', calculateProgress);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
