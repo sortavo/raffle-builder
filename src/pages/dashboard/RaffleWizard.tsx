@@ -862,7 +862,7 @@ export default function RaffleWizard() {
         )}
 
         {/* Main Content with Preview */}
-        <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,380px] xl:grid-cols-[1fr,420px]' : ''}`}>
+        <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,440px] xl:grid-cols-[1fr,460px]' : ''}`}>
           {/* Left: Form */}
           <div ref={wizardContentRef} className="space-y-4">
             <Form {...form}>
@@ -926,9 +926,9 @@ export default function RaffleWizard() {
 
           {/* Right: Preview */}
           {showPreview && (
-            <div 
-              className="hidden lg:block self-start z-20" 
-              style={{ position: 'sticky', top: '80px' }}
+            <div
+              className="hidden lg:block z-20"
+              style={{ position: 'fixed', top: '80px', right: '32px', width: '420px' }}
             >
               <RafflePreview 
                 form={form} 
