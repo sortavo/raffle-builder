@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.monitor-domains]
 verify_jwt = true
+
+[functions.create-demo-account]
+verify_jwt = false
