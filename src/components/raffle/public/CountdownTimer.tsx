@@ -8,6 +8,7 @@ interface CountdownTimerProps {
   variant?: 'default' | 'compact' | 'inline' | 'lottery';
   showLabels?: boolean;
   className?: string;
+  isLightTemplate?: boolean;
 }
 
 interface TimeLeft {
@@ -42,6 +43,7 @@ export function CountdownTimer({
   variant = 'default',
   showLabels = true,
   className,
+  isLightTemplate = false,
 }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(targetDate));
   const [prevSeconds, setPrevSeconds] = useState(timeLeft.seconds);
@@ -77,21 +79,25 @@ export function CountdownTimer({
   if (variant === 'lottery') {
     const isUrgent = timeLeft.days === 0 && timeLeft.hours < 6;
     
+    const separatorColor = isLightTemplate ? "text-emerald-500" : "text-emerald-400/40";
+    
     return (
       <div className={cn("flex justify-center gap-2 sm:gap-3 relative", className)}>
         {/* Subtle ambient glow */}
-        <div className="absolute inset-0 -inset-x-8 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent rounded-full blur-xl" />
+        {!isLightTemplate && (
+          <div className="absolute inset-0 -inset-x-8 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent rounded-full blur-xl" />
+        )}
         
-        <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
+        <LotteryTimeUnit value={timeLeft.days} label="DÍAS" urgent={isUrgent} isLightTemplate={isLightTemplate} />
+        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
           :
         </div>
-        <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
+        <LotteryTimeUnit value={timeLeft.hours} label="HRS" urgent={isUrgent} isLightTemplate={isLightTemplate} />
+        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
           :
         </div>
-        <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} />
-        <div className="text-2xl sm:text-4xl font-bold self-center pb-5 text-emerald-400/40 animate-pulse">
+        <LotteryTimeUnit value={timeLeft.minutes} label="MIN" urgent={isUrgent} isLightTemplate={isLightTemplate} />
+        <div className={cn("text-2xl sm:text-4xl font-bold self-center pb-5 animate-pulse", separatorColor)}>
           :
         </div>
         <LotteryTimeUnit 
@@ -100,6 +106,7 @@ export function CountdownTimer({
           animate 
           prevValue={prevSeconds}
           urgent={isUrgent}
+          isLightTemplate={isLightTemplate}
         />
       </div>
     );
@@ -175,26 +182,43 @@ function LotteryTimeUnit({
   label, 
   animate = false,
   prevValue,
-  urgent = false
+  urgent = false,
+  isLightTemplate = false
 }: { 
   value: number; 
   label: string;
   animate?: boolean;
   prevValue?: number;
   urgent?: boolean;
+  isLightTemplate?: boolean;
 }) {
   const displayValue = value.toString().padStart(2, '0');
   const prevDisplayValue = prevValue?.toString().padStart(2, '0');
   const hasChanged = animate && prevDisplayValue !== displayValue;
+  
+  // Dynamic styles based on template
+  const boxStyles = isLightTemplate 
+    ? (urgent 
+        ? "bg-red-50 border-red-300 shadow-lg shadow-red-100" 
+        : "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 shadow-lg shadow-emerald-100")
+    : (urgent 
+        ? "bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/10" 
+        : "bg-emerald-500/10 border-emerald-500/15 shadow-lg shadow-emerald-500/5");
+  
+  const numberStyles = isLightTemplate
+    ? (urgent ? "text-red-600" : "text-gray-900")
+    : (urgent ? "text-red-500" : "text-white");
+  
+  const labelStyles = isLightTemplate
+    ? (urgent ? "text-red-600" : "text-gray-600")
+    : (urgent ? "text-red-500" : "text-ultra-dark-dimmed");
   
   return (
     <div className="flex flex-col items-center">
       <div 
         className={cn(
           "relative rounded-xl px-3 py-2 sm:px-4 sm:py-3 min-w-[48px] sm:min-w-[68px] overflow-hidden border",
-          urgent 
-            ? "bg-red-500/10 border-red-500/20 shadow-lg shadow-red-500/10" 
-            : "bg-emerald-500/10 border-emerald-500/15 shadow-lg shadow-emerald-500/5"
+          boxStyles
         )}
       >
         <AnimatePresence mode="popLayout">
@@ -206,7 +230,7 @@ function LotteryTimeUnit({
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className={cn(
               "block text-2xl sm:text-4xl font-black text-center font-mono tabular-nums tracking-tight",
-              urgent ? "text-red-500" : "text-white"
+              numberStyles
             )}
           >
             {displayValue}
@@ -216,7 +240,7 @@ function LotteryTimeUnit({
       <span 
         className={cn(
           "text-[9px] sm:text-[10px] font-medium mt-1.5 uppercase tracking-[0.15em]",
-          urgent ? "text-red-500" : "text-ultra-dark-dimmed"
+          labelStyles
         )}
       >
         {label}

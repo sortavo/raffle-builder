@@ -461,9 +461,9 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
               <div className={`py-12 border-y ${isLightTemplate ? 'bg-white border-gray-200' : 'bg-ultra-dark border-white/[0.06]'}`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                   <div className="text-center mb-6">
-                    <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] ${isLightTemplate ? 'text-gray-400' : 'text-white/40'}`}>El sorteo se realizará en</p>
+                    <p className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.2em] ${isLightTemplate ? 'text-gray-600' : 'text-white/40'}`}>El sorteo se realizará en</p>
                   </div>
-                  <CountdownTimer targetDate={new Date(raffle.draw_date)} variant="lottery" />
+                  <CountdownTimer targetDate={new Date(raffle.draw_date)} variant="lottery" isLightTemplate={isLightTemplate} />
                 </div>
               </div>
             )}
