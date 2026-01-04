@@ -472,10 +472,25 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
 
         {/* Desktop without hero - simple header */}
         {!isMobile && !showHero && (
-          <div className="bg-ultra-dark py-16 px-4 border-b border-white/[0.06]">
+          <div className={cn(
+            "py-16 px-4 border-b",
+            isLightTemplate 
+              ? "bg-white border-gray-200" 
+              : "bg-ultra-dark border-white/[0.06]"
+          )}>
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl lg:text-5xl font-bold text-white tracking-tight">{raffle.title}</h1>
-              <p className="text-white/50 mt-4 text-lg">{raffle.prize_name}</p>
+              <h1 className={cn(
+                "text-3xl lg:text-5xl font-bold tracking-tight",
+                isLightTemplate ? "text-gray-900" : "text-white"
+              )}>
+                {raffle.title}
+              </h1>
+              <p className={cn(
+                "mt-4 text-lg",
+                isLightTemplate ? "text-gray-500" : "text-white/50"
+              )}>
+                {raffle.prize_name}
+              </p>
             </div>
           </div>
         )}
@@ -495,7 +510,10 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 viewport={{ once: true }}
                 className="text-center mb-12 lg:mb-16"
               >
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-gray-400 mb-4">
+                <p className={cn(
+                  "text-xs font-medium uppercase tracking-[0.2em] mb-4",
+                  isLightTemplate ? "text-gray-500" : "text-gray-400"
+                )}>
                   Selección de boletos
                 </p>
                 <h2 className="text-3xl lg:text-5xl font-bold mb-4">
@@ -503,7 +521,10 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                     {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos"}
                   </span>
                 </h2>
-                <p className="text-base lg:text-lg text-gray-400 max-w-xl mx-auto">
+                <p className={cn(
+                  "text-base lg:text-lg max-w-xl mx-auto",
+                  isLightTemplate ? "text-gray-600" : "text-gray-400"
+                )}>
                   {isMobile ? "¡La suerte te espera!" : "Elige los números que te llevarán a la victoria"}
                 </p>
               </motion.div>
