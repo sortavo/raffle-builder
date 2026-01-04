@@ -121,6 +121,17 @@ export function TicketSelector({
     clearButton: 'text-gray-500 hover:text-red-500 hover:bg-red-50',
     randomCard: 'bg-white border-gray-200',
     searchCard: 'bg-white border-gray-200',
+    // New tokens for Search/Random tabs
+    successBg: 'bg-emerald-50',
+    successBgHover: 'hover:bg-emerald-100',
+    successBorder: 'border-emerald-300',
+    successText: 'text-emerald-700',
+    successRing: 'ring-emerald-500/30 ring-offset-white',
+    mutedBg: 'bg-gray-50',
+    mutedBorder: 'border-gray-200',
+    mutedTextFaded: 'text-gray-400',
+    ringOffset: 'ring-offset-white',
+    gradientBg: 'bg-gradient-to-r from-emerald-50 to-teal-50',
   } : {
     text: 'text-white',
     textMuted: 'text-white/50',
@@ -155,6 +166,17 @@ export function TicketSelector({
     clearButton: 'text-white/50 hover:text-red-400 hover:bg-red-500/10',
     randomCard: 'bg-white/[0.03] border-white/[0.06]',
     searchCard: 'bg-white/[0.03] border-white/[0.06]',
+    // New tokens for Search/Random tabs
+    successBg: 'bg-emerald-500/10',
+    successBgHover: 'hover:bg-emerald-500/20',
+    successBorder: 'border-emerald-500/50',
+    successText: 'text-emerald-400',
+    successRing: 'ring-emerald-500/50 ring-offset-[#030712]',
+    mutedBg: 'bg-white/[0.05]',
+    mutedBorder: 'border-white/[0.08]',
+    mutedTextFaded: 'text-white/30',
+    ringOffset: 'ring-offset-[#030712]',
+    gradientBg: 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10',
   };
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [mode, setMode] = useState<'manual' | 'random' | 'search' | 'lucky'>('manual');
@@ -1204,7 +1226,7 @@ export function TicketSelector({
                               const value = parseInt(e.target.value) || 1;
                               setRandomCount(Math.min(10000, Math.max(1, value)));
                             }}
-                            className="h-12 text-lg border-2 text-center flex-1"
+                            className={cn("h-12 text-lg border-2 text-center flex-1", colors.inputBg, colors.inputBorder, colors.inputText)}
                           />
                           {randomCount > 100 && (
                             <Badge variant="outline" className="h-12 px-3 flex items-center border-amber-500 text-amber-600">
@@ -1255,8 +1277,8 @@ export function TicketSelector({
                       </Button>
 
                       {generatedNumbers.length > 0 && !isSlotSpinning && (
-                        <div className="space-y-4 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl">
-                          <p className="font-medium text-center text-foreground">
+                        <div className={cn("space-y-4 p-4 rounded-xl border", colors.gradientBg, colors.border)}>
+                          <p className={cn("font-medium text-center", colors.text)}>
                             Tus {generatedNumbers.length.toLocaleString()} números de la suerte:
                           </p>
                           
@@ -1276,7 +1298,7 @@ export function TicketSelector({
                                   +{(generatedNumbers.length - 10).toLocaleString()} más
                                 </Badge>
                               </div>
-                              <p className="text-xs text-center text-muted-foreground">
+                              <p className={cn("text-xs text-center", colors.textMuted)}>
                                 Rango: {generatedNumbers[0]} - {generatedNumbers[generatedNumbers.length - 1]}
                               </p>
                             </div>
@@ -1360,27 +1382,27 @@ export function TicketSelector({
                 {hasSearched && (
                   <div className="space-y-4">
                     {searchResults.length === 0 ? (
-                      <div className="p-6 bg-muted rounded-xl text-center">
-                        <Ticket className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-lg font-semibold text-muted-foreground">
+                      <div className={cn("p-6 rounded-xl text-center border", colors.mutedBg, colors.border)}>
+                        <Ticket className={cn("w-12 h-12 mx-auto mb-3", colors.textMuted)} />
+                        <p className={cn("text-lg font-semibold", colors.textMuted)}>
                           No se encontraron boletos con "{searchTerm}"
                         </p>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className={cn("text-sm mt-2", colors.textMuted)}>
                           Prueba con otro número
                         </p>
                       </div>
                     ) : (
                       <>
                         {/* Results summary */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-xl">
+                        <div className={cn("flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl border", colors.cardBgSubtle, colors.border)}>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-                            <span className="font-medium">
+                            <span className={cn("font-medium", colors.text)}>
                               {searchResults.length} encontrados
                             </span>
-                            <span className="text-green-600">
+                            <span className={colors.successText}>
                               ✓ {searchResults.filter(t => t.status === 'available').length} disponibles
                             </span>
-                            <span className="text-muted-foreground hidden sm:inline">
+                            <span className={cn("hidden sm:inline", colors.textMuted)}>
                               • {searchResults.filter(t => t.status !== 'available').length} no disponibles
                             </span>
                           </div>
@@ -1413,15 +1435,15 @@ export function TicketSelector({
                                 disabled={!isAvailable}
                                 className={cn(
                                   "relative p-2 rounded-lg text-xs font-mono font-bold transition-all border-2",
-                                  isAvailable && !isSelected && "bg-success/10 border-success/50 text-success hover:bg-success/20 cursor-pointer",
-                                  isAvailable && isSelected && "bg-success border-success text-white ring-2 ring-success/50 ring-offset-1",
-                                  !isAvailable && "bg-muted border-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                  isAvailable && !isSelected && cn(colors.successBg, colors.successBorder, colors.successText, colors.successBgHover, "cursor-pointer"),
+                                  isAvailable && isSelected && cn("bg-emerald-500 border-emerald-500 text-white ring-2", colors.successRing),
+                                  !isAvailable && cn(colors.mutedBg, colors.mutedBorder, colors.mutedTextFaded, "cursor-not-allowed opacity-60")
                                 )}
                               >
                                 {ticket.ticket_number}
                                 {isSelected && (
-                                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-success" />
+                                  <span className={cn("absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center", colors.checkBg)}>
+                                    <Check className="w-3 h-3 text-emerald-500" />
                                   </span>
                                 )}
                               </motion.button>
@@ -1430,7 +1452,7 @@ export function TicketSelector({
                         </div>
 
                         {searchResults.length >= 100 && (
-                          <p className="text-xs text-muted-foreground text-center">
+                          <p className={cn("text-xs text-center", colors.textMuted)}>
                             Mostrando los primeros 100 resultados. Refina tu búsqueda para ver más.
                           </p>
                         )}
