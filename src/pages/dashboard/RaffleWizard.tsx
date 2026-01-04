@@ -101,34 +101,17 @@ export default function RaffleWizard() {
   
   // Scroll sync: calculate progress based on wizard position in viewport
   useEffect(() => {
-    console.log('🎧 Scroll sync effect iniciando, showPreview:', showPreview);
-    if (!showPreview) {
-      console.log('❌ showPreview es false, saliendo');
-      return;
-    }
+    if (!showPreview) return;
     
     const calculateProgress = () => {
       const wizardContent = wizardContentRef.current;
-      if (!wizardContent) {
-        console.log('❌ No wizardContent ref');
-        return;
-      }
+      if (!wizardContent) return;
       
       const rect = wizardContent.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      
-      console.log('📏 Wizard rect:', {
-        top: rect.top,
-        height: rect.height,
-        viewportHeight: viewportHeight
-      });
-      
-      // Distance the wizard can travel (from top at viewport top to bottom at viewport bottom)
       const totalScrollableDistance = rect.height - viewportHeight;
       
-      // If wizard is smaller than viewport, no scroll possible
       if (totalScrollableDistance <= 0) {
-        console.log('⚠️ Wizard más pequeño que viewport, totalScrollableDistance:', totalScrollableDistance);
         if (lastProgressRef.current !== 0) {
           lastProgressRef.current = 0;
           setPreviewScrollProgress(0);
@@ -136,36 +119,20 @@ export default function RaffleWizard() {
         return;
       }
       
-      // How much the wizard top has scrolled past the viewport top (only positive values count)
       const scrolledPast = Math.max(0, -rect.top);
-      
-      // Calculate progress from 0 to 1
       const progress = Math.max(0, Math.min(1, scrolledPast / totalScrollableDistance));
       
-      console.log('📊 Progress calculado:', {
-        scrolledPast,
-        totalScrollableDistance,
-        progress: Math.round(progress * 100) + '%',
-        lastProgress: Math.round(lastProgressRef.current * 100) + '%'
-      });
-      
-      // Only update if changed significantly (avoid micro-renders)
       if (Math.abs(progress - lastProgressRef.current) > 0.003) {
-        console.log('✅ Actualizando progress a:', Math.round(progress * 100) + '%');
         lastProgressRef.current = progress;
         setPreviewScrollProgress(progress);
       }
     };
     
     const handleScroll = (event: Event) => {
-      console.log('📜 Scroll event detectado, target:', event.target);
-      
-      // Ignore scroll events from the preview container
       const target = event.target as Element | Document;
       if (target instanceof Element) {
         if (target.hasAttribute('data-preview-scroll') || 
             target.closest('[data-preview-scroll]')) {
-          console.log('🚫 Ignorando scroll del preview');
           return;
         }
       }
@@ -177,18 +144,13 @@ export default function RaffleWizard() {
       });
     };
     
-    // Listen on window scroll AND document capture for internal containers
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     window.addEventListener('resize', calculateProgress, { passive: true });
     
-    console.log('✅ Listeners agregados (window.scroll, document.scroll capture, resize)');
-    
-    // Initial calculation
     calculateProgress();
     
     return () => {
-      console.log('🧹 Limpiando listeners de scroll');
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll, { capture: true } as EventListenerOptions);
       window.removeEventListener('resize', calculateProgress);

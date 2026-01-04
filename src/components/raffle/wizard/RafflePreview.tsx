@@ -40,9 +40,6 @@ interface RafflePreviewProps {
 }
 
 export function RafflePreview({ form, className, activeSection, scrollProgress }: RafflePreviewProps) {
-  // Debug: Log every render with scrollProgress value
-  console.log('🔵 RafflePreview RENDER, scrollProgress prop:', scrollProgress);
-  
   const [viewMode, setViewMode] = useState<ViewMode>('mobile');
   const { organization } = useAuth();
   const values = form.watch();
@@ -95,73 +92,23 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
   
   // Proportional scroll sync (when scrollProgress is provided)
   useEffect(() => {
-    console.log('🎨 Preview useEffect, scrollProgress:', scrollProgress);
-    
-    if (scrollProgress === undefined) {
-      console.log('❌ scrollProgress es undefined');
-      return;
-    }
-    
-    if (isUserScrollingRef.current) {
-      console.log('⏸️ Usuario scrolleando, pausando sync');
-      return;
-    }
+    if (scrollProgress === undefined) return;
+    if (isUserScrollingRef.current) return;
     
     const container = containerRef.current;
-    if (!container) {
-      console.log('❌ No container ref');
-      return;
-    }
+    if (!container) return;
     
-    // Debug: Check container layout state
-    const rect = container.getBoundingClientRect();
-    const computed = getComputedStyle(container);
-    console.log('🔍 Container layout:', {
-      display: computed.display,
-      visibility: computed.visibility,
-      width: rect.width,
-      height: rect.height,
-      scrollHeight: container.scrollHeight,
-      childElementCount: container.childElementCount
-    });
-    
-    // Use requestAnimationFrame to ensure layout is calculated
     const rafId = requestAnimationFrame(() => {
       const maxScroll = container.scrollHeight - container.clientHeight;
-      console.log('📐 Preview metrics (after RAF):', {
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        maxScroll
-      });
-      
-      if (maxScroll <= 0) {
-        console.log('⚠️ Preview no scrolleable, maxScroll:', maxScroll);
-        return;
-      }
+      if (maxScroll <= 0) return;
       
       const targetTop = Math.round(scrollProgress * maxScroll);
+      if (Math.abs(container.scrollTop - targetTop) < 2) return;
       
-      // Skip if already at the target (avoid jitter)
-      if (Math.abs(container.scrollTop - targetTop) < 2) {
-        console.log('🔄 Ya en target, skip');
-        return;
-      }
-      
-      console.log('🎯 Aplicando scroll:', {
-        scrollProgress: Math.round(scrollProgress * 100) + '%',
-        maxScroll,
-        targetTop,
-        currentScrollTop: container.scrollTop
-      });
-      
-      // Mark timestamp and flag for anti-bounce
       lastAutoScrollAtRef.current = performance.now();
       isAutoScrollingRef.current = true;
       container.scrollTop = targetTop;
       
-      console.log('✅ ScrollTop aplicado, nuevo scrollTop:', container.scrollTop);
-      
-      // Clear flag after a short delay
       setTimeout(() => {
         isAutoScrollingRef.current = false;
       }, 50);
