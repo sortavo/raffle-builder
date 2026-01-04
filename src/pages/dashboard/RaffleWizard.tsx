@@ -657,7 +657,7 @@ export default function RaffleWizard() {
           </div>
 
           {/* Loading Content Skeleton */}
-          <div className="grid gap-6 lg:grid-cols-[1fr,420px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr,380px]">
             <div className="space-y-6">
               <div className="bg-card rounded-2xl border border-border/50 p-6 space-y-6">
                 <div className="space-y-4">
@@ -806,7 +806,7 @@ export default function RaffleWizard() {
         )}
 
         {/* Main Content with Preview */}
-        <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,440px] xl:grid-cols-[1fr,460px]' : ''}`}>
+        <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,380px] xl:grid-cols-[1fr,400px]' : ''}`}>
           {/* Left: Form */}
           <div ref={wizardContentRef} className="space-y-4">
             <Form {...form}>
@@ -872,7 +872,7 @@ export default function RaffleWizard() {
           {showPreview && (
             <div
               className="hidden lg:block z-20"
-              style={{ position: 'fixed', top: '80px', right: '32px', width: '420px' }}
+              style={{ position: 'fixed', top: '160px', right: '24px', width: '360px' }}
             >
               <RafflePreview 
                 form={form} 

@@ -223,7 +223,7 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
   const isMobile = viewMode === 'mobile';
 
   return (
-    <div className={cn("bg-muted/30 rounded-lg overflow-hidden border", className)}>
+    <div className={cn("rounded-lg overflow-hidden border border-border/50", className)}>
       {/* Preview Header */}
       <div className="bg-background border-b px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
