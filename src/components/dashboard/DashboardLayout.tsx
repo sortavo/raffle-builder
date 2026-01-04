@@ -203,7 +203,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
           </div>
         </header>
         
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0 overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0">
           <TrialBanner />
           {children}
         </main>
