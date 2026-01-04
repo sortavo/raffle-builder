@@ -12,7 +12,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 const BATCH_SIZE = 50000;
-const MAX_BATCHES_PER_RUN = 10; // Process up to 10 batches per cron run
+const MAX_BATCHES_PER_RUN = 20; // Process up to 20 batches per cron run (1M tickets)
+const STALE_THRESHOLD_MINUTES = 10; // Reset jobs stuck for more than 10 minutes
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,6 +28,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // Auto-recovery: Reset stale jobs (running for too long without progress)
+    const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1000).toISOString();
+    const { data: staleJobs, error: staleError } = await supabaseClient
+      .from("ticket_generation_jobs")
+      .update({ status: 'pending', started_at: null })
+      .eq("status", "running")
+      .lt("started_at", staleThreshold)
+      .select("id");
+
+    if (staleJobs && staleJobs.length > 0) {
+      logStep("Reset stale jobs", { count: staleJobs.length, jobIds: staleJobs.map(j => j.id) });
+    }
 
     // Find pending or running jobs that need processing
     const { data: jobs, error: jobsError } = await supabaseClient
