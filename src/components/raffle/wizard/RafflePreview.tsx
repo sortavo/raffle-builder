@@ -113,44 +113,49 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
       return;
     }
     
-    const maxScroll = container.scrollHeight - container.clientHeight;
-    console.log('📐 Preview metrics:', {
-      scrollHeight: container.scrollHeight,
-      clientHeight: container.clientHeight,
-      maxScroll
+    // Use requestAnimationFrame to ensure layout is calculated
+    const rafId = requestAnimationFrame(() => {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      console.log('📐 Preview metrics (after RAF):', {
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        maxScroll
+      });
+      
+      if (maxScroll <= 0) {
+        console.log('⚠️ Preview no scrolleable, maxScroll:', maxScroll);
+        return;
+      }
+      
+      const targetTop = Math.round(scrollProgress * maxScroll);
+      
+      // Skip if already at the target (avoid jitter)
+      if (Math.abs(container.scrollTop - targetTop) < 2) {
+        console.log('🔄 Ya en target, skip');
+        return;
+      }
+      
+      console.log('🎯 Aplicando scroll:', {
+        scrollProgress: Math.round(scrollProgress * 100) + '%',
+        maxScroll,
+        targetTop,
+        currentScrollTop: container.scrollTop
+      });
+      
+      // Mark timestamp and flag for anti-bounce
+      lastAutoScrollAtRef.current = performance.now();
+      isAutoScrollingRef.current = true;
+      container.scrollTop = targetTop;
+      
+      console.log('✅ ScrollTop aplicado, nuevo scrollTop:', container.scrollTop);
+      
+      // Clear flag after a short delay
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+      }, 50);
     });
     
-    if (maxScroll <= 0) {
-      console.log('⚠️ Preview no scrolleable, maxScroll:', maxScroll);
-      return;
-    }
-    
-    const targetTop = Math.round(scrollProgress * maxScroll);
-    
-    // Skip if already at the target (avoid jitter)
-    if (Math.abs(container.scrollTop - targetTop) < 2) {
-      console.log('🔄 Ya en target, skip. scrollTop:', container.scrollTop, 'targetTop:', targetTop);
-      return;
-    }
-    
-    console.log('🎯 Aplicando scroll:', {
-      scrollProgress: Math.round(scrollProgress * 100) + '%',
-      maxScroll,
-      targetTop,
-      currentScrollTop: container.scrollTop
-    });
-    
-    // Mark timestamp and flag for anti-bounce
-    lastAutoScrollAtRef.current = performance.now();
-    isAutoScrollingRef.current = true;
-    container.scrollTop = targetTop;
-    
-    console.log('✅ ScrollTop aplicado, nuevo scrollTop:', container.scrollTop);
-    
-    // Clear flag after a short delay
-    setTimeout(() => {
-      isAutoScrollingRef.current = false;
-    }, 50);
+    return () => cancelAnimationFrame(rafId);
   }, [scrollProgress]);
   
   // ResizeObserver to re-sync when preview content height changes
