@@ -329,7 +329,7 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
           style={{
             backgroundColor: colors.background,
             fontFamily: `"${fonts.body}", sans-serif`,
-            maxHeight: '600px',
+            maxHeight: '300px',
             overflowY: 'auto',
             borderRadius: effects.borderRadius,
             boxShadow: effects.shadow,
