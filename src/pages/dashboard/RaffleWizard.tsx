@@ -926,7 +926,7 @@ export default function RaffleWizard() {
 
           {/* Right: Preview */}
           {showPreview && (
-            <div className="hidden lg:block sticky top-6 h-fit">
+            <div className="hidden lg:block sticky top-20 h-fit self-start z-20">
               <RafflePreview 
                 form={form} 
                 activeSection={currentStep === 5 ? activePreviewSection : undefined}
