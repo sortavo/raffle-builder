@@ -739,8 +739,26 @@ export default function RaffleWizard() {
 
   const isRafflePublished = existingRaffle && existingRaffle.status !== 'draft';
 
+  // Debug info for scroll sync
+  const debugInfo = {
+    progress: Math.round((previewScrollProgress || 0) * 100),
+    wizardTop: wizardContentRef.current?.getBoundingClientRect().top.toFixed(0) || 'N/A',
+    hasRaffle: !!existingRaffle,
+    raffleId: existingRaffle?.id,
+  };
+
   return (
     <DashboardLayout>
+      {/* Debug Overlay */}
+      <div className="fixed top-4 right-4 bg-black text-white p-4 rounded text-xs z-50 max-w-xs font-mono">
+        <div>📊 Progress: {debugInfo.progress}%</div>
+        <div>📏 Wizard Top: {debugInfo.wizardTop}px</div>
+        <div>🎭 Has Raffle: {debugInfo.hasRaffle ? 'YES' : 'NO'}</div>
+        <div>🆔 Raffle ID: {debugInfo.raffleId || 'N/A'}</div>
+        <div className="mt-2 text-yellow-400">
+          Preview scroll: {(previewScrollProgress || 0).toFixed(3)}
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto space-y-5 md:space-y-6">
         {/* Banner for published raffle editing */}
         {isRafflePublished && (
