@@ -50,9 +50,50 @@ export function RafflePreview({ form, className, activeSection }: RafflePreviewP
   const faqRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to section when activeSection changes
+  // Anti-bounce: track if user is manually scrolling the preview
+  const isUserScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isAutoScrollingRef = useRef(false);
+  const lastActiveSectionRef = useRef<PreviewSection | undefined>(undefined);
+  
+  // Listen for manual scroll on preview container
   useEffect(() => {
-    if (!activeSection) return;
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      // Ignore scroll events triggered by auto-scroll
+      if (isAutoScrollingRef.current) return;
+      
+      isUserScrollingRef.current = true;
+      
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Re-enable auto-scroll after 1.2s of no manual scrolling
+      scrollTimeoutRef.current = setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 1200);
+    };
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Controlled scroll to section (no scrollIntoView)
+  useEffect(() => {
+    // Skip if user is scrolling manually or section hasn't changed
+    if (!activeSection || isUserScrollingRef.current) return;
+    if (activeSection === lastActiveSectionRef.current) return;
+    
+    lastActiveSectionRef.current = activeSection;
     
     const sectionToRef: Record<PreviewSection, React.RefObject<HTMLDivElement | null>> = {
       'template': heroRef,
@@ -63,9 +104,30 @@ export function RafflePreview({ form, className, activeSection }: RafflePreviewP
     };
     
     const targetRef = sectionToRef[activeSection];
-    if (targetRef?.current && containerRef.current) {
-      targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    const container = containerRef.current;
+    const target = targetRef?.current;
+    
+    if (!target || !container) return;
+    
+    // Calculate scroll position within container
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const headerOffset = headerRef.current?.getBoundingClientRect().height || 0;
+    
+    const scrollTop = (targetRect.top - containerRect.top) + container.scrollTop - headerOffset - 8;
+    
+    // Mark as auto-scrolling to prevent triggering the manual scroll lock
+    isAutoScrollingRef.current = true;
+    
+    container.scrollTo({
+      top: Math.max(0, scrollTop),
+      behavior: 'smooth'
+    });
+    
+    // Clear auto-scroll flag after animation completes
+    setTimeout(() => {
+      isAutoScrollingRef.current = false;
+    }, 400);
   }, [activeSection]);
   
   // Get template from form selection
@@ -150,7 +212,7 @@ export function RafflePreview({ form, className, activeSection }: RafflePreviewP
         <div 
           ref={containerRef}
           className={cn(
-            "rounded-lg overflow-hidden shadow-lg transition-all duration-300",
+            "rounded-lg overflow-hidden shadow-lg transition-all duration-300 overscroll-contain",
             isMobile ? "w-[320px]" : "w-full max-w-[400px]"
           )}
           style={{
