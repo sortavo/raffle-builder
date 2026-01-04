@@ -418,6 +418,12 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
                           {drawMethodInfo.icon} {drawMethodInfo.label}
                         </Badge>
                       )}
+                      {/* Urgency Badge */}
+                      {customization.show_urgency_badge !== false && progress > 70 && (
+                        <Badge className="text-[9px] bg-orange-500 text-white">
+                          🔥 ¡Últimos!
+                        </Badge>
+                      )}
                     </div>
                     <h2 
                       className="text-sm font-bold leading-tight"
@@ -499,6 +505,12 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
                         {category}
                       </Badge>
                     )}
+                    {/* Urgency Badge */}
+                    {customization.show_urgency_badge !== false && progress > 70 && (
+                      <Badge className="text-[9px] bg-orange-500 text-white">
+                        🔥 ¡Últimos boletos!
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Prize Image */}
@@ -512,6 +524,17 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    {/* Viewers count (if enabled) */}
+                    {customization.show_viewers_count !== false && (
+                      <div 
+                        className="absolute top-2 left-2 px-2 py-1 rounded-full shadow text-[9px] font-medium flex items-center gap-1"
+                        style={{ backgroundColor: isDarkTemplate ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.95)' }}
+                      >
+                        <Eye className="w-3 h-3 text-blue-500" />
+                        <span>~42 viendo</span>
+                      </div>
+                    )}
                     
                     {/* Tickets sold badge */}
                     <div 
@@ -659,19 +682,29 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
               >
                 <p className="text-[8px] text-white/70 uppercase tracking-wider mb-2">El sorteo se realizará en</p>
                 <div className="flex items-center justify-center gap-1.5">
-                  {[
-                    { value: '15', label: 'Días' },
-                    { value: '08', label: 'Hrs' },
-                    { value: '42', label: 'Min' },
-                    { value: '30', label: 'Seg' },
-                  ].map((unit, idx) => (
-                    <div key={idx} className="flex flex-col items-center">
-                      <div className="bg-white/20 backdrop-blur rounded px-2 py-1.5">
-                        <span className="text-base font-bold font-mono text-white">{unit.value}</span>
+                  {(() => {
+                    const now = new Date();
+                    const target = new Date(drawDate);
+                    const diff = Math.max(0, target.getTime() - now.getTime());
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    
+                    return [
+                      { value: String(days).padStart(2, '0'), label: 'Días' },
+                      { value: String(hours).padStart(2, '0'), label: 'Hrs' },
+                      { value: String(minutes).padStart(2, '0'), label: 'Min' },
+                      { value: String(seconds).padStart(2, '0'), label: 'Seg' },
+                    ].map((unit, idx) => (
+                      <div key={idx} className="flex flex-col items-center">
+                        <div className="bg-white/20 backdrop-blur rounded px-2 py-1.5">
+                          <span className="text-base font-bold font-mono text-white">{unit.value}</span>
+                        </div>
+                        <span className="text-[7px] text-white/60 mt-0.5">{unit.label}</span>
                       </div>
-                      <span className="text-[7px] text-white/60 mt-0.5">{unit.label}</span>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
                 <p className="text-[7px] text-white/50 mt-2">
                   {format(new Date(drawDate), "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
@@ -815,6 +848,57 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
               Vista previa de boletos
             </p>
           </div>
+
+          {/* Pre-draws Preview (if multiple prizes with dates exist) */}
+          {prizes.filter((p: any) => p.scheduled_draw_date && new Date(p.scheduled_draw_date) > new Date()).length > 0 && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Próximos Pre-sorteos
+              </h3>
+              <div className="space-y-1">
+                {prizes.filter((p: any) => p.scheduled_draw_date && new Date(p.scheduled_draw_date) > new Date()).slice(0, 2).map((prize: any, idx: number) => (
+                  <div 
+                    key={prize.id || idx}
+                    className="p-2 rounded-lg border flex items-center justify-between"
+                    style={{ backgroundColor: colors.cardBg, borderColor: `${primaryColor}15` }}
+                  >
+                    <div>
+                      <p className="text-[10px] font-medium" style={{ color: colors.text }}>{prize.name}</p>
+                      <p className="text-[8px]" style={{ color: colors.textMuted }}>
+                        {format(new Date(prize.scheduled_draw_date), "d MMM yyyy", { locale: es })}
+                      </p>
+                    </div>
+                    <Badge className="text-[8px] text-white" style={{ background: effects.gradient }}>
+                      Pre-sorteo
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Winners History Placeholder */}
+          {customization.show_winners_history !== false && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Ganadores Anunciados
+              </h3>
+              <div 
+                className="p-2 rounded-lg text-center text-[9px]"
+                style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+              >
+                Los ganadores se mostrarán aquí al realizar el sorteo
+              </div>
+            </div>
+          )}
 
           {/* How It Works Preview */}
           {showSection('how_it_works') && (
@@ -974,6 +1058,46 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
             </div>
           )}
 
+          {/* Contact Preview */}
+          {organization && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <MessageCircle className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Contacto
+              </h3>
+              <div 
+                className="p-2 rounded-lg grid grid-cols-2 gap-1.5"
+                style={{ backgroundColor: colors.cardBg }}
+              >
+                {/* WhatsApp indicator - always show as contact option */}
+                <div className="flex items-center gap-1.5 text-[9px]" style={{ color: colors.text }}>
+                  <MessageCircle className="w-3 h-3" style={{ color: '#25D366' }} />
+                  <span>WhatsApp</span>
+                </div>
+                {organization.email && (
+                  <div className="flex items-center gap-1.5 text-[9px]" style={{ color: colors.text }}>
+                    <span>📧</span>
+                    <span>Email</span>
+                  </div>
+                )}
+                {organization.phone && (
+                  <div className="flex items-center gap-1.5 text-[9px]" style={{ color: colors.text }}>
+                    <span>📞</span>
+                    <span>Teléfono</span>
+                  </div>
+                )}
+                {/* Social media indicator */}
+                <div className="flex items-center gap-1.5 text-[9px]" style={{ color: colors.text }}>
+                  <span>📷</span>
+                  <span>Redes Sociales</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Feature Indicators */}
           <div className="px-3 pb-3 space-y-1">
             <p className="text-[8px] font-medium" style={{ color: colors.textMuted }}>
@@ -1020,6 +1144,43 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
               Powered by <span className="font-medium" style={{ color: colors.text }}>Sortavo</span>
             </p>
           </div>
+
+          {/* Mobile Sticky Footer Indicator */}
+          {isMobile && (
+            <div 
+              className="px-3 py-2 border-t flex items-center justify-center gap-2"
+              style={{ 
+                backgroundColor: isDarkTemplate ? 'rgba(3,7,18,0.95)' : 'rgba(255,255,255,0.95)',
+                borderColor: `${primaryColor}20`,
+              }}
+            >
+              <Button 
+                size="sm" 
+                className="text-[10px] h-7 w-full text-white"
+                style={{ background: effects.gradient }}
+              >
+                <ShoppingCart className="w-3 h-3 mr-1" />
+                VER BOLETOS DISPONIBLES
+              </Button>
+            </div>
+          )}
+
+          {/* WhatsApp Button Indicator */}
+          {organization && (
+            <div className="px-3 pb-2">
+              <div className="flex justify-end">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center shadow"
+                  style={{ backgroundColor: '#25D366' }}
+                >
+                  <MessageCircle className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <p className="text-[7px] text-right mt-0.5" style={{ color: colors.textMuted }}>
+                Botón de WhatsApp flotante
+              </p>
+            </div>
+          )}
           
           {/* Mobile bottom bar */}
           {isMobile && (
