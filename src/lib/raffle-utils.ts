@@ -336,6 +336,236 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
       decorations: ['glow', 'borders'],
     },
   },
+  // ===== DARK TEMPLATES (copias de elegant) =====
+  {
+    id: 'elegant-gold',
+    name: 'Elegante Dorado',
+    description: 'Ultra premium oscuro con toques dorados',
+    icon: '🏆',
+    colors: {
+      primary: '#F59E0B',      // Amber-500
+      secondary: '#FBBF24',    // Amber-400
+      accent: '#FCD34D',       // Amber-300
+      background: '#030712',   // Gray-950
+      cardBg: 'rgba(15, 23, 42, 0.7)',
+      text: '#F8FAFC',
+      textMuted: '#94A3B8',
+    },
+    fonts: {
+      title: 'Cormorant Garamond',
+      body: 'Raleway',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 25px 50px -12px rgba(245, 158, 11, 0.4)',
+      gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #FCD34D 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-2xl',
+        opacity: 0.7,
+        border: '1px solid rgba(245, 158, 11, 0.3)',
+      },
+    },
+    layout: {
+      heroStyle: 'asymmetric',
+      galleryStyle: 'masonry',
+      pricePosition: 'side',
+      contentAlignment: 'left',
+      sectionSpacing: 'generous',
+      decorations: ['glow', 'borders'],
+    },
+  },
+  {
+    id: 'elegant-purple',
+    name: 'Elegante Púrpura',
+    description: 'Místico y premium con acentos púrpura',
+    icon: '🔮',
+    colors: {
+      primary: '#A855F7',      // Purple-500
+      secondary: '#C084FC',    // Purple-400
+      accent: '#D8B4FE',       // Purple-300
+      background: '#030712',   // Gray-950
+      cardBg: 'rgba(15, 23, 42, 0.7)',
+      text: '#F8FAFC',
+      textMuted: '#94A3B8',
+    },
+    fonts: {
+      title: 'Cormorant Garamond',
+      body: 'Raleway',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 25px 50px -12px rgba(168, 85, 247, 0.4)',
+      gradient: 'linear-gradient(135deg, #A855F7 0%, #C084FC 50%, #D8B4FE 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-2xl',
+        opacity: 0.7,
+        border: '1px solid rgba(168, 85, 247, 0.3)',
+      },
+    },
+    layout: {
+      heroStyle: 'asymmetric',
+      galleryStyle: 'masonry',
+      pricePosition: 'side',
+      contentAlignment: 'left',
+      sectionSpacing: 'generous',
+      decorations: ['glow', 'borders'],
+    },
+  },
+  {
+    id: 'elegant-red',
+    name: 'Elegante Rojo',
+    description: 'Energético y apasionado con toques rojos',
+    icon: '❤️',
+    colors: {
+      primary: '#EF4444',      // Red-500
+      secondary: '#F87171',    // Red-400
+      accent: '#FCA5A5',       // Red-300
+      background: '#030712',   // Gray-950
+      cardBg: 'rgba(15, 23, 42, 0.7)',
+      text: '#F8FAFC',
+      textMuted: '#94A3B8',
+    },
+    fonts: {
+      title: 'Cormorant Garamond',
+      body: 'Raleway',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 25px 50px -12px rgba(239, 68, 68, 0.4)',
+      gradient: 'linear-gradient(135deg, #EF4444 0%, #F87171 50%, #FCA5A5 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-2xl',
+        opacity: 0.7,
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+      },
+    },
+    layout: {
+      heroStyle: 'asymmetric',
+      galleryStyle: 'masonry',
+      pricePosition: 'side',
+      contentAlignment: 'left',
+      sectionSpacing: 'generous',
+      decorations: ['glow', 'borders'],
+    },
+  },
+  // ===== LIGHT TEMPLATES (copias de modern) =====
+  {
+    id: 'modern-blue',
+    name: 'Moderno Azul',
+    description: 'Limpio y confiable con acentos azules',
+    icon: '💎',
+    colors: {
+      primary: '#3B82F6',      // Blue-500
+      secondary: '#60A5FA',    // Blue-400
+      accent: '#93C5FD',       // Blue-300
+      background: '#FFFFFF',
+      cardBg: 'rgba(255, 255, 255, 0.8)',
+      text: '#0F172A',
+      textMuted: '#64748B',
+    },
+    fonts: {
+      title: 'Montserrat',
+      body: 'Inter',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 10px 40px -10px rgba(59, 130, 246, 0.25)',
+      gradient: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.8,
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+      },
+    },
+    layout: {
+      heroStyle: 'side-by-side',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'left',
+      sectionSpacing: 'normal',
+      decorations: ['glow'],
+    },
+  },
+  {
+    id: 'modern-purple',
+    name: 'Moderno Púrpura',
+    description: 'Creativo e innovador con toques violeta',
+    icon: '🦄',
+    colors: {
+      primary: '#8B5CF6',      // Violet-500
+      secondary: '#A78BFA',    // Violet-400
+      accent: '#C4B5FD',       // Violet-300
+      background: '#FFFFFF',
+      cardBg: 'rgba(255, 255, 255, 0.8)',
+      text: '#0F172A',
+      textMuted: '#64748B',
+    },
+    fonts: {
+      title: 'Montserrat',
+      body: 'Inter',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 10px 40px -10px rgba(139, 92, 246, 0.25)',
+      gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.8,
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+      },
+    },
+    layout: {
+      heroStyle: 'side-by-side',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'left',
+      sectionSpacing: 'normal',
+      decorations: ['glow'],
+    },
+  },
+  {
+    id: 'modern-orange',
+    name: 'Moderno Naranja',
+    description: 'Dinámico y alegre con acentos naranja',
+    icon: '🍊',
+    colors: {
+      primary: '#F97316',      // Orange-500
+      secondary: '#FB923C',    // Orange-400
+      accent: '#FDBA74',       // Orange-300
+      background: '#FFFFFF',
+      cardBg: 'rgba(255, 255, 255, 0.8)',
+      text: '#0F172A',
+      textMuted: '#64748B',
+    },
+    fonts: {
+      title: 'Montserrat',
+      body: 'Inter',
+    },
+    effects: {
+      borderRadius: '1rem',
+      shadow: '0 10px 40px -10px rgba(249, 115, 22, 0.25)',
+      gradient: 'linear-gradient(135deg, #F97316 0%, #FB923C 100%)',
+      glassmorphism: {
+        enabled: true,
+        blur: 'backdrop-blur-xl',
+        opacity: 0.8,
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+      },
+    },
+    layout: {
+      heroStyle: 'side-by-side',
+      galleryStyle: 'carousel',
+      pricePosition: 'overlay',
+      contentAlignment: 'left',
+      sectionSpacing: 'normal',
+      decorations: ['glow'],
+    },
+  },
 ];
 
 export const getTemplateById = (templateId: string | null | undefined): RaffleTemplate => {
