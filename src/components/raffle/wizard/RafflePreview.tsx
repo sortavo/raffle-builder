@@ -229,11 +229,6 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
         <div className="flex items-center gap-2">
           <Eye className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Vista Previa</span>
-          {scrollProgress !== undefined && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-              {Math.round(scrollProgress * 100)}%
-            </Badge>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <ToggleGroup 
