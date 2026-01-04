@@ -19,7 +19,14 @@ import {
   Eye,
   Sparkles,
   Monitor,
-  Smartphone
+  Smartphone,
+  Video,
+  Play,
+  ImageIcon,
+  HelpCircle,
+  Gift,
+  CreditCard,
+  PartyPopper
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency-utils';
 import { format } from 'date-fns';
@@ -38,6 +45,13 @@ interface RafflePreviewProps {
   activeSection?: PreviewSection;
   scrollProgress?: number;
 }
+
+// Draw method labels
+const DRAW_METHOD_LABELS: Record<string, { label: string; icon: string }> = {
+  lottery_nacional: { label: 'Lotería Nacional', icon: '🎱' },
+  manual: { label: 'Sorteo Manual', icon: '🎲' },
+  random_org: { label: 'Random.org', icon: '🔢' },
+};
 
 export function RafflePreview({ form, className, activeSection, scrollProgress }: RafflePreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('mobile');
@@ -196,6 +210,12 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
   const drawDate = values.draw_date;
   const currency = values.currency_code || organization?.currency_code || 'MXN';
   
+  // New data bindings
+  const packages = values.packages || [];
+  const prizeVideoUrl = values.prize_video_url;
+  const drawMethod = values.draw_method;
+  const category = values.category;
+  
   // Get prizes from new field or fallback to legacy
   const prizes = values.prizes || [];
   const firstPrize = prizes[0];
@@ -210,6 +230,18 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
   const headline = customization.headline || '';
   const ctaText = customization.cta_text || 'Comprar Boletos';
   
+  // Section toggles - default to true if not set
+  const sections = customization.sections || {};
+  const showSection = (sectionId: string) => sections[sectionId] !== false;
+  
+  // Custom FAQ items
+  const customFaqItems = customization.faq_items || [];
+  const defaultFaqItems = [
+    { question: '¿Cómo funciona el sorteo?', answer: 'Selecciona tus boletos y completa el pago para participar.' },
+    { question: '¿Cuándo se realiza el sorteo?', answer: drawDate ? `El sorteo se realizará el ${format(new Date(drawDate), "d 'de' MMMM 'a las' HH:mm", { locale: es })}` : 'Fecha por definir.' },
+  ];
+  const faqItems = customFaqItems.length > 0 ? customFaqItems : defaultFaqItems;
+  
   // Organization branding
   const orgName = organization?.name || 'Tu Organización';
   const orgLogo = organization?.logo_url;
@@ -221,6 +253,9 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
   const mainImage = prizeImages[0] || '/placeholder.svg';
 
   const isMobile = viewMode === 'mobile';
+
+  // Draw method info
+  const drawMethodInfo = drawMethod ? DRAW_METHOD_LABELS[drawMethod] : null;
 
   return (
     <div className={cn("rounded-lg overflow-hidden border border-border/20", className)}>
@@ -271,7 +306,7 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
           style={{
             backgroundColor: colors.background,
             fontFamily: `"${fonts.body}", sans-serif`,
-            maxHeight: '600px',
+            maxHeight: 'calc(100vh - 280px)',
             overflowY: 'auto',
             borderRadius: effects.borderRadius,
             boxShadow: effects.shadow,
@@ -331,253 +366,286 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
           </div>
 
           {/* Hero Section */}
-          <div ref={heroRef} className="space-y-3 p-3">
-            {/* Desktop: Compact two column layout */}
-            {!isMobile ? (
-              <div className="grid grid-cols-2 gap-3">
-                {/* Left: Image */}
-                <div 
-                  className="relative aspect-[4/5] rounded-lg overflow-hidden"
-                  style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
-                >
-                  <img 
-                    src={mainImage} 
-                    alt={prizeName}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  
-                  {prizeValue > 0 && (
-                    <div 
-                      className="absolute bottom-2 left-2 px-2 py-1 rounded-md shadow text-white"
-                      style={{ background: effects.gradient }}
-                    >
-                      <p className="text-[8px] opacity-80">Valor</p>
-                      <p className="text-xs font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Right: Info */}
-                <div className="space-y-2 flex flex-col">
-                  <Badge 
-                    className="text-[10px] text-white w-fit"
-                    style={{ background: effects.gradient }}
-                  >
-                    <Zap className="w-2.5 h-2.5 mr-1" />
-                    Activo
-                  </Badge>
-                  <h2 
-                    className="text-sm font-bold leading-tight"
-                    style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
-                  >
-                    {prizeName}
-                    {hasMultiplePrizes && <span className="text-xs font-normal ml-1" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
-                  </h2>
-                  <p className="text-[10px] line-clamp-1" style={{ color: colors.textMuted }}>{title}</p>
-                  
-                  <div className="grid grid-cols-2 gap-1.5 flex-1">
-                    <div 
-                      className="p-1.5 rounded border"
-                      style={{ 
-                        backgroundColor: colors.cardBg,
-                        borderColor: `${primaryColor}15`,
-                      }}
-                    >
-                      <p className="text-[8px]" style={{ color: colors.textMuted }}>Precio</p>
-                      <p className="text-[10px] font-bold" style={{ color: colors.text }}>
-                        {formatCurrency(Number(ticketPrice), currency)}
-                      </p>
-                    </div>
-                    <div 
-                      className="p-1.5 rounded border"
-                      style={{ 
-                        backgroundColor: colors.cardBg,
-                        borderColor: `${primaryColor}15`,
-                      }}
-                    >
-                      <p className="text-[8px]" style={{ color: colors.textMuted }}>Sorteo</p>
-                      <p className="text-[10px] font-bold" style={{ color: colors.text }}>
-                        {drawDate ? format(new Date(drawDate), 'dd MMM', { locale: es }) : 'Por definir'}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[8px]" style={{ color: colors.textMuted }}>
-                      <span className="font-medium">{ticketsSold}/{totalTickets}</span>
-                      <span>{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-1.5" />
-                  </div>
-                  
-                  <Button size="sm" className="w-full text-white text-[10px] h-7" style={{ background: effects.gradient }}>
-                    <ShoppingCart className="w-3 h-3 mr-1" />
-                    {ctaText}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              /* Mobile: Single column layout */
-              <>
-                {/* Status Badge */}
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    className="text-[10px] text-white"
-                    style={{ background: effects.gradient }}
-                  >
-                    <Zap className="w-2.5 h-2.5 mr-1" />
-                    Sorteo Activo
-                  </Badge>
-                </div>
-
-                {/* Prize Image */}
-                <div 
-                  className="relative aspect-[4/3] rounded-xl overflow-hidden"
-                  style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
-                >
-                  <img 
-                    src={mainImage} 
-                    alt={prizeName}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  
-                  {/* Tickets sold badge */}
+          {showSection('hero') && (
+            <div ref={heroRef} className="space-y-3 p-3">
+              {/* Desktop: Compact two column layout */}
+              {!isMobile ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Left: Image */}
                   <div 
-                    className="absolute top-2 right-2 px-2 py-1 rounded-full shadow text-[10px] font-medium flex items-center gap-1"
-                    style={{ backgroundColor: isDarkTemplate ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.95)' }}
+                    className="relative aspect-[4/5] rounded-lg overflow-hidden"
+                    style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
                   >
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                    {ticketsSold} vendidos
+                    <img 
+                      src={mainImage} 
+                      alt={prizeName}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    {prizeValue > 0 && (
+                      <div 
+                        className="absolute bottom-2 left-2 px-2 py-1 rounded-md shadow text-white"
+                        style={{ background: effects.gradient }}
+                      >
+                        <p className="text-[8px] opacity-80">Valor</p>
+                        <p className="text-xs font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Prize value */}
-                  {prizeValue > 0 && (
-                    <div 
-                      className="absolute bottom-2 left-2 px-3 py-1.5 rounded-lg shadow text-white"
-                      style={{ background: effects.gradient }}
-                    >
-                      <p className="text-[8px] opacity-80">Valor del Premio</p>
-                      <p className="text-sm font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Prize Info */}
-                <div className="space-y-1.5">
-                  {headline && <p className="text-xs" style={{ color: colors.textMuted }}>{headline}</p>}
-                  <h2 
-                    className="text-lg font-bold leading-tight"
-                    style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
-                  >
-                    {prizeName}
-                    {hasMultiplePrizes && <span className="text-sm font-normal ml-2" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
-                  </h2>
-                  <p className="text-sm" style={{ color: colors.textMuted }}>{title}</p>
-                  {description && description !== 'Descripción del sorteo...' && (
-                    <p className="text-xs line-clamp-2" style={{ color: colors.textMuted }}>{description}</p>
-                  )}
-                  
-                  {/* Show additional prizes if any */}
-                  {hasMultiplePrizes && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {prizes.slice(1, 4).map((prize: any, idx: number) => (
-                        <span 
-                          key={prize.id || idx} 
-                          className="text-[10px] px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                  {/* Right: Info */}
+                  <div className="space-y-2 flex flex-col">
+                    <div className="flex flex-wrap items-center gap-1">
+                      <Badge 
+                        className="text-[10px] text-white w-fit"
+                        style={{ background: effects.gradient }}
+                      >
+                        <Zap className="w-2.5 h-2.5 mr-1" />
+                        Activo
+                      </Badge>
+                      {drawMethodInfo && (
+                        <Badge 
+                          variant="outline"
+                          className="text-[9px]"
+                          style={{ borderColor: `${primaryColor}50`, color: colors.text }}
                         >
-                          {prize.name}
-                        </span>
-                      ))}
-                      {prizes.length > 4 && (
-                        <span 
-                          className="text-[10px] px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
-                        >
-                          +{prizes.length - 4} más
-                        </span>
+                          {drawMethodInfo.icon} {drawMethodInfo.label}
+                        </Badge>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div 
-                    className="p-2.5 rounded-lg border"
-                    style={{ 
-                      backgroundColor: colors.cardBg,
-                      borderColor: `${primaryColor}15`,
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
+                    <h2 
+                      className="text-sm font-bold leading-tight"
+                      style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+                    >
+                      {prizeName}
+                      {hasMultiplePrizes && <span className="text-xs font-normal ml-1" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
+                    </h2>
+                    <p className="text-[10px] line-clamp-1" style={{ color: colors.textMuted }}>{title}</p>
+                    
+                    <div className="grid grid-cols-2 gap-1.5 flex-1">
                       <div 
-                        className="w-7 h-7 rounded flex items-center justify-center"
-                        style={{ backgroundColor: `${primaryColor}20` }}
+                        className="p-1.5 rounded border"
+                        style={{ 
+                          backgroundColor: colors.cardBg,
+                          borderColor: `${primaryColor}15`,
+                        }}
                       >
-                        <Ticket className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                      </div>
-                      <div>
-                        <p className="text-[10px]" style={{ color: colors.textMuted }}>Precio</p>
-                        <p className="text-sm font-bold" style={{ color: colors.text }}>
+                        <p className="text-[8px]" style={{ color: colors.textMuted }}>Precio</p>
+                        <p className="text-[10px] font-bold" style={{ color: colors.text }}>
                           {formatCurrency(Number(ticketPrice), currency)}
                         </p>
                       </div>
-                    </div>
-                  </div>
-                  <div 
-                    className="p-2.5 rounded-lg border"
-                    style={{ 
-                      backgroundColor: colors.cardBg,
-                      borderColor: `${primaryColor}15`,
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
                       <div 
-                        className="w-7 h-7 rounded flex items-center justify-center"
-                        style={{ backgroundColor: `${primaryColor}20` }}
+                        className="p-1.5 rounded border"
+                        style={{ 
+                          backgroundColor: colors.cardBg,
+                          borderColor: `${primaryColor}15`,
+                        }}
                       >
-                        <Calendar className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                      </div>
-                      <div>
-                        <p className="text-[10px]" style={{ color: colors.textMuted }}>Sorteo</p>
-                        <p className="text-sm font-bold" style={{ color: colors.text }}>
-                          {drawDate 
-                            ? format(new Date(drawDate), 'dd MMM', { locale: es })
-                            : 'Por definir'
-                          }
+                        <p className="text-[8px]" style={{ color: colors.textMuted }}>Sorteo</p>
+                        <p className="text-[10px] font-bold" style={{ color: colors.text }}>
+                          {drawDate ? format(new Date(drawDate), 'dd MMM', { locale: es }) : 'Por definir'}
                         </p>
                       </div>
                     </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[8px]" style={{ color: colors.textMuted }}>
+                        <span className="font-medium">{ticketsSold}/{totalTickets}</span>
+                        <span>{Math.round(progress)}%</span>
+                      </div>
+                      <Progress value={progress} className="h-1.5" />
+                    </div>
+                    
+                    <Button size="sm" className="w-full text-white text-[10px] h-7" style={{ background: effects.gradient }}>
+                      <ShoppingCart className="w-3 h-3 mr-1" />
+                      {ctaText}
+                    </Button>
                   </div>
                 </div>
-
-                {/* Progress */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px]" style={{ color: colors.textMuted }}>
-                    <span className="font-medium">
-                      {ticketsSold} de {totalTickets} vendidos
-                    </span>
-                    <span>{Math.round(progress)}%</span>
+              ) : (
+                /* Mobile: Single column layout */
+                <>
+                  {/* Status Badge */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge 
+                      className="text-[10px] text-white"
+                      style={{ background: effects.gradient }}
+                    >
+                      <Zap className="w-2.5 h-2.5 mr-1" />
+                      Sorteo Activo
+                    </Badge>
+                    {drawMethodInfo && (
+                      <Badge 
+                        variant="outline"
+                        className="text-[9px]"
+                        style={{ borderColor: `${primaryColor}50`, color: colors.text }}
+                      >
+                        {drawMethodInfo.icon} {drawMethodInfo.label}
+                      </Badge>
+                    )}
+                    {category && (
+                      <Badge 
+                        variant="secondary"
+                        className="text-[9px]"
+                        style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                      >
+                        {category}
+                      </Badge>
+                    )}
                   </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
 
-                {/* CTA Button */}
-                <Button 
-                  className="w-full text-white"
-                  style={{ background: effects.gradient }}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  {ctaText}
-                </Button>
-              </>
-            )}
+                  {/* Prize Image */}
+                  <div 
+                    className="relative aspect-[4/3] rounded-xl overflow-hidden"
+                    style={{ backgroundColor: isDarkTemplate ? '#1e293b' : '#f1f5f9' }}
+                  >
+                    <img 
+                      src={mainImage} 
+                      alt={prizeName}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    {/* Tickets sold badge */}
+                    <div 
+                      className="absolute top-2 right-2 px-2 py-1 rounded-full shadow text-[10px] font-medium flex items-center gap-1"
+                      style={{ backgroundColor: isDarkTemplate ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.95)' }}
+                    >
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      {ticketsSold} vendidos
+                    </div>
+                    
+                    {/* Prize value */}
+                    {prizeValue > 0 && (
+                      <div 
+                        className="absolute bottom-2 left-2 px-3 py-1.5 rounded-lg shadow text-white"
+                        style={{ background: effects.gradient }}
+                      >
+                        <p className="text-[8px] opacity-80">Valor del Premio</p>
+                        <p className="text-sm font-bold">{formatCurrency(Number(prizeValue), prizeCurrency)}</p>
+                      </div>
+                    )}
+                  </div>
 
-            {/* Countdown Preview */}
-            {drawDate && (
+                  {/* Prize Info */}
+                  <div className="space-y-1.5">
+                    {headline && <p className="text-xs" style={{ color: colors.textMuted }}>{headline}</p>}
+                    <h2 
+                      className="text-lg font-bold leading-tight"
+                      style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+                    >
+                      {prizeName}
+                      {hasMultiplePrizes && <span className="text-sm font-normal ml-2" style={{ color: colors.textMuted }}>+{prizes.length - 1} más</span>}
+                    </h2>
+                    <p className="text-sm" style={{ color: colors.textMuted }}>{title}</p>
+                    {description && description !== 'Descripción del sorteo...' && (
+                      <p className="text-xs line-clamp-2" style={{ color: colors.textMuted }}>{description}</p>
+                    )}
+                    
+                    {/* Show additional prizes if any */}
+                    {hasMultiplePrizes && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {prizes.slice(1, 4).map((prize: any, idx: number) => (
+                          <span 
+                            key={prize.id || idx} 
+                            className="text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                          >
+                            {prize.name}
+                          </span>
+                        ))}
+                        {prizes.length > 4 && (
+                          <span 
+                            className="text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: colors.cardBg, color: colors.textMuted }}
+                          >
+                            +{prizes.length - 4} más
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div 
+                      className="p-2.5 rounded-lg border"
+                      style={{ 
+                        backgroundColor: colors.cardBg,
+                        borderColor: `${primaryColor}15`,
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-7 h-7 rounded flex items-center justify-center"
+                          style={{ backgroundColor: `${primaryColor}20` }}
+                        >
+                          <Ticket className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                        </div>
+                        <div>
+                          <p className="text-[10px]" style={{ color: colors.textMuted }}>Precio</p>
+                          <p className="text-sm font-bold" style={{ color: colors.text }}>
+                            {formatCurrency(Number(ticketPrice), currency)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div 
+                      className="p-2.5 rounded-lg border"
+                      style={{ 
+                        backgroundColor: colors.cardBg,
+                        borderColor: `${primaryColor}15`,
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-7 h-7 rounded flex items-center justify-center"
+                          style={{ backgroundColor: `${primaryColor}20` }}
+                        >
+                          <Calendar className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                        </div>
+                        <div>
+                          <p className="text-[10px]" style={{ color: colors.textMuted }}>Sorteo</p>
+                          <p className="text-sm font-bold" style={{ color: colors.text }}>
+                            {drawDate 
+                              ? format(new Date(drawDate), 'dd MMM', { locale: es })
+                              : 'Por definir'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px]" style={{ color: colors.textMuted }}>
+                      <span className="font-medium">
+                        {ticketsSold} de {totalTickets} vendidos
+                      </span>
+                      <span>{Math.round(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                  </div>
+
+                  {/* CTA Button */}
+                  <Button 
+                    className="w-full text-white"
+                    style={{ background: effects.gradient }}
+                  >
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    {ctaText}
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Countdown Preview */}
+          {showSection('countdown') && drawDate && (
+            <div className="px-3 pb-3">
               <Card 
                 className="border p-2"
                 style={{ 
@@ -595,43 +663,183 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
                   </span>
                 </div>
               </Card>
-            )}
+            </div>
+          )}
 
-            {/* Ticket Grid Preview */}
-            <div ref={packagesRef} className="space-y-1.5">
+          {/* Gallery Preview */}
+          {showSection('gallery') && prizeImages.length > 1 && (
+            <div className="px-3 pb-3 space-y-1.5">
               <h3 
-                className="font-semibold flex items-center gap-1.5 text-xs"
+                className="font-semibold text-xs flex items-center gap-1.5"
                 style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
               >
-                <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
-                Selecciona tus Boletos
+                <ImageIcon className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Galería del Premio
               </h3>
-              <div className="grid grid-cols-8 gap-0.5">
-                {Array.from({ length: 16 }).map((_, i) => (
+              <div className="grid grid-cols-4 gap-1">
+                {prizeImages.slice(0, 4).map((img: string, idx: number) => (
                   <div 
-                    key={i}
-                    className="aspect-square rounded text-[7px] font-medium flex items-center justify-center"
-                    style={{
-                      backgroundColor: i < 5 
-                        ? (isDarkTemplate ? 'rgba(100,116,139,0.3)' : '#e5e7eb')
-                        : (isDarkTemplate ? 'rgba(16,185,129,0.2)' : '#dcfce7'),
-                      color: i < 5 
-                        ? colors.textMuted 
-                        : (isDarkTemplate ? '#10B981' : '#15803d'),
-                      border: i < 5 ? 'none' : `1px solid ${isDarkTemplate ? 'rgba(16,185,129,0.3)' : '#bbf7d0'}`,
-                    }}
+                    key={idx}
+                    className="aspect-square rounded overflow-hidden"
+                    style={{ backgroundColor: colors.cardBg }}
                   >
-                    {String(i + 1).padStart(3, '0')}
+                    <img src={img} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
-              <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
-                Vista previa de boletos
-              </p>
+              {prizeImages.length > 4 && (
+                <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
+                  +{prizeImages.length - 4} imágenes más
+                </p>
+              )}
             </div>
+          )}
 
-            {/* FAQ Preview */}
-            <div ref={faqRef} className="space-y-1">
+          {/* Video Preview */}
+          {showSection('video') && prizeVideoUrl && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <Video className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Video del Premio
+              </h3>
+              <div 
+                className="aspect-video rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: colors.cardBg }}
+              >
+                <div className="text-center">
+                  <div 
+                    className="w-10 h-10 rounded-full mx-auto flex items-center justify-center"
+                    style={{ backgroundColor: `${primaryColor}20` }}
+                  >
+                    <Play className="w-5 h-5" style={{ color: primaryColor }} />
+                  </div>
+                  <p className="text-[8px] mt-1.5" style={{ color: colors.textMuted }}>Vista previa</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Packages Preview */}
+          {showSection('packages') && packages.length > 0 && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <Gift className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                Paquetes de Descuento
+              </h3>
+              <div className="grid grid-cols-2 gap-1.5">
+                {packages.slice(0, 4).map((pkg: any, idx: number) => (
+                  <div 
+                    key={idx}
+                    className="p-2 rounded-lg border text-center"
+                    style={{ backgroundColor: colors.cardBg, borderColor: `${primaryColor}15` }}
+                  >
+                    <p className="text-[10px] font-bold" style={{ color: colors.text }}>
+                      {pkg.quantity} boletos
+                    </p>
+                    <p className="text-[9px]" style={{ color: colors.textMuted }}>
+                      {formatCurrency(Number(pkg.price), currency)}
+                    </p>
+                    {pkg.discount_percent > 0 && (
+                      <Badge 
+                        className="text-[8px] mt-0.5 text-white"
+                        style={{ background: effects.gradient }}
+                      >
+                        -{pkg.discount_percent}%
+                      </Badge>
+                    )}
+                    {pkg.label && (
+                      <p className="text-[8px] mt-0.5" style={{ color: primaryColor }}>
+                        {pkg.label}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {packages.length > 4 && (
+                <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
+                  +{packages.length - 4} paquetes más
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Ticket Grid Preview */}
+          <div ref={packagesRef} className="px-3 pb-3 space-y-1.5">
+            <h3 
+              className="font-semibold flex items-center gap-1.5 text-xs"
+              style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+            >
+              <Trophy className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+              Selecciona tus Boletos
+            </h3>
+            <div className="grid grid-cols-8 gap-0.5">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div 
+                  key={i}
+                  className="aspect-square rounded text-[7px] font-medium flex items-center justify-center"
+                  style={{
+                    backgroundColor: i < 5 
+                      ? (isDarkTemplate ? 'rgba(100,116,139,0.3)' : '#e5e7eb')
+                      : (isDarkTemplate ? 'rgba(16,185,129,0.2)' : '#dcfce7'),
+                    color: i < 5 
+                      ? colors.textMuted 
+                      : (isDarkTemplate ? '#10B981' : '#15803d'),
+                    border: i < 5 ? 'none' : `1px solid ${isDarkTemplate ? 'rgba(16,185,129,0.3)' : '#bbf7d0'}`,
+                  }}
+                >
+                  {String(i + 1).padStart(3, '0')}
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
+              Vista previa de boletos
+            </p>
+          </div>
+
+          {/* How It Works Preview */}
+          {showSection('how_it_works') && (
+            <div className="px-3 pb-3 space-y-1.5">
+              <h3 
+                className="font-semibold text-xs flex items-center gap-1.5"
+                style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
+              >
+                <HelpCircle className="w-3.5 h-3.5" style={{ color: primaryColor }} />
+                ¿Cómo Participar?
+              </h3>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { step: 'Elige', icon: Ticket },
+                  { step: 'Paga', icon: CreditCard },
+                  { step: 'Gana', icon: PartyPopper },
+                ].map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-2 rounded-lg text-center"
+                    style={{ backgroundColor: `${primaryColor}10` }}
+                  >
+                    <div 
+                      className="w-6 h-6 rounded-full mx-auto mb-1 flex items-center justify-center text-[9px] font-bold text-white"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      {idx + 1}
+                    </div>
+                    <item.icon className="w-3.5 h-3.5 mx-auto mb-0.5" style={{ color: primaryColor }} />
+                    <p className="text-[9px] font-medium" style={{ color: colors.text }}>{item.step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* FAQ Preview */}
+          {showSection('faq') && (
+            <div ref={faqRef} className="px-3 pb-3 space-y-1">
               <h3 
                 className="font-semibold text-xs"
                 style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
@@ -639,27 +847,35 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
                 Preguntas Frecuentes
               </h3>
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem 
-                  value="1" 
-                  className="rounded-lg px-2"
-                  style={{ 
-                    backgroundColor: colors.cardBg,
-                    borderColor: `${primaryColor}15`,
-                  }}
-                >
-                  <AccordionTrigger 
-                    className="py-1.5 hover:no-underline text-[10px]"
-                    style={{ color: colors.text }}
+                {faqItems.slice(0, 2).map((item: any, idx: number) => (
+                  <AccordionItem 
+                    key={idx}
+                    value={String(idx)} 
+                    className="rounded-lg px-2 mb-1"
+                    style={{ 
+                      backgroundColor: colors.cardBg,
+                      borderColor: `${primaryColor}15`,
+                    }}
                   >
-                    ¿Cómo funciona el sorteo?
-                  </AccordionTrigger>
-                  <AccordionContent className="text-[9px]" style={{ color: colors.textMuted }}>
-                    Selecciona tus boletos favoritos y completa el pago...
-                  </AccordionContent>
-                </AccordionItem>
+                    <AccordionTrigger 
+                      className="py-1.5 hover:no-underline text-[10px]"
+                      style={{ color: colors.text }}
+                    >
+                      {item.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-[9px]" style={{ color: colors.textMuted }}>
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
               </Accordion>
+              {faqItems.length > 2 && (
+                <p className="text-center text-[8px]" style={{ color: colors.textMuted }}>
+                  +{faqItems.length - 2} preguntas más
+                </p>
+              )}
             </div>
-          </div>
+          )}
           
           {/* Mobile bottom bar */}
           {isMobile && (
