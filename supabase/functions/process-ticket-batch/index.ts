@@ -11,8 +11,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[PROCESS-TICKET-BATCH] ${step}${detailsStr}`);
 };
 
-const BATCH_SIZE = 50000;
-const MAX_BATCHES_PER_RUN = 20; // Process up to 20 batches per cron run (1M tickets)
+const BATCH_SIZE = 10000; // Reduced from 50K to avoid statement timeouts
+const MAX_BATCHES_PER_RUN = 50; // Process up to 50 batches per cron run (500K tickets)
 const STALE_THRESHOLD_MINUTES = 10; // Reset jobs stuck for more than 10 minutes
 
 serve(async (req) => {
