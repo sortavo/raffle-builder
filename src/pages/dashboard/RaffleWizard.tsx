@@ -136,8 +136,8 @@ export default function RaffleWizard() {
         return;
       }
       
-      // How much the wizard top has "gone up" (negative = hasn't reached top yet)
-      const scrolledPast = -rect.top;
+      // How much the wizard top has scrolled past the viewport top (only positive values count)
+      const scrolledPast = Math.max(0, -rect.top);
       
       // Calculate progress from 0 to 1
       const progress = Math.max(0, Math.min(1, scrolledPast / totalScrollableDistance));
