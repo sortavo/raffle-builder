@@ -36,9 +36,10 @@ interface RafflePreviewProps {
   form: UseFormReturn<any>;
   className?: string;
   activeSection?: PreviewSection;
+  scrollProgress?: number;
 }
 
-export function RafflePreview({ form, className, activeSection }: RafflePreviewProps) {
+export function RafflePreview({ form, className, activeSection, scrollProgress }: RafflePreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('mobile');
   const { organization } = useAuth();
   const values = form.watch();
@@ -87,8 +88,36 @@ export function RafflePreview({ form, className, activeSection }: RafflePreviewP
     };
   }, []);
   
-  // Controlled scroll to section (no scrollIntoView)
+  // Proportional scroll sync (when scrollProgress is provided)
   useEffect(() => {
+    if (scrollProgress === undefined) return;
+    if (isUserScrollingRef.current) return;
+    
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const maxScroll = container.scrollHeight - container.clientHeight;
+    if (maxScroll <= 0) return;
+    
+    const targetTop = Math.round(scrollProgress * maxScroll);
+    
+    // Skip if already at the target (avoid jitter)
+    if (Math.abs(container.scrollTop - targetTop) < 2) return;
+    
+    // Mark as auto-scrolling
+    isAutoScrollingRef.current = true;
+    container.scrollTop = targetTop;
+    
+    // Clear flag after a short delay
+    setTimeout(() => {
+      isAutoScrollingRef.current = false;
+    }, 50);
+  }, [scrollProgress]);
+  
+  // Controlled scroll to section (fallback when scrollProgress is not used)
+  useEffect(() => {
+    // Skip if proportional scroll is active
+    if (scrollProgress !== undefined) return;
     // Skip if user is scrolling manually or section hasn't changed
     if (!activeSection || isUserScrollingRef.current) return;
     if (activeSection === lastActiveSectionRef.current) return;
@@ -128,7 +157,7 @@ export function RafflePreview({ form, className, activeSection }: RafflePreviewP
     setTimeout(() => {
       isAutoScrollingRef.current = false;
     }, 400);
-  }, [activeSection]);
+  }, [activeSection, scrollProgress]);
   
   // Get template from form selection
   const template = getTemplateById(values.template_id);

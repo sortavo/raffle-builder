@@ -92,6 +92,14 @@ export default function RaffleWizard() {
   const [showPreview, setShowPreview] = useState(true);
   const [hasManualSave, setHasManualSave] = useState(false);
   const [activePreviewSection, setActivePreviewSection] = useState<PreviewSection>('template');
+  const [previewScrollProgress, setPreviewScrollProgress] = useState<number | undefined>(undefined);
+  
+  // Reset scroll progress when leaving step 5
+  useEffect(() => {
+    if (currentStep !== 5) {
+      setPreviewScrollProgress(undefined);
+    }
+  }, [currentStep]);
 
   // Check if there are enabled payment methods
   const enabledPaymentMethods = paymentMethods?.filter(m => m.enabled) || [];
@@ -548,6 +556,7 @@ export default function RaffleWizard() {
             hasPaymentMethods={hasEnabledPaymentMethods}
             onNavigateToStep={handleNavigateToStep}
             onSectionChange={setActivePreviewSection}
+            onScrollProgress={setPreviewScrollProgress}
           />
         );
       default:
@@ -807,6 +816,7 @@ export default function RaffleWizard() {
               <RafflePreview 
                 form={form} 
                 activeSection={currentStep === 5 ? activePreviewSection : undefined}
+                scrollProgress={currentStep === 5 ? previewScrollProgress : undefined}
               />
             </div>
           )}
