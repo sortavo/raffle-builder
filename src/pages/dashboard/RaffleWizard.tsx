@@ -22,7 +22,7 @@ import { Step2Prize } from '@/components/raffle/wizard/Step2Prize';
 import { Step3Tickets } from '@/components/raffle/wizard/Step3Tickets';
 import { Step4Draw } from '@/components/raffle/wizard/Step4Draw';
 import { Step5Design } from '@/components/raffle/wizard/Step5Design';
-import { RafflePreview } from '@/components/raffle/wizard/RafflePreview';
+import { RafflePreview, type PreviewSection } from '@/components/raffle/wizard/RafflePreview';
 import { UpgradePlanModal } from '@/components/raffle/UpgradePlanModal';
 import { AutoSaveIndicator } from '@/components/ui/AutoSaveIndicator';
 import { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
@@ -91,6 +91,7 @@ export default function RaffleWizard() {
   const [showPaymentMethodsWarning, setShowPaymentMethodsWarning] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [hasManualSave, setHasManualSave] = useState(false);
+  const [activePreviewSection, setActivePreviewSection] = useState<PreviewSection>('template');
 
   // Check if there are enabled payment methods
   const enabledPaymentMethods = paymentMethods?.filter(m => m.enabled) || [];
@@ -546,6 +547,7 @@ export default function RaffleWizard() {
             canPublish={canPublish}
             hasPaymentMethods={hasEnabledPaymentMethods}
             onNavigateToStep={handleNavigateToStep}
+            onSectionChange={setActivePreviewSection}
           />
         );
       default:
@@ -802,7 +804,10 @@ export default function RaffleWizard() {
           {/* Right: Preview */}
           {showPreview && (
             <div className="hidden lg:block sticky top-6 h-fit">
-              <RafflePreview form={form} />
+              <RafflePreview 
+                form={form} 
+                activeSection={currentStep === 5 ? activePreviewSection : undefined}
+              />
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,15 +30,43 @@ import { getTemplateById } from '@/lib/raffle-utils';
 
 type ViewMode = 'desktop' | 'mobile';
 
+export type PreviewSection = 'template' | 'colors' | 'logo' | 'features' | 'faq';
+
 interface RafflePreviewProps {
   form: UseFormReturn<any>;
   className?: string;
+  activeSection?: PreviewSection;
 }
 
-export function RafflePreview({ form, className }: RafflePreviewProps) {
+export function RafflePreview({ form, className, activeSection }: RafflePreviewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('mobile');
   const { organization } = useAuth();
   const values = form.watch();
+  
+  // Refs for scroll sync
+  const headerRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const packagesRef = useRef<HTMLDivElement>(null);
+  const faqRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Scroll to section when activeSection changes
+  useEffect(() => {
+    if (!activeSection) return;
+    
+    const sectionToRef: Record<PreviewSection, React.RefObject<HTMLDivElement | null>> = {
+      'template': heroRef,
+      'colors': headerRef,
+      'logo': headerRef,
+      'features': packagesRef,
+      'faq': faqRef,
+    };
+    
+    const targetRef = sectionToRef[activeSection];
+    if (targetRef?.current && containerRef.current) {
+      targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [activeSection]);
   
   // Get template from form selection
   const template = getTemplateById(values.template_id);
@@ -120,6 +148,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
       {/* Preview Content - Scaled down version of public page */}
       <div className="flex justify-center bg-muted/50 p-3">
         <div 
+          ref={containerRef}
           className={cn(
             "rounded-lg overflow-hidden shadow-lg transition-all duration-300",
             isMobile ? "w-[320px]" : "w-full max-w-[400px]"
@@ -145,6 +174,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
           
           {/* Mini Header - Full bar uses primary color tint */}
           <div 
+            ref={headerRef}
             className="sticky top-0 z-10 border-b px-3 py-2 relative overflow-hidden"
             style={{ 
               backgroundColor: colors.background,
@@ -186,7 +216,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
           </div>
 
           {/* Hero Section */}
-          <div className="space-y-3 p-3">
+          <div ref={heroRef} className="space-y-3 p-3">
             {/* Desktop: Compact two column layout */}
             {!isMobile ? (
               <div className="grid grid-cols-2 gap-3">
@@ -453,7 +483,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
             )}
 
             {/* Ticket Grid Preview */}
-            <div className="space-y-1.5">
+            <div ref={packagesRef} className="space-y-1.5">
               <h3 
                 className="font-semibold flex items-center gap-1.5 text-xs"
                 style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}
@@ -486,7 +516,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
             </div>
 
             {/* FAQ Preview */}
-            <div className="space-y-1">
+            <div ref={faqRef} className="space-y-1">
               <h3 
                 className="font-semibold text-xs"
                 style={{ color: colors.text, fontFamily: `"${fonts.title}", sans-serif` }}

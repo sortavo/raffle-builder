@@ -1,5 +1,6 @@
 import { UseFormReturn } from 'react-hook-form';
 import { Link } from 'react-router-dom';
+import { useEffect, useRef, useCallback } from 'react';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,8 @@ import { ValidationSummary } from './ValidationSummary';
 import { TemplatePreview } from './TemplatePreview';
 import type { StepValidation } from '@/hooks/useWizardValidation';
 
+type WizardSection = 'template' | 'colors' | 'logo' | 'features' | 'faq';
+
 interface OrganizationInfo {
   id: string;
   name: string;
@@ -35,6 +38,7 @@ interface Step5Props {
   canPublish?: boolean;
   hasPaymentMethods?: boolean;
   onNavigateToStep?: (step: number) => void;
+  onSectionChange?: (section: 'template' | 'colors' | 'logo' | 'features' | 'faq') => void;
 }
 
 // Feature configuration definitions
@@ -107,7 +111,8 @@ export const Step5Design = ({
   stepValidations, 
   canPublish, 
   hasPaymentMethods,
-  onNavigateToStep 
+  onNavigateToStep,
+  onSectionChange
 }: Step5Props) => {
   const { toast } = useToast();
   const selectedTemplate = form.watch('template_id') || 'modern';
@@ -118,6 +123,54 @@ export const Step5Design = ({
   // Get subscription limits for template access
   const limits = getSubscriptionLimits(subscriptionTier);
   const templatesAvailable = limits.templatesAvailable;
+
+  // Refs for section observation
+  const sectionsRef = useRef<Map<WizardSection, HTMLElement>>(new Map());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Set up intersection observer for section tracking
+  useEffect(() => {
+    if (!onSectionChange) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter(entry => entry.isIntersecting);
+        
+        if (visibleEntries.length > 0) {
+          const mostVisible = visibleEntries.reduce((prev, current) => 
+            current.intersectionRatio > prev.intersectionRatio ? current : prev
+          );
+          
+          sectionsRef.current.forEach((element, section) => {
+            if (element === mostVisible.target) {
+              onSectionChange(section);
+            }
+          });
+        }
+      },
+      {
+        threshold: [0.1, 0.3, 0.5],
+        rootMargin: '-80px 0px -50% 0px',
+      }
+    );
+
+    sectionsRef.current.forEach((element) => {
+      observerRef.current?.observe(element);
+    });
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [onSectionChange]);
+
+  const registerSection = useCallback((section: WizardSection) => {
+    return (el: HTMLElement | null) => {
+      if (el) {
+        sectionsRef.current.set(section, el);
+        observerRef.current?.observe(el);
+      }
+    };
+  }, []);
 
   const updateCustomization = (key: string, value: unknown) => {
     const current = form.getValues('customization') || {};
@@ -139,7 +192,7 @@ export const Step5Design = ({
           onNavigateToStep={onNavigateToStep}
         />
       )}
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <Card ref={registerSection('template')} className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6 pt-0 md:pt-6 pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Layout className="w-4 h-4" />
@@ -220,7 +273,7 @@ export const Step5Design = ({
       </Card>
 
       {/* Colores y Tipografía combinados */}
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <Card ref={registerSection('colors')} className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6 pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Palette className="w-4 h-4" />
@@ -305,7 +358,7 @@ export const Step5Design = ({
       </Card>
 
       {/* Logo y Secciones combinados */}
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <Card ref={registerSection('logo')} className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6 pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <ImagePlus className="w-4 h-4" />
@@ -397,7 +450,7 @@ export const Step5Design = ({
       </Card>
 
       {/* Features combinados - Experiencia y Marketing */}
-      <Card className="border-0 shadow-none md:border md:shadow-sm">
+      <Card ref={registerSection('features')} className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6 pb-3">
           <CardTitle className="flex items-center gap-2 text-base md:text-lg">
             <Sparkles className="w-4 h-4" />
@@ -490,7 +543,9 @@ export const Step5Design = ({
       </Card>
 
       {/* FAQ Editor */}
-      <FAQEditor form={form} />
+      <div ref={registerSection('faq')}>
+        <FAQEditor form={form} />
+      </div>
     </div>
   );
 };
