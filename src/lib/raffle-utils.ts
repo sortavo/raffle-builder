@@ -223,8 +223,8 @@ export interface RaffleTemplate {
 export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   {
     id: 'modern',
-    name: 'Moderno',
-    description: 'Diseño premium con glassmorphism',
+    name: 'Claro Básico',
+    description: 'Diseño limpio y moderno con fondo blanco. Ideal para todo tipo de rifas.',
     icon: '🎯',
     colors: {
       primary: '#7C3AED',      // Violet-600
@@ -261,8 +261,8 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   },
   {
     id: 'ultra-white',
-    name: 'Ultra White',
-    description: 'Premium luminoso con sombras emerald dramáticas',
+    name: 'Sortavo Premium',
+    description: 'Diseño premium exclusivo de Sortavo con fondo blanco puro y acentos esmeralda.',
     icon: '☀️',
     colors: {
       primary: '#10B981',      // Emerald-500 (Sortavo brand)
@@ -300,8 +300,8 @@ export const RAFFLE_TEMPLATES: RaffleTemplate[] = [
   },
   {
     id: 'elegant',
-    name: 'Elegante',
-    description: 'Ultra premium oscuro con glassmorphism',
+    name: 'Oscuro Pro',
+    description: 'Diseño oscuro profesional con acentos dorados. Exclusivo para planes Pro+.',
     icon: '✨',
     colors: {
       primary: '#7C3AED',      // Violet-600 primary
