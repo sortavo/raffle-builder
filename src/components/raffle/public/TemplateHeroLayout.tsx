@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { 
   Calendar, 
   Ticket, 
@@ -94,26 +95,38 @@ export function TemplateHeroLayout({
   const progress = (raffle.ticketsSold / raffle.total_tickets) * 100;
   const mainImage = raffle.prize_images?.[0] || '/placeholder.svg';
 
-  // Premium Header - Ultra Dark Glassmorphism
+  // Premium Header - Theme-adaptive Glassmorphism
   const Header = () => (
     <header
-      className={`sticky top-0 z-50 transition-all duration-500 ease-out ${
-        isScrolled 
-          ? 'bg-[#030712]/95 backdrop-blur-2xl shadow-2xl border-b border-white/[0.06]' 
-          : 'bg-[#030712]/80 backdrop-blur-xl'
-      }`}
+      className={cn(
+        "sticky top-0 z-50 transition-all duration-500 ease-out",
+        isLightTemplate
+          ? (isScrolled 
+              ? 'bg-white/95 backdrop-blur-2xl shadow-lg border-b border-gray-200' 
+              : 'bg-white/80 backdrop-blur-xl')
+          : (isScrolled 
+              ? 'bg-[#030712]/95 backdrop-blur-2xl shadow-2xl border-b border-white/[0.06]' 
+              : 'bg-[#030712]/80 backdrop-blur-xl')
+      )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top nav row */}
         <div 
-          className={`flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b border-white/[0.06] ${
+          className={cn(
+            "flex items-center justify-between overflow-hidden transition-all duration-500 ease-out border-b",
+            isLightTemplate ? "border-gray-200" : "border-white/[0.06]",
             isScrolled ? 'h-0 opacity-0 border-transparent' : 'h-10 opacity-100'
-          }`}
+          )}
         >
           {isFromOrganization ? (
             <Link 
               to={`/${organization.slug}`}
-              className="flex items-center gap-1.5 text-xs font-medium text-white/50 hover:text-white transition-all group"
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-medium transition-all group",
+                isLightTemplate 
+                  ? "text-gray-500 hover:text-gray-900" 
+                  : "text-white/50 hover:text-white"
+              )}
             >
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               <span>Volver a {organization.name}</span>
@@ -126,7 +139,12 @@ export function TemplateHeroLayout({
             variant="ghost"
             size="sm"
             onClick={onShare}
-            className="text-xs text-white/50 hover:text-white hover:bg-white/[0.05] h-8 px-3"
+            className={cn(
+              "text-xs h-8 px-3",
+              isLightTemplate
+                ? "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+            )}
           >
             <Share2 className="w-3.5 h-3.5 mr-1.5" />
             Compartir
@@ -172,16 +190,18 @@ export function TemplateHeroLayout({
               </Avatar>
             </div>
             
-            <div className={`transition-all duration-500 ${
-              isScrolled ? 'space-y-0' : 'space-y-1.5'
-            } ${
+            <div className={cn(
+              "transition-all duration-500",
+              isScrolled ? 'space-y-0' : 'space-y-1.5',
               logoPosition === 'top-center' && !isScrolled ? 'text-center' :
               logoPosition === 'top-right' ? 'text-right' : 'text-left'
-            }`}>
+            )}>
               <h2 
-                className={`font-bold tracking-wider uppercase text-white transition-all duration-500 group-hover:opacity-80 ${
+                className={cn(
+                  "font-bold tracking-wider uppercase transition-all duration-500 group-hover:opacity-80",
+                  isLightTemplate ? "text-gray-900" : "text-white",
                   isScrolled ? 'text-base' : 'text-lg sm:text-xl'
-                }`}
+                )}
               >
                 {organization.name}
               </h2>
@@ -523,8 +543,8 @@ export function TemplateHeroLayout({
   // Price display with premium styling
   const PriceDisplay = () => {
     const priceContent = (
-      <div className="text-white">
-        <p className="text-xs font-medium text-white/70">Valor del Premio</p>
+      <div className={cn(isLightTemplate ? "text-white" : "text-white")}>
+        <p className="text-xs font-medium text-white/90">Valor del Premio</p>
         <p className="text-2xl font-bold">
           {formatCurrency(Number(raffle.prize_value), currency)}
         </p>
@@ -591,7 +611,10 @@ export function TemplateHeroLayout({
   const DescriptionSection = () => (
     raffle.description ? (
       <div className="text-center max-w-3xl mx-auto">
-        <p className="text-base sm:text-lg lg:text-xl text-gray-300">
+        <p className={cn(
+          "text-base sm:text-lg lg:text-xl",
+          isLightTemplate ? "text-gray-600" : "text-gray-300"
+        )}>
           {raffle.description}
         </p>
       </div>
@@ -607,10 +630,10 @@ export function TemplateHeroLayout({
         currency={currency}
         primaryColor="#10b981"
         accentColor="#14b8a6"
-        textColor="#ffffff"
-        textMuted="rgba(255,255,255,0.6)"
-        cardBg="rgba(255,255,255,0.03)"
-        isDarkTemplate={true}
+        textColor={isLightTemplate ? "#111827" : "#ffffff"}
+        textMuted={isLightTemplate ? "rgba(75,85,99,0.8)" : "rgba(255,255,255,0.6)"}
+        cardBg={isLightTemplate ? "rgba(249,250,251,1)" : "rgba(255,255,255,0.03)"}
+        isDarkTemplate={!isLightTemplate}
         excludePreDraws={true}
       />
     </div>
@@ -619,7 +642,12 @@ export function TemplateHeroLayout({
   const StatsCards = () => (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
       <motion.div 
-        className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300 text-center"
+        className={cn(
+          "p-5 rounded-2xl transition-all duration-300 text-center",
+          isLightTemplate
+            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
+            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
+        )}
         whileHover={{ scale: 1.02 }}
       >
         <div className="flex flex-col items-center gap-3">
@@ -627,15 +655,20 @@ export function TemplateHeroLayout({
             <Ticket className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-sm text-gray-400">Precio</p>
-            <p className="text-xl font-bold text-white">
+            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Precio</p>
+            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
               {formatCurrency(raffle.ticket_price, currency)}
             </p>
           </div>
         </div>
       </motion.div>
       <motion.div 
-        className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300 text-center"
+        className={cn(
+          "p-5 rounded-2xl transition-all duration-300 text-center",
+          isLightTemplate
+            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
+            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
+        )}
         whileHover={{ scale: 1.02 }}
       >
         <div className="flex flex-col items-center gap-3">
@@ -643,8 +676,8 @@ export function TemplateHeroLayout({
             <Calendar className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-sm text-gray-400">Sorteo</p>
-            <p className="text-xl font-bold text-white">
+            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Sorteo</p>
+            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
               {raffle.draw_date 
                 ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
                 : 'Por definir'
@@ -654,7 +687,12 @@ export function TemplateHeroLayout({
         </div>
       </motion.div>
       <motion.div 
-        className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300 text-center"
+        className={cn(
+          "p-5 rounded-2xl transition-all duration-300 text-center",
+          isLightTemplate
+            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
+            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
+        )}
         whileHover={{ scale: 1.02 }}
       >
         <div className="flex flex-col items-center gap-3">
@@ -662,15 +700,20 @@ export function TemplateHeroLayout({
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-sm text-gray-400">Boletos</p>
-            <p className="text-xl font-bold text-white">
+            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Boletos</p>
+            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
               {raffle.total_tickets.toLocaleString()}
             </p>
           </div>
         </div>
       </motion.div>
       <motion.div 
-        className="p-5 rounded-2xl bg-gray-900/80 border border-white/10 hover:border-emerald-500/30 transition-all duration-300 text-center"
+        className={cn(
+          "p-5 rounded-2xl transition-all duration-300 text-center",
+          isLightTemplate
+            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
+            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
+        )}
         whileHover={{ scale: 1.02 }}
       >
         <div className="flex flex-col items-center gap-3">
@@ -678,8 +721,8 @@ export function TemplateHeroLayout({
             <CheckCircle2 className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-sm text-gray-400">Vendidos</p>
-            <p className="text-xl font-bold text-emerald-400">
+            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Vendidos</p>
+            <p className="text-xl font-bold text-emerald-500">
               {raffle.ticketsSold.toLocaleString()}
             </p>
           </div>
@@ -692,15 +735,18 @@ export function TemplateHeroLayout({
     showStats ? (
       <div className="space-y-3 max-w-2xl mx-auto">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-200">
+          <span className={cn("font-medium", isLightTemplate ? "text-gray-700" : "text-gray-200")}>
             {raffle.ticketsSold} de {raffle.total_tickets} vendidos
           </span>
-          <span className="font-bold text-emerald-400">
+          <span className="font-bold text-emerald-500">
             {Math.round(progress)}%
           </span>
         </div>
         
-        <div className="relative h-3 rounded-full overflow-hidden bg-gray-800">
+        <div className={cn(
+          "relative h-3 rounded-full overflow-hidden",
+          isLightTemplate ? "bg-gray-200" : "bg-gray-800"
+        )}>
           <motion.div 
             className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500"
             initial={{ width: 0 }}
@@ -709,7 +755,7 @@ export function TemplateHeroLayout({
           />
         </div>
         
-        <p className="text-sm text-gray-400 text-center">
+        <p className={cn("text-sm text-center", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
           {raffle.ticketsAvailable} boletos disponibles
         </p>
       </div>
@@ -734,7 +780,12 @@ export function TemplateHeroLayout({
         <Button
           size="lg"
           variant="outline"
-          className="border-2 px-8 py-6 border-white/20 text-white hover:bg-white/[0.05] hover:border-emerald-500/50"
+          className={cn(
+            "border-2 px-8 py-6",
+            isLightTemplate
+              ? "border-gray-300 text-gray-900 hover:bg-gray-100 hover:border-emerald-500"
+              : "border-white/20 text-white hover:bg-white/[0.05] hover:border-emerald-500/50"
+          )}
           onClick={onShare}
         >
           <Share2 className="w-5 h-5 mr-2" />
@@ -745,22 +796,34 @@ export function TemplateHeroLayout({
   );
 
   const TrustBadges = () => (
-    <div className="flex flex-wrap items-center justify-center gap-6 pt-6 border-t border-white/10">
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
-          <Shield className="w-4 h-4 text-emerald-400" />
+    <div className={cn(
+      "flex flex-wrap items-center justify-center gap-6 pt-6 border-t",
+      isLightTemplate ? "border-gray-200" : "border-white/10"
+    )}>
+      <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center",
+          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
+        )}>
+          <Shield className="w-4 h-4 text-emerald-500" />
         </div>
         <span>Pago Seguro</span>
       </div>
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+      <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center",
+          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
+        )}>
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
         </div>
         <span>Verificable</span>
       </div>
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/10">
-          <Users className="w-4 h-4 text-emerald-400" />
+      <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
+        <div className={cn(
+          "w-8 h-8 rounded-full flex items-center justify-center",
+          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
+        )}>
+          <Users className="w-4 h-4 text-emerald-500" />
         </div>
         <span>{raffle.ticketsSold}+ participantes</span>
       </div>
@@ -864,14 +927,27 @@ export function TemplateHeroLayout({
                 alt={raffle.prize_name}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-[#030712]/50 to-transparent" />
+              <div className={cn(
+                "absolute inset-0 bg-gradient-to-t to-transparent",
+                isLightTemplate 
+                  ? "from-white via-white/50"
+                  : "from-[#030712] via-[#030712]/50"
+              )} />
               <PriceDisplay />
               
               {showStats && (
-                <div className="absolute top-4 right-4 px-4 py-2 bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-full shadow-lg">
+                <div className={cn(
+                  "absolute top-4 right-4 px-4 py-2 backdrop-blur-xl rounded-full shadow-lg",
+                  isLightTemplate
+                    ? "bg-white/90 border border-gray-200"
+                    : "bg-white/[0.03] border border-white/[0.06]"
+                )}>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-semibold text-white">
+                    <span className={cn(
+                      "text-sm font-semibold",
+                      isLightTemplate ? "text-gray-900" : "text-white"
+                    )}>
                       {raffle.ticketsSold} vendidos
                     </span>
                   </div>
@@ -882,7 +958,12 @@ export function TemplateHeroLayout({
             {/* Content below */}
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
               <motion.div 
-                className="p-8 rounded-2xl shadow-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl"
+                className={cn(
+                  "p-8 rounded-2xl shadow-2xl backdrop-blur-xl",
+                  isLightTemplate
+                    ? "bg-white/95 border border-gray-200"
+                    : "bg-white/[0.03] border border-white/[0.06]"
+                )}
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5 }}
@@ -898,9 +979,10 @@ export function TemplateHeroLayout({
                   {raffle.prize_images.slice(0, 5).map((img, idx) => (
                     <motion.div 
                       key={idx}
-                      className={`w-16 h-16 rounded-lg overflow-hidden shadow-md cursor-pointer border-2 ${
-                        idx === 0 ? 'border-emerald-500' : 'border-white/10'
-                      }`}
+                      className={cn(
+                        "w-16 h-16 rounded-lg overflow-hidden shadow-md cursor-pointer border-2",
+                        idx === 0 ? 'border-emerald-500' : (isLightTemplate ? 'border-gray-200' : 'border-white/10')
+                      )}
                       whileHover={{ scale: 1.1 }}
                       onClick={() => {
                         setLightboxIndex(idx);
@@ -937,11 +1019,16 @@ export function TemplateHeroLayout({
                   {/* Side price display */}
                   {pricePosition === 'side' && raffle.prize_value && (
                     <motion.div 
-                      className="mt-6 p-6 rounded-xl shadow-lg bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm"
+                      className={cn(
+                        "mt-6 p-6 rounded-xl shadow-lg backdrop-blur-sm",
+                        isLightTemplate
+                          ? "bg-gray-50 border border-gray-200"
+                          : "bg-white/[0.03] border border-white/[0.06]"
+                      )}
                       whileHover={{ scale: 1.02 }}
                     >
-                      <p className="text-sm font-medium text-white/50">Valor estimado del premio</p>
-                      <p className="text-4xl font-bold mt-1 text-emerald-400">
+                      <p className={cn("text-sm font-medium", isLightTemplate ? "text-gray-500" : "text-white/50")}>Valor estimado del premio</p>
+                      <p className="text-4xl font-bold mt-1 text-emerald-500">
                         {formatCurrency(Number(raffle.prize_value), currency)}
                       </p>
                     </motion.div>
@@ -981,7 +1068,12 @@ export function TemplateHeroLayout({
                 {/* 2. PROMINENT GALLERY - Visual Hook - Uses GalleryComponent for consistency */}
                 <div className="w-full max-w-4xl mx-auto">
                   <motion.div 
-                    className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-gray-900/50"
+                    className={cn(
+                      "relative rounded-2xl overflow-hidden shadow-2xl",
+                      isLightTemplate
+                        ? "border border-gray-200 bg-gray-50"
+                        : "border border-white/10 bg-gray-900/50"
+                    )}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
@@ -1028,13 +1120,15 @@ export function TemplateHeroLayout({
     <>
       <Header />
       
-      {/* Force ultra-dark background */}
-      <div className="relative bg-[#030712]">
+      {/* Template-adaptive background */}
+      <div className={cn("relative", isLightTemplate ? "bg-white" : "bg-[#030712]")}>
         {/* Subtle gradient overlay for depth */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)'
+            background: isLightTemplate 
+              ? 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)'
+              : 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)'
           }}
         />
         {renderHero()}
