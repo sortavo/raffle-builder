@@ -11,7 +11,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[GENERATE-TICKETS] ${step}${detailsStr}`);
 };
 
-const BATCH_SIZE = 50000; // Optimal batch size for PostgreSQL
+const BATCH_SIZE = 10000; // Reduced batch size to avoid statement timeouts
 
 interface NumberingConfig {
   mode: 'sequential' | 'random_permutation' | 'custom_list' | 'template';
