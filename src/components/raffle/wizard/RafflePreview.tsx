@@ -243,6 +243,7 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
       <div className="flex justify-center bg-muted/50 p-3">
         <div 
           ref={containerRef}
+          data-preview-scroll="true"
           className={cn(
             "rounded-lg overflow-hidden shadow-lg transition-all duration-300 overscroll-contain",
             isMobile ? "w-[320px]" : "w-full max-w-[400px]"

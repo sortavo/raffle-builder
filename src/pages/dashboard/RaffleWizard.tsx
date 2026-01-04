@@ -94,49 +94,89 @@ export default function RaffleWizard() {
   const [activePreviewSection, setActivePreviewSection] = useState<PreviewSection>('template');
   const [previewScrollProgress, setPreviewScrollProgress] = useState<number>(0);
   
-  // Ref for the form content area to track scroll progress
-  const formContentRef = useRef<HTMLDivElement>(null);
+  // Ref for the wizard content area to track scroll progress
+  const wizardContentRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
+  const lastProgressRef = useRef<number>(0);
   
-  // Calculate scroll progress from the form content area
+  // Universal scroll listener that captures scroll from any container
   useEffect(() => {
     if (!showPreview) return;
     
-    const calculateProgress = () => {
-      const formContent = formContentRef.current;
-      if (!formContent) return;
+    const calculateProgress = (scrollContainer: Element | null) => {
+      const wizardContent = wizardContentRef.current;
+      if (!wizardContent || !scrollContainer) return;
       
-      const rect = formContent.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const usable = rect.height - viewportHeight;
+      // Get the scroll container's metrics
+      const scrollTop = scrollContainer.scrollTop;
+      const scrollHeight = scrollContainer.scrollHeight;
+      const clientHeight = scrollContainer.clientHeight;
+      const maxScroll = scrollHeight - clientHeight;
       
-      if (usable <= 0) {
-        setPreviewScrollProgress(0);
+      if (maxScroll <= 0) {
+        if (lastProgressRef.current !== 0) {
+          lastProgressRef.current = 0;
+          setPreviewScrollProgress(0);
+        }
         return;
       }
       
-      const scrolled = -rect.top;
-      const progress = Math.max(0, Math.min(1, scrolled / usable));
-      setPreviewScrollProgress(progress);
+      const progress = Math.max(0, Math.min(1, scrollTop / maxScroll));
+      
+      // Only update if changed significantly (avoid micro-renders)
+      if (Math.abs(progress - lastProgressRef.current) > 0.003) {
+        lastProgressRef.current = progress;
+        setPreviewScrollProgress(progress);
+      }
     };
     
-    const handleScroll = () => {
+    const handleScroll = (event: Event) => {
+      // Get the actual scrolling element
+      const target = event.target as Element | Document;
+      
+      // Ignore scroll events from the preview container
+      if (target instanceof Element) {
+        if (target.hasAttribute('data-preview-scroll') || 
+            target.closest('[data-preview-scroll]')) {
+          return;
+        }
+      }
+      
+      // Find the scroll container
+      let scrollContainer: Element | null = null;
+      
+      if (target === document || target === document.documentElement) {
+        scrollContainer = document.scrollingElement || document.documentElement;
+      } else if (target instanceof Element) {
+        // Check if this container contains our wizard content
+        const wizardContent = wizardContentRef.current;
+        if (wizardContent && target.contains(wizardContent)) {
+          scrollContainer = target;
+        }
+      }
+      
+      if (!scrollContainer) return;
+      
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        calculateProgress();
+        calculateProgress(scrollContainer);
       });
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
+    // Use capture phase to catch scroll on any element
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    window.addEventListener('resize', () => {
+      const scrollContainer = document.scrollingElement || document.documentElement;
+      calculateProgress(scrollContainer);
+    }, { passive: true });
     
     // Initial calculation
-    calculateProgress();
+    const scrollContainer = document.scrollingElement || document.documentElement;
+    calculateProgress(scrollContainer);
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
+      document.removeEventListener('scroll', handleScroll, { capture: true });
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
@@ -791,7 +831,7 @@ export default function RaffleWizard() {
         {/* Main Content with Preview */}
         <div className={`grid gap-5 md:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,380px] xl:grid-cols-[1fr,420px]' : ''}`}>
           {/* Left: Form */}
-          <div ref={formContentRef} className="space-y-4">
+          <div ref={wizardContentRef} className="space-y-4">
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()}>
                 <Card className="overflow-hidden border-border/50 shadow-sm bg-card rounded-xl">
