@@ -180,20 +180,20 @@ export function TemplateHeroLayout({
                 className={`absolute inset-0 blur-xl transition-all duration-500 ${
                   isScrolled ? 'opacity-20' : 'opacity-40 group-hover:opacity-60'
                 }`}
-                style={{ backgroundColor: customColors?.primary || '#10b981' }}
+                style={{ backgroundColor: customColors?.primary || template.colors.primary }}
               />
               <Avatar 
                 className={`relative border-2 shadow-xl transition-all duration-500 group-hover:scale-105 ${
                   isScrolled ? 'h-10 w-10' : 'h-16 w-16'
                 }`}
-                style={{ borderColor: `${customColors?.primary || '#10b981'}50` }}
+                style={{ borderColor: `${customColors?.primary || template.colors.primary}50` }}
               >
                 <AvatarImage src={organization.logo_url || undefined} alt={organization.name} className="object-cover" />
                 <AvatarFallback 
                   className={`font-bold text-white transition-all duration-500 ${
                     isScrolled ? 'text-sm' : 'text-xl'
                   }`}
-                  style={{ backgroundColor: customColors?.primary || '#10b981' }}
+                  style={{ backgroundColor: customColors?.primary || template.colors.primary }}
                 >
                   {organization.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
