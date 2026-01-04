@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { generateAllTrackingScripts } from "@/lib/tracking-scripts";
 
 export interface TenantConfig {
   id: string;
@@ -13,6 +14,13 @@ export interface TenantConfig {
   custom_css: string | null;
   white_label_enabled: boolean;
   powered_by_visible: boolean;
+  // Tracking (only loaded for verified custom domains)
+  tracking_enabled: boolean;
+  tracking_gtm_id: string | null;
+  tracking_meta_pixel_id: string | null;
+  tracking_ga4_id: string | null;
+  tracking_tiktok_pixel_id: string | null;
+  tracking_custom_scripts: string | null;
 }
 
 interface TenantContextType {
@@ -84,6 +92,14 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
           if (data && data.length > 0) {
             const org = data[0];
+            
+            // Fetch tracking data separately (RPC may not include new columns)
+            const { data: trackingData } = await supabase
+              .from("organizations")
+              .select("tracking_enabled, tracking_gtm_id, tracking_meta_pixel_id, tracking_ga4_id, tracking_tiktok_pixel_id, tracking_custom_scripts")
+              .eq("id", org.id)
+              .single();
+            
             setTenant({
               id: org.id,
               name: org.name,
@@ -96,6 +112,13 @@ export function TenantProvider({ children }: TenantProviderProps) {
               custom_css: org.custom_css,
               white_label_enabled: org.white_label_enabled || false,
               powered_by_visible: org.powered_by_visible !== false,
+              // Tracking fields (only for custom domains)
+              tracking_enabled: trackingData?.tracking_enabled || false,
+              tracking_gtm_id: trackingData?.tracking_gtm_id || null,
+              tracking_meta_pixel_id: trackingData?.tracking_meta_pixel_id || null,
+              tracking_ga4_id: trackingData?.tracking_ga4_id || null,
+              tracking_tiktok_pixel_id: trackingData?.tracking_tiktok_pixel_id || null,
+              tracking_custom_scripts: trackingData?.tracking_custom_scripts || null,
             });
             setIsLoading(false);
             return;
@@ -141,6 +164,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
       if (error || !data) return null;
 
+      // For subdomain access, tracking is NOT loaded (security)
       const config: TenantConfig = {
         id: data.id,
         name: data.name,
@@ -153,6 +177,13 @@ export function TenantProvider({ children }: TenantProviderProps) {
         custom_css: data.custom_css,
         white_label_enabled: data.white_label_enabled || false,
         powered_by_visible: data.powered_by_visible !== false,
+        // Tracking disabled for subdomain access
+        tracking_enabled: false,
+        tracking_gtm_id: null,
+        tracking_meta_pixel_id: null,
+        tracking_ga4_id: null,
+        tracking_tiktok_pixel_id: null,
+        tracking_custom_scripts: null,
       };
 
       return config;
@@ -197,8 +228,61 @@ export function TenantProvider({ children }: TenantProviderProps) {
           .replace(/url\s*\(\s*["']?\s*data:/gi, 'url(blocked:');
         styleEl.textContent = sanitizedCSS;
       }
+
+      // Inject tracking scripts (only for custom domains when enabled)
+      if (tenant.tracking_enabled && isCustomDomain) {
+        const trackingContainerId = "tenant-tracking-scripts";
+        let trackingContainer = document.getElementById(trackingContainerId);
+        
+        if (!trackingContainer) {
+          trackingContainer = document.createElement("div");
+          trackingContainer.id = trackingContainerId;
+          document.head.appendChild(trackingContainer);
+        }
+
+        const trackingScripts = generateAllTrackingScripts({
+          gtm: tenant.tracking_gtm_id,
+          metaPixel: tenant.tracking_meta_pixel_id,
+          ga4: tenant.tracking_ga4_id,
+          tiktok: tenant.tracking_tiktok_pixel_id,
+          custom: tenant.tracking_custom_scripts,
+        });
+
+        if (trackingScripts.trim()) {
+          // Parse and inject scripts properly
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = trackingScripts;
+          
+          // Move scripts to head
+          const scripts = tempDiv.querySelectorAll("script");
+          scripts.forEach((script) => {
+            const newScript = document.createElement("script");
+            if (script.src) {
+              newScript.src = script.src;
+              newScript.async = script.async;
+            } else {
+              newScript.textContent = script.textContent;
+            }
+            trackingContainer!.appendChild(newScript);
+          });
+
+          // Move noscript elements
+          const noscripts = tempDiv.querySelectorAll("noscript");
+          noscripts.forEach((noscript) => {
+            trackingContainer!.appendChild(noscript.cloneNode(true));
+          });
+        }
+      }
     }
-  }, [tenant]);
+
+    // Cleanup function to remove tracking scripts on unmount
+    return () => {
+      const trackingContainer = document.getElementById("tenant-tracking-scripts");
+      if (trackingContainer) {
+        trackingContainer.innerHTML = "";
+      }
+    };
+  }, [tenant, isCustomDomain]);
 
   return (
     <TenantContext.Provider

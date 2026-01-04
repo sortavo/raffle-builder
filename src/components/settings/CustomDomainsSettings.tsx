@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getSubscriptionLimits, SubscriptionTier } from "@/lib/subscription-limits";
 import { UpgradePlanModal } from "@/components/raffle/UpgradePlanModal";
+import { TrackingSettings } from "@/components/settings/TrackingSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1039,6 +1040,11 @@ export function CustomDomainsSettings() {
 
         </CardContent>
       </Card>
+
+      {/* Tracking Settings - Only for Pro+ with verified domains */}
+      {canHaveCustomDomains && (
+        <TrackingSettings hasVerifiedDomain={domains?.some(d => d.verified) || false} />
+      )}
 
       {/* ✅ AJUSTADO: Add Domain Dialog con responsive */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

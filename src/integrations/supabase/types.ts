@@ -519,6 +519,12 @@ export type Database = {
           tiktok_url: string | null
           timezone: string | null
           total_raffles_completed: number | null
+          tracking_custom_scripts: string | null
+          tracking_enabled: boolean | null
+          tracking_ga4_id: string | null
+          tracking_gtm_id: string | null
+          tracking_meta_pixel_id: string | null
+          tracking_tiktok_pixel_id: string | null
           trial_ends_at: string | null
           updated_at: string | null
           verified: boolean | null
@@ -574,6 +580,12 @@ export type Database = {
           tiktok_url?: string | null
           timezone?: string | null
           total_raffles_completed?: number | null
+          tracking_custom_scripts?: string | null
+          tracking_enabled?: boolean | null
+          tracking_ga4_id?: string | null
+          tracking_gtm_id?: string | null
+          tracking_meta_pixel_id?: string | null
+          tracking_tiktok_pixel_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
@@ -629,6 +641,12 @@ export type Database = {
           tiktok_url?: string | null
           timezone?: string | null
           total_raffles_completed?: number | null
+          tracking_custom_scripts?: string | null
+          tracking_enabled?: boolean | null
+          tracking_ga4_id?: string | null
+          tracking_gtm_id?: string | null
+          tracking_meta_pixel_id?: string | null
+          tracking_tiktok_pixel_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           verified?: boolean | null
