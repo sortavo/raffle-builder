@@ -298,17 +298,26 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   const hasWhatsApp = !!org?.whatsapp_number;
 
   // Template already loaded at component top level for dark mode detection
-  // Use template colors as primary, org brand color as accent override
-  const primaryColor = template.colors.primary;
-  const accentColor = template.colors.accent;
+  // Custom colors/fonts from customization override template defaults
+  const primaryColor = customization.primary_color || template.colors.primary;
+  const secondaryColor = customization.secondary_color || template.colors.accent;
+  const accentColor = customization.secondary_color || template.colors.accent;
   const bgColor = template.colors.background;
   const cardBg = template.colors.cardBg;
   const textColor = template.colors.text;
   const textMuted = template.colors.textMuted;
-  const fontTitle = template.fonts.title;
-  const fontBody = template.fonts.body;
+  const fontTitle = customization.title_font || template.fonts.title;
+  const fontBody = customization.body_font || template.fonts.body;
   const borderRadius = template.effects.borderRadius;
   const gradient = template.effects.gradient;
+  
+  // Custom colors object to pass to child components
+  const customColors = {
+    primary: primaryColor,
+    secondary: secondaryColor,
+    fontTitle: fontTitle,
+    fontBody: fontBody,
+  };
 
   return (
     <>
@@ -320,6 +329,16 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
         {raffle.prize_images?.[0] && <meta property="og:image" content={raffle.prize_images[0]} />}
         <meta property="og:url" content={url} />
         <meta name="twitter:card" content="summary_large_image" />
+        {/* Dynamic Google Fonts for custom typography */}
+        {(customization.title_font || customization.body_font) && (
+          <link
+            href={`https://fonts.googleapis.com/css2?family=${[
+              customization.title_font,
+              customization.body_font
+            ].filter(Boolean).map(f => f?.replace(/ /g, '+')).join('&family=')}&display=swap`}
+            rel="stylesheet"
+          />
+        )}
       </Helmet>
 
       {/* Preview Banner for organizers viewing draft raffles */}
@@ -335,7 +354,9 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
         style={{ 
           backgroundColor: bgColor,
           fontFamily: `"${fontBody}", sans-serif`,
-        }}
+          '--custom-primary': primaryColor,
+          '--custom-secondary': secondaryColor,
+        } as React.CSSProperties}
       >
         {/* Animated orbs - adaptive to light/dark templates */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -390,6 +411,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
               currency={currency}
               logoPosition={customization.logo_position || 'top-left'}
               isLightTemplate={isLightTemplate}
+              customColors={customColors}
               onScrollToTickets={scrollToTickets}
               onShare={showShareButtons ? shareRaffle : undefined}
               onImageClick={(index) => {
@@ -454,6 +476,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
               onScrollToTickets={scrollToTickets}
               onShare={shareRaffle}
               isLightTemplate={isLightTemplate}
+              customColors={customColors}
             />
 
             {/* Desktop Countdown */}
@@ -545,6 +568,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 ticketsSold={showStats ? raffle.ticketsSold : 0}
                 ticketsAvailable={raffle.ticketsAvailable}
                 isLightTemplate={isLightTemplate}
+                primaryColor={primaryColor}
               />
 
               {showSocialProof && (

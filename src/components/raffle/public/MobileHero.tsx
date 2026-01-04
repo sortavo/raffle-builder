@@ -48,6 +48,12 @@ interface MobileHeroProps {
   onImageClick?: (index: number) => void;
   logoPosition?: 'top-left' | 'top-center' | 'top-right';
   isLightTemplate?: boolean;
+  customColors?: {
+    primary: string;
+    secondary: string;
+    fontTitle: string;
+    fontBody: string;
+  };
 }
 
 export function MobileHero({
@@ -59,6 +65,7 @@ export function MobileHero({
   onImageClick,
   logoPosition = 'top-left',
   isLightTemplate = false,
+  customColors,
 }: MobileHeroProps) {
   const images = raffle.prize_images || [];
   const hasVideo = !!raffle.prize_video_url;
@@ -470,6 +477,10 @@ export function MobileHero({
             variant={isLightTemplate ? "default" : "inverted"}
             size="lg"
             className="w-full h-16 text-lg font-bold rounded-2xl shadow-xl touch-active btn-mobile tracking-tight"
+            style={customColors?.primary ? {
+              backgroundColor: customColors.primary,
+              color: '#ffffff',
+            } : undefined}
             onClick={onScrollToTickets}
           >
             Comprar Boletos

@@ -65,6 +65,7 @@ interface TicketSelectorProps {
   ticketsSold?: number;
   ticketsAvailable?: number;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
 export function TicketSelector({
@@ -83,6 +84,7 @@ export function TicketSelector({
   ticketsSold = 0,
   ticketsAvailable = 0,
   isLightTemplate = false,
+  primaryColor,
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
 
@@ -716,6 +718,7 @@ export function TicketSelector({
                 onSelect={(qty) => setRandomCount(qty)}
                 bestPackageId={bestPackage?.id}
                 isLightTemplate={isLightTemplate}
+                primaryColor={primaryColor}
               />
             )}
 
@@ -1474,6 +1477,7 @@ export function TicketSelector({
         selectedTickets={selectedTickets}
         onContinue={handleContinue}
         onClear={handleClearSelection}
+        primaryColor={primaryColor}
       />
     </div>
   );

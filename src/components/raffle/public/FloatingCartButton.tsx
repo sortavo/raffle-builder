@@ -13,6 +13,7 @@ interface FloatingCartButtonProps {
   onContinue: () => void;
   onClear: () => void;
   winProbability?: number;
+  primaryColor?: string;
 }
 
 export function FloatingCartButton({
@@ -23,6 +24,7 @@ export function FloatingCartButton({
   onContinue,
   onClear,
   winProbability,
+  primaryColor,
 }: FloatingCartButtonProps) {
   if (selectedCount === 0) return null;
 
@@ -135,12 +137,16 @@ export function FloatingCartButton({
                 size="lg"
                 className={cn(
                   "h-14 md:h-16 px-6 md:px-10",
-                  "shadow-xl shadow-white/10",
+                  "shadow-xl",
                   "text-base font-bold",
                   "rounded-xl",
                   "group transition-all duration-200",
-                  "hover:shadow-2xl hover:shadow-white/20 hover:-translate-y-0.5"
+                  "hover:shadow-2xl hover:-translate-y-0.5"
                 )}
+                style={primaryColor ? {
+                  backgroundColor: primaryColor,
+                  color: '#ffffff',
+                } : undefined}
               >
                 <span className="hidden sm:inline">Continuar</span>
                 <span className="sm:hidden">Pagar</span>

@@ -19,6 +19,7 @@ interface PackageCardsProps {
   onSelect: (quantity: number) => void;
   bestPackageId?: string;
   isLightTemplate?: boolean;
+  primaryColor?: string;
 }
 
 export function PackageCards({
@@ -29,6 +30,7 @@ export function PackageCards({
   onSelect,
   bestPackageId,
   isLightTemplate = false,
+  primaryColor,
 }: PackageCardsProps) {
   if (packages.length === 0) return null;
 
@@ -117,9 +119,18 @@ export function PackageCards({
                 !isSelected && !isBest && cn(colors.cardBg, colors.border, colors.hoverBorder, colors.hoverBg, colors.hoverShadow),
                 // Best value (not selected)
                 !isSelected && isBest && "border-emerald-500/40 bg-emerald-500/5 gradient-border-animated hover:shadow-xl hover:shadow-emerald-500/25",
-                // Selected state
-                isSelected && "bg-emerald-500/10 border-emerald-500 shadow-xl shadow-emerald-500/30"
+                // Selected state - use custom primary color if available
+                isSelected && "shadow-xl"
               )}
+              style={isSelected && primaryColor ? {
+                backgroundColor: `${primaryColor}20`,
+                borderColor: primaryColor,
+                boxShadow: `0 20px 25px -5px ${primaryColor}40`,
+              } : isSelected ? {
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderColor: '#10b981',
+                boxShadow: '0 20px 25px -5px rgba(16, 185, 129, 0.3)',
+              } : undefined}
             >
               {/* Best value badge */}
               {isBest && (

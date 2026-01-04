@@ -67,6 +67,12 @@ interface TemplateHeroLayoutProps {
   onShare: () => void;
   logoPosition?: 'top-left' | 'top-center' | 'top-right';
   isLightTemplate?: boolean;
+  customColors?: {
+    primary: string;
+    secondary: string;
+    fontTitle: string;
+    fontBody: string;
+  };
 }
 
 export function TemplateHeroLayout({
@@ -85,6 +91,7 @@ export function TemplateHeroLayout({
   onShare,
   logoPosition = 'top-center',
   isLightTemplate = false,
+  customColors,
 }: TemplateHeroLayoutProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -767,7 +774,11 @@ export function TemplateHeroLayout({
       <motion.div whileTap={{ scale: 0.98 }}>
         <Button
           size="lg"
-          className="text-lg px-10 py-6 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-xl shadow-emerald-600/25"
+          className="text-lg px-10 py-6 font-bold shadow-xl"
+          style={{
+            backgroundColor: customColors?.primary || '#059669',
+            color: '#ffffff',
+          }}
           onClick={onScrollToTickets}
         >
           <Ticket className="w-5 h-5 mr-2" />
