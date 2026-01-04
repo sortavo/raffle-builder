@@ -143,20 +143,26 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
             </div>
           )}
           
-          {/* Mini Header */}
+          {/* Mini Header - Full bar uses primary color tint */}
           <div 
-            className="sticky top-0 z-10 border-b px-3 py-2"
+            className="sticky top-0 z-10 border-b px-3 py-2 relative overflow-hidden"
             style={{ 
-              backgroundColor: effects.glassmorphism?.enabled 
-                ? colors.cardBg 
-                : colors.background,
+              backgroundColor: colors.background,
               backdropFilter: effects.glassmorphism?.enabled ? 'blur(12px)' : undefined,
-              borderBottomColor: `${primaryColor}20`,
+              borderBottomColor: `${primaryColor}30`,
             }}
           >
-            <div className="flex items-center justify-between">
+            {/* Primary color overlay for entire header bar */}
+            <div 
+              className="absolute inset-0 pointer-events-none"
+              style={{ 
+                backgroundColor: primaryColor,
+                opacity: isDarkTemplate ? 0.20 : 0.12,
+              }}
+            />
+            <div className="relative flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 border" style={{ borderColor: primaryColor }}>
+                <Avatar className="h-6 w-6 border-2 shadow-sm" style={{ borderColor: primaryColor }}>
                   <AvatarImage src={orgLogo || undefined} alt={orgName} />
                   <AvatarFallback 
                     className="text-[10px] font-semibold text-white"
@@ -171,7 +177,7 @@ export function RafflePreview({ form, className }: RafflePreviewProps) {
                 >
                   {orgName}
                 </span>
-                <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                <CheckCircle2 className="w-3 h-3" style={{ color: primaryColor }} />
               </div>
               <Button variant="ghost" size="sm" className="h-6 px-2">
                 <Share2 className="w-3 h-3" style={{ color: colors.textMuted }} />
