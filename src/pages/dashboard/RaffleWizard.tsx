@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard, Eye, EyeOff, X, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Rocket, AlertCircle, CreditCard, Eye, EyeOff, X, Info, ChevronUp } from 'lucide-react';
 import { useRaffles } from '@/hooks/useRaffles';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { UnsavedChangesDialog } from '@/components/ui/UnsavedChangesDialog';
 import { checkRaffleLimit, checkTicketLimit, getSubscriptionLimits, SubscriptionTier } from '@/lib/subscription-limits';
 import { parsePrizes, serializePrizes } from '@/types/prize';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 const STEPS = [
@@ -93,11 +94,13 @@ export default function RaffleWizard() {
   const [hasManualSave, setHasManualSave] = useState(false);
   const [activePreviewSection, setActivePreviewSection] = useState<PreviewSection>('template');
   const [previewScrollProgress, setPreviewScrollProgress] = useState<number>(0);
+  const [isProgressHidden, setIsProgressHidden] = useState(false);
   
   // Ref for the wizard content area to track scroll progress
   const wizardContentRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const lastProgressRef = useRef<number>(0);
+  const lastScrollY = useRef(0);
   
   // Scroll sync: calculate progress based on wizard position in viewport
   useEffect(() => {
@@ -136,6 +139,16 @@ export default function RaffleWizard() {
           return;
         }
       }
+      
+      // Auto-hide progress on scroll down
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollY.current;
+      
+      if (Math.abs(currentScrollY - lastScrollY.current) > 10) {
+        setIsProgressHidden(scrollingDown && currentScrollY > 100);
+      }
+      
+      lastScrollY.current = currentScrollY;
       
       if (rafRef.current) return;
       rafRef.current = requestAnimationFrame(() => {
@@ -779,14 +792,19 @@ export default function RaffleWizard() {
           </div>
         </div>
 
-        {/* Progress - Clean and Compact */}
-        <div className="bg-card rounded-xl border border-border/50 p-3 md:p-4 shadow-sm">
-          <WizardProgress 
-            steps={STEPS} 
-            currentStep={currentStep} 
-            stepStatuses={stepStatuses}
-            stepErrors={stepErrors}
-          />
+        {/* Progress - Sticky with auto-hide */}
+        <div className={cn(
+          "sticky top-0 z-30 bg-background/95 backdrop-blur-sm transition-all duration-300 -mx-4 px-4 py-2",
+          isProgressHidden && "opacity-0 -translate-y-4 pointer-events-none"
+        )}>
+          <div className="bg-card rounded-xl border border-border/50 p-3 md:p-4 shadow-sm">
+            <WizardProgress 
+              steps={STEPS} 
+              currentStep={currentStep} 
+              stepStatuses={stepStatuses}
+              stepErrors={stepErrors}
+            />
+          </div>
         </div>
 
         {/* Payment Methods Warning */}
@@ -872,7 +890,7 @@ export default function RaffleWizard() {
           {showPreview && (
             <div
               className="hidden lg:block z-20"
-              style={{ position: 'fixed', top: '240px', right: '32px', width: '360px' }}
+              style={{ position: 'fixed', top: '120px', right: '32px', width: '360px' }}
             >
               <RafflePreview 
                 form={form} 
@@ -880,6 +898,18 @@ export default function RaffleWizard() {
                 scrollProgress={previewScrollProgress}
               />
             </div>
+          )}
+          
+          {/* Floating step indicator when progress is hidden */}
+          {isProgressHidden && (
+            <button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="fixed bottom-24 right-8 z-50 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-lg hover:bg-primary/90 transition-all flex items-center gap-1.5 animate-fade-in"
+              aria-label="Volver arriba"
+            >
+              Paso {currentStep}/{STEPS.length}
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
       </div>
