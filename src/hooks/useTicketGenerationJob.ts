@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TicketGenerationJob {
@@ -18,28 +18,98 @@ export interface TicketGenerationJob {
   created_at: string;
   progress?: number;
   estimated_time_remaining?: number | null;
+  tickets_per_second?: number;
 }
 
 interface UseTicketGenerationJobOptions {
   onComplete?: (job: TicketGenerationJob) => void;
   onError?: (error: string) => void;
+  onProgress?: (progress: number, job: TicketGenerationJob) => void;
   pollInterval?: number;
+  raffleId?: string; // Auto-fetch job for a specific raffle
 }
 
 export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = {}) {
-  const { onComplete, onError, pollInterval = 2000 } = options;
+  const { onComplete, onError, onProgress, pollInterval = 2000, raffleId } = options;
   
   const [job, setJob] = useState<TicketGenerationJob | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track previous count for speed calculation
+  const prevCountRef = useRef<{ count: number; time: number } | null>(null);
+  const speedRef = useRef<number>(0);
+
+  // Calculate tickets per second
+  const calculateSpeed = useCallback((currentCount: number) => {
+    const now = Date.now();
+    if (prevCountRef.current) {
+      const timeDiff = (now - prevCountRef.current.time) / 1000;
+      const countDiff = currentCount - prevCountRef.current.count;
+      if (timeDiff > 0 && countDiff > 0) {
+        // Exponential moving average for smoother speed display
+        const newSpeed = countDiff / timeDiff;
+        speedRef.current = speedRef.current ? (speedRef.current * 0.7 + newSpeed * 0.3) : newSpeed;
+      }
+    }
+    prevCountRef.current = { count: currentCount, time: now };
+    return speedRef.current;
+  }, []);
+
+  // Fetch active job for a raffle
+  const fetchActiveJob = useCallback(async (targetRaffleId: string) => {
+    try {
+      const { data: activeJob, error: jobError } = await supabase
+        .from('ticket_generation_jobs')
+        .select('*')
+        .eq('raffle_id', targetRaffleId)
+        .in('status', ['pending', 'running'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (jobError) throw jobError;
+
+      if (activeJob) {
+        const progress = activeJob.total_tickets > 0
+          ? Math.round((activeJob.generated_count / activeJob.total_tickets) * 100)
+          : 0;
+        
+        const jobWithProgress: TicketGenerationJob = {
+          ...activeJob,
+          status: activeJob.status as TicketGenerationJob['status'],
+          progress,
+          tickets_per_second: calculateSpeed(activeJob.generated_count)
+        };
+        
+        setJob(jobWithProgress);
+        setIsPolling(true);
+        return jobWithProgress;
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('Error fetching active job:', err);
+      return null;
+    }
+  }, [calculateSpeed]);
+
+  // Auto-fetch job if raffleId is provided
+  useEffect(() => {
+    if (raffleId) {
+      fetchActiveJob(raffleId);
+    }
+  }, [raffleId, fetchActiveJob]);
 
   // Start a new ticket generation job
-  const startJob = useCallback(async (raffleId: string, forceRebuild = false) => {
+  const startJob = useCallback(async (targetRaffleId: string, forceRebuild = false) => {
     setError(null);
+    prevCountRef.current = null;
+    speedRef.current = 0;
     
     try {
       const { data, error: invokeError } = await supabase.functions.invoke('generate-tickets', {
-        body: { raffle_id: raffleId, force_rebuild: forceRebuild }
+        body: { raffle_id: targetRaffleId, force_rebuild: forceRebuild }
       });
 
       if (invokeError) throw invokeError;
@@ -54,7 +124,7 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
       if (data.success && !data.async) {
         const completedJob: TicketGenerationJob = {
           id: 'sync',
-          raffle_id: raffleId,
+          raffle_id: targetRaffleId,
           status: 'completed',
           total_tickets: data.count,
           generated_count: data.count,
@@ -77,6 +147,8 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
       // Async job started - begin polling
       if (data.job_id) {
         setIsPolling(true);
+        // Fetch initial job data
+        await fetchJobStatus(data.job_id);
         return { job_id: data.job_id };
       }
 
@@ -92,12 +164,6 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
   // Fetch job status
   const fetchJobStatus = useCallback(async (jobId: string) => {
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('generate-tickets', {
-        body: {},
-        method: 'GET'
-      });
-
-      // Since we can't pass query params easily, we'll use the direct query approach
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-tickets?job_id=${jobId}`,
         {
@@ -119,7 +185,20 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
         throw new Error((jobData as unknown as {error: string}).error);
       }
 
+      // Calculate progress and speed
+      jobData.progress = jobData.total_tickets > 0
+        ? Math.round((jobData.generated_count / jobData.total_tickets) * 100)
+        : 0;
+      jobData.tickets_per_second = calculateSpeed(jobData.generated_count);
+
+      // Calculate estimated time remaining
+      if (jobData.status === 'running' && speedRef.current > 0) {
+        const remaining = jobData.total_tickets - jobData.generated_count;
+        jobData.estimated_time_remaining = Math.round(remaining / speedRef.current);
+      }
+
       setJob(jobData);
+      onProgress?.(jobData.progress, jobData);
 
       if (jobData.status === 'completed') {
         setIsPolling(false);
@@ -136,7 +215,7 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
       setError(errorMsg);
       return null;
     }
-  }, [onComplete, onError]);
+  }, [onComplete, onError, onProgress, calculateSpeed]);
 
   // Cancel a running job
   const cancelJob = useCallback(async (jobId: string) => {
@@ -167,6 +246,8 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
     setJob(null);
     setIsPolling(false);
     setError(null);
+    prevCountRef.current = null;
+    speedRef.current = 0;
   }, []);
 
   // Polling effect
@@ -199,8 +280,16 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
           updatedJob.progress = updatedJob.total_tickets > 0
             ? Math.round((updatedJob.generated_count / updatedJob.total_tickets) * 100)
             : 0;
+          updatedJob.tickets_per_second = calculateSpeed(updatedJob.generated_count);
+          
+          // Calculate estimated time remaining
+          if (updatedJob.status === 'running' && speedRef.current > 0) {
+            const remaining = updatedJob.total_tickets - updatedJob.generated_count;
+            updatedJob.estimated_time_remaining = Math.round(remaining / speedRef.current);
+          }
           
           setJob(updatedJob);
+          onProgress?.(updatedJob.progress, updatedJob);
 
           if (updatedJob.status === 'completed') {
             setIsPolling(false);
@@ -217,7 +306,15 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [job?.id, onComplete, onError]);
+  }, [job?.id, onComplete, onError, onProgress, calculateSpeed]);
+
+  // Format time remaining
+  const formatTimeRemaining = useCallback((seconds: number | null | undefined): string | null => {
+    if (!seconds || seconds <= 0) return null;
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  }, []);
 
   return {
     job,
@@ -225,9 +322,13 @@ export function useTicketGenerationJob(options: UseTicketGenerationJobOptions = 
     error,
     startJob,
     fetchJobStatus,
+    fetchActiveJob,
     cancelJob,
     reset,
     progress: job?.progress ?? 0,
+    ticketsPerSecond: job?.tickets_per_second ?? 0,
+    estimatedTimeRemaining: job?.estimated_time_remaining,
+    formattedTimeRemaining: formatTimeRemaining(job?.estimated_time_remaining),
     isComplete: job?.status === 'completed',
     isFailed: job?.status === 'failed',
     isRunning: job?.status === 'running' || job?.status === 'pending'
