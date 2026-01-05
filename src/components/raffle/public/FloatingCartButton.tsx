@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency-utils";
 import { ArrowRight, Ticket, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 
 interface FloatingCartButtonProps {
   selectedCount: number;
@@ -14,6 +14,8 @@ interface FloatingCartButtonProps {
   onClear: () => void;
   winProbability?: number;
   primaryColor?: string;
+  raffleName?: string;
+  raffleId?: string;
 }
 
 export function FloatingCartButton({
@@ -25,8 +27,23 @@ export function FloatingCartButton({
   onClear,
   winProbability,
   primaryColor,
+  raffleName,
+  raffleId,
 }: FloatingCartButtonProps) {
+  const { trackViewCart } = useTrackingEvents();
+
   if (selectedCount === 0) return null;
+
+  const handleContinue = () => {
+    trackViewCart({
+      itemId: raffleId,
+      itemName: raffleName,
+      quantity: selectedCount,
+      value: total,
+      currency,
+    });
+    onContinue();
+  };
 
   return (
     <AnimatePresence>
@@ -132,7 +149,7 @@ export function FloatingCartButton({
               
               {/* TIER S: Premium CTA button */}
               <Button
-                onClick={onContinue}
+                onClick={handleContinue}
                 variant="inverted"
                 size="lg"
                 className={cn(

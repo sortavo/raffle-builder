@@ -9,7 +9,12 @@ type TrackingEventType =
   | 'begin_checkout'
   | 'purchase'
   | 'lead'
-  | 'page_view';
+  | 'page_view'
+  | 'share'
+  | 'select_content'
+  | 'add_payment_info'
+  | 'sign_up'
+  | 'view_cart';
 
 interface TrackingEventData {
   // Item data
@@ -70,6 +75,9 @@ export function useTrackingEvents() {
         'begin_checkout': 'InitiateCheckout',
         'purchase': 'Purchase',
         'lead': 'Lead',
+        'select_content': 'ViewContent',
+        'add_payment_info': 'AddPaymentInfo',
+        'sign_up': 'CompleteRegistration',
       };
       
       const metaEvent = metaEventMap[event];
@@ -98,6 +106,9 @@ export function useTrackingEvents() {
         'begin_checkout': 'InitiateCheckout',
         'purchase': 'CompletePayment',
         'lead': 'SubmitForm',
+        'select_content': 'ViewContent',
+        'add_payment_info': 'AddPaymentInfo',
+        'sign_up': 'CompleteRegistration',
       };
       
       const tiktokEvent = tiktokEventMap[event];
@@ -241,12 +252,86 @@ export function useTrackingEvents() {
     value?: number;
     currency?: string;
     userEmail?: string;
+    itemName?: string;
   }) => {
     track('lead', {
       lead_type: params.leadType,
       value: params.value,
       currency: params.currency || 'MXN',
+      item_name: params.itemName,
       user_email_hash: params.userEmail ? hashPII(params.userEmail) : undefined,
+    });
+  }, [track]);
+
+  const trackShare = useCallback((params: {
+    method: string;
+    itemId?: string;
+    itemName?: string;
+    contentType?: string;
+  }) => {
+    track('share', {
+      method: params.method,
+      item_id: params.itemId,
+      item_name: params.itemName,
+      content_type: params.contentType || 'raffle',
+    });
+  }, [track]);
+
+  const trackSelectContent = useCallback((params: {
+    contentType: string;
+    contentId?: string;
+    contentName?: string;
+    itemId?: string;
+    itemName?: string;
+  }) => {
+    track('select_content', {
+      content_type: params.contentType,
+      content_id: params.contentId,
+      content_name: params.contentName,
+      item_id: params.itemId,
+      item_name: params.itemName,
+    });
+  }, [track]);
+
+  const trackAddPaymentInfo = useCallback((params: {
+    value: number;
+    currency?: string;
+    paymentType?: string;
+    itemId?: string;
+    itemName?: string;
+  }) => {
+    track('add_payment_info', {
+      value: params.value,
+      currency: params.currency || 'MXN',
+      payment_type: params.paymentType,
+      item_id: params.itemId,
+      item_name: params.itemName,
+    });
+  }, [track]);
+
+  const trackSignUp = useCallback((params: {
+    method?: string;
+    userEmail?: string;
+  }) => {
+    track('sign_up', {
+      method: params.method || 'email',
+      user_email_hash: params.userEmail ? hashPII(params.userEmail) : undefined,
+    });
+  }, [track]);
+
+  const trackViewCart = useCallback((params: {
+    itemId?: string;
+    itemName?: string;
+    quantity: number;
+    value: number;
+    currency?: string;
+  }) => {
+    track('view_cart', {
+      item_id: params.itemId,
+      item_name: params.itemName,
+      quantity: params.quantity,
+      value: params.value,
+      currency: params.currency || 'MXN',
     });
   }, [track]);
 
@@ -258,6 +343,11 @@ export function useTrackingEvents() {
     trackBeginCheckout,
     trackPurchase,
     trackLead,
+    trackShare,
+    trackSelectContent,
+    trackAddPaymentInfo,
+    trackSignUp,
+    trackViewCart,
     // Expose consent state for conditional rendering
     canTrackAnalytics: canLoadAnalytics,
     canTrackMarketing: canLoadMarketing,

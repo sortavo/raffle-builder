@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, signInWithGoogle, resetPassword, isLoading } = useAuth();
+  const { trackSignUp } = useTrackingEvents();
   
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +113,12 @@ export default function Auth() {
         });
       }
     } else {
+      // Track sign_up event
+      trackSignUp({
+        method: 'email',
+        userEmail: email,
+      });
+      
       toast.success("¡Cuenta creada exitosamente!", {
         description: "Completa tu perfil para continuar.",
       });

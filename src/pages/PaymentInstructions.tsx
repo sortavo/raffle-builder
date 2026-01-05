@@ -19,6 +19,7 @@ import { WhatsAppContactButton } from "@/components/raffle/public/WhatsAppContac
 import { cn } from "@/lib/utils";
 import { BankBadge } from "@/components/ui/BankBadge";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { 
   Loader2, 
   Upload, 
@@ -154,6 +155,7 @@ export default function PaymentInstructions({ tenantOrgSlug, raffleSlugOverride 
   const { data: raffle, isLoading: isLoadingRaffle } = usePublicRaffle(slug, effectiveOrgSlug);
   const { data: paymentMethods, isLoading: isLoadingMethods } = usePublicPaymentMethods(raffle?.organization?.id);
   const uploadProof = useUploadPaymentProof();
+  const { trackAddPaymentInfo } = useTrackingEvents();
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -296,6 +298,15 @@ export default function PaymentInstructions({ tenantOrgSlug, raffleSlugOverride 
       });
       return;
     }
+    
+    // Track add_payment_info event
+    trackAddPaymentInfo({
+      value: totalAmount,
+      currency: raffle!.currency_code || 'MXN',
+      paymentType: 'proof_upload',
+      itemId: raffleId,
+      itemName: raffle!.title,
+    });
     
     await uploadProof.mutateAsync({
       raffleId,

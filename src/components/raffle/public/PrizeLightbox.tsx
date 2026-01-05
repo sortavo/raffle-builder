@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Play } from "lucide-react";
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 
 interface PrizeLightboxProps {
   images: string[];
@@ -9,6 +10,8 @@ interface PrizeLightboxProps {
   initialIndex?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  raffleName?: string;
+  raffleId?: string;
 }
 
 // Helper to extract video embed URL
@@ -42,10 +45,12 @@ interface MediaItem {
   thumbnail?: string;
 }
 
-export function PrizeLightbox({ images, videoUrl, initialIndex = 0, open, onOpenChange }: PrizeLightboxProps) {
+export function PrizeLightbox({ images, videoUrl, initialIndex = 0, open, onOpenChange, raffleName, raffleId }: PrizeLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const { trackSelectContent } = useTrackingEvents();
+  const hasTrackedRef = useRef(false);
 
   // Build unified media array: images + video (if exists)
   const mediaItems: MediaItem[] = [
@@ -58,14 +63,28 @@ export function PrizeLightbox({ images, videoUrl, initialIndex = 0, open, onOpen
     }] : []),
   ];
 
-  // Reset to initial index when opening
+  // Reset to initial index when opening and track select_content
   useEffect(() => {
     if (open) {
       setCurrentIndex(initialIndex);
       setIsZoomed(false);
       setIsVideoPlaying(false);
+      
+      // Track select_content only once per open
+      if (!hasTrackedRef.current) {
+        trackSelectContent({
+          contentType: 'prize_gallery',
+          contentId: raffleId,
+          contentName: raffleName,
+          itemId: raffleId,
+          itemName: raffleName,
+        });
+        hasTrackedRef.current = true;
+      }
+    } else {
+      hasTrackedRef.current = false;
     }
-  }, [open, initialIndex]);
+  }, [open, initialIndex, trackSelectContent, raffleId, raffleName]);
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? mediaItems.length - 1 : prev - 1));
