@@ -11,8 +11,9 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[PROCESS-TICKET-BATCH] ${step}${detailsStr}`);
 };
 
-const BATCH_SIZE = 10000; // Reduced from 50K to avoid statement timeouts
-const MAX_BATCHES_PER_RUN = 50; // Process up to 50 batches per cron run (500K tickets)
+// Constants for batch processing
+const DEFAULT_BATCH_SIZE = 10000; // Default batch size if not specified in job
+const MAX_BATCHES_PER_RUN = 100; // Process up to 100 batches per cron run (1M tickets max)
 const STALE_THRESHOLD_MINUTES = 10; // Reset jobs stuck for more than 10 minutes
 const MAX_RETRIES = 3; // Maximum retries for a batch
 const BASE_RETRY_DELAY_MS = 1000; // 1 second base delay for exponential backoff
@@ -37,7 +38,7 @@ async function createCompletionNotification(
   try {
     // Get raffle details
     const raffleResponse = await fetch(
-      `${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}&select=title,organization_id,created_by`,
+      `${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}&select=title,organization_id,created_by,numbering_config`,
       {
         headers: {
           'apikey': supabaseKey,
@@ -114,6 +115,39 @@ async function createCompletionNotification(
   }
 }
 
+// Get actual ticket count from database
+async function getActualTicketCount(
+  supabaseUrl: string,
+  supabaseKey: string,
+  raffleId: string
+): Promise<number> {
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&select=id`,
+      {
+        method: 'HEAD',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'count=exact'
+        }
+      }
+    );
+    
+    const contentRange = response.headers.get('content-range');
+    if (contentRange) {
+      const match = contentRange.match(/\/(\d+)/);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+    return 0;
+  } catch (err) {
+    console.log("[PROCESS-TICKET-BATCH] Error getting actual ticket count:", err);
+    return 0;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -167,9 +201,14 @@ serve(async (req) => {
     const results = [];
 
     for (const job of jobs) {
+      // Use job's batch_size or default
+      const batchSize = job.batch_size || DEFAULT_BATCH_SIZE;
+      
       logStep(`Processing job ${job.id}`, { 
         raffle_id: job.raffle_id, 
-        progress: `${job.generated_count}/${job.total_tickets}` 
+        progress: `${job.generated_count}/${job.total_tickets}`,
+        batch_size: batchSize,
+        current_batch: job.current_batch
       });
 
       // Update job to running if pending
@@ -183,51 +222,107 @@ serve(async (req) => {
           .eq("id", job.id);
       }
 
+      // Get actual ticket count to verify progress
+      const actualCount = await getActualTicketCount(supabaseUrl, supabaseKey, job.raffle_id);
+      
+      // If actual count doesn't match recorded, sync it
+      if (actualCount !== job.generated_count) {
+        logStep(`Syncing generated_count: recorded=${job.generated_count}, actual=${actualCount}`);
+        await supabaseClient
+          .from("ticket_generation_jobs")
+          .update({ generated_count: actualCount })
+          .eq("id", job.id);
+        job.generated_count = actualCount;
+      }
+
       let batchesProcessed = 0;
-      let generatedCount = job.generated_count;
-      const startBatch = job.current_batch;
+      let generatedCount = actualCount; // Start from actual count
+      
+      // Calculate current batch based on actual tickets generated
+      // current_batch = number of completed batches
+      let currentBatch = Math.floor(actualCount / batchSize);
+      
       let jobFailed = false;
       let lastError = '';
 
       // Process batches for this job
       while (batchesProcessed < MAX_BATCHES_PER_RUN && generatedCount < job.total_tickets) {
-        const currentBatch = startBatch + batchesProcessed;
-        const startNumber = currentBatch * BATCH_SIZE + 1;
-        const endNumber = Math.min((currentBatch + 1) * BATCH_SIZE, job.total_tickets);
+        // Calculate range for this batch (1-indexed for tickets)
+        const startIndex = currentBatch * batchSize + 1;
+        const endIndex = Math.min((currentBatch + 1) * batchSize, job.total_tickets);
+        const expectedCount = endIndex - startIndex + 1;
 
         logStep(`Job ${job.id}: Processing batch ${currentBatch + 1}/${job.total_batches}`, { 
-          startNumber, 
-          endNumber 
+          startIndex, 
+          endIndex,
+          expectedCount,
+          currentGeneratedCount: generatedCount
         });
 
         let batchSuccess = false;
         let retryAttempt = 0;
+        let insertedCount = 0;
 
         // Retry loop with exponential backoff
         while (retryAttempt < MAX_RETRIES && !batchSuccess) {
           try {
-            // Use SQL function for massive insertion
-            const { data: count, error: genError } = await supabaseClient.rpc(
-              'generate_ticket_batch',
-              {
+            // Try v2 function first (better for new numbering config)
+            const response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch_v2`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify({
                 p_raffle_id: job.raffle_id,
-                p_start_number: startNumber,
-                p_end_number: endNumber,
-                p_format: job.ticket_format,
-                p_prefix: job.ticket_prefix
-              }
-            );
+                p_start_index: startIndex,
+                p_end_index: endIndex,
+                p_numbering_config: null // Will use raffle's stored config
+              })
+            });
 
-            if (genError) {
-              throw new Error(genError.message);
+            if (!response.ok) {
+              const errorText = await response.text();
+              logStep(`V2 RPC failed, trying legacy`, { error: errorText });
+              
+              // Fallback to legacy function
+              const legacyResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabaseKey,
+                  'Authorization': `Bearer ${supabaseKey}`,
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                  p_raffle_id: job.raffle_id,
+                  p_start_number: startIndex,
+                  p_end_number: endIndex,
+                  p_format: job.ticket_format || 'sequential',
+                  p_prefix: job.ticket_prefix
+                })
+              });
+
+              if (!legacyResponse.ok) {
+                throw new Error(await legacyResponse.text());
+              }
+              
+              const legacyCount = await legacyResponse.json();
+              // FIX: Use nullish coalescing - if count is 0, don't assume expectedCount
+              insertedCount = legacyCount ?? 0;
+            } else {
+              const count = await response.json();
+              // FIX: Use nullish coalescing - if count is 0, don't assume expectedCount
+              insertedCount = count ?? 0;
             }
 
-            generatedCount += count || (endNumber - startNumber + 1);
             batchSuccess = true;
 
             logStep(`Job ${job.id}: Batch ${currentBatch + 1} complete`, { 
-              generatedCount, 
-              total: job.total_tickets,
+              insertedCount,
+              expectedCount,
               attempt: retryAttempt + 1
             });
 
@@ -277,39 +372,55 @@ serve(async (req) => {
           break;
         }
 
+        // Update counts - use actual inserted count, not expected
+        generatedCount += insertedCount;
+        currentBatch++;
         batchesProcessed++;
 
-        // Update job progress
+        // Update job progress with accurate counts
         await supabaseClient
           .from("ticket_generation_jobs")
           .update({
             generated_count: generatedCount,
-            current_batch: currentBatch + 1
+            current_batch: currentBatch
           })
           .eq("id", job.id);
       }
 
-      // Check if job is complete
-      if (!jobFailed && generatedCount >= job.total_tickets) {
-        await supabaseClient
-          .from("ticket_generation_jobs")
-          .update({
-            status: 'completed',
-            generated_count: generatedCount,
-            completed_at: new Date().toISOString()
-          })
-          .eq("id", job.id);
+      // Verify final count and check if job is complete
+      if (!jobFailed) {
+        const finalActualCount = await getActualTicketCount(supabaseUrl, supabaseKey, job.raffle_id);
+        
+        if (finalActualCount >= job.total_tickets) {
+          await supabaseClient
+            .from("ticket_generation_jobs")
+            .update({
+              status: 'completed',
+              generated_count: finalActualCount,
+              completed_at: new Date().toISOString()
+            })
+            .eq("id", job.id);
 
-        logStep(`Job ${job.id} completed`, { generatedCount });
+          logStep(`Job ${job.id} completed`, { 
+            generatedCount: finalActualCount,
+            total: job.total_tickets 
+          });
 
-        // Send success notification
-        await createCompletionNotification(
-          supabaseUrl,
-          supabaseKey,
-          job.raffle_id,
-          generatedCount,
-          true
-        );
+          // Send success notification
+          await createCompletionNotification(
+            supabaseUrl,
+            supabaseKey,
+            job.raffle_id,
+            finalActualCount,
+            true
+          );
+        } else {
+          logStep(`Job ${job.id} progress saved, will continue next run`, { 
+            generatedCount: finalActualCount,
+            total: job.total_tickets,
+            remaining: job.total_tickets - finalActualCount
+          });
+        }
       }
 
       results.push({

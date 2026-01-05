@@ -11,7 +11,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[GENERATE-TICKETS] ${step}${detailsStr}`);
 };
 
-const BATCH_SIZE = 10000; // Reduced batch size to avoid statement timeouts
+const BATCH_SIZE = 10000; // Standard batch size for all operations
 
 interface NumberingConfig {
   mode: 'sequential' | 'random_permutation' | 'custom_list' | 'template';
@@ -35,9 +35,12 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseUrl,
+      supabaseKey,
       { auth: { persistSession: false } }
     );
 
@@ -110,13 +113,50 @@ serve(async (req) => {
 
     if (countError) throw countError;
 
-    logStep("Existing tickets count", { existingCount, totalTickets });
+    logStep("Existing tickets count", { existingCount, totalTickets, force_rebuild });
+
+    // FORCE REBUILD: Delete existing tickets and regenerate from scratch
+    if (force_rebuild && existingCount && existingCount > 0) {
+      logStep("FORCE REBUILD: Deleting existing tickets", { count: existingCount });
+      
+      // Cancel any existing jobs
+      await supabaseClient
+        .from("ticket_generation_jobs")
+        .update({ 
+          status: 'cancelled', 
+          error_message: 'Cancelled for force rebuild',
+          completed_at: new Date().toISOString() 
+        })
+        .eq("raffle_id", raffle_id)
+        .in("status", ["pending", "running"]);
+
+      // Delete all tickets for this raffle
+      const { error: deleteError } = await supabaseClient
+        .from("tickets")
+        .delete()
+        .eq("raffle_id", raffle_id);
+
+      if (deleteError) {
+        logStep("Error deleting tickets", { error: deleteError.message });
+        throw new Error(`Failed to delete existing tickets: ${deleteError.message}`);
+      }
+
+      logStep("Deleted all existing tickets, starting fresh generation");
+    }
+
+    // Re-check count after potential deletion
+    const { count: currentCount } = await supabaseClient
+      .from("tickets")
+      .select("*", { count: "exact", head: true })
+      .eq("raffle_id", raffle_id);
+
+    const actualExistingCount = currentCount ?? 0;
 
     // If tickets already exist and match total_tickets, we're done
-    if (existingCount && existingCount === totalTickets) {
-      logStep("Tickets already match total_tickets", { count: existingCount });
+    if (actualExistingCount === totalTickets) {
+      logStep("Tickets already match total_tickets", { count: actualExistingCount });
       return new Response(
-        JSON.stringify({ success: true, message: "Tickets already generated correctly", count: existingCount }),
+        JSON.stringify({ success: true, message: "Tickets already generated correctly", count: actualExistingCount }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
@@ -124,33 +164,34 @@ serve(async (req) => {
     // Check for existing running job
     const { data: existingJob } = await supabaseClient
       .from("ticket_generation_jobs")
-      .select("id, status")
+      .select("id, status, generated_count")
       .eq("raffle_id", raffle_id)
       .in("status", ["pending", "running"])
       .maybeSingle();
 
     if (existingJob) {
-      logStep("Job already in progress", { job_id: existingJob.id });
+      logStep("Job already in progress", { job_id: existingJob.id, status: existingJob.status });
       return new Response(
         JSON.stringify({ 
           success: true, 
           job_id: existingJob.id, 
           message: "Job already in progress",
-          status: existingJob.status
+          status: existingJob.status,
+          generated_count: existingJob.generated_count
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
 
     // SCENARIO: Need to modify existing tickets
-    if (existingCount && existingCount > 0 && existingCount !== totalTickets) {
+    if (actualExistingCount > 0 && actualExistingCount !== totalTickets) {
       
       // CASE 1: User wants MORE tickets (INCREMENT MODE)
-      if (totalTickets > existingCount) {
+      if (totalTickets > actualExistingCount) {
         logStep("INCREMENT MODE - Adding new tickets", { 
-          existingCount, 
+          existingCount: actualExistingCount, 
           totalTickets, 
-          ticketsToAdd: totalTickets - existingCount 
+          ticketsToAdd: totalTickets - actualExistingCount 
         });
         
         // Use append_ticket_batch RPC to add new tickets without touching existing ones
@@ -158,7 +199,7 @@ serve(async (req) => {
           'append_ticket_batch',
           {
             p_raffle_id: raffle_id,
-            p_existing_count: existingCount,
+            p_existing_count: actualExistingCount,
             p_new_total: totalTickets,
             p_numbering_config: numberingConfig
           }
@@ -175,7 +216,7 @@ serve(async (req) => {
             success: true, 
             count: appendCount, 
             mode: 'append',
-            existingCount,
+            existingCount: actualExistingCount,
             totalTickets,
             message: `Se agregaron ${appendCount} boletos nuevos` 
           }),
@@ -184,13 +225,13 @@ serve(async (req) => {
       }
       
       // CASE 2: User wants FEWER tickets (NOT ALLOWED when tickets exist)
-      if (totalTickets < existingCount) {
-        logStep("Cannot reduce tickets - already generated", { existingCount, requestedTotal: totalTickets });
+      if (totalTickets < actualExistingCount) {
+        logStep("Cannot reduce tickets - already generated", { existingCount: actualExistingCount, requestedTotal: totalTickets });
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `No se puede reducir la cantidad de boletos. Actualmente hay ${existingCount} boletos generados.`,
-            existingCount,
+            error: `No se puede reducir la cantidad de boletos. Actualmente hay ${actualExistingCount} boletos generados. Usa force_rebuild=true para regenerar.`,
+            existingCount: actualExistingCount,
             requestedTotal: totalTickets
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -201,7 +242,7 @@ serve(async (req) => {
     // Calculate batches
     const totalBatches = Math.ceil(totalTickets / BATCH_SIZE);
 
-    // For small raffles (<= 50K), use synchronous generation
+    // For small raffles (<= BATCH_SIZE), use synchronous generation
     if (totalTickets <= BATCH_SIZE) {
       logStep("Small raffle - using synchronous generation", { totalTickets, mode: numberingConfig.mode });
       
@@ -270,8 +311,9 @@ serve(async (req) => {
       );
     }
 
-    // For large raffles, create async job
-    logStep("Large raffle - creating async job", { totalTickets, totalBatches });
+    // For large raffles, create async job with status 'pending'
+    // The cron job (process-ticket-batch) will handle the actual generation
+    logStep("Large raffle - creating async job", { totalTickets, totalBatches, batchSize: BATCH_SIZE });
 
     const { data: job, error: jobError } = await supabaseClient
       .from("ticket_generation_jobs")
@@ -282,34 +324,34 @@ serve(async (req) => {
         batch_size: BATCH_SIZE,
         ticket_format: numberingConfig.mode,
         ticket_prefix: numberingConfig.prefix,
-        status: 'running',
-        started_at: new Date().toISOString()
+        status: 'pending', // Start as pending, cron will pick it up
+        generated_count: 0,
+        current_batch: 0
       })
       .select()
       .single();
 
     if (jobError) throw jobError;
 
-    logStep("Job created", { job_id: job.id });
-
-    // Start processing first batches in background
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    
-    // deno-lint-ignore no-explicit-any
-    (globalThis as any).EdgeRuntime?.waitUntil?.(
-      processJobBatches(supabaseUrl, supabaseKey, job.id, raffle_id, totalTickets, numberingConfig, BATCH_SIZE)
-    );
+    logStep("Job created successfully", { 
+      job_id: job.id, 
+      total_tickets: totalTickets,
+      total_batches: totalBatches,
+      batch_size: BATCH_SIZE
+    });
 
     // Return immediately with job ID (202 Accepted)
+    // The cron job will process this in the background
     return new Response(
       JSON.stringify({ 
         success: true, 
         job_id: job.id, 
         async: true,
-        message: "Ticket generation started",
+        message: "Ticket generation job created. Processing will begin shortly.",
         total_tickets: totalTickets,
-        estimated_time_seconds: Math.ceil(totalTickets / 50000) * 2
+        total_batches: totalBatches,
+        batch_size: BATCH_SIZE,
+        estimated_time_seconds: Math.ceil(totalBatches * 2) // ~2 seconds per batch estimate
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 }
     );
@@ -341,187 +383,4 @@ function buildLegacyConfig(format: string, totalTickets: number): NumberingConfi
     range_end: null,
     custom_numbers: null
   };
-}
-
-// Background job processor
-async function processJobBatches(
-  supabaseUrl: string,
-  supabaseKey: string,
-  jobId: string,
-  raffleId: string,
-  totalTickets: number,
-  numberingConfig: NumberingConfig,
-  batchSize: number
-) {
-  const logJob = (msg: string, details?: Record<string, unknown>) => {
-    console.log(`[JOB:${jobId}] ${msg}`, details ? JSON.stringify(details) : '');
-  };
-
-  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-
-  try {
-    logJob("Background processing started", { mode: numberingConfig.mode });
-
-    const totalBatches = Math.ceil(totalTickets / batchSize);
-    let generatedCount = 0;
-
-    for (let batch = 0; batch < totalBatches; batch++) {
-      const startIndex = batch * batchSize + 1;
-      const endIndex = Math.min((batch + 1) * batchSize, totalTickets);
-
-      logJob(`Processing batch ${batch + 1}/${totalBatches}`, { startIndex, endIndex });
-
-      // Use new v2 SQL function for batch generation
-      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch_v2`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          p_raffle_id: raffleId,
-          p_start_index: startIndex,
-          p_end_index: endIndex,
-          p_numbering_config: numberingConfig
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logJob("V2 Batch generation error, trying legacy", { error: errorText });
-        
-        // Fallback to legacy function
-        const legacyResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({
-            p_raffle_id: raffleId,
-            p_start_number: startIndex,
-            p_end_number: endIndex,
-            p_format: 'sequential',
-            p_prefix: numberingConfig.prefix
-          })
-        });
-        
-        if (!legacyResponse.ok) {
-          throw new Error(await legacyResponse.text());
-        }
-        
-        const legacyCount = await legacyResponse.json();
-        generatedCount += legacyCount || (endIndex - startIndex + 1);
-      } else {
-        const count = await response.json();
-        generatedCount += count || (endIndex - startIndex + 1);
-      }
-
-      // Update job progress via REST API
-      await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          generated_count: generatedCount,
-          current_batch: batch + 1
-        })
-      });
-
-      logJob(`Batch ${batch + 1} complete`, { generatedCount, total: totalTickets });
-    }
-
-    // Apply random permutation after all batches if needed
-    if (numberingConfig.mode === 'random_permutation') {
-      logJob("Applying random permutation to all tickets");
-      const permResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/apply_random_permutation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          p_raffle_id: raffleId,
-          p_numbering_config: numberingConfig
-        })
-      });
-      
-      if (!permResponse.ok) {
-        logJob("Random permutation error", { error: await permResponse.text() });
-      } else {
-        logJob("Random permutation applied successfully");
-      }
-    }
-
-    // Apply custom numbers if needed
-    if (numberingConfig.mode === 'custom_list') {
-      logJob("Applying custom number list");
-      const customResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/apply_custom_numbers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          p_raffle_id: raffleId
-        })
-      });
-      
-      if (!customResponse.ok) {
-        logJob("Custom numbers error", { error: await customResponse.text() });
-      } else {
-        logJob("Custom numbers applied successfully");
-      }
-    }
-
-    // Mark job as completed via REST API
-    await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        status: 'completed',
-        generated_count: generatedCount,
-        completed_at: new Date().toISOString()
-      })
-    });
-
-    logJob("Job completed successfully", { generatedCount });
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logJob("Job failed", { error: errorMessage });
-
-    // Mark job as failed via REST API
-    await fetch(`${supabaseUrl}/rest/v1/ticket_generation_jobs?id=eq.${jobId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        status: 'failed',
-        error_message: errorMessage,
-        completed_at: new Date().toISOString()
-      })
-    });
-  }
 }
