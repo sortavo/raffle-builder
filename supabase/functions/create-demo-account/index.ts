@@ -286,13 +286,21 @@ Deno.serve(async (req) => {
         .single();
       
       if (profile?.organization_id) {
-        // Delete related data
-        await supabase.from('raffle_packages').delete().eq('raffle_id', 
-          supabase.from('raffles').select('id').eq('organization_id', profile.organization_id)
-        );
-        await supabase.from('tickets').delete().in('raffle_id', 
-          (await supabase.from('raffles').select('id').eq('organization_id', profile.organization_id)).data?.map(r => r.id) || []
-        );
+        // Delete related data - get raffle IDs first
+        const { data: raffles } = await supabase
+          .from('raffles')
+          .select('id')
+          .eq('organization_id', profile.organization_id);
+        
+        const raffleIds = raffles?.map(r => r.id) || [];
+        
+        if (raffleIds.length > 0) {
+          // Delete tickets and packages for these raffles
+          await supabase.from('ticket_generation_jobs').delete().in('raffle_id', raffleIds);
+          await supabase.from('tickets').delete().in('raffle_id', raffleIds);
+          await supabase.from('raffle_packages').delete().in('raffle_id', raffleIds);
+        }
+        
         await supabase.from('raffles').delete().eq('organization_id', profile.organization_id);
         await supabase.from('payment_methods').delete().eq('organization_id', profile.organization_id);
         await supabase.from('user_roles').delete().eq('user_id', existingUser.id);
@@ -324,7 +332,7 @@ Deno.serve(async (req) => {
     logStep('User created', { userId });
 
     // Wait for trigger to create org
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Step 3: Get and update organization
     const { data: profile } = await supabase
@@ -373,6 +381,15 @@ Deno.serve(async (req) => {
     logStep('Creating raffle', { title: config.raffle.title, total_tickets: config.raffle.total_tickets });
     
     const slug = `${demo_key}-sorteo-${Date.now()}`;
+    const numberingConfig = {
+      mode: 'sequential',
+      start_number: 1,
+      step: 1,
+      pad_enabled: true,
+      pad_char: '0',
+      pad_width: config.raffle.total_tickets.toString().length,
+    };
+    
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
       .insert({
@@ -402,13 +419,7 @@ Deno.serve(async (req) => {
         auto_publish_result: true,
         reservation_time_minutes: 30,
         livestream_url: config.raffle.livestream_url,
-        numbering_config: {
-          mode: 'sequential',
-          start_number: 1,
-          step: 1,
-          pad_enabled: true,
-          pad_char: '0',
-        },
+        numbering_config: numberingConfig,
       })
       .select()
       .single();
@@ -433,83 +444,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 7: Generate tickets
-    logStep('Starting ticket generation', { total: config.raffle.total_tickets });
+    // Step 7: Generate tickets via generate-tickets function (SINGLE SOURCE OF TRUTH)
+    logStep('Calling generate-tickets function', { raffle_id: raffle.id, total: config.raffle.total_tickets });
     
-    const BATCH_SIZE = 50000;
-    const totalBatches = Math.ceil(config.raffle.total_tickets / BATCH_SIZE);
-    
-    if (config.raffle.total_tickets <= BATCH_SIZE) {
-      // Synchronous generation for small raffles
-      const { data: count, error: genError } = await supabase.rpc('generate_ticket_batch_v2', {
-        p_raffle_id: raffle.id,
-        p_start_index: 1,
-        p_end_index: config.raffle.total_tickets,
-        p_numbering_config: {
-          mode: 'sequential',
-          start_number: 1,
-          step: 1,
-          pad_enabled: true,
-          pad_char: '0',
-        },
-      });
-      
-      if (genError) {
-        logStep('Ticket generation error', { error: genError.message });
-      } else {
-        logStep('Tickets generated synchronously', { count });
-      }
-    } else {
-      // Create job for async generation
-      const { data: job } = await supabase
-        .from('ticket_generation_jobs')
-        .insert({
-          raffle_id: raffle.id,
-          total_tickets: config.raffle.total_tickets,
-          batch_size: BATCH_SIZE,
-          total_batches: totalBatches,
-          status: 'pending',
-          ticket_format: 'sequential',
-          created_by: userId,
-        })
-        .select()
-        .single();
+    const generateResponse = await fetch(`${supabaseUrl}/functions/v1/generate-tickets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({
+        raffle_id: raffle.id,
+        force_rebuild: false
+      })
+    });
 
-      logStep('Created async job', { jobId: job?.id, totalBatches });
-      
-      // Generate first batch immediately
-      const { data: count } = await supabase.rpc('generate_ticket_batch_v2', {
-        p_raffle_id: raffle.id,
-        p_start_index: 1,
-        p_end_index: BATCH_SIZE,
-        p_numbering_config: {
-          mode: 'sequential',
-          start_number: 1,
-          step: 1,
-          pad_enabled: true,
-          pad_char: '0',
-        },
-      });
-
-      if (job) {
-        await supabase
-          .from('ticket_generation_jobs')
-          .update({
-            status: 'running',
-            started_at: new Date().toISOString(),
-            generated_count: count || BATCH_SIZE,
-            current_batch: 1,
-          })
-          .eq('id', job.id);
-      }
-
-      logStep('First batch generated', { count });
+    if (!generateResponse.ok) {
+      const errorText = await generateResponse.text();
+      logStep('Generate tickets call failed', { error: errorText });
+      throw new Error(`Failed to start ticket generation: ${errorText}`);
     }
 
-    // Step 8: Simulate some sales
+    const generateResult = await generateResponse.json();
+    logStep('Generate tickets response', generateResult);
+
+    // Step 8: Simulate some sales (only if tickets exist)
     const soldCount = Math.floor(config.raffle.total_tickets * (config.raffle.sold_percentage / 100));
-    if (soldCount > 0 && soldCount <= 1000) {
+    
+    // For small raffles that generate synchronously, we can simulate sales immediately
+    if (!generateResult.async && soldCount > 0 && soldCount <= 1000) {
       logStep('Simulating sales', { soldCount });
+      
+      // Wait a bit for tickets to be committed
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const { data: ticketsToSell } = await supabase
         .from('tickets')
@@ -539,7 +506,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Return success
+    // Return success with generation status
+    const isAsync = generateResult.async === true;
+    const jobId = generateResult.job_id;
+    
     return new Response(JSON.stringify({
       success: true,
       demo_key,
@@ -560,8 +530,16 @@ Deno.serve(async (req) => {
         prizes_count: config.raffle.prizes.length,
         packages_count: config.raffle.packages.length,
       },
-      message: config.raffle.total_tickets > BATCH_SIZE 
-        ? `Demo account created. Ticket generation in progress (${totalBatches} batches).`
+      ticket_generation: {
+        async: isAsync,
+        job_id: jobId || null,
+        status: isAsync ? 'pending' : 'completed',
+        message: isAsync 
+          ? `Ticket generation job created (${config.raffle.total_tickets.toLocaleString()} tickets). The cron job will process it automatically.`
+          : `All ${config.raffle.total_tickets.toLocaleString()} tickets generated successfully.`
+      },
+      message: isAsync 
+        ? `Demo account created. Ticket generation in progress (job: ${jobId}).`
         : 'Demo account created successfully with all tickets generated.',
     }), {
       status: 200,
