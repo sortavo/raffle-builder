@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAllTrackingScripts } from "@/lib/tracking-scripts";
+import { generateAllTrackingScripts, generateGTMScript, generateGA4Script, generateMetaPixelScript, generateTikTokPixelScript, sanitizeCustomScript } from "@/lib/tracking-scripts";
+import { useCookieConsent } from "@/hooks/useCookieConsent";
 
 export interface TenantConfig {
   id: string;
@@ -229,60 +230,8 @@ export function TenantProvider({ children }: TenantProviderProps) {
         styleEl.textContent = sanitizedCSS;
       }
 
-      // Inject tracking scripts (only for custom domains when enabled)
-      if (tenant.tracking_enabled && isCustomDomain) {
-        const trackingContainerId = "tenant-tracking-scripts";
-        let trackingContainer = document.getElementById(trackingContainerId);
-        
-        if (!trackingContainer) {
-          trackingContainer = document.createElement("div");
-          trackingContainer.id = trackingContainerId;
-          document.head.appendChild(trackingContainer);
-        }
-
-        const trackingScripts = generateAllTrackingScripts({
-          gtm: tenant.tracking_gtm_id,
-          metaPixel: tenant.tracking_meta_pixel_id,
-          ga4: tenant.tracking_ga4_id,
-          tiktok: tenant.tracking_tiktok_pixel_id,
-          custom: tenant.tracking_custom_scripts,
-        });
-
-        if (trackingScripts.trim()) {
-          // Parse and inject scripts properly
-          const tempDiv = document.createElement("div");
-          tempDiv.innerHTML = trackingScripts;
-          
-          // Move scripts to head
-          const scripts = tempDiv.querySelectorAll("script");
-          scripts.forEach((script) => {
-            const newScript = document.createElement("script");
-            if (script.src) {
-              newScript.src = script.src;
-              newScript.async = script.async;
-            } else {
-              newScript.textContent = script.textContent;
-            }
-            trackingContainer!.appendChild(newScript);
-          });
-
-          // Move noscript elements
-          const noscripts = tempDiv.querySelectorAll("noscript");
-          noscripts.forEach((noscript) => {
-            trackingContainer!.appendChild(noscript.cloneNode(true));
-          });
-        }
-      }
     }
-
-    // Cleanup function to remove tracking scripts on unmount
-    return () => {
-      const trackingContainer = document.getElementById("tenant-tracking-scripts");
-      if (trackingContainer) {
-        trackingContainer.innerHTML = "";
-      }
-    };
-  }, [tenant, isCustomDomain]);
+  }, [tenant]);
 
   return (
     <TenantContext.Provider
@@ -295,8 +244,93 @@ export function TenantProvider({ children }: TenantProviderProps) {
       }}
     >
       {children}
+      {/* Inject tracking scripts based on cookie consent */}
+      {tenant && isCustomDomain && <TrackingScriptInjector tenant={tenant} />}
     </TenantContext.Provider>
   );
+}
+
+// Separate component to handle tracking injection with consent
+function TrackingScriptInjector({ tenant }: { tenant: TenantConfig }) {
+  const { canLoadAnalytics, canLoadMarketing, hasConsented } = useCookieConsent();
+
+  useEffect(() => {
+    // Only inject if tracking is enabled AND user has consented
+    if (!tenant.tracking_enabled || !hasConsented) {
+      return;
+    }
+
+    const trackingContainerId = "tenant-tracking-scripts";
+    let trackingContainer = document.getElementById(trackingContainerId);
+    
+    // Clear previous scripts
+    if (trackingContainer) {
+      trackingContainer.innerHTML = "";
+    } else {
+      trackingContainer = document.createElement("div");
+      trackingContainer.id = trackingContainerId;
+      document.head.appendChild(trackingContainer);
+    }
+
+    const injectScript = (html: string) => {
+      if (!html.trim()) return;
+      
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+      
+      const scripts = tempDiv.querySelectorAll("script");
+      scripts.forEach((script) => {
+        const newScript = document.createElement("script");
+        if (script.src) {
+          newScript.src = script.src;
+          newScript.async = script.async;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        trackingContainer!.appendChild(newScript);
+      });
+
+      const noscripts = tempDiv.querySelectorAll("noscript");
+      noscripts.forEach((noscript) => {
+        trackingContainer!.appendChild(noscript.cloneNode(true));
+      });
+    };
+
+    // GTM: Analytics category
+    if (canLoadAnalytics && tenant.tracking_gtm_id) {
+      injectScript(generateGTMScript(tenant.tracking_gtm_id));
+    }
+
+    // GA4: Analytics category
+    if (canLoadAnalytics && tenant.tracking_ga4_id) {
+      injectScript(generateGA4Script(tenant.tracking_ga4_id));
+    }
+
+    // Meta Pixel: Marketing category
+    if (canLoadMarketing && tenant.tracking_meta_pixel_id) {
+      injectScript(generateMetaPixelScript(tenant.tracking_meta_pixel_id));
+    }
+
+    // TikTok Pixel: Marketing category
+    if (canLoadMarketing && tenant.tracking_tiktok_pixel_id) {
+      injectScript(generateTikTokPixelScript(tenant.tracking_tiktok_pixel_id));
+    }
+
+    // Custom scripts: Load if either analytics OR marketing is enabled
+    if ((canLoadAnalytics || canLoadMarketing) && tenant.tracking_custom_scripts) {
+      const sanitized = sanitizeCustomScript(tenant.tracking_custom_scripts);
+      injectScript(sanitized);
+    }
+
+    return () => {
+      const container = document.getElementById(trackingContainerId);
+      if (container) {
+        container.innerHTML = "";
+      }
+    };
+  }, [tenant, canLoadAnalytics, canLoadMarketing, hasConsented]);
+
+  return null;
 }
 
 export function useTenant() {
