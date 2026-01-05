@@ -81,6 +81,18 @@ const categories = [
     ]
   },
   {
+    icon: Sparkles,
+    title: 'Tracking y Conversiones',
+    description: 'Eventos automáticos sin código — exclusivo de Sortavo',
+    features: [
+      { icon: Zap, name: 'Eventos automáticos', description: 'Dispara view_item, add_to_cart, purchase sin escribir código' },
+      { icon: Sparkles, name: 'GTM, GA4, Meta, TikTok', description: 'Compatible con todas las plataformas publicitarias' },
+      { icon: Users, name: 'Captura de leads', description: 'Evento Lead cuando se registran para notificaciones' },
+      { icon: Heart, name: 'Tracking de shares', description: 'Mide la viralidad de tus sorteos en redes sociales' },
+      { icon: CheckCircle2, name: 'Subida de comprobante', description: 'Evento add_payment_info para conversiones casi-completadas' },
+    ]
+  },
+  {
     icon: Headphones,
     title: 'Soporte y Equipo',
     description: 'Siempre estamos para ayudarte',

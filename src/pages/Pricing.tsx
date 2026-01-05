@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { 
   Trophy, Rocket, Zap, Crown, Check, X, ArrowRight, 
   Mail, Building2, Sparkles, Ticket, Users, Settings, 
-  Palette, Dices, Headphones, HelpCircle
+  Palette, Dices, Headphones, HelpCircle, BarChart3
 } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { FEATURE_TOOLTIPS } from '@/lib/feature-tooltips';
@@ -507,6 +507,45 @@ export default function Pricing() {
                   { feature: 'Notificaciones en tiempo real', tooltip: FEATURE_TOOLTIPS.notificacionesTiempoReal, values: [true, true, true, true] },
                 ].map((item, idx) => (
                   <tr key={`integ-${idx}`} className="hover:bg-white/5 transition-colors">
+                    <td className="py-4 px-6 text-gray-200 font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.feature}
+                        {item.tooltip && <HelpTooltip content={item.tooltip} />}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[0] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center bg-emerald-500/5">
+                      {item.values[1] ? <Check className="h-5 w-5 mx-auto text-emerald-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[2] ? <Check className="h-5 w-5 mx-auto text-amber-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {item.values[3] ? <Check className="h-5 w-5 mx-auto text-purple-400" /> : <X className="h-5 w-5 mx-auto text-gray-600" />}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Categoría: Tracking y Conversiones - EXCLUSIVO */}
+                <tr className="bg-gradient-to-r from-amber-500/15 to-orange-500/10">
+                  <td colSpan={5} className="py-3 px-6">
+                    <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm uppercase tracking-wider">
+                      <BarChart3 className="h-4 w-4" />
+                      Tracking y Conversiones
+                      <span className="ml-2 px-2 py-0.5 text-[10px] bg-amber-500/20 text-amber-300 rounded-full">EXCLUSIVO</span>
+                    </div>
+                  </td>
+                </tr>
+                {[
+                  { feature: 'Eventos automáticos (GTM/GA4)', tooltip: FEATURE_TOOLTIPS.eventosConversion, values: [false, true, true, true] },
+                  { feature: 'Meta Pixel integrado', tooltip: FEATURE_TOOLTIPS.viewItem, values: [false, true, true, true] },
+                  { feature: 'TikTok Pixel integrado', tooltip: FEATURE_TOOLTIPS.addToCart, values: [false, true, true, true] },
+                  { feature: 'Evento Purchase automático', tooltip: FEATURE_TOOLTIPS.purchase, values: [false, true, true, true] },
+                  { feature: 'Captura de leads', tooltip: FEATURE_TOOLTIPS.leadCapture, values: [false, true, true, true] },
+                ].map((item, idx) => (
+                  <tr key={`track-${idx}`} className="hover:bg-white/5 transition-colors">
                     <td className="py-4 px-6 text-gray-200 font-medium">
                       <div className="flex items-center gap-2">
                         {item.feature}

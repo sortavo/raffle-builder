@@ -249,6 +249,51 @@ const featureCategories = [
     ],
   },
   {
+    name: 'Tracking y Conversiones',
+    features: [
+      {
+        name: 'Eventos automáticos (GTM/GA4)',
+        tooltip: FEATURE_TOOLTIPS.eventosConversion,
+        basic: false,
+        pro: true,
+        premium: true,
+        enterprise: true,
+      },
+      {
+        name: 'Meta Pixel integrado',
+        tooltip: FEATURE_TOOLTIPS.viewItem,
+        basic: false,
+        pro: true,
+        premium: true,
+        enterprise: true,
+      },
+      {
+        name: 'TikTok Pixel integrado',
+        tooltip: FEATURE_TOOLTIPS.addToCart,
+        basic: false,
+        pro: true,
+        premium: true,
+        enterprise: true,
+      },
+      {
+        name: 'Evento Purchase automático',
+        tooltip: FEATURE_TOOLTIPS.purchase,
+        basic: false,
+        pro: true,
+        premium: true,
+        enterprise: true,
+      },
+      {
+        name: 'Captura de leads',
+        tooltip: FEATURE_TOOLTIPS.leadCapture,
+        basic: false,
+        pro: true,
+        premium: true,
+        enterprise: true,
+      },
+    ],
+  },
+  {
     name: 'Soporte y Equipo',
     features: [
       {

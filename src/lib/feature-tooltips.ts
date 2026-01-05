@@ -38,6 +38,16 @@ export const FEATURE_TOOLTIPS = {
   botTelegram: 'Compradores y organizadores reciben notificaciones en tiempo real vía Telegram',
   notificacionesTiempoReal: 'Recibe alertas instantáneas de reservaciones, pagos y eventos importantes',
   
+  // Tracking y Conversiones (ÚNICO en el mercado)
+  eventosConversion: 'Dispara automáticamente eventos de conversión a GTM, GA4, Meta Pixel y TikTok sin código',
+  viewItem: 'Evento automático cuando un visitante ve tu sorteo - útil para remarketing',
+  addToCart: 'Evento cuando seleccionan boletos - mide intención de compra',
+  beginCheckout: 'Evento al abrir el checkout - identifica abandonos',
+  purchase: 'Evento de compra exitosa - mide ROI de tus campañas',
+  addPaymentInfo: 'Evento al subir comprobante - conversiones casi-completadas',
+  leadCapture: 'Captura leads cuando se registran para notificaciones Telegram',
+  shareEvent: 'Mide viralidad cuando comparten tu sorteo en redes sociales',
+  
   // Soporte y Equipo
   soporteEmail: 'Recibe ayuda por correo electrónico para resolver tus dudas',
   soporteWhatsApp: 'Contacto directo por WhatsApp para atención más rápida',
