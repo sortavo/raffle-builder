@@ -34,7 +34,6 @@ import AcceptInvite from "./pages/AcceptInvite";
 import TermsOfService from "./pages/legal/TermsOfService";
 import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import Coupons from "./pages/dashboard/Coupons";
-import Marketing from "./pages/dashboard/Marketing";
 import HelpCenter from "./pages/HelpCenter";
 import OrganizationHome from "./pages/OrganizationHome";
 import Buyers from "./pages/dashboard/Buyers";
@@ -138,7 +137,6 @@ const App = () => (
                   <Route path="/dashboard/audit-log" element={<AuditLog />} />
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/dashboard/coupons" element={<Coupons />} />
-                  <Route path="/dashboard/marketing" element={<Marketing />} />
                   {/* Admin Routes - Before public routes */}
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/financial" element={<AdminFinancial />} />

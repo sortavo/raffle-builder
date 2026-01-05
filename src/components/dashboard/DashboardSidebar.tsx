@@ -38,7 +38,6 @@ import {
   LogOut,
   ChevronUp,
   HelpCircle,
-  Megaphone,
   Tag,
   QrCode,
   Shield,
@@ -75,12 +74,6 @@ const menuItems = [
     title: "Analíticas",
     url: "/dashboard/analytics",
     icon: BarChart3,
-    badgeKey: null as string | null,
-  },
-  {
-    title: "Marketing",
-    url: "/dashboard/marketing",
-    icon: Megaphone,
     badgeKey: null as string | null,
   },
   {
