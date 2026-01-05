@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { scrollToSection } from "@/lib/scroll-utils";
 import { Menu, ArrowRight } from "lucide-react";
 import sortavoLogo from "@/assets/sortavo-logo.png";
+import { DemoSelectorDialog } from "@/components/marketing/DemoSelectorDialog";
 
 interface NavLink {
   label: string;
@@ -20,6 +21,7 @@ interface PremiumNavbarProps {
 const defaultNavLinks: NavLink[] = [
   { label: 'Características', href: '/features' },
   { label: 'Precios', href: '/pricing' },
+  { label: 'Demo', href: '#demo' },
   { label: 'Ayuda', href: '/help' },
 ];
 
@@ -27,6 +29,7 @@ export function PremiumNavbar({ variant = 'transparent', showCTA = true }: Premi
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
 
   useEffect(() => {
     if (variant === 'transparent') {
@@ -74,7 +77,15 @@ export function PremiumNavbar({ variant = 'transparent', showCTA = true }: Premi
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
             {defaultNavLinks.map((link) => (
-              link.href.startsWith('/#') ? (
+              link.href === '#demo' ? (
+                <button
+                  key={link.label}
+                  onClick={() => setDemoDialogOpen(true)}
+                  className="px-4 py-2 text-gray-300 hover:text-white transition-colors font-medium rounded-lg hover:bg-white/10 cursor-pointer"
+                >
+                  {link.label}
+                </button>
+              ) : link.href.startsWith('/#') ? (
                 <a 
                   key={link.label}
                   href={link.href.replace('/', '')}
@@ -124,8 +135,19 @@ export function PremiumNavbar({ variant = 'transparent', showCTA = true }: Premi
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] bg-gray-950 border-white/10">
               <div className="flex flex-col gap-6 mt-8">
-                {defaultNavLinks.map((link) => (
-                  link.href.startsWith('/#') ? (
+              {defaultNavLinks.map((link) => (
+                  link.href === '#demo' ? (
+                    <button
+                      key={link.label}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setDemoDialogOpen(true);
+                      }}
+                      className="text-lg font-medium text-gray-200 hover:text-emerald-400 transition-colors cursor-pointer text-left"
+                    >
+                      {link.label}
+                    </button>
+                  ) : link.href.startsWith('/#') ? (
                     <a 
                       key={link.label}
                       href={link.href.replace('/', '')}
@@ -166,6 +188,9 @@ export function PremiumNavbar({ variant = 'transparent', showCTA = true }: Premi
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Demo Selector Dialog */}
+          <DemoSelectorDialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen} />
         </div>
       </div>
     </motion.nav>

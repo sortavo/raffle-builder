@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -6,6 +6,7 @@ import { handleHashScroll } from "@/lib/scroll-utils";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
+import { DemoSelectorDialog } from "@/components/marketing/DemoSelectorDialog";
 import { 
   Sparkles, 
   Trophy, 
@@ -23,7 +24,8 @@ import {
   TrendingUp,
   Clock,
   Gift,
-  ChevronRight
+  ChevronRight,
+  Play
 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import sortavoLogo from "@/assets/sortavo-logo.png";
@@ -33,6 +35,7 @@ const Index = () => {
   useScopedDarkMode();
   const navigate = useNavigate();
   const { trackPageView } = useSortavoTracking();
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
 
   useEffect(() => {
     handleHashScroll(); // Handle initial hash scroll
@@ -218,12 +221,15 @@ const Index = () => {
                   size="lg" 
                   variant="outline" 
                   className="text-lg lg:text-xl px-10 py-7 border-2 border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 bg-white/5 backdrop-blur-sm text-white hover:shadow-xl hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300"
-                  onClick={() => navigate('/pricing')}
+                  onClick={() => setDemoDialogOpen(true)}
                 >
-                  <Sparkles className="mr-2 w-6 h-6" />
-                  Ver Planes
+                  <Play className="mr-2 w-6 h-6" />
+                  Ver Demos
                 </Button>
               </motion.div>
+
+              {/* Demo Dialog */}
+              <DemoSelectorDialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen} />
 
               {/* Stats inline - TIER S PREMIUM */}
               <motion.div 
