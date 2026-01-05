@@ -13,6 +13,7 @@ import { SimulationBanner } from "@/components/admin/SimulationBanner";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { CookieConsentBanner } from "@/components/layout/CookieConsentBanner";
 import { SentryErrorBoundary } from "@/components/errors/SentryErrorBoundary";
+import { SortavoTrackingProvider } from "@/components/tracking/SortavoTrackingProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -116,6 +117,7 @@ const App = () => (
             <AuthProvider>
               <TenantProvider>
                 <SimulationProvider>
+                  <SortavoTrackingProvider />
                   <AdaptiveToaster />
                   <ScrollToTop />
                   <SimulationBanner />

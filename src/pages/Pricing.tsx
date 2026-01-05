@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
+import { useSortavoTracking } from '@/hooks/useSortavoTracking';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -22,7 +23,12 @@ import { cn } from '@/lib/utils';
 export default function Pricing() {
   // Activate dark mode for this page
   useScopedDarkMode();
+  const { trackViewPricing } = useSortavoTracking();
   const [isAnnual, setIsAnnual] = useState(false);
+
+  useEffect(() => {
+    trackViewPricing();
+  }, [trackViewPricing]);
 
   const plans = [
     {

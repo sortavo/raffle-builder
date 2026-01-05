@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { handleHashScroll } from "@/lib/scroll-utils";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
 import { 
   Sparkles, 
@@ -31,10 +32,12 @@ const Index = () => {
   // Activate dark mode for this page
   useScopedDarkMode();
   const navigate = useNavigate();
+  const { trackPageView } = useSortavoTracking();
 
   useEffect(() => {
     handleHashScroll(); // Handle initial hash scroll
-  }, []);
+    trackPageView('Landing Page');
+  }, [trackPageView]);
 
   const features = [
     {

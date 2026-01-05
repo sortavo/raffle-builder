@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Loader2, CreditCard, Calendar, AlertTriangle, Clock, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 
 interface ProrationItem {
   description: string;
@@ -53,6 +55,16 @@ export function UpgradeConfirmationModal({
   targetPlanPrice,
   currentPlanPrice,
 }: UpgradeConfirmationModalProps) {
+  const { trackSubscribe } = useSortavoTracking();
+  
+  // Track subscription conversion when confirm is clicked
+  const handleConfirm = () => {
+    if (preview && !preview.is_downgrade) {
+      trackSubscribe(preview.new_plan_name, targetPlanPrice, preview.currency.toUpperCase());
+    }
+    onConfirm();
+  };
+  
   if (!preview) return null;
 
   const formatCurrency = (cents: number) => {
@@ -204,7 +216,7 @@ export function UpgradeConfirmationModal({
             Cancelar
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             disabled={isLoading}
             variant={isDowngrade ? "default" : "default"}
             className="w-full sm:w-auto"

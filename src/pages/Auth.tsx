@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
+import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, signInWithGoogle, resetPassword, isLoading } = useAuth();
   const { trackSignUp } = useTrackingEvents();
+  const { trackLead, trackSignUp: trackSortavoSignUp } = useSortavoTracking();
   
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,11 +115,15 @@ export default function Auth() {
         });
       }
     } else {
-      // Track sign_up event
+      // Track sign_up event (for organizer tracking)
       trackSignUp({
         method: 'email',
         userEmail: email,
       });
+      
+      // Track for Sortavo's own analytics
+      trackLead('signup_form');
+      trackSortavoSignUp('email');
       
       toast.success("¡Cuenta creada exitosamente!", {
         description: "Completa tu perfil para continuar.",

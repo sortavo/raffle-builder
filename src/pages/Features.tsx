@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
+import { useSortavoTracking } from '@/hooks/useSortavoTracking';
 
 const categories = [
   {
@@ -120,6 +122,11 @@ const itemVariants = {
 
 export default function Features() {
   useScopedDarkMode();
+  const { trackViewFeatures } = useSortavoTracking();
+
+  useEffect(() => {
+    trackViewFeatures();
+  }, [trackViewFeatures]);
 
   return (
     <>
