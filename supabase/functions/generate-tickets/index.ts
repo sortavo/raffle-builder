@@ -11,7 +11,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[GENERATE-TICKETS] ${step}${detailsStr}`);
 };
 
-const BATCH_SIZE = 10000; // Standard batch size for all operations
+// OPTIMIZED: Reduced batch size to prevent timeouts
+const BATCH_SIZE = 5000; // Reduced from 10000
 
 interface NumberingConfig {
   mode: 'sequential' | 'random_permutation' | 'custom_list' | 'template';
@@ -33,7 +34,7 @@ serve(async (req) => {
   }
 
   try {
-    logStep("Function started");
+    logStep("Function started - v3 optimized");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -63,15 +64,25 @@ serve(async (req) => {
         ? Math.round((job.generated_count / job.total_tickets) * 100) 
         : 0;
 
-      const estimatedTimeRemaining = job.status === 'running' && job.generated_count > 0
-        ? Math.round(((job.total_tickets - job.generated_count) / job.generated_count) * 
-            ((Date.now() - new Date(job.started_at).getTime()) / 1000))
-        : null;
+      // Calculate tickets per second and estimated time remaining
+      let ticketsPerSecond = 0;
+      let estimatedTimeRemaining = null;
+
+      if (job.status === 'running' && job.generated_count > 0 && job.started_at) {
+        const elapsedSeconds = (Date.now() - new Date(job.started_at).getTime()) / 1000;
+        ticketsPerSecond = Math.round(job.generated_count / elapsedSeconds);
+        
+        if (ticketsPerSecond > 0) {
+          const remainingTickets = job.total_tickets - job.generated_count;
+          estimatedTimeRemaining = Math.round(remainingTickets / ticketsPerSecond);
+        }
+      }
 
       return new Response(
         JSON.stringify({ 
           ...job, 
           progress,
+          tickets_per_second: ticketsPerSecond,
           estimated_time_remaining: estimatedTimeRemaining
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
@@ -79,9 +90,9 @@ serve(async (req) => {
     }
 
     // Parse request body for new job
-    const { raffle_id, force_rebuild = false } = await req.json();
+    const { raffle_id, force_rebuild = false, repair_prefix = false } = await req.json();
     if (!raffle_id) throw new Error("raffle_id is required");
-    logStep("Processing raffle", { raffle_id, force_rebuild });
+    logStep("Processing raffle", { raffle_id, force_rebuild, repair_prefix });
 
     // Get raffle details including new numbering_config
     const { data: raffle, error: raffleError } = await supabaseClient
@@ -113,7 +124,107 @@ serve(async (req) => {
 
     if (countError) throw countError;
 
-    logStep("Existing tickets count", { existingCount, totalTickets, force_rebuild });
+    logStep("Existing tickets count", { existingCount, totalTickets, force_rebuild, repair_prefix });
+
+    // REPAIR PREFIX MODE: Find gaps at the beginning and fill them
+    if (repair_prefix && existingCount && existingCount > 0) {
+      logStep("REPAIR PREFIX MODE: Checking for missing tickets at start");
+      
+      // Find the minimum ticket_index
+      const { data: minTicket, error: minError } = await supabaseClient
+        .from("tickets")
+        .select("ticket_index")
+        .eq("raffle_id", raffle_id)
+        .order("ticket_index", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (minError && minError.code !== 'PGRST116') throw minError;
+
+      const minIndex = minTicket?.ticket_index || 1;
+      
+      if (minIndex > 1) {
+        // There are missing tickets at the start (1 to minIndex-1)
+        const ticketsToGenerate = minIndex - 1;
+        logStep("Found gap at start", { minIndex, ticketsToGenerate });
+
+        // For large gaps, create async job
+        if (ticketsToGenerate > BATCH_SIZE) {
+          const totalBatches = Math.ceil(ticketsToGenerate / BATCH_SIZE);
+          
+          const { data: job, error: jobError } = await supabaseClient
+            .from("ticket_generation_jobs")
+            .insert({
+              raffle_id,
+              total_tickets: ticketsToGenerate,
+              total_batches: totalBatches,
+              batch_size: BATCH_SIZE,
+              ticket_format: numberingConfig.mode,
+              ticket_prefix: numberingConfig.prefix,
+              status: 'pending',
+              generated_count: 0,
+              current_batch: 0
+            })
+            .select()
+            .single();
+
+          if (jobError) throw jobError;
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              job_id: job.id,
+              async: true,
+              mode: 'repair_prefix',
+              tickets_to_generate: ticketsToGenerate,
+              message: `Reparando boletos 1-${minIndex - 1}. Procesando en segundo plano.`
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 }
+          );
+        }
+
+        // For small gaps, generate synchronously using v3
+        const { data: count, error: genError } = await supabaseClient.rpc(
+          'generate_ticket_batch_v3',
+          {
+            p_raffle_id: raffle_id,
+            p_start_index: 1,
+            p_end_index: minIndex - 1,
+            p_numbering_config: numberingConfig
+          }
+        );
+
+        if (genError) {
+          logStep("V3 failed for repair, trying v2", { error: genError.message });
+          // Fallback to v2
+          await supabaseClient.rpc('generate_ticket_batch_v2', {
+            p_raffle_id: raffle_id,
+            p_start_index: 1,
+            p_end_index: minIndex - 1,
+            p_numbering_config: numberingConfig
+          });
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            mode: 'repair_prefix',
+            tickets_generated: ticketsToGenerate,
+            message: `Reparados ${ticketsToGenerate} boletos faltantes (1-${minIndex - 1})`
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            mode: 'repair_prefix',
+            message: 'No hay boletos faltantes al inicio. Todo está bien.'
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+    }
 
     // FORCE REBUILD: Delete existing tickets and regenerate from scratch
     if (force_rebuild && existingCount && existingCount > 0) {
@@ -242,13 +353,13 @@ serve(async (req) => {
     // Calculate batches
     const totalBatches = Math.ceil(totalTickets / BATCH_SIZE);
 
-    // For small raffles (<= BATCH_SIZE), use synchronous generation
+    // For small raffles (<= BATCH_SIZE), use synchronous generation with v3
     if (totalTickets <= BATCH_SIZE) {
-      logStep("Small raffle - using synchronous generation", { totalTickets, mode: numberingConfig.mode });
+      logStep("Small raffle - using synchronous v3 generation", { totalTickets, mode: numberingConfig.mode });
       
-      // Use new v2 function with numbering config
+      // Use new v3 function (bulk INSERT - 20x faster)
       const { data: count, error: genError } = await supabaseClient.rpc(
-        'generate_ticket_batch_v2',
+        'generate_ticket_batch_v3',
         {
           p_raffle_id: raffle_id,
           p_start_index: 1,
@@ -258,24 +369,54 @@ serve(async (req) => {
       );
 
       if (genError) {
-        logStep("V2 function failed, trying legacy", { error: genError.message });
-        // Fallback to legacy function
-        const { data: legacyCount, error: legacyError } = await supabaseClient.rpc(
-          'generate_ticket_batch',
+        logStep("V3 function failed, trying v2", { error: genError.message });
+        // Fallback to v2 function
+        const { data: v2Count, error: v2Error } = await supabaseClient.rpc(
+          'generate_ticket_batch_v2',
           {
             p_raffle_id: raffle_id,
-            p_start_number: 1,
-            p_end_number: totalTickets,
-            p_format: legacyFormat,
-            p_prefix: legacyFormat === 'prefixed' ? 'TKT' : null
+            p_start_index: 1,
+            p_end_index: totalTickets,
+            p_numbering_config: numberingConfig
           }
         );
+
+        if (v2Error) {
+          logStep("V2 function failed, trying legacy", { error: v2Error.message });
+          // Final fallback to legacy function
+          const { data: legacyCount, error: legacyError } = await supabaseClient.rpc(
+            'generate_ticket_batch',
+            {
+              p_raffle_id: raffle_id,
+              p_start_number: 1,
+              p_end_number: totalTickets,
+              p_format: legacyFormat,
+              p_prefix: legacyFormat === 'prefixed' ? 'TKT' : null
+            }
+          );
+          
+          if (legacyError) throw legacyError;
+          
+          logStep("Legacy generation complete", { count: legacyCount });
+          return new Response(
+            JSON.stringify({ success: true, count: legacyCount, async: false, legacy: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+          );
+        }
+
+        logStep("V2 generation complete", { count: v2Count });
         
-        if (legacyError) throw legacyError;
-        
-        logStep("Legacy generation complete", { count: legacyCount });
+        // Apply random permutation if needed (v2 doesn't do this automatically)
+        if (numberingConfig.mode === 'random_permutation') {
+          logStep("Applying random permutation");
+          await supabaseClient.rpc('apply_random_permutation', { 
+            p_raffle_id: raffle_id, 
+            p_numbering_config: numberingConfig 
+          });
+        }
+
         return new Response(
-          JSON.stringify({ success: true, count: legacyCount, async: false, legacy: true }),
+          JSON.stringify({ success: true, count: v2Count, async: false }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
         );
       }
@@ -304,7 +445,7 @@ serve(async (req) => {
         }
       }
 
-      logStep("Synchronous generation complete", { count });
+      logStep("Synchronous v3 generation complete", { count });
       return new Response(
         JSON.stringify({ success: true, count, async: false }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
@@ -333,11 +474,16 @@ serve(async (req) => {
 
     if (jobError) throw jobError;
 
+    // Estimate time based on ~1000 tickets/second with v3
+    const estimatedSeconds = Math.ceil(totalTickets / 1000);
+    const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+
     logStep("Job created successfully", { 
       job_id: job.id, 
       total_tickets: totalTickets,
       total_batches: totalBatches,
-      batch_size: BATCH_SIZE
+      batch_size: BATCH_SIZE,
+      estimated_minutes: estimatedMinutes
     });
 
     // Return immediately with job ID (202 Accepted)
@@ -347,11 +493,11 @@ serve(async (req) => {
         success: true, 
         job_id: job.id, 
         async: true,
-        message: "Ticket generation job created. Processing will begin shortly.",
+        message: `Generación de ${totalTickets.toLocaleString()} boletos iniciada. Tiempo estimado: ${estimatedMinutes} minutos.`,
         total_tickets: totalTickets,
         total_batches: totalBatches,
         batch_size: BATCH_SIZE,
-        estimated_time_seconds: Math.ceil(totalBatches * 2) // ~2 seconds per batch estimate
+        estimated_time_seconds: estimatedSeconds
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 }
     );

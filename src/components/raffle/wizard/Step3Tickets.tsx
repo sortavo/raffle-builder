@@ -434,6 +434,32 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
                       (del {(existingTicketCount + 1).toLocaleString()} al {field.value.toLocaleString()})
                     </div>
                   )}
+
+                  {/* Warnings for large raffles */}
+                  {field.value > 5000000 && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-400 text-sm">
+                      <span className="text-lg">🚀</span>
+                      <div>
+                        <span className="font-medium">Rifa gigante:</span> La generación de {field.value.toLocaleString()} boletos puede tomar hasta 1 hora.
+                        Recibirás una notificación cuando esté lista.
+                      </div>
+                    </div>
+                  )}
+                  {field.value > 1000000 && field.value <= 5000000 && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm">
+                      <span className="text-lg">⚡</span>
+                      <div>
+                        <span className="font-medium">Rifa masiva:</span> La generación de {field.value.toLocaleString()} boletos puede tomar 15-30 minutos.
+                        Recibirás una notificación cuando esté lista.
+                      </div>
+                    </div>
+                  )}
+                  {field.value > 100000 && field.value <= 1000000 && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 text-sm">
+                      <span className="text-base">⏱️</span>
+                      <span>Las rifas con más de 100,000 boletos pueden tomar varios minutos en generarse.</span>
+                    </div>
+                  )}
                   
                   <FormDescription>
                     {canOnlyIncrement 

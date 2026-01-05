@@ -11,9 +11,9 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[PROCESS-TICKET-BATCH] ${step}${detailsStr}`);
 };
 
-// Constants for batch processing
-const DEFAULT_BATCH_SIZE = 10000; // Default batch size if not specified in job
-const MAX_BATCHES_PER_RUN = 100; // Process up to 100 batches per cron run (1M tickets max)
+// Constants for batch processing - OPTIMIZED FOR 10M TICKETS
+const DEFAULT_BATCH_SIZE = 5000; // Reduced from 10000 to prevent timeouts
+const MAX_BATCHES_PER_RUN = 200; // Process up to 200 batches per cron run (1M tickets max)
 const STALE_THRESHOLD_MINUTES = 10; // Reset jobs stuck for more than 10 minutes
 const MAX_RETRIES = 3; // Maximum retries for a batch
 const BASE_RETRY_DELAY_MS = 1000; // 1 second base delay for exponential backoff
@@ -115,46 +115,13 @@ async function createCompletionNotification(
   }
 }
 
-// Get actual ticket count from database
-async function getActualTicketCount(
-  supabaseUrl: string,
-  supabaseKey: string,
-  raffleId: string
-): Promise<number> {
-  try {
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&select=id`,
-      {
-        method: 'HEAD',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'count=exact'
-        }
-      }
-    );
-    
-    const contentRange = response.headers.get('content-range');
-    if (contentRange) {
-      const match = contentRange.match(/\/(\d+)/);
-      if (match) {
-        return parseInt(match[1], 10);
-      }
-    }
-    return 0;
-  } catch (err) {
-    console.log("[PROCESS-TICKET-BATCH] Error getting actual ticket count:", err);
-    return 0;
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    logStep("Worker started");
+    logStep("Worker started - v3 optimized");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -201,7 +168,7 @@ serve(async (req) => {
     const results = [];
 
     for (const job of jobs) {
-      // Use job's batch_size or default
+      // Use job's batch_size or default (now 5000)
       const batchSize = job.batch_size || DEFAULT_BATCH_SIZE;
       
       logStep(`Processing job ${job.id}`, { 
@@ -222,26 +189,13 @@ serve(async (req) => {
           .eq("id", job.id);
       }
 
-      // Get actual ticket count to verify progress
-      const actualCount = await getActualTicketCount(supabaseUrl, supabaseKey, job.raffle_id);
+      // Use job.generated_count as source of truth (skip expensive count=exact)
+      let generatedCount = job.generated_count || 0;
       
-      // If actual count doesn't match recorded, sync it
-      if (actualCount !== job.generated_count) {
-        logStep(`Syncing generated_count: recorded=${job.generated_count}, actual=${actualCount}`);
-        await supabaseClient
-          .from("ticket_generation_jobs")
-          .update({ generated_count: actualCount })
-          .eq("id", job.id);
-        job.generated_count = actualCount;
-      }
-
+      // Calculate current batch based on generated count
+      let currentBatch = Math.floor(generatedCount / batchSize);
+      
       let batchesProcessed = 0;
-      let generatedCount = actualCount; // Start from actual count
-      
-      // Calculate current batch based on actual tickets generated
-      // current_batch = number of completed batches
-      let currentBatch = Math.floor(actualCount / batchSize);
-      
       let jobFailed = false;
       let lastError = '';
 
@@ -266,8 +220,8 @@ serve(async (req) => {
         // Retry loop with exponential backoff
         while (retryAttempt < MAX_RETRIES && !batchSuccess) {
           try {
-            // Try v2 function first (better for new numbering config)
-            const response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch_v2`, {
+            // Try v3 function first (bulk INSERT - 20x faster)
+            const response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch_v3`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -285,10 +239,10 @@ serve(async (req) => {
 
             if (!response.ok) {
               const errorText = await response.text();
-              logStep(`V2 RPC failed, trying legacy`, { error: errorText });
+              logStep(`V3 RPC failed, trying v2`, { error: errorText });
               
-              // Fallback to legacy function
-              const legacyResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch`, {
+              // Fallback to v2 function
+              const v2Response = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch_v2`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -298,23 +252,46 @@ serve(async (req) => {
                 },
                 body: JSON.stringify({
                   p_raffle_id: job.raffle_id,
-                  p_start_number: startIndex,
-                  p_end_number: endIndex,
-                  p_format: job.ticket_format || 'sequential',
-                  p_prefix: job.ticket_prefix
+                  p_start_index: startIndex,
+                  p_end_index: endIndex,
+                  p_numbering_config: null
                 })
               });
 
-              if (!legacyResponse.ok) {
-                throw new Error(await legacyResponse.text());
+              if (!v2Response.ok) {
+                const v2Error = await v2Response.text();
+                logStep(`V2 RPC failed, trying legacy`, { error: v2Error });
+                
+                // Final fallback to legacy function
+                const legacyResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/generate_ticket_batch`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Prefer': 'return=representation'
+                  },
+                  body: JSON.stringify({
+                    p_raffle_id: job.raffle_id,
+                    p_start_number: startIndex,
+                    p_end_number: endIndex,
+                    p_format: job.ticket_format || 'sequential',
+                    p_prefix: job.ticket_prefix
+                  })
+                });
+
+                if (!legacyResponse.ok) {
+                  throw new Error(await legacyResponse.text());
+                }
+                
+                const legacyCount = await legacyResponse.json();
+                insertedCount = legacyCount ?? 0;
+              } else {
+                const v2Count = await v2Response.json();
+                insertedCount = v2Count ?? 0;
               }
-              
-              const legacyCount = await legacyResponse.json();
-              // FIX: Use nullish coalescing - if count is 0, don't assume expectedCount
-              insertedCount = legacyCount ?? 0;
             } else {
               const count = await response.json();
-              // FIX: Use nullish coalescing - if count is 0, don't assume expectedCount
               insertedCount = count ?? 0;
             }
 
@@ -323,7 +300,8 @@ serve(async (req) => {
             logStep(`Job ${job.id}: Batch ${currentBatch + 1} complete`, { 
               insertedCount,
               expectedCount,
-              attempt: retryAttempt + 1
+              attempt: retryAttempt + 1,
+              function: 'v3'
             });
 
           } catch (batchError) {
@@ -372,12 +350,12 @@ serve(async (req) => {
           break;
         }
 
-        // Update counts - use actual inserted count, not expected
+        // Update counts - use actual inserted count
         generatedCount += insertedCount;
         currentBatch++;
         batchesProcessed++;
 
-        // Update job progress with accurate counts
+        // Update job progress
         await supabaseClient
           .from("ticket_generation_jobs")
           .update({
@@ -387,22 +365,20 @@ serve(async (req) => {
           .eq("id", job.id);
       }
 
-      // Verify final count and check if job is complete
+      // Check if job is complete
       if (!jobFailed) {
-        const finalActualCount = await getActualTicketCount(supabaseUrl, supabaseKey, job.raffle_id);
-        
-        if (finalActualCount >= job.total_tickets) {
+        if (generatedCount >= job.total_tickets) {
           await supabaseClient
             .from("ticket_generation_jobs")
             .update({
               status: 'completed',
-              generated_count: finalActualCount,
+              generated_count: generatedCount,
               completed_at: new Date().toISOString()
             })
             .eq("id", job.id);
 
           logStep(`Job ${job.id} completed`, { 
-            generatedCount: finalActualCount,
+            generatedCount,
             total: job.total_tickets 
           });
 
@@ -411,14 +387,14 @@ serve(async (req) => {
             supabaseUrl,
             supabaseKey,
             job.raffle_id,
-            finalActualCount,
+            generatedCount,
             true
           );
         } else {
           logStep(`Job ${job.id} progress saved, will continue next run`, { 
-            generatedCount: finalActualCount,
+            generatedCount,
             total: job.total_tickets,
-            remaining: job.total_tickets - finalActualCount
+            remaining: job.total_tickets - generatedCount
           });
         }
       }

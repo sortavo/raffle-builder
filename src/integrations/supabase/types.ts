@@ -1732,6 +1732,15 @@ export type Database = {
         }
         Returns: number
       }
+      generate_ticket_batch_v3: {
+        Args: {
+          p_end_index: number
+          p_numbering_config?: Json
+          p_raffle_id: string
+          p_start_index: number
+        }
+        Returns: number
+      }
       get_buyers_paginated: {
         Args: {
           p_city?: string
