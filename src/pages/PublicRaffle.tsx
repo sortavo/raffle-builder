@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -54,6 +55,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   const ticketsRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { trackViewItem, trackAddToCart } = useTrackingEvents();
   
   // Use tenant org slug if provided (custom domain), otherwise use route param
   const effectiveOrgSlug = tenantOrgSlug || paramOrgSlug;
@@ -93,6 +95,21 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showStickyFooter, setShowStickyFooter] = useState(false);
+  const [hasTrackedView, setHasTrackedView] = useState(false);
+
+  // Track view_item when raffle loads (only once)
+  useEffect(() => {
+    if (raffle && !hasTrackedView && !isPreviewMode) {
+      trackViewItem({
+        itemId: raffle.id,
+        itemName: raffle.title,
+        category: (raffle as any).category || 'raffle',
+        price: Number(raffle.ticket_price),
+        currency: raffle.currency_code || 'MXN',
+      });
+      setHasTrackedView(true);
+    }
+  }, [raffle, hasTrackedView, isPreviewMode, trackViewItem]);
 
   // Track scroll position for header animation and sticky footer
   useEffect(() => {
@@ -153,6 +170,21 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   };
 
   const handleContinue = (tickets: string[]) => {
+    // Track add_to_cart event
+    if (raffle) {
+      const packages = (raffle as any).packages || [];
+      const matchingPackage = packages.find((p: any) => p.quantity === tickets.length);
+      const totalValue = matchingPackage ? matchingPackage.price : tickets.length * Number(raffle.ticket_price);
+      
+      trackAddToCart({
+        itemId: raffle.id,
+        itemName: raffle.title,
+        price: Number(raffle.ticket_price),
+        quantity: tickets.length,
+        currency: raffle.currency_code || 'MXN',
+      });
+    }
+    
     setSelectedTickets(tickets);
     setCheckoutOpen(true);
   };

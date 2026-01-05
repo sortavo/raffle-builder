@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,7 @@ import {
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveTickets } from "@/hooks/usePublicRaffle";
 import { useEmails } from "@/hooks/useEmails";
+import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { notifyPaymentPending } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -126,6 +127,7 @@ export function CheckoutModal({
   
   const reserveTickets = useReserveTickets();
   const { sendReservationEmail } = useEmails();
+  const { trackBeginCheckout, trackPurchase } = useTrackingEvents();
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -136,6 +138,19 @@ export function CheckoutModal({
       acceptTerms: false,
     },
   });
+
+  // Track begin_checkout when modal opens
+  useEffect(() => {
+    if (open && selectedTickets.length > 0) {
+      trackBeginCheckout({
+        itemId: raffle.id,
+        itemName: raffle.title,
+        value: calculateSubtotal(),
+        quantity: selectedTickets.length,
+        currency: raffle.currency_code || 'MXN',
+      });
+    }
+  }, [open]); // Only track when modal opens
 
   const calculateSubtotal = () => {
     const matchingPackage = packages.find(p => p.quantity === selectedTickets.length);
@@ -245,6 +260,18 @@ export function CheckoutModal({
 
       // Fire confetti celebration
       fireConfetti();
+
+      // Track purchase conversion event
+      trackPurchase({
+        transactionId: result.referenceCode,
+        itemId: raffle.id,
+        itemName: raffle.title,
+        value: total,
+        quantity: selectedTickets.length,
+        currency: raffle.currency_code || 'MXN',
+        userEmail: data.email,
+        userPhone: cleanPhone,
+      });
 
       // Move to success step
       setCurrentStep(3);
