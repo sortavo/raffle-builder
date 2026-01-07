@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
 
     // 3. Generate random available tickets
     const selectedTickets: string[] = [];
+    const selectedIndexArray: number[] = [];
     const selectedIndices = new Set<number>();
     const needed = Math.min(quantity, totalAvailable);
     
@@ -204,6 +205,7 @@ Deno.serve(async (req) => {
         
         selectedIndices.add(randomIndex);
         selectedTickets.push(ticketNumber);
+        selectedIndexArray.push(randomIndex);
       }
     } else {
       // Build-and-shuffle strategy - good for large selections or small pools
@@ -229,6 +231,7 @@ Deno.serve(async (req) => {
       for (const index of selected) {
         const ticketNumber = formatTicketNumber(index, numberStart, totalTickets);
         selectedTickets.push(ticketNumber);
+        selectedIndexArray.push(index);
       }
     }
 
@@ -236,11 +239,13 @@ Deno.serve(async (req) => {
 
     const response: {
       selected: string[];
+      indices: number[];
       requested: number;
       available: number;
       warning?: string;
     } = {
       selected: selectedTickets,
+      indices: selectedIndexArray,
       requested: quantity,
       available: totalAvailable - exclude_numbers.length
     };

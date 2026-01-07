@@ -207,7 +207,9 @@ export function TicketSelector({
   const [regenerateCount, setRegenerateCount] = useState(0);
   const [isSlotSpinning, setIsSlotSpinning] = useState(false);
   const [pendingNumbers, setPendingNumbers] = useState<string[]>([]);
+  const [pendingIndices, setPendingIndices] = useState<number[]>([]);
   const pendingNumbersRef = useRef<string[]>([]);
+  const pendingIndicesRef = useRef<number[]>([]);
   const [highlightedTicket, setHighlightedTicket] = useState<string | null>(null);
   const [pendingHighlightTicket, setPendingHighlightTicket] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -429,41 +431,49 @@ export function TicketSelector({
       // Start spinning animation
       setIsSlotSpinning(true);
       setPendingNumbers([]);
+      setPendingIndices([]);
       pendingNumbersRef.current = [];
+      pendingIndicesRef.current = [];
       
-      const numbers = await randomMutation.mutateAsync({
+      const result = await randomMutation.mutateAsync({
         raffleId,
         count: randomCount,
       });
       
       // Warn user if fewer tickets were returned than requested
-      if (numbers.length < randomCount && numbers.length > 0) {
+      if (result.tickets.length < randomCount && result.tickets.length > 0) {
         toast.warning(
-          `Solo se encontraron ${numbers.length} boletos disponibles de los ${randomCount} solicitados`,
+          `Solo se encontraron ${result.tickets.length} boletos disponibles de los ${randomCount} solicitados`,
           { duration: 4000 }
         );
       }
       
       // Set pending numbers for the animation to reveal - both state and ref
-      pendingNumbersRef.current = numbers;
-      setPendingNumbers(numbers);
+      pendingNumbersRef.current = result.tickets;
+      pendingIndicesRef.current = result.indices;
+      setPendingNumbers(result.tickets);
+      setPendingIndices(result.indices);
       
       // The animation will complete and call handleSlotComplete
     } catch (error) {
       setIsSlotSpinning(false);
       setPendingNumbers([]);
+      setPendingIndices([]);
       pendingNumbersRef.current = [];
+      pendingIndicesRef.current = [];
       toast.error('Error al generar boletos aleatorios');
     }
   };
 
   const handleSlotComplete = useCallback(() => {
     setIsSlotSpinning(false);
-    // Use ref to avoid stale closure issue
+    // Use refs to avoid stale closure issue
     const numbers = pendingNumbersRef.current;
+    const indices = pendingIndicesRef.current;
     if (numbers.length > 0) {
       setGeneratedNumbers(numbers);
       setSelectedTickets(numbers);
+      setSelectedTicketIndices(indices);
       
       // Simple toast notification - no confetti for enterprise feel
       if (numbers.length > 100) {
