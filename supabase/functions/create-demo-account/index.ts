@@ -15,6 +15,7 @@ interface RaffleConfig {
   prize_value: number;
   ticket_price: number;
   total_tickets: number;
+  reservation_time_minutes: number;
   template_id: string;
   draw_method: string;
   lottery_digits?: number;
@@ -58,13 +59,14 @@ const DEMO_CONFIGS = {
       verified: true,
     },
     raffles: [
-      // Raffle 1: Elegant Gold - Luxury car
+      // Raffle 1: Elegant Gold - Luxury car (500K boletos)
       {
         title: "🏆 Gran Sorteo Año Nuevo 2027 - Mercedes-Benz",
         prize_name: "Mercedes-Benz C300 2027",
         prize_value: 1200000,
         ticket_price: 150,
-        total_tickets: 100000,
+        total_tickets: 500000,
+        reservation_time_minutes: 180,
         template_id: "elegant-gold",
         draw_method: "lottery_nacional",
         lottery_digits: 5,
@@ -104,13 +106,14 @@ const DEMO_CONFIGS = {
         prize_terms: "El ganador deberá presentar identificación oficial vigente. Incluye tenencia 2027, emplacado y seguro por 6 meses. Premio no transferible.",
         sold_percentage: 12,
       } as RaffleConfig,
-      // Raffle 2: Modern Blue - Electronics
+      // Raffle 2: Modern Blue - Electronics (1M boletos)
       {
         title: "🎮 Tech Gamer Festival 2026",
         prize_name: "Setup Gaming Completo",
         prize_value: 180000,
         ticket_price: 50,
-        total_tickets: 50000,
+        total_tickets: 1000000,
+        reservation_time_minutes: 240,
         template_id: "modern-blue",
         draw_method: "random_org",
         currency_code: "MXN",
@@ -146,13 +149,14 @@ const DEMO_CONFIGS = {
         prize_terms: "Productos sujetos a disponibilidad. Pueden sustituirse por equivalentes de igual o mayor valor. Garantía de fabricante incluida.",
         sold_percentage: 25,
       } as RaffleConfig,
-      // Raffle 3: Ultra White - Travel
+      // Raffle 3: Ultra White - Travel (300K boletos)
       {
         title: "✈️ Viaje de Ensueño - Europa 2027",
         prize_name: "Viaje a Europa 21 días",
         prize_value: 250000,
         ticket_price: 80,
-        total_tickets: 30000,
+        total_tickets: 300000,
+        reservation_time_minutes: 360,
         template_id: "ultra-white",
         draw_method: "random_org",
         currency_code: "MXN",
@@ -207,13 +211,14 @@ const DEMO_CONFIGS = {
       verified: true,
     },
     raffles: [
-      // Raffle 1: Modern - Beach House
+      // Raffle 1: Modern - Beach House (3M boletos)
       {
         title: "🏠 Casa de Playa - Sorteo Benéfico 2027",
         prize_name: "Casa en Playa del Carmen",
         prize_value: 4500000,
         ticket_price: 100,
-        total_tickets: 500000,
+        total_tickets: 3000000,
+        reservation_time_minutes: 240,
         template_id: "modern",
         draw_method: "random_org",
         currency_code: "MXN",
@@ -255,13 +260,14 @@ const DEMO_CONFIGS = {
         prize_terms: "Casa incluye escrituración y gastos notariales. Aplica para mayores de 18 años. Consulta bases completas.",
         sold_percentage: 8,
       } as RaffleConfig,
-      // Raffle 2: Modern Purple - Motorcycle
+      // Raffle 2: Modern Purple - Motorcycle (500K boletos)
       {
         title: "🏍️ Harley-Davidson Street Glide 2027",
         prize_name: "Harley-Davidson Street Glide",
         prize_value: 850000,
         ticket_price: 200,
-        total_tickets: 25000,
+        total_tickets: 500000,
+        reservation_time_minutes: 300,
         template_id: "modern-purple",
         draw_method: "lottery_nacional",
         lottery_digits: 4,
@@ -299,13 +305,14 @@ const DEMO_CONFIGS = {
         prize_terms: "Incluye factura, placas, tenencia y seguro por 1 año. Solo para mayores de 18 años con licencia de conducir.",
         sold_percentage: 35,
       } as RaffleConfig,
-      // Raffle 3: Modern Orange - Cash
+      // Raffle 3: Modern Orange - Cash (2M boletos)
       {
         title: "💰 Un Millón en Efectivo",
         prize_name: "$1,000,000 MXN en Efectivo",
         prize_value: 1000000,
         ticket_price: 50,
-        total_tickets: 80000,
+        total_tickets: 2000000,
+        reservation_time_minutes: 180,
         template_id: "modern-orange",
         draw_method: "random_org",
         currency_code: "MXN",
@@ -362,16 +369,17 @@ const DEMO_CONFIGS = {
       verified: true,
     },
     raffles: [
-      // Raffle 1: Elegant Purple - Mega Mansion
+      // Raffle 1: Elegant Purple - Mega Mansion (10M boletos - MEGA)
       {
         title: "🏰 MEGA SORTEO - Mansión en Los Cabos",
         prize_name: "Mansión de Lujo en Los Cabos",
         prize_value: 25000000,
         ticket_price: 50,
-        total_tickets: 5000000,
+        total_tickets: 10000000,
+        reservation_time_minutes: 480,
         template_id: "elegant-purple",
         draw_method: "lottery_nacional",
-        lottery_digits: 5,
+        lottery_digits: 7,
         lottery_draw_number: "12345",
         livestream_url: "https://youtube.com/live/megasorteo-mansion",
         currency_code: "MXN",
@@ -421,16 +429,17 @@ const DEMO_CONFIGS = {
         prize_terms: "Sorteo autorizado por SEGOB. Mansión incluye escrituración completa, mobiliario, 2 años de mantenimiento. Consulta bases completas.",
         sold_percentage: 3,
       } as RaffleConfig,
-      // Raffle 2: Elegant Red - Ferrari
+      // Raffle 2: Elegant Red - Ferrari (7M boletos)
       {
         title: "🏎️ Ferrari 296 GTB 2027",
         prize_name: "Ferrari 296 GTB",
         prize_value: 8500000,
         ticket_price: 100,
-        total_tickets: 500000,
+        total_tickets: 7000000,
+        reservation_time_minutes: 360,
         template_id: "elegant-red",
         draw_method: "lottery_nacional",
-        lottery_digits: 5,
+        lottery_digits: 7,
         lottery_draw_number: "29696",
         livestream_url: "https://youtube.com/live/sorteo-ferrari",
         currency_code: "MXN",
@@ -467,13 +476,14 @@ const DEMO_CONFIGS = {
         prize_terms: "Ferrari 296 GTB nuevo. Incluye factura, placas, tenencia, seguro anual y primer servicio. Solo para mayores de 21 años.",
         sold_percentage: 15,
       } as RaffleConfig,
-      // Raffle 3: Elegant (dark) - Watches Collection
+      // Raffle 3: Elegant (dark) - Watches Collection (5M boletos)
       {
         title: "⌚ Colección de Relojes de Lujo",
         prize_name: "5 Relojes de Lujo",
         prize_value: 2500000,
         ticket_price: 80,
-        total_tickets: 200000,
+        total_tickets: 5000000,
+        reservation_time_minutes: 240,
         template_id: "elegant",
         draw_method: "random_org",
         currency_code: "MXN",
@@ -714,7 +724,7 @@ Deno.serve(async (req) => {
           prize_terms: raffleConfig.prize_terms,
           lucky_numbers_enabled: true,
           auto_publish_result: true,
-          reservation_time_minutes: 30,
+          reservation_time_minutes: raffleConfig.reservation_time_minutes,
           livestream_url: raffleConfig.livestream_url,
           numbering_config: numberingConfig,
         })
