@@ -306,6 +306,11 @@ function secureShuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+export interface RandomTicketsResult {
+  tickets: string[];
+  indices: number[];
+}
+
 export function useRandomAvailableTickets() {
   return useMutation({
     mutationFn: async ({
@@ -316,7 +321,7 @@ export function useRandomAvailableTickets() {
       raffleId: string;
       count: number;
       excludeNumbers?: string[];
-    }) => {
+    }): Promise<RandomTicketsResult> => {
       // For large quantities (>100), use the edge function for better performance
       if (count > 100) {
         if (import.meta.env.DEV) console.log(`Using edge function for ${count} random tickets`);
@@ -346,7 +351,10 @@ export function useRandomAvailableTickets() {
           console.warn(`Only ${data.selected.length} tickets available, requested ${count}`);
         }
 
-        return data.selected as string[];
+        return {
+          tickets: data.selected as string[],
+          indices: (data.indices || []) as number[],
+        };
       }
 
       // For small counts (<=100), use virtual tickets approach
@@ -361,7 +369,7 @@ export function useRandomAvailableTickets() {
       
       // Filter to only available tickets
       const availableTickets = (virtualTickets || []).filter(
-        (t: { status: string; ticket_number: string }) => 
+        (t: { status: string; ticket_number: string; ticket_index: number }) => 
           t.status === 'available' && !excludeNumbers.includes(t.ticket_number)
       );
 
@@ -371,7 +379,12 @@ export function useRandomAvailableTickets() {
 
       // Secure shuffle
       const shuffled = secureShuffleArray(availableTickets);
-      return shuffled.slice(0, count).map((t: { ticket_number: string }) => t.ticket_number);
+      const selected = shuffled.slice(0, count);
+      
+      return {
+        tickets: selected.map((t: { ticket_number: string }) => t.ticket_number),
+        indices: selected.map((t: { ticket_index: number }) => t.ticket_index),
+      };
     },
   });
 }
