@@ -24,6 +24,13 @@ export interface PaymentMethod {
   location: string | null;
   schedule: string | null;
   group_id: string | null;
+  // New fields for custom methods and multi-country support
+  custom_label: string | null;
+  custom_identifier: string | null;
+  custom_identifier_label: string | null;
+  custom_qr_url: string | null;
+  currency: string | null;
+  country: string | null;
   created_at: string;
   updated_at: string;
 }
