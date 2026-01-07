@@ -349,44 +349,29 @@ export function useRandomAvailableTickets() {
         return data.selected as string[];
       }
 
-      // For small counts (<=100), use client-side approach with sold_tickets
-      const { count: availableCount, error: countError } = await supabase
-        .from('sold_tickets')
-        .select('*', { count: 'exact', head: true })
-        .eq('raffle_id', raffleId)
-        .eq('status', 'available');
+      // For small counts (<=100), use virtual tickets approach
+      // Fetch a page of virtual tickets and filter for available ones
+      const { data: virtualTickets, error: ticketsError } = await supabase.rpc('get_virtual_tickets', {
+        p_raffle_id: raffleId,
+        p_page: 1,
+        p_page_size: Math.min(count * 10, 1000), // Get more than needed to account for sold/reserved
+      });
 
-      if (countError) throw countError;
-      if (!availableCount || availableCount < count) {
-        throw new Error(`Solo hay ${availableCount || 0} boletos disponibles`);
+      if (ticketsError) throw ticketsError;
+      
+      // Filter to only available tickets
+      const availableTickets = (virtualTickets || []).filter(
+        (t: { status: string; ticket_number: string }) => 
+          t.status === 'available' && !excludeNumbers.includes(t.ticket_number)
+      );
+
+      if (availableTickets.length < count) {
+        throw new Error(`Solo hay ${availableTickets.length} boletos disponibles`);
       }
 
-      // Fetch enough tickets to shuffle
-      const { data, error } = await supabase
-        .from('sold_tickets')
-        .select('ticket_number')
-        .eq('raffle_id', raffleId)
-        .eq('status', 'available')
-        .limit(Math.min(count * 3, 1000));
-
-      if (error) throw error;
-      if (!data || data.length < count) {
-        throw new Error(`Solo hay ${data?.length || 0} boletos disponibles`);
-      }
-
-      // Filter out excluded numbers
-      let filtered = data;
-      if (excludeNumbers.length > 0) {
-        const excludeSet = new Set(excludeNumbers);
-        filtered = data.filter(t => !excludeSet.has(t.ticket_number));
-      }
-
-      if (filtered.length < count) {
-        throw new Error(`Solo hay ${filtered.length} boletos disponibles después de excluir los seleccionados`);
-      }
-
-      const shuffled = secureShuffleArray(filtered);
-      return shuffled.slice(0, count).map(t => t.ticket_number);
+      // Secure shuffle
+      const shuffled = secureShuffleArray(availableTickets);
+      return shuffled.slice(0, count).map((t: { ticket_number: string }) => t.ticket_number);
     },
   });
 }
@@ -402,18 +387,34 @@ export function useCheckTicketsAvailability() {
     }): Promise<string[]> => {
       if (ticketNumbers.length === 0) return [];
 
+      // In virtual model, a ticket is available if it does NOT exist in sold_tickets
+      // or if it exists with expired reservation
       const { data, error } = await supabase
         .from('sold_tickets')
-        .select('ticket_number, status')
+        .select('ticket_number, status, reserved_until')
         .eq('raffle_id', raffleId)
         .in('ticket_number', ticketNumbers);
 
       if (error) throw error;
 
-      // Return only the available ticket numbers
-      return (data || [])
-        .filter(t => t.status === 'available')
-        .map(t => t.ticket_number);
+      // Build a set of unavailable tickets
+      const unavailableSet = new Set(
+        (data || [])
+          .filter(t => {
+            // Sold tickets are not available
+            if (t.status === 'sold') return true;
+            // Reserved tickets are unavailable ONLY if not expired
+            if (t.status === 'reserved') {
+              const reservedUntil = t.reserved_until ? new Date(t.reserved_until) : null;
+              return reservedUntil && reservedUntil > new Date();
+            }
+            return false;
+          })
+          .map(t => t.ticket_number)
+      );
+
+      // Return tickets that are NOT in the unavailable set (they're available)
+      return ticketNumbers.filter(tn => !unavailableSet.has(tn));
     },
   });
 }
@@ -482,17 +483,17 @@ export function usePreviewRaffle(slug: string | undefined, enabled: boolean = fa
       if (error) throw error;
       if (!raffle) return null;
 
-      // Get ticket counts - user has access via RLS
-      const { data: ticketStats, error: statsError } = await supabase
-        .from('sold_tickets')
-        .select('status')
-        .eq('raffle_id', raffle.id);
+      // Get ticket counts using virtual RPC
+      const { data: countsData, error: statsError } = await supabase.rpc('get_virtual_ticket_counts', {
+        p_raffle_id: raffle.id,
+      });
 
       if (statsError) throw statsError;
 
-      const ticketsSold = ticketStats?.filter(t => t.status === 'sold').length || 0;
-      const ticketsReserved = ticketStats?.filter(t => t.status === 'reserved').length || 0;
-      const ticketsAvailable = ticketStats?.filter(t => t.status === 'available').length || 0;
+      const counts = countsData?.[0];
+      const ticketsSold = counts?.sold_count || 0;
+      const ticketsReserved = counts?.reserved_count || 0;
+      const ticketsAvailable = counts?.available_count || 0;
 
       // Get packages
       const { data: packages } = await supabase

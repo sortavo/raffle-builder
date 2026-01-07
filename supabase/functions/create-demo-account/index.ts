@@ -443,29 +443,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 7: Generate tickets via generate-tickets function (SINGLE SOURCE OF TRUTH)
-    logStep('Calling generate-tickets function', { raffle_id: raffle.id, total: config.raffle.total_tickets });
-    
-    const generateResponse = await fetch(`${supabaseUrl}/functions/v1/generate-tickets`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-      },
-      body: JSON.stringify({
-        raffle_id: raffle.id,
-        force_rebuild: false
-      })
+    // Step 7: Virtual tickets - no generation needed!
+    // With virtual tickets, tickets are computed on-demand from raffle.total_tickets
+    // We only insert into sold_tickets when a ticket is actually reserved/sold
+    logStep('Virtual tickets model - skipping legacy generation', { 
+      raffle_id: raffle.id, 
+      total: config.raffle.total_tickets,
+      note: 'Tickets are virtual - only sold/reserved tickets are stored in sold_tickets'
     });
-
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      logStep('Generate tickets call failed', { error: errorText });
-      throw new Error(`Failed to start ticket generation: ${errorText}`);
-    }
-
-    const generateResult = await generateResponse.json();
-    logStep('Generate tickets response', generateResult);
 
     // Step 8: Simulate some sales using virtual tickets model
     // With virtual tickets, we insert directly into sold_tickets table
@@ -507,10 +492,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Return success with generation status
-    const isAsync = generateResult.async === true;
-    const jobId = generateResult.job_id;
-    
+    // Return success - virtual tickets are ready immediately
     return new Response(JSON.stringify({
       success: true,
       demo_key,
@@ -532,16 +514,12 @@ Deno.serve(async (req) => {
         packages_count: config.raffle.packages.length,
       },
       ticket_generation: {
-        async: isAsync,
-        job_id: jobId || null,
-        status: isAsync ? 'pending' : 'completed',
-        message: isAsync 
-          ? `Ticket generation job created (${config.raffle.total_tickets.toLocaleString()} tickets). The cron job will process it automatically.`
-          : `All ${config.raffle.total_tickets.toLocaleString()} tickets generated successfully.`
+        async: false,
+        job_id: null,
+        status: 'virtual',
+        message: `Virtual tickets enabled - ${config.raffle.total_tickets.toLocaleString()} tickets available on-demand.`
       },
-      message: isAsync 
-        ? `Demo account created. Ticket generation in progress (job: ${jobId}).`
-        : 'Demo account created successfully with all tickets generated.',
+      message: 'Demo account created successfully with virtual tickets.',
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

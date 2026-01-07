@@ -58,7 +58,7 @@ export const useTickets = (raffleId: string | undefined) => {
     });
   };
 
-  // Get ticket stats using count queries (no 1000 row limit)
+  // Get ticket stats using virtual tickets RPC (correct for virtual model)
   const useTicketStats = () => {
     return useQuery({
       queryKey: ['ticket-stats', raffleId],
@@ -67,40 +67,26 @@ export const useTickets = (raffleId: string | undefined) => {
           return { available: 0, reserved: 0, sold: 0, canceled: 0, total: 0 };
         }
 
-        // Use parallel count queries to avoid the 1000 row limit
-        const [availableRes, reservedRes, soldRes, canceledRes, totalRes] = await Promise.all([
-          supabase
-            .from('sold_tickets')
-            .select('*', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'available'),
-          supabase
-            .from('sold_tickets')
-            .select('*', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'reserved'),
-          supabase
-            .from('sold_tickets')
-            .select('*', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId)
-            .eq('status', 'sold'),
+        // Use virtual ticket counts RPC - this correctly calculates available from total
+        const [countsRes, canceledRes] = await Promise.all([
+          supabase.rpc('get_virtual_ticket_counts', { p_raffle_id: raffleId }),
           supabase
             .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId)
             .eq('status', 'canceled'),
-          supabase
-            .from('sold_tickets')
-            .select('*', { count: 'exact', head: true })
-            .eq('raffle_id', raffleId),
         ]);
 
+        if (countsRes.error) throw countsRes.error;
+        
+        const counts = countsRes.data?.[0];
+
         return {
-          available: availableRes.count || 0,
-          reserved: reservedRes.count || 0,
-          sold: soldRes.count || 0,
+          available: counts?.available_count || 0,
+          reserved: counts?.reserved_count || 0,
+          sold: counts?.sold_count || 0,
           canceled: canceledRes.count || 0,
-          total: totalRes.count || 0,
+          total: counts?.total_count || 0,
         };
       },
       enabled: !!raffleId,
