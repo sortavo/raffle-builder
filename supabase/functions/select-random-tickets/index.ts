@@ -130,22 +130,49 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}`);
 
     // 2. Get ALL unavailable ticket indices (sold + reserved that haven't expired)
-    // This is efficient because sold_tickets only contains sold/reserved tickets, not all tickets
-    const { data: unavailableTickets, error: unavailableError } = await supabase
-      .from('sold_tickets')
-      .select('ticket_index')
-      .eq('raffle_id', raffle_id)
-      .or('status.eq.sold,and(status.eq.reserved,reserved_until.gt.now())');
+    // IMPORTANT: default API limit is 1000 rows, so we must paginate.
+    const nowIso = new Date().toISOString();
+    const PAGE_SIZE = 1000;
 
-    if (unavailableError) {
-      console.error('[SELECT-RANDOM] Error fetching unavailable tickets:', unavailableError);
-      throw unavailableError;
-    }
+    const fetchAllIndices = async (
+      status: 'sold' | 'reserved'
+    ): Promise<number[]> => {
+      const indices: number[] = [];
+      let from = 0;
 
-    // Build set of unavailable indices
-    const unavailableSet = new Set<number>(
-      (unavailableTickets || []).map(t => t.ticket_index)
-    );
+      while (true) {
+        let q = supabase
+          .from('sold_tickets')
+          .select('ticket_index')
+          .eq('raffle_id', raffle_id)
+          .eq('status', status)
+          .order('ticket_index', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (status === 'reserved') {
+          q = q.gt('reserved_until', nowIso);
+        }
+
+        const { data, error } = await q;
+        if (error) throw error;
+
+        const batch = (data || []) as { ticket_index: number }[];
+        if (batch.length === 0) break;
+
+        indices.push(...batch.map((t) => t.ticket_index));
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+
+      return indices;
+    };
+
+    const [soldIndices, reservedActiveIndices] = await Promise.all([
+      fetchAllIndices('sold'),
+      fetchAllIndices('reserved'),
+    ]);
+
+    const unavailableSet = new Set<number>([...soldIndices, ...reservedActiveIndices]);
 
     // Also exclude numbers already in exclude_numbers (convert to indices)
     const excludeSet = new Set<string>(exclude_numbers);
