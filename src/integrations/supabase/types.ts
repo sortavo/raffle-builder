@@ -743,6 +743,7 @@ export type Database = {
           bank_select_value: string | null
           card_number: string | null
           clabe: string | null
+          country: string | null
           created_at: string | null
           currency: string | null
           custom_identifier: string | null
@@ -772,6 +773,7 @@ export type Database = {
           bank_select_value?: string | null
           card_number?: string | null
           clabe?: string | null
+          country?: string | null
           created_at?: string | null
           currency?: string | null
           custom_identifier?: string | null
@@ -801,6 +803,7 @@ export type Database = {
           bank_select_value?: string | null
           card_number?: string | null
           clabe?: string | null
+          country?: string | null
           created_at?: string | null
           currency?: string | null
           custom_identifier?: string | null
