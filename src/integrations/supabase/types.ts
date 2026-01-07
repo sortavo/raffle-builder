@@ -744,6 +744,11 @@ export type Database = {
           card_number: string | null
           clabe: string | null
           created_at: string | null
+          currency: string | null
+          custom_identifier: string | null
+          custom_identifier_label: string | null
+          custom_label: string | null
+          custom_qr_url: string | null
           display_order: number | null
           enabled: boolean | null
           group_id: string | null
@@ -768,6 +773,11 @@ export type Database = {
           card_number?: string | null
           clabe?: string | null
           created_at?: string | null
+          currency?: string | null
+          custom_identifier?: string | null
+          custom_identifier_label?: string | null
+          custom_label?: string | null
+          custom_qr_url?: string | null
           display_order?: number | null
           enabled?: boolean | null
           group_id?: string | null
@@ -792,6 +802,11 @@ export type Database = {
           card_number?: string | null
           clabe?: string | null
           created_at?: string | null
+          currency?: string | null
+          custom_identifier?: string | null
+          custom_identifier_label?: string | null
+          custom_label?: string | null
+          custom_qr_url?: string | null
           display_order?: number | null
           enabled?: boolean | null
           group_id?: string | null

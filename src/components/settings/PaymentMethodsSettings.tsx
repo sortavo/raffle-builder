@@ -53,7 +53,10 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Smartphone,
+  Globe,
+  QrCode
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -86,7 +89,7 @@ import {
 const PAYMENT_SUBTYPES = [
   // Bank
   { id: 'bank_deposit', label: 'Depósito en ventanilla', icon: Landmark, category: 'bank', description: 'Depósito directo en sucursal bancaria' },
-  { id: 'bank_transfer', label: 'Transferencia SPEI', icon: ArrowRightLeft, category: 'bank', description: 'Transferencia electrónica interbancaria' },
+  { id: 'bank_transfer', label: 'Transferencia SPEI/CBU', icon: ArrowRightLeft, category: 'bank', description: 'Transferencia electrónica interbancaria' },
   // Store
   { id: 'oxxo', label: 'OXXO Pay', icon: Store, category: 'store', description: 'Pago en tiendas OXXO' },
   { id: 'pharmacy', label: 'Farmacias', icon: Pill, category: 'store', description: 'Farmacias Guadalajara, del Ahorro, etc.' },
@@ -94,8 +97,14 @@ const PAYMENT_SUBTYPES = [
   // Digital
   { id: 'paypal', label: 'PayPal', icon: CreditCard, category: 'digital', description: 'Pago con cuenta PayPal' },
   { id: 'mercado_pago', label: 'Mercado Pago', icon: Wallet, category: 'digital', description: 'Link de pago Mercado Pago' },
+  { id: 'zelle', label: 'Zelle', icon: Smartphone, category: 'digital', description: 'Transferencia Zelle (USA)' },
+  { id: 'venmo', label: 'Venmo', icon: Smartphone, category: 'digital', description: 'Pago con Venmo (USA)' },
+  { id: 'cash_app', label: 'Cash App', icon: Smartphone, category: 'digital', description: 'Pago con Cash App (USA)' },
   // Cash
   { id: 'cash_in_person', label: 'Efectivo en persona', icon: HandCoins, category: 'cash', description: 'Entrega de efectivo en persona' },
+  { id: 'western_union', label: 'Western Union/Remesas', icon: Globe, category: 'cash', description: 'Envío de dinero internacional' },
+  // Custom/Other
+  { id: 'custom', label: 'Método Personalizado', icon: Plus, category: 'other', description: 'Configura tu propio método de pago' },
 ] as const;
 
 type PaymentSubtype = typeof PAYMENT_SUBTYPES[number]['id'];
@@ -125,6 +134,12 @@ interface EditingMethod {
   schedule: string;
   // Grouping
   group_id: string | null;
+  // Custom method fields
+  custom_label: string;
+  custom_identifier: string;
+  custom_identifier_label: string;
+  custom_qr_url: string;
+  currency: string;
 }
 
 const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
@@ -146,6 +161,11 @@ const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
     location: "",
     schedule: "",
     group_id: null,
+    custom_label: "",
+    custom_identifier: "",
+    custom_identifier_label: "email",
+    custom_qr_url: "",
+    currency: "MXN",
   };
 };
 
@@ -395,6 +415,11 @@ export function PaymentMethodsSettings() {
     payment_link: '',
     location: '',
     schedule: '',
+    custom_label: '',
+    custom_identifier: '',
+    custom_identifier_label: 'email',
+    custom_qr_url: '',
+    currency: 'MXN',
   });
   const [deleteConfirmData, setDeleteConfirmData] = useState<{ groupId: string | null; methodIds: string[] } | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -448,7 +473,13 @@ export function PaymentMethodsSettings() {
     const hasPaypal = subtypes.includes('paypal');
     const hasMercadoPago = subtypes.includes('mercado_pago');
     const hasCash = subtypes.includes('cash_in_person');
-    return { hasBank, hasStore, hasPaypal, hasMercadoPago, hasCash };
+    const hasZelle = subtypes.includes('zelle');
+    const hasVenmo = subtypes.includes('venmo');
+    const hasCashApp = subtypes.includes('cash_app');
+    const hasWesternUnion = subtypes.includes('western_union');
+    const hasCustom = subtypes.includes('custom');
+    const hasDigitalWallet = hasZelle || hasVenmo || hasCashApp;
+    return { hasBank, hasStore, hasPaypal, hasMercadoPago, hasCash, hasZelle, hasVenmo, hasCashApp, hasWesternUnion, hasCustom, hasDigitalWallet };
   };
 
   const validateNewMethodData = (): Record<string, string> => {
@@ -527,7 +558,7 @@ export function PaymentMethodsSettings() {
       await createMethod.mutateAsync({
         type,
         subtype,
-        name: subtypeInfo?.label || 'Método de pago',
+        name: subtype === 'custom' ? (newMethodData.custom_label || 'Método Personalizado') : (subtypeInfo?.label || 'Método de pago'),
         instructions: newMethodData.instructions || null,
         enabled: true,
         display_order: methods.length,
@@ -543,7 +574,13 @@ export function PaymentMethodsSettings() {
         location: newMethodData.location || null,
         schedule: newMethodData.schedule || null,
         group_id: selectedSubtypes.length > 1 ? groupId : null,
-      });
+        // New custom fields
+        custom_label: newMethodData.custom_label || null,
+        custom_identifier: newMethodData.custom_identifier || null,
+        custom_identifier_label: newMethodData.custom_identifier_label || null,
+        custom_qr_url: newMethodData.custom_qr_url || null,
+        currency: newMethodData.currency || 'MXN',
+      } as any);
     }
     
     // Reset dialog state
@@ -601,7 +638,7 @@ export function PaymentMethodsSettings() {
   };
 
   const handleEditMethod = (method: PaymentMethod) => {
-    const m = method;
+    const m = method as any;
     const subtype = m.subtype || (method.type === 'bank_transfer' ? 'bank_transfer' : method.type === 'cash' ? 'cash_in_person' : 'paypal');
     
     // Determine if it's a custom bank (not in predefined list)
@@ -625,6 +662,12 @@ export function PaymentMethodsSettings() {
       location: m.location || "",
       schedule: m.schedule || "",
       group_id: method.group_id || null,
+      // Custom fields
+      custom_label: m.custom_label || "",
+      custom_identifier: m.custom_identifier || "",
+      custom_identifier_label: m.custom_identifier_label || "email",
+      custom_qr_url: m.custom_qr_url || "",
+      currency: m.currency || "MXN",
     });
     setValidationErrors({});
   };
@@ -824,6 +867,7 @@ export function PaymentMethodsSettings() {
     store: PAYMENT_SUBTYPES.filter(s => s.category === 'store'),
     digital: PAYMENT_SUBTYPES.filter(s => s.category === 'digital'),
     cash: PAYMENT_SUBTYPES.filter(s => s.category === 'cash'),
+    other: PAYMENT_SUBTYPES.filter(s => s.category === 'other'),
   };
 
   const renderDynamicFields = () => {
@@ -1094,6 +1138,172 @@ export function PaymentMethodsSettings() {
       );
     }
 
+    // Western Union fields
+    if (subtype === 'western_union') {
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Nombre del Receptor</Label>
+            <Input
+              value={editingMethod.account_holder}
+              onChange={(e) => setEditingMethod({ ...editingMethod, account_holder: e.target.value })}
+              placeholder="Nombre completo como aparece en identificación"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Ciudad / País
+            </Label>
+            <Input
+              value={editingMethod.location}
+              onChange={(e) => setEditingMethod({ ...editingMethod, location: e.target.value })}
+              placeholder="Ciudad, País"
+            />
+          </div>
+        </>
+      );
+    }
+
+    // Zelle, Venmo, Cash App fields
+    if (subtype === 'zelle' || subtype === 'venmo' || subtype === 'cash_app') {
+      const placeholders: Record<string, string> = {
+        zelle: 'tu@email.com o (555) 123-4567',
+        venmo: '@usuario',
+        cash_app: '$usuario',
+      };
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>
+              {subtype === 'zelle' ? 'Email o Teléfono' : subtype === 'venmo' ? 'Usuario Venmo' : 'Usuario Cash App'}
+            </Label>
+            <Input
+              value={editingMethod.custom_identifier}
+              onChange={(e) => setEditingMethod({ ...editingMethod, custom_identifier: e.target.value })}
+              placeholder={placeholders[subtype]}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nombre del Titular</Label>
+            <Input
+              value={editingMethod.account_holder}
+              onChange={(e) => setEditingMethod({ ...editingMethod, account_holder: e.target.value })}
+              placeholder="Nombre que aparece en la cuenta"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Moneda</Label>
+            <Select 
+              value={editingMethod.currency || 'USD'} 
+              onValueChange={(v) => setEditingMethod({ ...editingMethod, currency: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">🇺🇸 USD - Dólar</SelectItem>
+                <SelectItem value="MXN">🇲🇽 MXN - Peso Mexicano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      );
+    }
+
+    // Custom method fields
+    if (subtype === 'custom') {
+      return (
+        <>
+          <div className="space-y-2">
+            <Label>Nombre del Método *</Label>
+            <Input
+              value={editingMethod.custom_label}
+              onChange={(e) => setEditingMethod({ ...editingMethod, custom_label: e.target.value })}
+              placeholder="Ej: Bitcoin, Crypto, Nequi, Daviplata..."
+              className={validationErrors.custom_label ? 'border-destructive' : ''}
+            />
+            {validationErrors.custom_label && (
+              <p className="text-xs text-destructive">{validationErrors.custom_label}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tipo de Identificador</Label>
+            <Select 
+              value={editingMethod.custom_identifier_label || 'email'} 
+              onValueChange={(v) => setEditingMethod({ ...editingMethod, custom_identifier_label: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="phone">Teléfono</SelectItem>
+                <SelectItem value="username">@Usuario</SelectItem>
+                <SelectItem value="account">Número de cuenta</SelectItem>
+                <SelectItem value="wallet">Dirección de wallet</SelectItem>
+                <SelectItem value="other">Otro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Valor del Identificador *</Label>
+            <Input
+              value={editingMethod.custom_identifier}
+              onChange={(e) => setEditingMethod({ ...editingMethod, custom_identifier: e.target.value })}
+              placeholder="tu@email.com, @usuario, 0x123..."
+              className={validationErrors.custom_identifier ? 'border-destructive' : ''}
+            />
+            {validationErrors.custom_identifier && (
+              <p className="text-xs text-destructive">{validationErrors.custom_identifier}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Moneda</Label>
+            <Select 
+              value={editingMethod.currency || 'MXN'} 
+              onValueChange={(v) => setEditingMethod({ ...editingMethod, currency: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MXN">🇲🇽 MXN - Peso Mexicano</SelectItem>
+                <SelectItem value="USD">🇺🇸 USD - Dólar</SelectItem>
+                <SelectItem value="COP">🇨🇴 COP - Peso Colombiano</SelectItem>
+                <SelectItem value="ARS">🇦🇷 ARS - Peso Argentino</SelectItem>
+                <SelectItem value="CLP">🇨🇱 CLP - Peso Chileno</SelectItem>
+                <SelectItem value="PEN">🇵🇪 PEN - Sol Peruano</SelectItem>
+                <SelectItem value="BRL">🇧🇷 BRL - Real</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <QrCode className="h-4 w-4" />
+              URL de Código QR (opcional)
+            </Label>
+            <Input
+              value={editingMethod.custom_qr_url}
+              onChange={(e) => setEditingMethod({ ...editingMethod, custom_qr_url: e.target.value })}
+              placeholder="https://..."
+              className={validationErrors.custom_qr_url ? 'border-destructive' : ''}
+            />
+            {validationErrors.custom_qr_url && (
+              <p className="text-xs text-destructive">{validationErrors.custom_qr_url}</p>
+            )}
+          </div>
+        </>
+      );
+    }
+
     return null;
   };
 
@@ -1324,6 +1534,38 @@ export function PaymentMethodsSettings() {
                     })}
                   </div>
                 </div>
+
+                {/* Other/Custom methods */}
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                    <Plus className="h-4 w-4" /> Otros Métodos
+                  </h4>
+                  <div className="space-y-2">
+                    {subtypesByCategory.other.map(subtype => {
+                      const isSelected = selectedSubtypes.includes(subtype.id);
+                      return (
+                        <button
+                          key={subtype.id}
+                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "hover:border-muted-foreground/50"
+                          }`}
+                          onClick={() => toggleSubtypeSelection(subtype.id)}
+                        >
+                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                          </div>
+                          <subtype.icon className="h-5 w-5 shrink-0" />
+                          <div className="text-left">
+                            <p className="font-medium text-sm">{subtype.label}</p>
+                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               {validationErrors.limit && (
                 <p className="text-sm text-destructive">{validationErrors.limit}</p>
@@ -1364,7 +1606,7 @@ export function PaymentMethodsSettings() {
 
                 {/* Dynamic fields based on selected categories */}
                 {(() => {
-                  const { hasBank, hasStore, hasPaypal, hasMercadoPago, hasCash } = getFieldCategories(selectedSubtypes);
+                  const { hasBank, hasStore, hasPaypal, hasMercadoPago, hasCash, hasDigitalWallet, hasWesternUnion, hasCustom } = getFieldCategories(selectedSubtypes);
                   const isOtroBank = newMethodData.bank_select_value === 'Otro';
                   
                   return (
@@ -1566,6 +1808,100 @@ export function PaymentMethodsSettings() {
                               onChange={(e) => setNewMethodData(prev => ({ ...prev, schedule: e.target.value }))}
                               placeholder="Lunes a Viernes 9am - 6pm"
                             />
+                          </div>
+                        </>
+                      )}
+
+                      {/* Digital wallet fields (Zelle, Venmo, Cash App) */}
+                      {hasDigitalWallet && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>Email, Teléfono o Usuario</Label>
+                            <Input
+                              value={newMethodData.custom_identifier || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, custom_identifier: e.target.value }))}
+                              placeholder="tu@email.com, (555) 123-4567, @usuario"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Nombre del Titular</Label>
+                            <Input
+                              value={newMethodData.account_holder || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, account_holder: e.target.value }))}
+                              placeholder="Nombre que aparece en la cuenta"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Moneda</Label>
+                            <Select 
+                              value={newMethodData.currency || 'USD'} 
+                              onValueChange={(v) => setNewMethodData(prev => ({ ...prev, currency: v }))}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="USD">🇺🇸 USD</SelectItem>
+                                <SelectItem value="MXN">🇲🇽 MXN</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Western Union fields */}
+                      {hasWesternUnion && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>Nombre del Receptor</Label>
+                            <Input
+                              value={newMethodData.account_holder || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, account_holder: e.target.value }))}
+                              placeholder="Nombre como aparece en identificación"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Ciudad / País</Label>
+                            <Input
+                              value={newMethodData.location || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, location: e.target.value }))}
+                              placeholder="Ciudad, País"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {/* Custom method fields */}
+                      {hasCustom && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>Nombre del Método *</Label>
+                            <Input
+                              value={newMethodData.custom_label || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, custom_label: e.target.value }))}
+                              placeholder="Ej: Bitcoin, Nequi, Daviplata..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Identificador (email, teléfono, wallet) *</Label>
+                            <Input
+                              value={newMethodData.custom_identifier || ''}
+                              onChange={(e) => setNewMethodData(prev => ({ ...prev, custom_identifier: e.target.value }))}
+                              placeholder="tu@email.com, @usuario, 0x123..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Moneda</Label>
+                            <Select 
+                              value={newMethodData.currency || 'MXN'} 
+                              onValueChange={(v) => setNewMethodData(prev => ({ ...prev, currency: v }))}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MXN">🇲🇽 MXN</SelectItem>
+                                <SelectItem value="USD">🇺🇸 USD</SelectItem>
+                                <SelectItem value="COP">🇨🇴 COP</SelectItem>
+                                <SelectItem value="ARS">🇦🇷 ARS</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </>
                       )}
