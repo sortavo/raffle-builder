@@ -2021,6 +2021,16 @@ export type Database = {
         Args: { p_domain_id: string; p_organization_id: string }
         Returns: boolean
       }
+      validate_and_fix_job_batch: {
+        Args: { p_job_id: string }
+        Returns: {
+          job_id: string
+          new_batch: number
+          old_batch: number
+          status: string
+          was_corrupted: boolean
+        }[]
+      }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
