@@ -56,7 +56,8 @@ import {
   ChevronUp,
   Smartphone,
   Globe,
-  QrCode
+  QrCode,
+  ArrowLeft
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -84,33 +85,22 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { 
+  COUNTRY_PAYMENT_CONFIGS, 
+  getAllCountries, 
+  getCountryConfig,
+  CATEGORY_LABELS,
+  type CountryPaymentConfig,
+  type PaymentMethodConfig
+} from "@/lib/country-payment-methods";
 
-// Payment subtypes with categories
-const PAYMENT_SUBTYPES = [
-  // Bank
-  { id: 'bank_deposit', label: 'Depósito en ventanilla', icon: Landmark, category: 'bank', description: 'Depósito directo en sucursal bancaria' },
-  { id: 'bank_transfer', label: 'Transferencia SPEI/CBU', icon: ArrowRightLeft, category: 'bank', description: 'Transferencia electrónica interbancaria' },
-  // Store
-  { id: 'oxxo', label: 'OXXO Pay', icon: Store, category: 'store', description: 'Pago en tiendas OXXO' },
-  { id: 'pharmacy', label: 'Farmacias', icon: Pill, category: 'store', description: 'Farmacias Guadalajara, del Ahorro, etc.' },
-  { id: 'convenience_store', label: '7-Eleven / Otras tiendas', icon: ShoppingBag, category: 'store', description: 'Tiendas de conveniencia' },
-  // Digital
-  { id: 'paypal', label: 'PayPal', icon: CreditCard, category: 'digital', description: 'Pago con cuenta PayPal' },
-  { id: 'mercado_pago', label: 'Mercado Pago', icon: Wallet, category: 'digital', description: 'Link de pago Mercado Pago' },
-  { id: 'zelle', label: 'Zelle', icon: Smartphone, category: 'digital', description: 'Transferencia Zelle (USA)' },
-  { id: 'venmo', label: 'Venmo', icon: Smartphone, category: 'digital', description: 'Pago con Venmo (USA)' },
-  { id: 'cash_app', label: 'Cash App', icon: Smartphone, category: 'digital', description: 'Pago con Cash App (USA)' },
-  // Cash
-  { id: 'cash_in_person', label: 'Efectivo en persona', icon: HandCoins, category: 'cash', description: 'Entrega de efectivo en persona' },
-  { id: 'western_union', label: 'Western Union/Remesas', icon: Globe, category: 'cash', description: 'Envío de dinero internacional' },
-  // Custom/Other
-  { id: 'custom', label: 'Método Personalizado', icon: Plus, category: 'other', description: 'Configura tu propio método de pago' },
-] as const;
+type PaymentSubtype = string;
 
-type PaymentSubtype = typeof PAYMENT_SUBTYPES[number]['id'];
-
-// Mexican banks list (for iteration)
-const MEXICAN_BANKS_LIST = [...BANK_NAMES, 'Otro'] as const;
+// Get bank list for a country (currently Mexican banks as fallback)
+const getBankListForCountry = (countryCode: string): readonly string[] => {
+  // Could expand this to have country-specific bank lists
+  return [...BANK_NAMES, 'Otro'] as const;
+};
 
 interface EditingMethod {
   id?: string;
@@ -119,8 +109,8 @@ interface EditingMethod {
   instructions: string;
   enabled: boolean;
   // Bank selection
-  bank_select_value: string; // The dropdown value ('BBVA', 'Banamex', 'Otro', etc.)
-  bank_name: string; // The actual bank name (same as select or custom text)
+  bank_select_value: string;
+  bank_name: string;
   account_number: string;
   clabe: string;
   account_holder: string;
@@ -140,13 +130,19 @@ interface EditingMethod {
   custom_identifier_label: string;
   custom_qr_url: string;
   currency: string;
+  // Country
+  country: string;
 }
 
-const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
-  const subtypeInfo = PAYMENT_SUBTYPES.find(s => s.id === subtype);
+const getDefaultEditingMethod = (subtype: PaymentSubtype, countryCode: string = 'MX'): EditingMethod => {
+  const config = getCountryConfig(countryCode);
+  const methodInfo = config ? 
+    [...config.methods.bank, ...config.methods.store, ...config.methods.digital, ...config.methods.cash].find(m => m.id === subtype) :
+    null;
+  
   return {
     subtype,
-    name: subtypeInfo?.label || 'Nuevo método',
+    name: methodInfo?.label || 'Nuevo método',
     instructions: "",
     enabled: true,
     bank_select_value: "",
@@ -165,22 +161,43 @@ const getDefaultEditingMethod = (subtype: PaymentSubtype): EditingMethod => {
     custom_identifier: "",
     custom_identifier_label: "email",
     custom_qr_url: "",
-    currency: "MXN",
+    currency: config?.currency || "MXN",
+    country: countryCode,
   };
 };
 
-const getIcon = (subtype: string | null | undefined) => {
-  const found = PAYMENT_SUBTYPES.find(s => s.id === subtype);
-  if (found) {
-    const Icon = found.icon;
-    return <Icon className="h-5 w-5" />;
+// Helper to get icon for a method - searches across all countries
+const getIcon = (subtype: string | null | undefined, countryCode?: string) => {
+  if (!subtype) return <CreditCard className="h-5 w-5" />;
+  
+  // Search in specified country or all countries
+  const countries = countryCode ? [getCountryConfig(countryCode)].filter(Boolean) : getAllCountries();
+  
+  for (const country of countries) {
+    if (!country) continue;
+    const allMethods = [...country.methods.bank, ...country.methods.store, ...country.methods.digital, ...country.methods.cash];
+    const found = allMethods.find(m => m.id === subtype);
+    if (found) {
+      const Icon = found.icon;
+      return <Icon className="h-5 w-5" />;
+    }
   }
   return <CreditCard className="h-5 w-5" />;
 };
 
-const getSubtypeLabel = (subtype: string | null | undefined) => {
-  const found = PAYMENT_SUBTYPES.find(s => s.id === subtype);
-  return found?.label || 'Método de pago';
+// Helper to get label for a method
+const getSubtypeLabel = (subtype: string | null | undefined, countryCode?: string) => {
+  if (!subtype) return 'Método de pago';
+  
+  const countries = countryCode ? [getCountryConfig(countryCode)].filter(Boolean) : getAllCountries();
+  
+  for (const country of countries) {
+    if (!country) continue;
+    const allMethods = [...country.methods.bank, ...country.methods.store, ...country.methods.digital, ...country.methods.cash];
+    const found = allMethods.find(m => m.id === subtype);
+    if (found) return found.label;
+  }
+  return subtype;
 };
 
 // Validation helpers
@@ -398,8 +415,9 @@ export function PaymentMethodsSettings() {
   const { methods, isLoading, createMethod, updateMethod, deleteMethod, toggleMethod, reorderMethods } = usePaymentMethods();
   const [editingMethod, setEditingMethod] = useState<EditingMethod | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedSubtypes, setSelectedSubtypes] = useState<PaymentSubtype[]>([]);
-  const [addDialogStep, setAddDialogStep] = useState<'select' | 'details'>('select');
+  const [addDialogStep, setAddDialogStep] = useState<'country' | 'select' | 'details'>('country');
   const [newMethodData, setNewMethodData] = useState<Partial<EditingMethod>>({
     name: '',
     instructions: '',
@@ -420,9 +438,19 @@ export function PaymentMethodsSettings() {
     custom_identifier_label: 'email',
     custom_qr_url: '',
     currency: 'MXN',
+    country: 'MX',
   });
   const [deleteConfirmData, setDeleteConfirmData] = useState<{ groupId: string | null; methodIds: string[] } | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>();
+  
+  // Get available countries
+  const availableCountries = useMemo(() => getAllCountries(), []);
+  
+  // Get methods for selected country
+  const countryConfig = useMemo(() => 
+    selectedCountry ? getCountryConfig(selectedCountry) : null, 
+    [selectedCountry]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -547,9 +575,9 @@ export function PaymentMethodsSettings() {
 
     // Create each selected method with shared data and same group_id
     for (const subtype of selectedSubtypes) {
-      const subtypeInfo = PAYMENT_SUBTYPES.find(s => s.id === subtype);
+      const methodLabel = getSubtypeLabel(subtype, selectedCountry);
       let type: 'bank_transfer' | 'cash' | 'other' = 'other';
-      if (subtype === 'bank_transfer' || subtype === 'bank_deposit') {
+      if (subtype === 'bank_transfer' || subtype === 'bank_deposit' || subtype === 'pix') {
         type = 'bank_transfer';
       } else if (subtype === 'cash_in_person') {
         type = 'cash';
@@ -558,7 +586,7 @@ export function PaymentMethodsSettings() {
       await createMethod.mutateAsync({
         type,
         subtype,
-        name: subtype === 'custom' ? (newMethodData.custom_label || 'Método Personalizado') : (subtypeInfo?.label || 'Método de pago'),
+        name: subtype === 'custom' ? (newMethodData.custom_label || 'Método Personalizado') : methodLabel,
         instructions: newMethodData.instructions || null,
         enabled: true,
         display_order: methods.length,
@@ -579,14 +607,16 @@ export function PaymentMethodsSettings() {
         custom_identifier: newMethodData.custom_identifier || null,
         custom_identifier_label: newMethodData.custom_identifier_label || null,
         custom_qr_url: newMethodData.custom_qr_url || null,
-        currency: newMethodData.currency || 'MXN',
+        currency: newMethodData.currency || countryConfig?.currency || 'MXN',
+        country: selectedCountry || 'MX',
       } as any);
     }
     
     // Reset dialog state
     setShowAddDialog(false);
+    setSelectedCountry('');
     setSelectedSubtypes([]);
-    setAddDialogStep('select');
+    setAddDialogStep('country');
     setNewMethodData({
       name: '',
       instructions: '',
@@ -602,14 +632,17 @@ export function PaymentMethodsSettings() {
       payment_link: '',
       location: '',
       schedule: '',
+      country: 'MX',
+      currency: 'MXN',
     });
     setValidationErrors({});
   };
 
   const handleCloseAddDialog = () => {
     setShowAddDialog(false);
+    setSelectedCountry('');
     setSelectedSubtypes([]);
-    setAddDialogStep('select');
+    setAddDialogStep('country');
     setNewMethodData({
       name: '',
       instructions: '',
@@ -625,8 +658,26 @@ export function PaymentMethodsSettings() {
       payment_link: '',
       location: '',
       schedule: '',
+      country: 'MX',
+      currency: 'MXN',
     });
     setValidationErrors({});
+  };
+
+  const handleSelectCountry = (countryCode: string) => {
+    const config = getCountryConfig(countryCode);
+    setSelectedCountry(countryCode);
+    setNewMethodData(prev => ({
+      ...prev,
+      country: countryCode,
+      currency: config?.currency || 'MXN',
+    }));
+    setAddDialogStep('select');
+  };
+
+  const handleBackToCountry = () => {
+    setSelectedSubtypes([]);
+    setAddDialogStep('country');
   };
 
   const toggleSubtypeSelection = (subtype: PaymentSubtype) => {
@@ -668,6 +719,7 @@ export function PaymentMethodsSettings() {
       custom_identifier_label: m.custom_identifier_label || "email",
       custom_qr_url: m.custom_qr_url || "",
       currency: m.currency || "MXN",
+      country: m.country || "MX",
     });
     setValidationErrors({});
   };
@@ -861,14 +913,16 @@ export function PaymentMethodsSettings() {
     );
   }
 
-  // Group subtypes by category for the selector
-  const subtypesByCategory = {
-    bank: PAYMENT_SUBTYPES.filter(s => s.category === 'bank'),
-    store: PAYMENT_SUBTYPES.filter(s => s.category === 'store'),
-    digital: PAYMENT_SUBTYPES.filter(s => s.category === 'digital'),
-    cash: PAYMENT_SUBTYPES.filter(s => s.category === 'cash'),
-    other: PAYMENT_SUBTYPES.filter(s => s.category === 'other'),
-  };
+  // Get bank list for editing (uses country from editing method or fallback)
+  const editingBankList = useMemo(() => {
+    const country = editingMethod?.country || 'MX';
+    return getBankListForCountry(country);
+  }, [editingMethod?.country]);
+
+  // Get bank list for new method
+  const newMethodBankList = useMemo(() => {
+    return getBankListForCountry(selectedCountry || 'MX');
+  }, [selectedCountry]);
 
   const renderDynamicFields = () => {
     if (!editingMethod) return null;
@@ -897,7 +951,7 @@ export function PaymentMethodsSettings() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {MEXICAN_BANKS_LIST.map(bank => (
+                {editingBankList.map(bank => (
                   <SelectItem key={bank} value={bank}>
                     <BankSelectItem bankName={bank} />
                   </SelectItem>
@@ -1029,7 +1083,7 @@ export function PaymentMethodsSettings() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {MEXICAN_BANKS_LIST.map(bank => (
+                {editingBankList.map(bank => (
                   <SelectItem key={bank} value={bank}>
                     <BankSelectItem bankName={bank} />
                   </SelectItem>
@@ -1395,187 +1449,192 @@ export function PaymentMethodsSettings() {
       {/* Buyer Preview */}
       <PaymentMethodsPreview methods={methods} />
 
-      {/* Add Method Dialog - Two-Step Flow */}
+      {/* Add Method Dialog - Three-Step Flow */}
       <Dialog open={showAddDialog} onOpenChange={handleCloseAddDialog}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto mx-4 sm:mx-auto">
-          {addDialogStep === 'select' ? (
+          {addDialogStep === 'country' ? (
             <>
               <DialogHeader>
                 <DialogTitle>Crear Cuenta de Pago</DialogTitle>
                 <DialogDescription>
-                  Paso 1 de 2: Selecciona los métodos que soporta esta cuenta
+                  Paso 1 de 3: ¿En qué país recibirás los pagos?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3 py-4">
+                {availableCountries.map(country => (
+                  <button
+                    key={country.code}
+                    onClick={() => handleSelectCountry(country.code)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all hover:border-primary hover:bg-primary/5 ${
+                      selectedCountry === country.code ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                  >
+                    <span className="text-3xl">{country.flag}</span>
+                    <span className="font-medium text-sm">{country.name}</span>
+                    <span className="text-xs text-muted-foreground">{country.currency}</span>
+                  </button>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseAddDialog}>
+                  Cancelar
+                </Button>
+              </DialogFooter>
+            </>
+          ) : addDialogStep === 'select' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span className="text-xl">{countryConfig?.flag}</span>
+                  Métodos en {countryConfig?.name}
+                </DialogTitle>
+                <DialogDescription>
+                  Paso 2 de 3: Selecciona los métodos que soporta esta cuenta
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 {/* Bank methods */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <Landmark className="h-4 w-4" /> Métodos Bancarios
-                  </h4>
-                  <div className="space-y-2">
-                    {subtypesByCategory.bank.map(subtype => {
-                      const isSelected = selectedSubtypes.includes(subtype.id);
-                      return (
-                        <button
-                          key={subtype.id}
-                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-muted-foreground/50"
-                          }`}
-                          onClick={() => toggleSubtypeSelection(subtype.id)}
-                        >
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <subtype.icon className="h-5 w-5 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{subtype.label}</p>
-                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                {countryConfig?.methods.bank && countryConfig.methods.bank.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <Landmark className="h-4 w-4" /> {CATEGORY_LABELS.bank.label}
+                    </h4>
+                    <div className="space-y-2">
+                      {countryConfig.methods.bank.map(method => {
+                        const isSelected = selectedSubtypes.includes(method.id);
+                        const Icon = method.icon;
+                        return (
+                          <button
+                            key={method.id}
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            }`}
+                            onClick={() => toggleSubtypeSelection(method.id)}
+                          >
+                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <Icon className="h-5 w-5 shrink-0" />
+                            <div className="text-left">
+                              <p className="font-medium text-sm">{method.label}</p>
+                              {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Store methods */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <Store className="h-4 w-4" /> Tiendas y Depósitos
-                  </h4>
-                  <div className="space-y-2">
-                    {subtypesByCategory.store.map(subtype => {
-                      const isSelected = selectedSubtypes.includes(subtype.id);
-                      return (
-                        <button
-                          key={subtype.id}
-                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-muted-foreground/50"
-                          }`}
-                          onClick={() => toggleSubtypeSelection(subtype.id)}
-                        >
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <subtype.icon className="h-5 w-5 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{subtype.label}</p>
-                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                {countryConfig?.methods.store && countryConfig.methods.store.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <Store className="h-4 w-4" /> {CATEGORY_LABELS.store.label}
+                    </h4>
+                    <div className="space-y-2">
+                      {countryConfig.methods.store.map(method => {
+                        const isSelected = selectedSubtypes.includes(method.id);
+                        const Icon = method.icon;
+                        return (
+                          <button
+                            key={method.id}
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            }`}
+                            onClick={() => toggleSubtypeSelection(method.id)}
+                          >
+                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <Icon className="h-5 w-5 shrink-0" />
+                            <div className="text-left">
+                              <p className="font-medium text-sm">{method.label}</p>
+                              {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Digital methods */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <Wallet className="h-4 w-4" /> Pagos Digitales
-                  </h4>
-                  <div className="space-y-2">
-                    {subtypesByCategory.digital.map(subtype => {
-                      const isSelected = selectedSubtypes.includes(subtype.id);
-                      return (
-                        <button
-                          key={subtype.id}
-                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-muted-foreground/50"
-                          }`}
-                          onClick={() => toggleSubtypeSelection(subtype.id)}
-                        >
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <subtype.icon className="h-5 w-5 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{subtype.label}</p>
-                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                {countryConfig?.methods.digital && countryConfig.methods.digital.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <Wallet className="h-4 w-4" /> {CATEGORY_LABELS.digital.label}
+                    </h4>
+                    <div className="space-y-2">
+                      {countryConfig.methods.digital.map(method => {
+                        const isSelected = selectedSubtypes.includes(method.id);
+                        const Icon = method.icon;
+                        return (
+                          <button
+                            key={method.id}
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            }`}
+                            onClick={() => toggleSubtypeSelection(method.id)}
+                          >
+                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <Icon className="h-5 w-5 shrink-0" />
+                            <div className="text-left">
+                              <p className="font-medium text-sm">{method.label}</p>
+                              {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Cash methods */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <HandCoins className="h-4 w-4" /> Efectivo
-                  </h4>
-                  <div className="space-y-2">
-                    {subtypesByCategory.cash.map(subtype => {
-                      const isSelected = selectedSubtypes.includes(subtype.id);
-                      return (
-                        <button
-                          key={subtype.id}
-                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-muted-foreground/50"
-                          }`}
-                          onClick={() => toggleSubtypeSelection(subtype.id)}
-                        >
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <subtype.icon className="h-5 w-5 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{subtype.label}</p>
-                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                {countryConfig?.methods.cash && countryConfig.methods.cash.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <HandCoins className="h-4 w-4" /> {CATEGORY_LABELS.cash.label}
+                    </h4>
+                    <div className="space-y-2">
+                      {countryConfig.methods.cash.map(method => {
+                        const isSelected = selectedSubtypes.includes(method.id);
+                        const Icon = method.icon;
+                        return (
+                          <button
+                            key={method.id}
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
+                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            }`}
+                            onClick={() => toggleSubtypeSelection(method.id)}
+                          >
+                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
+                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <Icon className="h-5 w-5 shrink-0" />
+                            <div className="text-left">
+                              <p className="font-medium text-sm">{method.label}</p>
+                              {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-
-                {/* Other/Custom methods */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <Plus className="h-4 w-4" /> Otros Métodos
-                  </h4>
-                  <div className="space-y-2">
-                    {subtypesByCategory.other.map(subtype => {
-                      const isSelected = selectedSubtypes.includes(subtype.id);
-                      return (
-                        <button
-                          key={subtype.id}
-                          className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-muted-foreground/50"
-                          }`}
-                          onClick={() => toggleSubtypeSelection(subtype.id)}
-                        >
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <subtype.icon className="h-5 w-5 shrink-0" />
-                          <div className="text-left">
-                            <p className="font-medium text-sm">{subtype.label}</p>
-                            <p className="text-xs text-muted-foreground">{subtype.description}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                )}
               </div>
-              {validationErrors.limit && (
+              {validationErrors?.limit && (
                 <p className="text-sm text-destructive">{validationErrors.limit}</p>
               )}
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <div className="text-sm text-muted-foreground mr-auto">
                   {selectedSubtypes.length > 0 && `${selectedSubtypes.length} seleccionado${selectedSubtypes.length > 1 ? 's' : ''}`}
                 </div>
-                <Button variant="outline" onClick={handleCloseAddDialog}>
-                  Cancelar
+                <Button variant="outline" onClick={handleBackToCountry}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Atrás
                 </Button>
                 <Button onClick={handleContinueToDetails} disabled={selectedSubtypes.length === 0}>
                   Continuar
@@ -1587,21 +1646,19 @@ export function PaymentMethodsSettings() {
               <DialogHeader>
                 <DialogTitle>Configurar Datos de la Cuenta</DialogTitle>
                 <DialogDescription>
-                  Paso 2 de 2: Ingresa los datos de tu cuenta
+                  Paso 3 de 3: Ingresa los datos de tu cuenta en {countryConfig?.name}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 {/* Show selected methods summary */}
                 <div className="flex flex-wrap gap-2 pb-2 border-b">
-                  {selectedSubtypes.map(s => {
-                    const info = PAYMENT_SUBTYPES.find(p => p.id === s);
-                    return (
-                      <span key={s} className="text-xs bg-secondary px-2 py-1 rounded-full flex items-center gap-1">
-                        {info && <info.icon className="h-3 w-3" />}
-                        {info?.label}
-                      </span>
-                    );
-                  })}
+                  <span className="text-lg mr-2">{countryConfig?.flag}</span>
+                  {selectedSubtypes.map(s => (
+                    <span key={s} className="text-xs bg-secondary px-2 py-1 rounded-full flex items-center gap-1">
+                      {getIcon(s, selectedCountry)}
+                      {getSubtypeLabel(s, selectedCountry)}
+                    </span>
+                  ))}
                 </div>
 
                 {/* Dynamic fields based on selected categories */}
@@ -1631,7 +1688,7 @@ export function PaymentMethodsSettings() {
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
-                                {MEXICAN_BANKS_LIST.map(bank => (
+                                {newMethodBankList.map(bank => (
                                   <SelectItem key={bank} value={bank}>
                                     <BankSelectItem bankName={bank} />
                                   </SelectItem>
