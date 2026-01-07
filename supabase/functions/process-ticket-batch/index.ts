@@ -181,6 +181,32 @@ serve(async (req) => {
       const batchSize = job.batch_size || getDynamicBatchSize(job.total_tickets);
       const jobStartTime = Date.now();
       
+      // ✅ VALIDACIÓN EN TIEMPO REAL - Detectar y corregir current_batch corrupto
+      const maxValidBatch = Math.ceil(job.total_tickets / batchSize);
+      const storedBatch = job.current_batch || 0;
+      
+      if (storedBatch > maxValidBatch || (storedBatch * batchSize) > job.total_tickets) {
+        const correctedBatch = Math.floor((job.generated_count || 0) / batchSize);
+        
+        logStep("⚠️ CORRUPTION DETECTED - Auto-fixing", {
+          job_id: job.id,
+          total_tickets: job.total_tickets,
+          batch_size: batchSize,
+          corrupted_batch: storedBatch,
+          max_valid_batch: maxValidBatch,
+          corrected_batch: correctedBatch,
+          generated_count: job.generated_count
+        });
+        
+        // Corregir en DB inmediatamente
+        await supabaseClient
+          .from('ticket_generation_jobs')
+          .update({ current_batch: correctedBatch })
+          .eq('id', job.id);
+        
+        logStep("✅ Job corruption fixed in DB", { job_id: job.id, new_batch: correctedBatch });
+      }
+      
       logStep(`Processing job ${job.id}`, { 
         raffle_id: job.raffle_id, 
         progress: `${job.generated_count}/${job.total_tickets}`,
@@ -204,7 +230,7 @@ serve(async (req) => {
       // Use job.generated_count as source of truth (skip expensive count=exact)
       let generatedCount = job.generated_count || 0;
       
-      // Calculate current batch based on generated count
+      // Calculate current batch based on generated count (always recalculate for safety)
       let currentBatch = Math.floor(generatedCount / batchSize);
       
       let batchesProcessed = 0;
