@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface VirtualTicket {
   id: string;
@@ -142,6 +143,12 @@ export function useReserveVirtualTickets() {
       });
       queryClient.invalidateQueries({ 
         queryKey: ['virtual-ticket-counts', variables.raffleId] 
+      });
+    },
+    onError: (error: Error) => {
+      console.error('[useReserveVirtualTickets] Error:', error);
+      toast.error('Error al reservar boletos', {
+        description: error.message || 'Algunos boletos ya no están disponibles. Por favor intenta con otros.',
       });
     },
   });
