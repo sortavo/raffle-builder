@@ -82,8 +82,9 @@ export default function Subscription() {
   const handleUpgrade = async (planKey: PlanKey, period: BillingPeriod) => {
     const priceId = getPriceId(planKey, period);
     
-    // Si ya tiene suscripción activa, mostrar preview primero
-    if (currentStatus === "active" && organization?.stripe_subscription_id) {
+    // CRITICAL: Si ya tiene stripe_subscription_id, SIEMPRE usar upgrade flow
+    // Esto cubre active, trialing, past_due, etc. y previene suscripciones duplicadas
+    if (organization?.stripe_subscription_id) {
       setIsPreviewLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke("preview-upgrade", {
@@ -112,7 +113,7 @@ export default function Subscription() {
       return;
     }
     
-    // Si no tiene suscripción (trial o sin plan), crear checkout normal
+    // Solo crear checkout si NO tiene suscripción en Stripe
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {

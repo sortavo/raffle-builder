@@ -75,6 +75,42 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Found existing customer", { customerId });
+      
+      // CRITICAL: Check for existing active subscriptions to prevent duplicates
+      const activeSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 1,
+      });
+      
+      if (activeSubscriptions.data.length > 0) {
+        logStep("BLOCKED: User already has active subscription", {
+          existingSubscriptionId: activeSubscriptions.data[0].id,
+          customerId,
+        });
+        throw new Error(
+          "Ya tienes una suscripción activa. Usa 'Cambiar plan' para modificar tu suscripción."
+        );
+      }
+      
+      // Also check for trialing subscriptions
+      const trialingSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "trialing",
+        limit: 1,
+      });
+      
+      if (trialingSubscriptions.data.length > 0) {
+        logStep("BLOCKED: User has trialing subscription", {
+          existingSubscriptionId: trialingSubscriptions.data[0].id,
+          customerId,
+        });
+        throw new Error(
+          "Ya tienes una suscripción en período de prueba. Usa 'Cambiar plan' para modificar tu suscripción."
+        );
+      }
+      
+      logStep("No existing subscription found, proceeding with checkout");
     }
 
     const origin = req.headers.get("origin") || "https://sortavo.com";
