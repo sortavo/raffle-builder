@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,9 @@ import {
   Building2,
   Share2,
   ChevronDown,
-  Copy
+  Copy,
+  Link,
+  Pencil
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { CouponInput } from "@/components/marketing/CouponInput";
@@ -137,9 +140,13 @@ export function CheckoutModal({
   const [isProcessing, setIsProcessing] = useState(false); // Prevent double-click
   const [ticketsExpanded, setTicketsExpanded] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [shakeForm, setShakeForm] = useState(false);
   
   const reserveTickets = useReserveVirtualTickets();
+  
+  // LocalStorage key for auto-save
+  const STORAGE_KEY = `checkout_draft_${raffle.id}`;
   const { sendReservationEmail } = useEmails();
   const { trackBeginCheckout, trackPurchase } = useTrackingEvents();
   const form = useForm<CheckoutFormData>({
@@ -152,6 +159,47 @@ export function CheckoutModal({
       acceptTerms: false,
     },
   });
+
+  // Load saved form data from localStorage
+  useEffect(() => {
+    if (open) {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (parsed.name || parsed.email || parsed.phone || parsed.city) {
+            form.reset({
+              name: parsed.name || '',
+              email: parsed.email || '',
+              phone: parsed.phone || '',
+              city: parsed.city || '',
+              acceptTerms: false, // Always require re-acceptance
+            });
+            toast.info('Recuperamos tus datos anteriores');
+          }
+        }
+      } catch (e) {
+        console.error('Error loading saved checkout data:', e);
+      }
+    }
+  }, [open, raffle.id]);
+
+  // Auto-save form data on blur
+  const saveFormData = useCallback(() => {
+    const values = form.getValues();
+    if (values.name || values.email || values.phone || values.city) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          city: values.city,
+        }));
+      } catch (e) {
+        console.error('Error saving checkout data:', e);
+      }
+    }
+  }, [form, STORAGE_KEY]);
 
   // Track begin_checkout when modal opens
   useEffect(() => {
@@ -180,8 +228,26 @@ export function CheckoutModal({
   const copyReferenceCode = async () => {
     await navigator.clipboard.writeText(referenceCode);
     setCopiedRef(true);
+    toast.success('Código copiado');
     setTimeout(() => setCopiedRef(false), 2000);
   };
+
+  const copyPaymentLink = async () => {
+    const paymentUrl = `${window.location.origin}/r/${raffle.slug}/pay?ref=${referenceCode}`;
+    await navigator.clipboard.writeText(paymentUrl);
+    setCopiedLink(true);
+    toast.success('Enlace de pago copiado');
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  // Clear saved data on successful reservation
+  const clearSavedFormData = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error('Error clearing saved checkout data:', e);
+    }
+  }, [STORAGE_KEY]);
 
   const handleContinueToPayment = async () => {
     const isValid = await form.trigger(['name', 'email', 'phone', 'city', 'acceptTerms']);
@@ -308,6 +374,9 @@ export function CheckoutModal({
         userPhone: cleanPhone,
       });
 
+      // Clear saved form data on success
+      clearSavedFormData();
+
       // Move to success step
       setCurrentStep(3);
     } catch (error) {
@@ -412,6 +481,15 @@ export function CheckoutModal({
               </div>
             ))}
           </div>
+          
+          {/* Estimated time indicator */}
+          <div className="mt-3 text-center">
+            <span className="text-xs text-white/60">
+              {currentStep === 1 && '~1 minuto para completar'}
+              {currentStep === 2 && '~30 segundos restantes'}
+              {currentStep === 3 && '¡Listo!'}
+            </span>
+          </div>
         </div>
 
         {/* Content area */}
@@ -497,6 +575,10 @@ export function CheckoutModal({
                                 placeholder="Juan Pérez"
                                 className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                 {...field}
+                                onBlur={(e) => {
+                                  field.onBlur();
+                                  saveFormData();
+                                }}
                               />
                             </div>
                           </FormControl>
@@ -519,6 +601,10 @@ export function CheckoutModal({
                                 placeholder="juan@ejemplo.com"
                                 className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                 {...field}
+                                onBlur={(e) => {
+                                  field.onBlur();
+                                  saveFormData();
+                                }}
                               />
                             </div>
                           </FormControl>
@@ -542,6 +628,10 @@ export function CheckoutModal({
                                   placeholder="55 1234 5678"
                                   className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                   {...field}
+                                  onBlur={(e) => {
+                                    field.onBlur();
+                                    saveFormData();
+                                  }}
                                 />
                               </div>
                             </FormControl>
@@ -563,6 +653,10 @@ export function CheckoutModal({
                                   placeholder="Ej: Ciudad de México"
                                   className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                   {...field}
+                                  onBlur={(e) => {
+                                    field.onBlur();
+                                    saveFormData();
+                                  }}
                                 />
                               </div>
                             </FormControl>
@@ -652,6 +746,38 @@ export function CheckoutModal({
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
+                {/* Compact ticket summary */}
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <Ticket className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <span className="text-sm text-muted-foreground">
+                    Boletos: <span className="font-medium text-foreground">
+                      {selectedTickets.slice(0, 5).join(', ')}
+                      {selectedTickets.length > 5 && ` +${selectedTickets.length - 5} más`}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Editable buyer data summary */}
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Comprador</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs gap-1"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Editar
+                    </Button>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">{form.getValues('name')}</p>
+                    <p className="text-muted-foreground">{form.getValues('email')}</p>
+                    <p className="text-muted-foreground">{form.getValues('phone')}</p>
+                  </div>
+                </div>
+
                 {/* Payment method info - Only manual transfer/deposit */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-foreground">Método de Pago</h3>
@@ -773,10 +899,10 @@ export function CheckoutModal({
 
                 <div>
                   <h3 className="text-2xl font-bold text-foreground">
-                    ¡Reserva Exitosa!
+                    ¡Ya casi son tuyos! 🎉
                   </h3>
                   <p className="text-muted-foreground mt-1">
-                    Hemos enviado la confirmación a tu correo
+                    Solo falta tu pago para asegurar tus boletos
                   </p>
                 </div>
 
@@ -804,6 +930,26 @@ export function CheckoutModal({
                     <p className="text-xs text-muted-foreground mt-2">
                       Usa este código al enviar tu comprobante
                     </p>
+                    
+                    {/* Copy payment link */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-3 text-xs gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                      onClick={copyPaymentLink}
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          Enlace copiado
+                        </>
+                      ) : (
+                        <>
+                          <Link className="h-3.5 w-3.5" />
+                          Copiar enlace de pago
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
 

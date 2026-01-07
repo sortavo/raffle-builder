@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/currency-utils";
-import { ArrowRight, Ticket, X, Sparkles } from "lucide-react";
+import { ArrowRight, Ticket, X, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FloatingCartButtonProps {
   selectedCount: number;
@@ -16,6 +19,7 @@ interface FloatingCartButtonProps {
   primaryColor?: string;
   raffleName?: string;
   raffleId?: string;
+  onTicketsUnavailable?: (unavailable: string[]) => void;
 }
 
 export function FloatingCartButton({
@@ -29,20 +33,65 @@ export function FloatingCartButton({
   primaryColor,
   raffleName,
   raffleId,
+  onTicketsUnavailable,
 }: FloatingCartButtonProps) {
   const { trackViewCart } = useTrackingEvents();
+  const [isChecking, setIsChecking] = useState(false);
 
   if (selectedCount === 0) return null;
 
-  const handleContinue = () => {
-    trackViewCart({
-      itemId: raffleId,
-      itemName: raffleName,
-      quantity: selectedCount,
-      value: total,
-      currency,
-    });
-    onContinue();
+  const handleContinue = async () => {
+    if (!raffleId) {
+      onContinue();
+      return;
+    }
+
+    // Check availability before proceeding
+    setIsChecking(true);
+    try {
+      const { data: takenTickets, error } = await supabase
+        .from('sold_tickets')
+        .select('ticket_number')
+        .eq('raffle_id', raffleId)
+        .in('ticket_number', selectedTickets)
+        .neq('status', 'available')
+        .neq('status', 'canceled');
+
+      if (error) throw error;
+
+      const unavailable = takenTickets?.map(t => t.ticket_number) || [];
+      
+      if (unavailable.length > 0) {
+        toast.error(`Boletos no disponibles: ${unavailable.join(', ')}`, {
+          description: 'Alguien los reservó antes. Por favor selecciona otros.',
+        });
+        onTicketsUnavailable?.(unavailable);
+        return;
+      }
+
+      // All tickets available, proceed
+      trackViewCart({
+        itemId: raffleId,
+        itemName: raffleName,
+        quantity: selectedCount,
+        value: total,
+        currency,
+      });
+      onContinue();
+    } catch (error) {
+      console.error('Availability check failed:', error);
+      // On error, proceed anyway (optimistic)
+      trackViewCart({
+        itemId: raffleId,
+        itemName: raffleName,
+        quantity: selectedCount,
+        value: total,
+        currency,
+      });
+      onContinue();
+    } finally {
+      setIsChecking(false);
+    }
   };
 
   return (
@@ -152,6 +201,7 @@ export function FloatingCartButton({
                 onClick={handleContinue}
                 variant="inverted"
                 size="lg"
+                disabled={isChecking}
                 className={cn(
                   "h-14 md:h-16 px-6 md:px-10",
                   "shadow-xl",
@@ -165,9 +215,18 @@ export function FloatingCartButton({
                   color: '#ffffff',
                 } : undefined}
               >
-                <span className="hidden sm:inline">Continuar</span>
-                <span className="sm:hidden">Pagar</span>
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                {isChecking ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Continuar</span>
+                    <span className="sm:hidden">Pagar</span>
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
