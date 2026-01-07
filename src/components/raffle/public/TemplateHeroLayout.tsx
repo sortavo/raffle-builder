@@ -583,10 +583,20 @@ export function TemplateHeroLayout({
     }
   };
 
+  // Get brand colors for dynamic styling
+  const brandPrimary = customColors?.primary || template.colors.primary;
+  const brandSecondary = customColors?.secondary || template.colors.secondary;
+
   // Split InfoSection into modular parts for Visual-First layout
   const HeaderBadges = () => (
     <div className="flex flex-wrap items-center justify-center gap-3">
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg shadow-emerald-600/25">
+      <div 
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-white shadow-lg animate-pulse"
+        style={{ 
+          background: `linear-gradient(135deg, ${brandPrimary}, ${brandSecondary})`,
+          boxShadow: `0 10px 25px -5px ${brandPrimary}40`
+        }}
+      >
         <Zap className="w-4 h-4" />
         Sorteo Activo
       </div>
@@ -606,14 +616,18 @@ export function TemplateHeroLayout({
         </div>
       )}
       <motion.h1 
-        className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[0.95] tracking-tight"
+        className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${brandPrimary} 0%, ${brandSecondary} 50%, ${brandPrimary} 100%)`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}
       >
-        <span className="bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 bg-clip-text text-transparent">
-          {raffle.title}
-        </span>
+        {raffle.title}
       </motion.h1>
     </div>
   );
@@ -638,8 +652,8 @@ export function TemplateHeroLayout({
         prizes={raffle.prizes || []}
         displayMode={(raffle.prize_display_mode as any) || 'hierarchical'}
         currency={currency}
-        primaryColor="#10b981"
-        accentColor="#14b8a6"
+        primaryColor={brandPrimary}
+        accentColor={brandSecondary}
         textColor={isLightTemplate ? "#111827" : "#ffffff"}
         textMuted={isLightTemplate ? "rgba(75,85,99,0.8)" : "rgba(255,255,255,0.6)"}
         cardBg={isLightTemplate ? "rgba(249,250,251,1)" : "rgba(255,255,255,0.03)"}
@@ -649,97 +663,117 @@ export function TemplateHeroLayout({
     </div>
   );
 
-  const StatsCards = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
-      <motion.div 
-        className={cn(
-          "p-5 rounded-2xl transition-all duration-300 text-center",
-          isLightTemplate
-            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
-            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
-        )}
-        whileHover={{ scale: 1.02 }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
-            <Ticket className="w-6 h-6 text-white" />
+  const StatsCards = () => {
+    const cardStyle = isLightTemplate 
+      ? { 
+          backgroundColor: 'white',
+          boxShadow: `0 10px 25px -10px ${brandPrimary}15, 0 4px 6px -4px rgba(0,0,0,0.05)`,
+        }
+      : { 
+          backgroundColor: 'rgba(17, 24, 39, 0.8)',
+        };
+
+    const iconStyle = {
+      background: `linear-gradient(135deg, ${brandPrimary}, ${brandSecondary})`,
+      boxShadow: `0 8px 20px -5px ${brandPrimary}40`,
+    };
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+        <motion.div 
+          className={cn(
+            "p-5 rounded-2xl transition-all duration-300 text-center border-2",
+            isLightTemplate
+              ? "border-gray-100 hover:border-opacity-100"
+              : "border-white/10 hover:border-white/20"
+          )}
+          style={cardStyle}
+          whileHover={{ scale: 1.03, borderColor: brandPrimary }}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={iconStyle}>
+              <Ticket className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Precio</p>
+              <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
+                {formatCurrency(raffle.ticket_price, currency)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Precio</p>
-            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
-              {formatCurrency(raffle.ticket_price, currency)}
-            </p>
+        </motion.div>
+        <motion.div 
+          className={cn(
+            "p-5 rounded-2xl transition-all duration-300 text-center border-2",
+            isLightTemplate
+              ? "border-gray-100 hover:border-opacity-100"
+              : "border-white/10 hover:border-white/20"
+          )}
+          style={cardStyle}
+          whileHover={{ scale: 1.03, borderColor: brandPrimary }}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={iconStyle}>
+              <Calendar className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Sorteo</p>
+              <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
+                {raffle.draw_date 
+                  ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
+                  : 'Por definir'
+                }
+              </p>
+            </div>
           </div>
-        </div>
-      </motion.div>
-      <motion.div 
-        className={cn(
-          "p-5 rounded-2xl transition-all duration-300 text-center",
-          isLightTemplate
-            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
-            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
-        )}
-        whileHover={{ scale: 1.02 }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
-            <Calendar className="w-6 h-6 text-white" />
+        </motion.div>
+        <motion.div 
+          className={cn(
+            "p-5 rounded-2xl transition-all duration-300 text-center border-2",
+            isLightTemplate
+              ? "border-gray-100 hover:border-opacity-100"
+              : "border-white/10 hover:border-white/20"
+          )}
+          style={cardStyle}
+          whileHover={{ scale: 1.03, borderColor: brandPrimary }}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={iconStyle}>
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Boletos</p>
+              <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
+                {raffle.total_tickets.toLocaleString()}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Sorteo</p>
-            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
-              {raffle.draw_date 
-                ? format(new Date(raffle.draw_date), 'dd MMM', { locale: es })
-                : 'Por definir'
-              }
-            </p>
+        </motion.div>
+        <motion.div 
+          className={cn(
+            "p-5 rounded-2xl transition-all duration-300 text-center border-2",
+            isLightTemplate
+              ? "border-gray-100 hover:border-opacity-100"
+              : "border-white/10 hover:border-white/20"
+          )}
+          style={cardStyle}
+          whileHover={{ scale: 1.03, borderColor: brandPrimary }}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={iconStyle}>
+              <CheckCircle2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Vendidos</p>
+              <p className="text-xl font-bold" style={{ color: brandPrimary }}>
+                {raffle.ticketsSold.toLocaleString()}
+              </p>
+            </div>
           </div>
-        </div>
-      </motion.div>
-      <motion.div 
-        className={cn(
-          "p-5 rounded-2xl transition-all duration-300 text-center",
-          isLightTemplate
-            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
-            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
-        )}
-        whileHover={{ scale: 1.02 }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
-            <Users className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Boletos</p>
-            <p className={cn("text-xl font-bold", isLightTemplate ? "text-gray-900" : "text-white")}>
-              {raffle.total_tickets.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-      <motion.div 
-        className={cn(
-          "p-5 rounded-2xl transition-all duration-300 text-center",
-          isLightTemplate
-            ? "bg-gray-50 border border-gray-200 hover:border-emerald-500/50"
-            : "bg-gray-900/80 border border-white/10 hover:border-emerald-500/30"
-        )}
-        whileHover={{ scale: 1.02 }}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
-            <CheckCircle2 className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <p className={cn("text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>Vendidos</p>
-            <p className="text-xl font-bold text-emerald-500">
-              {raffle.ticketsSold.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
+        </motion.div>
+      </div>
+    );
+  };
 
   const ProgressSection = () => (
     showStats ? (
@@ -748,7 +782,7 @@ export function TemplateHeroLayout({
           <span className={cn("font-medium", isLightTemplate ? "text-gray-700" : "text-gray-200")}>
             {raffle.ticketsSold} de {raffle.total_tickets} vendidos
           </span>
-          <span className="font-bold text-emerald-500">
+          <span className="font-bold" style={{ color: brandPrimary }}>
             {Math.round(progress)}%
           </span>
         </div>
@@ -758,29 +792,40 @@ export function TemplateHeroLayout({
           isLightTemplate ? "bg-gray-200" : "bg-gray-800"
         )}>
           <motion.div 
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-600 to-teal-500"
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{ background: `linear-gradient(90deg, ${brandPrimary}, ${brandSecondary})` }}
             initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
+            animate={{ width: `${Math.max(progress, 2)}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
           />
         </div>
         
-        <p className={cn("text-sm text-center", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
-          {raffle.ticketsAvailable} boletos disponibles
-        </p>
+        {raffle.ticketsSold === 0 ? (
+          <p className="text-sm text-center font-medium animate-pulse" style={{ color: brandPrimary }}>
+            ¡Sé el primero en participar!
+          </p>
+        ) : (
+          <p className={cn("text-sm text-center", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
+            {raffle.ticketsAvailable} boletos disponibles
+          </p>
+        )}
       </div>
     ) : null
   );
 
   const CTASection = () => (
     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-      <motion.div whileTap={{ scale: 0.98 }}>
+      <motion.div 
+        whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.03 }}
+      >
         <Button
           size="lg"
-          className="text-lg px-10 py-6 font-bold shadow-xl"
+          className="text-lg px-12 py-7 font-bold transition-all duration-300"
           style={{
-            backgroundColor: customColors?.primary || '#059669',
+            backgroundColor: brandPrimary,
             color: '#ffffff',
+            boxShadow: `0 20px 40px -10px ${brandPrimary}50`,
           }}
           onClick={onScrollToTickets}
         >
@@ -790,16 +835,24 @@ export function TemplateHeroLayout({
         </Button>
       </motion.div>
       
-      <motion.div whileTap={{ scale: 0.98 }}>
+      <motion.div 
+        whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.02 }}
+      >
         <Button
           size="lg"
           variant="outline"
           className={cn(
-            "border-2 px-8 py-6",
+            "px-10 py-7 transition-all duration-300",
             isLightTemplate
-              ? "border-gray-300 text-gray-900 hover:bg-gray-100 hover:border-emerald-500"
-              : "border-white/20 text-white hover:bg-white/[0.05] hover:border-emerald-500/50"
+              ? "border-2 border-gray-300 text-gray-900 hover:bg-gray-50"
+              : "border-2 border-white/20 text-white hover:bg-white/[0.05]"
           )}
+          style={{
+            '--hover-border': brandPrimary,
+          } as React.CSSProperties}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = brandPrimary}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = isLightTemplate ? '#d1d5db' : 'rgba(255,255,255,0.2)'}
           onClick={onShare}
         >
           <Share2 className="w-5 h-5 mr-2" />
@@ -815,29 +868,29 @@ export function TemplateHeroLayout({
       isLightTemplate ? "border-gray-200" : "border-white/10"
     )}>
       <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
-          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
-        )}>
-          <Shield className="w-4 h-4 text-emerald-500" />
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: `${brandPrimary}15` }}
+        >
+          <Shield className="w-4 h-4" style={{ color: brandPrimary }} />
         </div>
         <span>Pago Seguro</span>
       </div>
       <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
-          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
-        )}>
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: `${brandPrimary}15` }}
+        >
+          <CheckCircle2 className="w-4 h-4" style={{ color: brandPrimary }} />
         </div>
         <span>Verificable</span>
       </div>
       <div className={cn("flex items-center gap-2 text-sm", isLightTemplate ? "text-gray-500" : "text-gray-400")}>
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center",
-          isLightTemplate ? "bg-emerald-100" : "bg-emerald-500/10"
-        )}>
-          <Users className="w-4 h-4 text-emerald-500" />
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: `${brandPrimary}15` }}
+        >
+          <Users className="w-4 h-4" style={{ color: brandPrimary }} />
         </div>
         <span>{raffle.ticketsSold}+ participantes</span>
       </div>
