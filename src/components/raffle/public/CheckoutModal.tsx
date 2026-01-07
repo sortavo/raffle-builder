@@ -26,13 +26,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveVirtualTickets } from "@/hooks/useVirtualTickets";
 import { useEmails } from "@/hooks/useEmails";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
+import { usePublicPaymentMethods } from "@/hooks/usePaymentMethods";
 import { notifyPaymentPending } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
 import { CountdownTimer } from "./CountdownTimer";
+import { PaymentMethodDisplay, getPaymentMethodIcon, getPaymentMethodLabel } from "./PaymentMethodDisplay";
+import { PaymentProofUploader } from "./PaymentProofUploader";
 import { 
   Loader2, 
   Ticket, 
@@ -53,7 +57,9 @@ import {
   ChevronDown,
   Copy,
   Link,
-  Pencil
+  Pencil,
+  CreditCard,
+  Upload
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { CouponInput } from "@/components/marketing/CouponInput";
@@ -106,7 +112,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 interface CheckoutModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  raffle: Raffle & { organization?: { phone?: string | null; name?: string; logo_url?: string | null; subscription_tier?: string | null } };
+  raffle: Raffle & { organization?: { id?: string; phone?: string | null; name?: string; logo_url?: string | null; subscription_tier?: string | null } };
   selectedTickets: string[];
   selectedTicketIndices: number[];
   ticketPrice: number;
@@ -141,9 +147,14 @@ export function CheckoutModal({
   const [ticketsExpanded, setTicketsExpanded] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [shakeForm, setShakeForm] = useState(false);
+  const [proofUploaded, setProofUploaded] = useState(false);
   
   const reserveTickets = useReserveVirtualTickets();
+  
+  // Fetch payment methods for the organization
+  const { data: paymentMethods, isLoading: isLoadingPaymentMethods } = usePublicPaymentMethods(raffle.organization?.id);
   
   // LocalStorage key for auto-save
   const STORAGE_KEY = `checkout_draft_${raffle.id}`;
@@ -874,7 +885,7 @@ export function CheckoutModal({
               </motion.div>
             )}
 
-            {/* Step 3: Success */}
+            {/* Step 3: Success with Payment Methods & Upload */}
             {currentStep === 3 && (
               <motion.div
                 key="step3"
@@ -882,105 +893,196 @@ export function CheckoutModal({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className="text-center py-6 space-y-6"
+                className="space-y-4"
               >
-                {/* Success animation */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                  className="relative mx-auto w-20 h-20"
-                >
-                  <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900/30 rounded-full animate-pulse" />
-                  <div className="absolute inset-2 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
-                    <Check className="h-8 w-8 text-white" />
-                  </div>
-                </motion.div>
-
-                <div>
-                  <h3 className="text-2xl font-bold text-foreground">
-                    ¡Ya casi son tuyos! 🎉
-                  </h3>
-                  <p className="text-muted-foreground mt-1">
-                    Solo falta tu pago para asegurar tus boletos
-                  </p>
-                </div>
-
-                {/* Reference code with copy button */}
-                {referenceCode && (
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
-                    <p className="text-sm text-muted-foreground mb-1">Código de Referencia:</p>
-                    <div className="flex items-center justify-center gap-3">
-                      <p className="text-2xl font-mono font-bold text-amber-600 tracking-widest">
-                        {referenceCode}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                        onClick={copyReferenceCode}
-                      >
-                        {copiedRef ? (
-                          <Check className="h-4 w-4 text-emerald-500" />
-                        ) : (
-                          <Copy className="h-4 w-4 text-amber-600" />
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Usa este código al enviar tu comprobante
-                    </p>
-                    
-                    {/* Copy payment link */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-3 text-xs gap-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                      onClick={copyPaymentLink}
-                    >
-                      {copiedLink ? (
-                        <>
-                          <Check className="h-3.5 w-3.5" />
-                          Enlace copiado
-                        </>
-                      ) : (
-                        <>
-                          <Link className="h-3.5 w-3.5" />
-                          Copiar enlace de pago
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Ticket numbers */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800">
-                  <p className="text-sm text-muted-foreground mb-2">Tus boletos:</p>
-                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    {selectedTickets.join(', ')}
-                  </p>
-                </div>
-
-                {/* Prominent countdown timer */}
-                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-amber-500 animate-pulse" />
-                      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-                        ¡Completa tu pago antes de que expire!
-                      </p>
+                {/* Sticky countdown at top */}
+                <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+                      <span className="text-sm font-medium truncate">Tiempo para pagar:</span>
                     </div>
                     {reservedUntil && (
                       <CountdownTimer 
                         targetDate={new Date(reservedUntil)} 
                         variant="compact"
-                        className="mt-1"
+                        className="shrink-0"
                       />
                     )}
                   </div>
                 </div>
 
-                {/* WhatsApp Contact - with reference code */}
+                {/* Success message - compact */}
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
+                    <Check className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-emerald-700 dark:text-emerald-300">¡Boletos reservados! 🎉</p>
+                    <p className="text-sm text-muted-foreground">Realiza tu pago para confirmarlos</p>
+                  </div>
+                </div>
+
+                {/* Reference code + tickets in one card */}
+                <div className="p-4 bg-muted/30 rounded-xl border border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tu código de referencia</p>
+                      <p className="text-xl font-mono font-bold text-amber-600 dark:text-amber-400 tracking-wider">
+                        {referenceCode}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={copyReferenceCode}
+                    >
+                      {copiedRef ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedRef ? 'Copiado' : 'Copiar'}
+                    </Button>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Boletos:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedTickets.slice(0, 6).map((ticket, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-sm">
+                          #{ticket}
+                        </Badge>
+                      ))}
+                      {selectedTickets.length > 6 && (
+                        <Badge variant="outline" className="text-sm">
+                          +{selectedTickets.length - 6} más
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-border flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total a pagar:</span>
+                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(total, raffle.currency_code || 'MXN')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Methods Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-emerald-500" />
+                    <h3 className="font-semibold text-foreground">Datos para el pago</h3>
+                  </div>
+
+                  {isLoadingPaymentMethods ? (
+                    <div className="p-4 bg-muted/30 rounded-xl animate-pulse">
+                      <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+                      <div className="h-10 bg-muted rounded mb-2" />
+                      <div className="h-10 bg-muted rounded" />
+                    </div>
+                  ) : !paymentMethods || paymentMethods.length === 0 ? (
+                    <div className="p-4 bg-muted/30 rounded-xl text-center">
+                      <Building2 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="font-medium text-foreground">Contacta al organizador</p>
+                      <p className="text-sm text-muted-foreground">Para coordinar tu pago</p>
+                    </div>
+                  ) : paymentMethods.length === 1 ? (
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border">
+                      <PaymentMethodDisplay
+                        method={paymentMethods[0]}
+                        totalAmount={total}
+                        currencyCode={raffle.currency_code || 'MXN'}
+                        referenceCode={referenceCode}
+                        ticketNumbers={selectedTickets}
+                        onCopy={(text, field) => {
+                          navigator.clipboard.writeText(text);
+                          setCopiedField(field);
+                          toast.success('Copiado');
+                          setTimeout(() => setCopiedField(null), 2000);
+                        }}
+                        copied={copiedField}
+                        variant="light"
+                      />
+                    </div>
+                  ) : (
+                    <Tabs defaultValue={paymentMethods[0].id} className="w-full">
+                      <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/30 p-1">
+                        {paymentMethods.map(method => (
+                          <TabsTrigger 
+                            key={method.id} 
+                            value={method.id}
+                            className="flex-1 min-w-[80px] gap-1.5 text-xs"
+                          >
+                            {getPaymentMethodIcon(method)}
+                            <span className="hidden sm:inline truncate">{getPaymentMethodLabel(method)}</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {paymentMethods.map(method => (
+                        <TabsContent key={method.id} value={method.id} className="mt-3">
+                          <div className="p-4 bg-muted/30 rounded-xl border border-border">
+                            <PaymentMethodDisplay
+                              method={method}
+                              totalAmount={total}
+                              currencyCode={raffle.currency_code || 'MXN'}
+                              referenceCode={referenceCode}
+                              ticketNumbers={selectedTickets}
+                              onCopy={(text, field) => {
+                                navigator.clipboard.writeText(text);
+                                setCopiedField(field);
+                                toast.success('Copiado');
+                                setTimeout(() => setCopiedField(null), 2000);
+                              }}
+                              copied={copiedField}
+                              variant="light"
+                            />
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  )}
+                </div>
+
+                {/* Upload Payment Proof */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-emerald-500" />
+                    <h3 className="font-semibold text-foreground">Subir comprobante</h3>
+                  </div>
+
+                  {proofUploaded ? (
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center gap-3">
+                        <Check className="h-6 w-6 text-emerald-500" />
+                        <div>
+                          <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                            ¡Comprobante enviado!
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Revisaremos tu pago y confirmaremos tus boletos
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <PaymentProofUploader
+                      raffleId={raffle.id}
+                      referenceCode={referenceCode}
+                      ticketIds={reservedTickets.map(t => t.id)}
+                      buyerName={form.getValues('name')}
+                      buyerEmail={form.getValues('email')}
+                      onUploadSuccess={() => {
+                        setProofUploaded(true);
+                        toast.success('¡Comprobante enviado!', {
+                          description: 'Revisaremos tu pago pronto'
+                        });
+                      }}
+                      variant="compact"
+                    />
+                  )}
+                </div>
+
+                {/* WhatsApp Contact */}
                 {raffle.organization?.phone && (
                   <WhatsAppContactButton
                     organizationPhone={raffle.organization.phone}
@@ -996,19 +1098,19 @@ export function CheckoutModal({
                   />
                 )}
 
-                {/* Telegram Opt-In for Premium/Enterprise orgs */}
+                {/* Telegram Opt-In */}
                 <TelegramOptIn
                   buyerEmail={form.getValues('email')}
                   organizationTier={raffle.organization?.subscription_tier}
                 />
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <Button
                     className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                     onClick={handleClose}
                   >
-                    Ver Instrucciones de Pago
+                    {proofUploaded ? 'Cerrar' : 'Finalizar después'}
                   </Button>
                   <Button
                     variant="outline"
