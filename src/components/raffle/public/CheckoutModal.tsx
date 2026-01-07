@@ -77,7 +77,7 @@ const checkoutSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100, "El nombre es demasiado largo"),
   email: z.string().email("Ingresa un email válido").max(255, "El email es demasiado largo"),
   phone: z.string().min(10, "Ingresa un teléfono válido (mínimo 10 dígitos)").max(20, "El teléfono es demasiado largo"),
-  city: z.string().max(100, "La ciudad es demasiado larga").optional(),
+  city: z.string().min(2, "La ciudad debe tener al menos 2 caracteres").max(100, "La ciudad es demasiado larga"),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: "Debes aceptar los términos y condiciones",
   }),
@@ -166,7 +166,7 @@ export function CheckoutModal({
   const total = subtotal - discount;
 
   const handleContinueToPayment = async () => {
-    const isValid = await form.trigger(['name', 'email', 'phone', 'acceptTerms']);
+    const isValid = await form.trigger(['name', 'email', 'phone', 'city', 'acceptTerms']);
     if (!isValid) return;
 
     const data = form.getValues();
@@ -511,12 +511,12 @@ export function CheckoutModal({
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Ciudad</FormLabel>
+                            <FormLabel>Ciudad *</FormLabel>
                             <FormControl>
                               <div className="relative">
                                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                  placeholder="CDMX"
+                                  placeholder="Ej: Ciudad de México"
                                   className="pl-10 h-12 border-2 focus:border-emerald-500 rounded-xl"
                                   {...field}
                                 />
