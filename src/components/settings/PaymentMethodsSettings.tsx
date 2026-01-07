@@ -57,7 +57,9 @@ import {
   Smartphone,
   Globe,
   QrCode,
-  ArrowLeft
+  ArrowLeft,
+  Info,
+  X
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -1567,13 +1569,73 @@ export function PaymentMethodsSettings() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <span className="text-xl">{countryConfig?.flag}</span>
-                  Métodos en {countryConfig?.name}
+                  ¿Qué métodos acepta esta cuenta?
                 </DialogTitle>
-                <DialogDescription>
-                  Paso 2 de 3: Selecciona los métodos que soporta esta cuenta
+                <DialogDescription className="space-y-1">
+                  <span>Paso 2 de 3: Marca <strong>todos</strong> los métodos de pago que puede recibir esta cuenta.</span>
+                  <span className="block text-xs text-muted-foreground/80 italic">
+                    Ejemplo: Una tarjeta de débito puede recibir SPEI, depósito en ventanilla y pago en OXXO
+                  </span>
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+
+              {/* Info banner */}
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-800 dark:text-blue-200">
+                    Puedes seleccionar varios métodos
+                  </p>
+                  <p className="text-blue-700 dark:text-blue-300 text-xs mt-0.5">
+                    Los datos de la cuenta se compartirán entre todos los métodos seleccionados.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick selection buttons */}
+              <div className="flex flex-wrap gap-2 pb-2 border-b">
+                {countryConfig?.methods.bank && countryConfig.methods.bank.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const bankMethods = countryConfig.methods.bank?.map(m => m.id) || [];
+                      setSelectedSubtypes(prev => [...new Set([...prev, ...bankMethods])]);
+                    }}
+                  >
+                    <Landmark className="h-3 w-3 mr-1" />
+                    Bancarios
+                  </Button>
+                )}
+                {countryConfig?.methods.store && countryConfig.methods.store.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    type="button"
+                    onClick={() => {
+                      const storeMethods = countryConfig.methods.store?.map(m => m.id) || [];
+                      setSelectedSubtypes(prev => [...new Set([...prev, ...storeMethods])]);
+                    }}
+                  >
+                    <Store className="h-3 w-3 mr-1" />
+                    Tienda
+                  </Button>
+                )}
+                {selectedSubtypes.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    type="button"
+                    onClick={() => setSelectedSubtypes([])}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Limpiar
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-4 py-2 max-h-[40vh] overflow-y-auto">
                 {/* Bank methods */}
                 {countryConfig?.methods.bank && countryConfig.methods.bank.length > 0 && (
                   <div>
@@ -1587,19 +1649,21 @@ export function PaymentMethodsSettings() {
                         return (
                           <button
                             key={method.id}
-                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            type="button"
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-all ${
+                              isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-muted-foreground/50 hover:bg-muted/30"
                             }`}
                             onClick={() => toggleSubtypeSelection(method.id)}
                           >
-                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'border-primary bg-primary scale-105' : 'border-muted-foreground/40 hover:border-primary/50'}`}>
+                              {isSelected && <Check className="h-4 w-4 text-primary-foreground" />}
                             </div>
                             <Icon className="h-5 w-5 shrink-0" />
-                            <div className="text-left">
+                            <div className="text-left flex-1">
                               <p className="font-medium text-sm">{method.label}</p>
                               {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
                             </div>
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
                           </button>
                         );
                       })}
@@ -1620,19 +1684,21 @@ export function PaymentMethodsSettings() {
                         return (
                           <button
                             key={method.id}
-                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            type="button"
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-all ${
+                              isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-muted-foreground/50 hover:bg-muted/30"
                             }`}
                             onClick={() => toggleSubtypeSelection(method.id)}
                           >
-                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'border-primary bg-primary scale-105' : 'border-muted-foreground/40 hover:border-primary/50'}`}>
+                              {isSelected && <Check className="h-4 w-4 text-primary-foreground" />}
                             </div>
                             <Icon className="h-5 w-5 shrink-0" />
-                            <div className="text-left">
+                            <div className="text-left flex-1">
                               <p className="font-medium text-sm">{method.label}</p>
                               {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
                             </div>
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
                           </button>
                         );
                       })}
@@ -1653,19 +1719,21 @@ export function PaymentMethodsSettings() {
                         return (
                           <button
                             key={method.id}
-                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            type="button"
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-all ${
+                              isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-muted-foreground/50 hover:bg-muted/30"
                             }`}
                             onClick={() => toggleSubtypeSelection(method.id)}
                           >
-                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'border-primary bg-primary scale-105' : 'border-muted-foreground/40 hover:border-primary/50'}`}>
+                              {isSelected && <Check className="h-4 w-4 text-primary-foreground" />}
                             </div>
                             <Icon className="h-5 w-5 shrink-0" />
-                            <div className="text-left">
+                            <div className="text-left flex-1">
                               <p className="font-medium text-sm">{method.label}</p>
                               {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
                             </div>
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
                           </button>
                         );
                       })}
@@ -1686,19 +1754,21 @@ export function PaymentMethodsSettings() {
                         return (
                           <button
                             key={method.id}
-                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-colors ${
-                              isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/50"
+                            type="button"
+                            className={`flex items-center gap-4 p-3 w-full rounded-lg border transition-all ${
+                              isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-muted-foreground/50 hover:bg-muted/30"
                             }`}
                             onClick={() => toggleSubtypeSelection(method.id)}
                           >
-                            <div className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/50'}`}>
-                              {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                            <div className={`h-6 w-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'border-primary bg-primary scale-105' : 'border-muted-foreground/40 hover:border-primary/50'}`}>
+                              {isSelected && <Check className="h-4 w-4 text-primary-foreground" />}
                             </div>
                             <Icon className="h-5 w-5 shrink-0" />
-                            <div className="text-left">
+                            <div className="text-left flex-1">
                               <p className="font-medium text-sm">{method.label}</p>
                               {method.description && <p className="text-xs text-muted-foreground">{method.description}</p>}
                             </div>
+                            {isSelected && <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />}
                           </button>
                         );
                       })}
@@ -1706,13 +1776,36 @@ export function PaymentMethodsSettings() {
                   </div>
                 )}
               </div>
+
               {validationErrors?.limit && (
                 <p className="text-sm text-destructive">{validationErrors.limit}</p>
               )}
+
+              {/* Visual selection summary */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                {selectedSubtypes.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">Selecciona al menos 1 método</span>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-primary">
+                      {selectedSubtypes.length} seleccionado{selectedSubtypes.length > 1 ? 's' : ''}:
+                    </span>
+                    {selectedSubtypes.slice(0, 3).map(s => (
+                      <span key={s} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
+                        {getIcon(s, selectedCountry)}
+                        {getSubtypeLabel(s, selectedCountry)}
+                      </span>
+                    ))}
+                    {selectedSubtypes.length > 3 && (
+                      <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                        +{selectedSubtypes.length - 3} más
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
               <DialogFooter className="flex-col sm:flex-row gap-2">
-                <div className="text-sm text-muted-foreground mr-auto">
-                  {selectedSubtypes.length > 0 && `${selectedSubtypes.length} seleccionado${selectedSubtypes.length > 1 ? 's' : ''}`}
-                </div>
                 <Button variant="outline" onClick={handleBackToCountry}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Atrás
