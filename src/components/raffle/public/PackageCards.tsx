@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
 import { Check, Sparkles, Star } from "lucide-react";
+import { toast } from "sonner";
 
 interface Package {
   id: string;
@@ -17,6 +18,7 @@ interface PackageCardsProps {
   currency: string;
   selectedQuantity: number;
   onSelect: (quantity: number) => void;
+  onOpenCheckout?: () => void;
   bestPackageId?: string;
   isLightTemplate?: boolean;
   primaryColor?: string;
@@ -28,6 +30,7 @@ export function PackageCards({
   currency,
   selectedQuantity,
   onSelect,
+  onOpenCheckout,
   bestPackageId,
   isLightTemplate = false,
   primaryColor,
@@ -105,7 +108,17 @@ export function PackageCards({
           return (
             <motion.button
               key={pkg.id}
-              onClick={() => onSelect(pkg.quantity)}
+              onClick={() => {
+                onSelect(pkg.quantity);
+                // Show toast with quick checkout action
+                toast.success(`${pkg.quantity} boletos seleccionados`, {
+                  description: `Total: ${formatCurrency(pkg.price, currency)}`,
+                  action: onOpenCheckout ? {
+                    label: 'Ir a pagar',
+                    onClick: onOpenCheckout,
+                  } : undefined,
+                });
+              }}
               whileHover={{ scale: 1.04, y: -6 }}
               whileTap={{ scale: 0.97 }}
               initial={{ opacity: 0, y: 20 }}

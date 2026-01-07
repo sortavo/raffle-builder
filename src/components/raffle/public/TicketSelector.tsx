@@ -738,6 +738,12 @@ export function TicketSelector({
                 currency={currencyCode}
                 selectedQuantity={selectedTickets.length}
                 onSelect={(qty) => setRandomCount(qty)}
+                onOpenCheckout={() => {
+                  // Trigger the continue action if we have selected tickets
+                  if (selectedTickets.length > 0) {
+                    onContinue(selectedTickets, selectedTicketIndices);
+                  }
+                }}
                 bestPackageId={bestPackage?.id}
                 isLightTemplate={isLightTemplate}
                 primaryColor={primaryColor}

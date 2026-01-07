@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -19,12 +20,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveVirtualTickets } from "@/hooks/useVirtualTickets";
 import { useEmails } from "@/hooks/useEmails";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { notifyPaymentPending } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
+import { CountdownTimer } from "./CountdownTimer";
 import { 
   Loader2, 
   Ticket, 
@@ -41,7 +48,9 @@ import {
   Lock,
   BadgeCheck,
   Building2,
-  Share2
+  Share2,
+  ChevronDown,
+  Copy
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { CouponInput } from "@/components/marketing/CouponInput";
@@ -126,6 +135,9 @@ export function CheckoutModal({
   const [reservedUntil, setReservedUntil] = useState<string>('');
   const [referenceCode, setReferenceCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false); // Prevent double-click
+  const [ticketsExpanded, setTicketsExpanded] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [shakeForm, setShakeForm] = useState(false);
   
   const reserveTickets = useReserveVirtualTickets();
   const { sendReservationEmail } = useEmails();
@@ -165,9 +177,19 @@ export function CheckoutModal({
   const subtotal = calculateSubtotal();
   const total = subtotal - discount;
 
+  const copyReferenceCode = async () => {
+    await navigator.clipboard.writeText(referenceCode);
+    setCopiedRef(true);
+    setTimeout(() => setCopiedRef(false), 2000);
+  };
+
   const handleContinueToPayment = async () => {
     const isValid = await form.trigger(['name', 'email', 'phone', 'city', 'acceptTerms']);
-    if (!isValid) return;
+    if (!isValid) {
+      setShakeForm(true);
+      setTimeout(() => setShakeForm(false), 400);
+      return;
+    }
 
     const data = form.getValues();
     
@@ -405,29 +427,51 @@ export function CheckoutModal({
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                {/* Selected tickets summary */}
-                <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                        <Ticket className="h-5 w-5 text-white" />
+                {/* Selected tickets summary - Expandable */}
+                <Collapsible open={ticketsExpanded} onOpenChange={setTicketsExpanded}>
+                  <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30">
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                            <Ticket className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-semibold text-foreground">
+                              {selectedTickets.length} Boleto{selectedTickets.length !== 1 && 's'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedTickets.slice(0, 3).join(', ')}{selectedTickets.length > 3 && ` +${selectedTickets.length - 3} más`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
+                          </p>
+                          <ChevronDown className={cn(
+                            "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                            ticketsExpanded && "rotate-180"
+                          )} />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {selectedTickets.length} Boleto{selectedTickets.length !== 1 && 's'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedTickets.slice(0, 5).join(', ')}{selectedTickets.length > 5 && '...'}
-                        </p>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent>
+                      <div className="flex flex-wrap gap-1.5 pt-4 mt-4 border-t border-emerald-500/20">
+                        {selectedTickets.map(ticket => (
+                          <Badge 
+                            key={ticket} 
+                            variant="secondary" 
+                            className="text-sm bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                          >
+                            #{ticket}
+                          </Badge>
+                        ))}
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(subtotal, raffle.currency_code || 'MXN')}
-                      </p>
-                    </div>
+                    </CollapsibleContent>
                   </div>
-                </div>
+                </Collapsible>
 
                 {/* Reservation Time Notice */}
                 <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded-lg">
@@ -439,7 +483,7 @@ export function CheckoutModal({
 
                 {/* Premium form fields */}
                 <Form {...form}>
-                  <div className="space-y-4">
+                  <div className={cn("space-y-4", shakeForm && "animate-shake")}>
                     <FormField
                       control={form.control}
                       name="name"
@@ -736,15 +780,29 @@ export function CheckoutModal({
                   </p>
                 </div>
 
-                {/* Reference code */}
+                {/* Reference code with copy button */}
                 {referenceCode && (
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
                     <p className="text-sm text-muted-foreground mb-1">Código de Referencia:</p>
-                    <p className="text-2xl font-mono font-bold text-amber-600 tracking-widest">
-                      {referenceCode}
-                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <p className="text-2xl font-mono font-bold text-amber-600 tracking-widest">
+                        {referenceCode}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                        onClick={copyReferenceCode}
+                      >
+                        {copiedRef ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-4 w-4 text-amber-600" />
+                        )}
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Comparte este código con el organizador para identificar tu pago
+                      Usa este código al enviar tu comprobante
                     </p>
                   </div>
                 )}
@@ -757,12 +815,23 @@ export function CheckoutModal({
                   </p>
                 </div>
 
-                {/* Reservation timer reminder */}
-                <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    Recuerda completar el pago en {raffle.reservation_time_minutes || 15} minutos
-                  </span>
+                {/* Prominent countdown timer */}
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-amber-500 animate-pulse" />
+                      <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                        ¡Completa tu pago antes de que expire!
+                      </p>
+                    </div>
+                    {reservedUntil && (
+                      <CountdownTimer 
+                        targetDate={new Date(reservedUntil)} 
+                        variant="compact"
+                        className="mt-1"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {/* WhatsApp Contact - with reference code */}
