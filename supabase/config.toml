@@ -125,9 +125,3 @@ verify_jwt = true
 
 [functions.create-demo-account]
 verify_jwt = false
-
-[functions.job-manager]
-verify_jwt = false
-
-[functions.ticket-worker]
-verify_jwt = false
