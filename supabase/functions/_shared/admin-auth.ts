@@ -1,5 +1,5 @@
 // Shared authentication helper for admin-only Edge Functions
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient } from "npm:@supabase/supabase-js@2.89.0";
 
 export interface AdminAuthResult {
   authenticated: boolean;
