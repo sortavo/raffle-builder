@@ -123,6 +123,76 @@ export type Database = {
           },
         ]
       }
+      archived_raffle_summary: {
+        Row: {
+          archived_at: string | null
+          buyer_cities: Json | null
+          created_at: string | null
+          draw_executed_at: string | null
+          raffle_id: string
+          sales_by_day: Json | null
+          sales_by_hour: Json | null
+          tickets_reserved: number
+          tickets_sold: number
+          top_buyers: Json | null
+          total_revenue: number
+          unique_buyers: number
+          winners: Json | null
+        }
+        Insert: {
+          archived_at?: string | null
+          buyer_cities?: Json | null
+          created_at?: string | null
+          draw_executed_at?: string | null
+          raffle_id: string
+          sales_by_day?: Json | null
+          sales_by_hour?: Json | null
+          tickets_reserved?: number
+          tickets_sold?: number
+          top_buyers?: Json | null
+          total_revenue?: number
+          unique_buyers?: number
+          winners?: Json | null
+        }
+        Update: {
+          archived_at?: string | null
+          buyer_cities?: Json | null
+          created_at?: string | null
+          draw_executed_at?: string | null
+          raffle_id?: string
+          sales_by_day?: Json | null
+          sales_by_hour?: Json | null
+          tickets_reserved?: number
+          tickets_sold?: number
+          top_buyers?: Json | null
+          total_revenue?: number
+          unique_buyers?: number
+          winners?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1186,6 +1256,110 @@ export type Database = {
           },
         ]
       }
+      sold_tickets: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          buyer_city: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string | null
+          buyer_phone: string | null
+          canceled_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          order_total: number | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          raffle_id: string
+          reserved_at: string | null
+          reserved_until: string | null
+          sold_at: string | null
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_index: number
+          ticket_number: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_city?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          order_total?: number | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          raffle_id: string
+          reserved_at?: string | null
+          reserved_until?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_index: number
+          ticket_number: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_city?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          canceled_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          order_total?: number | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          raffle_id?: string
+          reserved_at?: string | null
+          reserved_until?: string | null
+          sold_at?: string | null
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_index?: number
+          ticket_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sold_tickets_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sold_tickets_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sold_tickets_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "sold_tickets_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_events: {
         Row: {
           created_at: string | null
@@ -1990,6 +2164,7 @@ export type Database = {
         Returns: number
       }
       archive_old_raffles: { Args: { days_old?: number }; Returns: number }
+      archive_raffle: { Args: { p_raffle_id: string }; Returns: Json }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       check_system_health: {
         Args: never
@@ -2016,6 +2191,14 @@ export type Database = {
       }
       disable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
       enable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
+      format_virtual_ticket: {
+        Args: {
+          p_numbering_config: Json
+          p_ticket_index: number
+          p_total_tickets: number
+        }
+        Returns: string
+      }
       generate_reference_code: { Args: never; Returns: string }
       generate_ticket_batch: {
         Args: {
@@ -2155,6 +2338,26 @@ export type Database = {
         }[]
       }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
+      get_virtual_ticket_counts: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          reserved_count: number
+          sold_count: number
+          total_count: number
+        }[]
+      }
+      get_virtual_tickets: {
+        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
+        Returns: {
+          buyer_city: string
+          buyer_name: string
+          id: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -2208,6 +2411,25 @@ export type Database = {
         Returns: string
       }
       release_expired_tickets: { Args: never; Returns: undefined }
+      reserve_virtual_tickets: {
+        Args: {
+          p_buyer_city?: string
+          p_buyer_email: string
+          p_buyer_name: string
+          p_buyer_phone: string
+          p_order_total?: number
+          p_raffle_id: string
+          p_reservation_minutes?: number
+          p_ticket_indices: number[]
+        }
+        Returns: {
+          error_message: string
+          reference_code: string
+          reserved_count: number
+          reserved_until: string
+          success: boolean
+        }[]
+      }
       search_public_tickets: {
         Args: { p_limit?: number; p_raffle_id: string; p_search: string }
         Returns: {

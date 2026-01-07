@@ -604,6 +604,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 ticketsAvailable={raffle.ticketsAvailable}
                 isLightTemplate={isLightTemplate}
                 primaryColor={primaryColor}
+                useVirtualTicketsEnabled={(raffle as any).customization?.use_virtual_tickets === true}
               />
 
               {showSocialProof && (
