@@ -62,6 +62,7 @@ export const useRaffles = () => {
           .from('raffles')
           .select('*', { count: 'exact' })
           .eq('organization_id', organization.id)
+          .is('archived_at', null) // Exclude archived raffles for scalability
           .order(filters?.sortBy || 'created_at', { ascending: filters?.sortOrder === 'asc' })
           .range(from, to);
 
