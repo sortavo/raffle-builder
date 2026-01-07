@@ -393,25 +393,49 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           '--custom-secondary': secondaryColor,
         } as React.CSSProperties}
       >
-        {/* Animated orbs - adaptive to light/dark templates */}
+        {/* Animated orbs - dynamic brand colors */}
         <div className="fixed inset-0 pointer-events-none z-0">
           {isLightTemplate ? (
             <>
-              {/* Light template: soft pastel orbs */}
-              <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-200/40 rounded-full blur-[120px] animate-blob" />
-              <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-200/30 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-              <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-teal-200/30 rounded-full blur-[120px] animate-blob animation-delay-4000" />
-              <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-200/20 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+              {/* Light template: brand-colored orbs with increased visibility */}
+              <div 
+                className="absolute top-1/4 -left-32 w-[650px] h-[650px] rounded-full blur-[100px] animate-blob" 
+                style={{ backgroundColor: `${primaryColor}45` }}
+              />
+              <div 
+                className="absolute top-1/3 -right-32 w-[550px] h-[550px] rounded-full blur-[100px] animate-blob animation-delay-2000" 
+                style={{ backgroundColor: `${secondaryColor}35` }}
+              />
+              <div 
+                className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full blur-[100px] animate-blob animation-delay-4000" 
+                style={{ backgroundColor: `${primaryColor}30` }}
+              />
+              <div 
+                className="absolute top-1/2 right-1/4 w-[450px] h-[450px] rounded-full blur-[100px] animate-blob animation-delay-1000" 
+                style={{ backgroundColor: `${secondaryColor}25` }}
+              />
               {/* Subtle grid for light templates */}
-              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
             </>
           ) : (
             <>
-              {/* Dark template: vibrant emerald orbs */}
-              <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px] animate-blob" />
-              <div className="absolute top-1/3 -right-32 w-[450px] h-[450px] bg-amber-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-              <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000" />
-              <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-500/8 rounded-full blur-[120px] animate-blob animation-delay-1000" />
+              {/* Dark template: brand-colored orbs */}
+              <div 
+                className="absolute top-1/4 -left-32 w-[600px] h-[600px] rounded-full blur-[120px] animate-blob" 
+                style={{ backgroundColor: `${primaryColor}25` }}
+              />
+              <div 
+                className="absolute top-1/3 -right-32 w-[500px] h-[500px] rounded-full blur-[120px] animate-blob animation-delay-2000" 
+                style={{ backgroundColor: `${secondaryColor}18` }}
+              />
+              <div 
+                className="absolute bottom-1/4 left-1/3 w-96 h-96 rounded-full blur-[120px] animate-blob animation-delay-4000" 
+                style={{ backgroundColor: `${primaryColor}15` }}
+              />
+              <div 
+                className="absolute top-1/2 right-1/4 w-[400px] h-[400px] rounded-full blur-[120px] animate-blob animation-delay-1000" 
+                style={{ backgroundColor: `${secondaryColor}12` }}
+              />
               {/* Grid pattern overlay for dark templates */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
             </>
