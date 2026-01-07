@@ -142,6 +142,21 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // ✅ KILL SWITCH: Check if ticket generation is enabled
+    const { data: setting } = await supabaseClient
+      .from("system_settings")
+      .select("value")
+      .eq("key", "ticket_generation_enabled")
+      .single();
+
+    if (setting?.value !== 'true') {
+      logStep("Ticket generation is PAUSED (kill switch active)");
+      return new Response(
+        JSON.stringify({ success: true, message: "Generation paused via kill switch", processed: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Auto-recovery: Reset stale jobs (running for too long without progress)
     const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1000).toISOString();
     const { data: staleJobs } = await supabaseClient
