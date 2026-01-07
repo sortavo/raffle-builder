@@ -163,11 +163,10 @@ serve(async (req) => {
       generated_count: number;
       current_batch: number;
       batch_size: number;
-      numbering_config: unknown;
-      status?: string;
       ticket_format?: string;
       ticket_prefix?: string;
       total_batches?: number;
+      status?: string;
     }> = [];
 
     const { data: claimedJobs, error: claimError } = await supabaseClient

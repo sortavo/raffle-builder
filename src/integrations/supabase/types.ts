@@ -1989,8 +1989,10 @@ export type Database = {
           current_batch: number
           generated_count: number
           id: string
-          numbering_config: Json
           raffle_id: string
+          ticket_format: string
+          ticket_prefix: string
+          total_batches: number
           total_tickets: number
         }[]
       }
