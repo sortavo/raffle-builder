@@ -466,6 +466,17 @@ export function PaymentMethodsSettings() {
   // Group methods for display
   const groupedMethods = useMemo(() => groupMethodsByAccount(methods), [methods]);
 
+  // Get bank list for editing (uses country from editing method or fallback)
+  const editingBankList = useMemo(() => {
+    const country = editingMethod?.country || 'MX';
+    return getBankListForCountry(country);
+  }, [editingMethod?.country]);
+
+  // Get bank list for new method
+  const newMethodBankList = useMemo(() => {
+    return getBankListForCountry(selectedCountry || 'MX');
+  }, [selectedCountry]);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -913,16 +924,6 @@ export function PaymentMethodsSettings() {
     );
   }
 
-  // Get bank list for editing (uses country from editing method or fallback)
-  const editingBankList = useMemo(() => {
-    const country = editingMethod?.country || 'MX';
-    return getBankListForCountry(country);
-  }, [editingMethod?.country]);
-
-  // Get bank list for new method
-  const newMethodBankList = useMemo(() => {
-    return getBankListForCountry(selectedCountry || 'MX');
-  }, [selectedCountry]);
 
   const renderDynamicFields = () => {
     if (!editingMethod) return null;
