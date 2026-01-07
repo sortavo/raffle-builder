@@ -15,20 +15,20 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
 
   // 2. Get aggregated ticket stats using count queries (much faster than loading all)
   const { count: soldCount } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
     .eq('status', 'sold');
 
   const { count: reservedCount } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
     .eq('status', 'reserved');
 
   // 3. Get payment method breakdown using aggregation
   const { data: paymentMethodData } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('payment_method')
     .eq('raffle_id', raffleId)
     .eq('status', 'sold')
@@ -42,7 +42,7 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
 
   // 4. Get city breakdown
   const { data: cityData } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('buyer_city')
     .eq('raffle_id', raffleId)
     .eq('status', 'sold')

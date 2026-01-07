@@ -87,7 +87,7 @@ export const useBuyers = (raffleId: string | undefined) => {
         if (!raffleId) return [];
 
         const { data, error } = await supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('buyer_city')
           .eq('raffle_id', raffleId)
           .not('buyer_city', 'is', null);

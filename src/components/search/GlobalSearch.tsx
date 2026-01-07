@@ -129,7 +129,7 @@ export function GlobalSearch() {
         const raffleIds = orgRaffles.map(r => r.id);
         
         const { data: tickets } = await supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('id, ticket_number, buyer_name, buyer_email, raffle_id')
           .in('raffle_id', raffleIds)
           .eq('status', 'sold')
@@ -149,7 +149,7 @@ export function GlobalSearch() {
         // Search by ticket number if query is numeric
         if (/^\d+$/.test(searchQuery)) {
           const { data: ticketsByNumber } = await supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('id, ticket_number, buyer_name, status, raffle_id')
             .in('raffle_id', raffleIds)
             .eq('ticket_number', searchQuery)

@@ -103,11 +103,11 @@ export function useAdminOverviewStats(dateRange: DateRange | undefined) {
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("raffles").select("*", { count: "exact", head: true }),
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "sold"),
+        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold"),
         supabase.from("organizations").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
         supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
         supabase.from("raffles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
+        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
         supabase.from("organizations").select("subscription_tier, subscription_status"),
       ]);
 
@@ -199,9 +199,9 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
       ] = await Promise.all([
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "completed"),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "reserved"),
-        supabase.from("tickets").select("*", { count: "exact", head: true }).eq("status", "reserved").not("buyer_name", "is", null),
+        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
+        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "reserved"),
+        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "reserved").not("buyer_name", "is", null),
         supabase.from("analytics_events").select("id, event_type, metadata, created_at").gte("created_at", fromDate).lte("created_at", toDate).order("created_at", { ascending: false }).limit(20),
         supabase.from("raffles").select(`
           id, title, total_tickets, organization_id,
@@ -214,7 +214,7 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
       if (rafflesData) {
         for (const raffle of rafflesData) {
           const { count } = await supabase
-            .from("tickets")
+            .from("sold_tickets")
             .select("*", { count: "exact", head: true })
             .eq("raffle_id", raffle.id)
             .eq("status", "sold");

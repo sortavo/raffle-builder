@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Raffle = Tables<'raffles'>;
-type Ticket = Tables<'tickets'>;
+type Ticket = Tables<'sold_tickets'>;
 
 export interface RaffleWithStats extends Raffle {
   ticketsSold: number;
@@ -86,7 +86,7 @@ export function usePublicRaffle(slug: string | undefined, orgSlug?: string) {
         }),
         // Revenue query - will return empty for anon users (fine, revenue is org-only data)
         supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('payment_reference, order_total')
           .eq('raffle_id', raffle.id)
           .eq('status', 'sold')
@@ -218,7 +218,7 @@ export function useReserveTickets() {
       // ATOMIC OPERATION: Use a single update with .in() to reserve all tickets at once
       // This prevents race conditions where some tickets get reserved by other users
       const { data: reservedTickets, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'reserved',
           buyer_name: buyerData.name,
@@ -242,7 +242,7 @@ export function useReserveTickets() {
         // ROLLBACK: Release any tickets that were partially reserved
         if (reservedTickets && reservedTickets.length > 0) {
           await supabase
-            .from('tickets')
+            .from('sold_tickets')
             .update({
               status: 'available',
               buyer_name: null,
@@ -395,7 +395,7 @@ export function useMyTickets(
       if (!searchValue) return [];
 
       let query = supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select(`
           *,
           raffles (id, title, slug, prize_name, prize_images, draw_date, status, ticket_price, currency_code)
@@ -489,9 +489,9 @@ export function useRandomAvailableTickets() {
         return data.selected as string[];
       }
 
-      // For small counts (<=100), use client-side approach
+      // For small counts (<=100), use client-side approach with sold_tickets
       const { count: availableCount, error: countError } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('*', { count: 'exact', head: true })
         .eq('raffle_id', raffleId)
         .eq('status', 'available');
@@ -503,7 +503,7 @@ export function useRandomAvailableTickets() {
 
       // Fetch enough tickets to shuffle
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('ticket_number')
         .eq('raffle_id', raffleId)
         .eq('status', 'available')
@@ -543,7 +543,7 @@ export function useCheckTicketsAvailability() {
       if (ticketNumbers.length === 0) return [];
 
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('ticket_number, status')
         .eq('raffle_id', raffleId)
         .in('ticket_number', ticketNumbers);
@@ -657,7 +657,7 @@ export function usePreviewRaffle(slug: string | undefined, enabled: boolean = fa
 
       // Get ticket counts - user has access via RLS
       const { data: ticketStats, error: statsError } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('status')
         .eq('raffle_id', raffle.id);
 

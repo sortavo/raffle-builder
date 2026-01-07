@@ -23,7 +23,7 @@ async function fetchAllTicketsInBatches(
 
   while (hasMore) {
     let query = supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('*')
       .eq('raffle_id', raffleId)
       .order('ticket_number', { ascending: true })
@@ -110,7 +110,7 @@ async function exportTicketsClientSide(
 ): Promise<{ success: boolean; count: number }> {
   // Get total count first for progress tracking
   const { count: totalCount } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId);
 
@@ -177,7 +177,7 @@ export async function exportTicketsToCSV(
 ) {
   // Check total ticket count to decide export method
   const { count: totalCount } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId);
 

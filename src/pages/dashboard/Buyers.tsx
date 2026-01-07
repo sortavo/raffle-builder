@@ -48,7 +48,7 @@ export default function Buyers() {
 
       // Get all tickets with buyer info from these raffles
       const { data: tickets } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("buyer_name, buyer_email, buyer_phone, buyer_city, reserved_at, status")
         .in("raffle_id", raffles.map(r => r.id))
         .not("buyer_name", "is", null);

@@ -125,7 +125,7 @@ export function useOrganizationDetail(orgId: string | undefined) {
 
       // Get ticket counts by status
       const { data: tickets, error: ticketsError } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("status, order_total")
         .in("raffle_id", raffleIds);
 

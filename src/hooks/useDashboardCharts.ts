@@ -58,7 +58,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
   const previousStartDate = subDays(startDate, daysDiff);
   const previousEndDate = subDays(startDate, 1);
 
-  // Real-time subscription for tickets table
+  // Real-time subscription for sold_tickets table
   useEffect(() => {
     if (!organization?.id) return;
 
@@ -69,7 +69,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
         {
           event: '*',
           schema: 'public',
-          table: 'tickets'
+          table: 'sold_tickets'
         },
         () => {
           // Invalidate and refetch chart data when tickets change
@@ -130,7 +130,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
 
       // Fetch tickets sold in the selected date range - include order_total and payment_reference
       const { data: recentTickets, error: recentError } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("id, raffle_id, sold_at, status, order_total, payment_reference")
         .in("raffle_id", raffleIds)
         .eq("status", "sold")
@@ -141,7 +141,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
 
       // Fetch tickets sold in previous period (for comparison)
       const { data: previousTickets, error: previousError } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("id, raffle_id, sold_at, order_total, payment_reference")
         .in("raffle_id", raffleIds)
         .eq("status", "sold")
@@ -152,7 +152,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
 
       // Fetch all tickets for raffle breakdown
       const { data: allTickets, error: allError } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("id, raffle_id, status, order_total, payment_reference")
         .in("raffle_id", raffleIds);
 

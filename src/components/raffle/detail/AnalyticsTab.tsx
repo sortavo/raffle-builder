@@ -70,7 +70,7 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       const { start } = getTimeRangeDates(timeRange);
       
       let query = supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('*')
         .eq('raffle_id', raffle.id)
         .eq('status', 'sold')

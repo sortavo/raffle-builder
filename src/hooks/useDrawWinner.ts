@@ -58,7 +58,7 @@ export function useDrawWinner() {
 
       // Verify ticket exists and is sold
       const { data: ticket, error: ticketError } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('*')
         .eq('id', ticketId)
         .eq('status', 'sold')

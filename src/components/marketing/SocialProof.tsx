@@ -28,7 +28,7 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
   useEffect(() => {
     const fetchRecent = async () => {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('id, buyer_name, buyer_city, ticket_number, sold_at')
         .eq('raffle_id', raffleId)
         .eq('status', 'sold')
@@ -50,7 +50,7 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'tickets',
+        table: 'sold_tickets',
         filter: `raffle_id=eq.${raffleId}`
       }, (payload) => {
         if (payload.new.status === 'sold') {

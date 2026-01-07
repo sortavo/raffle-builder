@@ -143,7 +143,7 @@ export const useRaffles = () => {
 
           // Calculate revenue separately - try direct query for authenticated users
           const { data: revenueData } = await supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('payment_reference, order_total')
             .eq('raffle_id', raffleId)
             .eq('status', 'sold')
@@ -398,8 +398,8 @@ export const useRaffles = () => {
   // Delete raffle
   const deleteRaffle = useMutation({
     mutationFn: async (raffleId: string) => {
-      // First delete all tickets
-      await supabase.from('tickets').delete().eq('raffle_id', raffleId);
+      // First delete all sold tickets
+      await supabase.from('sold_tickets').delete().eq('raffle_id', raffleId);
       
       // Then delete packages
       await supabase.from('raffle_packages').delete().eq('raffle_id', raffleId);

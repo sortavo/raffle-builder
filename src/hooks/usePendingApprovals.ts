@@ -30,7 +30,7 @@ export function usePendingApprovals() {
 
       // Count reserved tickets (pending approvals) across all active raffles
       const { count, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('*', { count: 'exact', head: true })
         .in('raffle_id', raffleIds)
         .eq('status', 'reserved');
@@ -54,7 +54,7 @@ export function usePendingApprovals() {
         {
           event: '*',
           schema: 'public',
-          table: 'tickets',
+          table: 'sold_tickets',
           filter: `status=eq.reserved`,
         },
         () => {

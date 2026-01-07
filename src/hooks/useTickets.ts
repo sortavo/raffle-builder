@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Ticket = Tables<'tickets'>;
+type Ticket = Tables<'sold_tickets'>;
 
 export interface TicketFilters {
   status?: string;
@@ -35,7 +35,7 @@ export const useTickets = (raffleId: string | undefined) => {
         if (!raffleId) return { tickets: [], count: 0 };
 
         let query = supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('*', { count: 'exact' })
           .eq('raffle_id', raffleId)
           .order('ticket_number', { ascending: true })
@@ -70,27 +70,27 @@ export const useTickets = (raffleId: string | undefined) => {
         // Use parallel count queries to avoid the 1000 row limit
         const [availableRes, reservedRes, soldRes, canceledRes, totalRes] = await Promise.all([
           supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId)
             .eq('status', 'available'),
           supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId)
             .eq('status', 'reserved'),
           supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId)
             .eq('status', 'sold'),
           supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId)
             .eq('status', 'canceled'),
           supabase
-            .from('tickets')
+            .from('sold_tickets')
             .select('*', { count: 'exact', head: true })
             .eq('raffle_id', raffleId),
         ]);
@@ -111,7 +111,7 @@ export const useTickets = (raffleId: string | undefined) => {
   const approveTicket = useMutation({
     mutationFn: async ({ ticketId, raffleTitle, raffleSlug, organizationId }: { ticketId: string; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
@@ -184,7 +184,7 @@ export const useTickets = (raffleId: string | undefined) => {
   const rejectTicket = useMutation({
     mutationFn: async (ticketId: string) => {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'available',
           buyer_id: null,
@@ -223,7 +223,7 @@ export const useTickets = (raffleId: string | undefined) => {
       newExpiry.setMinutes(newExpiry.getMinutes() + minutes);
 
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({ reserved_until: newExpiry.toISOString() })
         .eq('id', ticketId)
         .select()
@@ -245,7 +245,7 @@ export const useTickets = (raffleId: string | undefined) => {
   const bulkApprove = useMutation({
     mutationFn: async ({ ticketIds, raffleTitle, raffleSlug, organizationId }: { ticketIds: string[]; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
@@ -333,7 +333,7 @@ export const useTickets = (raffleId: string | undefined) => {
       if (!raffleId) throw new Error('Raffle ID required');
       
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
@@ -381,7 +381,7 @@ export const useTickets = (raffleId: string | undefined) => {
   const bulkReject = useMutation({
     mutationFn: async (ticketIds: string[]) => {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .update({
           status: 'available',
           buyer_id: null,

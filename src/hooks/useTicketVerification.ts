@@ -36,7 +36,7 @@ export function useTicketVerification(ticketId: string | undefined) {
       if (!ticketId) return null;
 
       const { data: ticket, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select(`
           id,
           ticket_number,

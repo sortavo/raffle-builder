@@ -18,7 +18,7 @@ async function fetchTransactionTicketsInBatches(raffleId: string): Promise<any[]
 
   while (hasMore) {
     const { data, error } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('*')
       .eq('raffle_id', raffleId)
       .in('status', ['sold', 'reserved'])
@@ -46,7 +46,7 @@ export async function exportTransactionsToExcel(
 ) {
   // 1. Get total count first for progress tracking
   const { count: totalCount } = await supabase
-    .from('tickets')
+    .from('sold_tickets')
     .select('*', { count: 'exact', head: true })
     .eq('raffle_id', raffleId)
     .in('status', ['sold', 'reserved']);

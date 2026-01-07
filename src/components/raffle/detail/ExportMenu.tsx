@@ -43,7 +43,7 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
       try {
         // Get ticket count
         const { count: tickets } = await supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('*', { count: 'exact', head: true })
           .eq('raffle_id', raffleId);
         
