@@ -895,21 +895,19 @@ export function CheckoutModal({
                 transition={{ duration: 0.3 }}
                 className="space-y-4"
               >
-                {/* Sticky countdown at top */}
-                <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Clock className="h-4 w-4 shrink-0 animate-pulse" />
-                      <span className="text-sm font-medium truncate">Tiempo para pagar:</span>
-                    </div>
-                    {reservedUntil && (
-                      <CountdownTimer 
-                        targetDate={new Date(reservedUntil)} 
-                        variant="compact"
-                        className="shrink-0"
-                      />
-                    )}
+                {/* Countdown banner */}
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Clock className="h-4 w-4 shrink-0 animate-pulse" />
+                    <span className="text-sm font-medium truncate">Tiempo para pagar:</span>
                   </div>
+                  {reservedUntil && (
+                    <CountdownTimer 
+                      targetDate={new Date(reservedUntil)} 
+                      variant="compact"
+                      className="shrink-0"
+                    />
+                  )}
                 </div>
 
                 {/* Success message - compact */}
