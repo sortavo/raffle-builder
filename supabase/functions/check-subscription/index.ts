@@ -2,11 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PRODUCT_TO_TIER, TIER_LIMITS } from "../_shared/stripe-config.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -15,7 +11,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   const supabaseClient = createClient(
@@ -45,14 +41,11 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No customer found");
-      return new Response(JSON.stringify({ 
+      return corsJsonResponse(req, { 
         subscribed: false,
         tier: null,
         subscription_end: null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      }, 200);
     }
 
     const customerId = customers.data[0].id;
@@ -127,23 +120,17 @@ serve(async (req) => {
       logStep("No valid subscription found (checked active, trialing, past_due)");
     }
 
-    return new Response(JSON.stringify({
+    return corsJsonResponse(req, {
       subscribed: hasActiveSub,
       tier,
       subscription_status: subscriptionStatus,
       subscription_end: subscriptionEnd,
       stripe_customer_id: customerId,
       stripe_subscription_id: stripeSubscriptionId,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return corsJsonResponse(req, { error: errorMessage }, 500);
   }
 });

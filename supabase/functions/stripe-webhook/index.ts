@@ -235,6 +235,12 @@ serve(async (req) => {
         break;
       }
 
+      case "customer.subscription.trial_will_end": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleTrialWillEnd(supabaseAdmin, stripe, subscription, event.id);
+        break;
+      }
+
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         logStep("Checkout session completed", {
@@ -925,5 +931,143 @@ function getSubscriptionNotificationMessage(status: string, tier: string): strin
       return "Tu pago está pendiente. Por favor, actualiza tu método de pago.";
     default:
       return "Tu suscripción ha sido actualizada.";
+  }
+}
+
+// Handler for trial ending soon (3 days before trial ends)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleTrialWillEnd(
+  supabase: any,
+  stripe: Stripe,
+  subscription: Stripe.Subscription,
+  eventId: string
+) {
+  const customerId = typeof subscription.customer === "string"
+    ? subscription.customer
+    : subscription.customer.id;
+
+  logStep("handleTrialWillEnd started", {
+    eventId,
+    subscriptionId: subscription.id,
+    customerId,
+    trialEnd: safeTimestampToISO(subscription.trial_end),
+    status: subscription.status,
+  });
+
+  // Get customer email
+  const customer = await stripe.customers.retrieve(customerId);
+  if (customer.deleted || !customer.email) {
+    logStep("TrialWillEnd: Customer deleted or no email", { customerId, eventId }, "WARN");
+    return;
+  }
+
+  const email = customer.email;
+
+  // Find organization using cascaded search
+  let org = null;
+
+  // 1. First try by organization_id from subscription metadata
+  const orgIdFromMeta = subscription.metadata?.organization_id;
+  if (orgIdFromMeta) {
+    const { data: orgByMeta } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("id", orgIdFromMeta)
+      .single();
+    if (orgByMeta) {
+      org = orgByMeta;
+      logStep("TrialWillEnd: Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 2. If not found, try by stripe_customer_id
+  if (!org) {
+    const { data: orgByCustomer } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("stripe_customer_id", customerId)
+      .single();
+    if (orgByCustomer) {
+      org = orgByCustomer;
+      logStep("TrialWillEnd: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 3. If not found, try by organization email
+  if (!org) {
+    const { data: orgByEmail } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier")
+      .eq("email", email)
+      .single();
+    if (orgByEmail) {
+      org = orgByEmail;
+      logStep("TrialWillEnd: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
+    }
+  }
+
+  // 4. If still not found, try by profile email
+  if (!org) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("email", email)
+      .single();
+    
+    if (profileData?.organization_id) {
+      const { data: orgByProfile } = await supabase
+        .from("organizations")
+        .select("id, subscription_tier")
+        .eq("id", profileData.organization_id)
+        .single();
+      if (orgByProfile) {
+        org = orgByProfile;
+        logStep("TrialWillEnd: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
+      }
+    }
+  }
+
+  if (!org) {
+    logStep("TrialWillEnd: Organization not found by any method", { email, customerId, eventId }, "WARN");
+    return;
+  }
+
+  // Calculate days remaining
+  const trialEndDate = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+  const daysRemaining = trialEndDate 
+    ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 3;
+
+  const tierName = (org.subscription_tier || "Basic").charAt(0).toUpperCase() + 
+                   (org.subscription_tier || "basic").slice(1);
+
+  // Create notification for the user
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("organization_id", org.id)
+    .limit(1)
+    .single();
+
+  if (profile) {
+    const { error: notifError } = await supabase.from("notifications").insert({
+      user_id: profile.id,
+      organization_id: org.id,
+      type: "subscription",
+      title: "Tu prueba termina pronto",
+      message: `Quedan ${daysRemaining} días de tu prueba del plan ${tierName}. Actualiza tu método de pago para continuar sin interrupciones.`,
+      link: "/dashboard/subscription",
+    });
+    
+    if (notifError) {
+      logStep("Failed to create trial ending notification", { error: notifError.message, eventId }, "WARN");
+    } else {
+      logStep("Trial ending notification created", { 
+        orgId: org.id, 
+        daysRemaining,
+        tier: tierName,
+        eventId,
+      });
+    }
   }
 }

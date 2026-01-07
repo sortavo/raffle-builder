@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -14,7 +10,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
@@ -56,10 +52,7 @@ serve(async (req) => {
 
     if (!org?.stripe_customer_id) {
       logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ payment_method: null }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      return corsJsonResponse(req, { payment_method: null }, 200);
     }
 
     logStep("Found Stripe customer", { customerId: org.stripe_customer_id });
@@ -70,10 +63,7 @@ serve(async (req) => {
     const customer = await stripe.customers.retrieve(org.stripe_customer_id) as Stripe.Customer;
     
     if (customer.deleted) {
-      return new Response(JSON.stringify({ payment_method: null }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      return corsJsonResponse(req, { payment_method: null }, 200);
     }
 
     let paymentMethod = null;
@@ -123,16 +113,10 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ payment_method: paymentMethod }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return corsJsonResponse(req, { payment_method: paymentMethod }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return corsJsonResponse(req, { error: errorMessage }, 500);
   }
 });
