@@ -1723,19 +1723,24 @@ export function PaymentMethodsSettings() {
                           {hasBank && (
                             <>
                               <div className="space-y-2">
-                                <Label>CLABE Interbancaria (18 dígitos)</Label>
+                                <Label>
+                                  {countryConfig?.accountFormat.label || 'CLABE Interbancaria'} 
+                                  {countryConfig?.accountFormat.length && ` (${countryConfig.accountFormat.length} dígitos)`}
+                                </Label>
                                 <Input
                                   value={newMethodData.clabe || ''}
-                                  onChange={(e) => setNewMethodData(prev => ({ ...prev, clabe: formatClabe(e.target.value) }))}
-                                  placeholder="000000000000000000"
-                                  maxLength={18}
-                                  className={validationErrors.clabe ? 'border-destructive' : ''}
+                                  onChange={(e) => setNewMethodData(prev => ({ ...prev, clabe: e.target.value.replace(/\D/g, '').slice(0, countryConfig?.accountFormat.length || 18) }))}
+                                  placeholder={countryConfig?.accountFormat.placeholder || '000000000000000000'}
+                                  maxLength={countryConfig?.accountFormat.length || 18}
+                                  className={validationErrors?.clabe ? 'border-destructive' : ''}
                                 />
-                                {validationErrors.clabe && (
+                                {validationErrors?.clabe && (
                                   <p className="text-xs text-destructive">{validationErrors.clabe}</p>
                                 )}
                                 {newMethodData.clabe && (
-                                  <p className="text-xs text-muted-foreground">{newMethodData.clabe.length}/18 dígitos</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {newMethodData.clabe.length}/{countryConfig?.accountFormat.length || 18} dígitos
+                                  </p>
                                 )}
                               </div>
 
