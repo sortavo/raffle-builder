@@ -716,7 +716,7 @@ export default function RaffleWizard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-5 md:space-y-6">
+      <div className={cn("max-w-7xl mx-auto space-y-5 md:space-y-6", showPreview && "lg:pr-[400px]")}>
         {/* Banner for published raffle editing */}
         {isRafflePublished && (
           <Alert className="bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300">
@@ -824,7 +824,7 @@ export default function RaffleWizard() {
         )}
 
         {/* Main Content with Preview */}
-        <div className={`space-y-4 ${showPreview ? 'lg:pr-[400px]' : ''}`}>
+        <div className="space-y-4">
           {/* Left: Form */}
           <div ref={wizardContentRef} className="space-y-4">
             <Form {...form}>
