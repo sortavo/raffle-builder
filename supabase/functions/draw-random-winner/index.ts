@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
     // Get count of sold tickets first
     const { count: soldCount, error: countError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('raffle_id', raffle_id)
       .eq('status', 'sold');
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     // Select winner using SQL ORDER BY with random offset
     // This efficiently selects a single random row from potentially millions
     const { data: winner, error: winnerError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_index')
       .eq('raffle_id', raffle_id)
       .eq('status', 'sold')
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       // Fallback: If range fails, try with offset/limit pattern
       console.log('[DRAW-RANDOM-WINNER] Trying fallback method...');
       const { data: winnerFallback, error: fallbackError } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_index')
         .eq('raffle_id', raffle_id)
         .eq('status', 'sold')

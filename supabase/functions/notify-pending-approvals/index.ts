@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Find tickets with payment proof that haven't been approved yet
     // Status is still 'reserved' but has payment_proof_url
     const { data: pendingTickets, error: fetchError } = await supabase
-      .from("tickets")
+      .from("sold_tickets")
       .select(`
         id,
         ticket_number,

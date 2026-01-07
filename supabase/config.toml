@@ -15,16 +15,10 @@ verify_jwt = false
 [functions.generate-logo]
 verify_jwt = false
 
-[functions.generate-tickets]
-verify_jwt = false
-
 [functions.health-check]
 verify_jwt = false
 
 [functions.notify-pending-approvals]
-verify_jwt = false
-
-[functions.process-ticket-batch]
 verify_jwt = false
 
 [functions.select-random-tickets]

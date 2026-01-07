@@ -45,7 +45,7 @@ export function useDashboardStats() {
         {
           event: '*',
           schema: 'public',
-          table: 'tickets'
+          table: 'sold_tickets'
         },
         () => {
           // Invalidate and refetch dashboard stats when tickets change

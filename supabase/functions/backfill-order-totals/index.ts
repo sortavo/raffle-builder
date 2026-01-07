@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     // Find all reserved tickets with missing order_total, grouped by payment_reference
     const { data: ticketsNeedingBackfill, error: fetchError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('payment_reference, raffle_id, ticket_number')
       .eq('status', 'reserved')
       .is('order_total', null)
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
       if (orderTotal > 0) {
         const { error: updateError, count: updatedCount } = await supabase
-          .from('tickets')
+          .from('sold_tickets')
           .update({ order_total: orderTotal })
           .eq('payment_reference', paymentRef)
           .eq('status', 'reserved')

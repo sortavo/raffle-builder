@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
 
     // Get total count of available tickets
     const { count: totalAvailable, error: countError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('raffle_id', raffle_id)
       .eq('status', 'available');
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
         const randomOffset = randomBytes[0] % totalAvailable;
 
         const { data: ticket, error } = await supabase
-          .from('tickets')
+          .from('sold_tickets')
           .select('ticket_number')
           .eq('raffle_id', raffle_id)
           .eq('status', 'available')
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         : 0;
 
       const { data: tickets, error } = await supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('ticket_number')
         .eq('raffle_id', raffle_id)
         .eq('status', 'available')

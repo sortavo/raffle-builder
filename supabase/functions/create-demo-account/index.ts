@@ -295,9 +295,8 @@ Deno.serve(async (req) => {
         const raffleIds = raffles?.map(r => r.id) || [];
         
         if (raffleIds.length > 0) {
-          // Delete tickets and packages for these raffles
-          await supabase.from('ticket_generation_jobs').delete().in('raffle_id', raffleIds);
-          await supabase.from('tickets').delete().in('raffle_id', raffleIds);
+          // Delete sold_tickets and packages for these raffles
+          await supabase.from('sold_tickets').delete().in('raffle_id', raffleIds);
           await supabase.from('raffle_packages').delete().in('raffle_id', raffleIds);
         }
         
@@ -468,41 +467,43 @@ Deno.serve(async (req) => {
     const generateResult = await generateResponse.json();
     logStep('Generate tickets response', generateResult);
 
-    // Step 8: Simulate some sales (only if tickets exist)
+    // Step 8: Simulate some sales using virtual tickets model
+    // With virtual tickets, we insert directly into sold_tickets table
     const soldCount = Math.floor(config.raffle.total_tickets * (config.raffle.sold_percentage / 100));
     
-    // For small raffles that generate synchronously, we can simulate sales immediately
-    if (!generateResult.async && soldCount > 0 && soldCount <= 1000) {
-      logStep('Simulating sales', { soldCount });
+    if (soldCount > 0 && soldCount <= 1000) {
+      logStep('Simulating sales with virtual tickets', { soldCount });
       
-      // Wait a bit for tickets to be committed
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const referenceCode = `DEMO${Date.now().toString(36).toUpperCase()}`;
+      const padWidth = config.raffle.total_tickets.toString().length;
       
-      const { data: ticketsToSell } = await supabase
-        .from('tickets')
-        .select('id, ticket_number')
-        .eq('raffle_id', raffle.id)
-        .eq('status', 'available')
-        .limit(soldCount);
+      // Create sold ticket records directly (virtual tickets model)
+      const ticketsToInsert = [];
+      for (let i = 0; i < soldCount; i++) {
+        const ticketNumber = String(i + 1).padStart(padWidth, '0');
+        ticketsToInsert.push({
+          raffle_id: raffle.id,
+          ticket_index: i,
+          ticket_number: ticketNumber,
+          status: 'sold',
+          buyer_name: 'Cliente Demo',
+          buyer_email: 'cliente@ejemplo.com',
+          buyer_phone: '+52 55 1234 5678',
+          buyer_city: 'Ciudad de México',
+          sold_at: new Date().toISOString(),
+          payment_reference: referenceCode,
+          payment_method: 'bank_transfer',
+        });
+      }
 
-      if (ticketsToSell && ticketsToSell.length > 0) {
-        const referenceCode = `DEMO${Date.now().toString(36).toUpperCase()}`;
-        
-        await supabase
-          .from('tickets')
-          .update({
-            status: 'sold',
-            buyer_name: 'Cliente Demo',
-            buyer_email: 'cliente@ejemplo.com',
-            buyer_phone: '+52 55 1234 5678',
-            buyer_city: 'Ciudad de México',
-            sold_at: new Date().toISOString(),
-            payment_reference: referenceCode,
-            payment_method: 'bank_transfer',
-          })
-          .in('id', ticketsToSell.map(t => t.id));
+      const { error: insertError } = await supabase
+        .from('sold_tickets')
+        .insert(ticketsToInsert);
 
-        logStep('Sales simulated', { count: ticketsToSell.length });
+      if (insertError) {
+        logStep('Error simulating sales', { error: insertError.message });
+      } else {
+        logStep('Sales simulated', { count: soldCount });
       }
     }
 

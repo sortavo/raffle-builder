@@ -244,20 +244,8 @@ export const useRaffles = () => {
 
       if (error) throw error;
       
-      // If total_tickets changed on a published raffle, trigger ticket generation
-      // The edge function will handle append mode if needed
-      if (data.total_tickets && raffle.status !== 'draft') {
-        const { data: genResult, error: genError } = await supabase.functions.invoke('generate-tickets', {
-          body: { raffle_id: id },
-        });
-        
-        if (genError) {
-          console.error('Error generating additional tickets:', genError);
-          // Don't throw - the raffle was updated successfully
-        } else if (genResult?.mode === 'append') {
-          console.log(`Added ${genResult.count} new tickets to raffle`);
-        }
-      }
+      // Virtual tickets: No generation needed - tickets are computed on-the-fly
+      // The total_tickets field in the raffle defines the available range
       
       return raffle;
     },
@@ -301,7 +289,7 @@ export const useRaffles = () => {
         throw new Error('PAYMENT_METHODS_REQUIRED');
       }
 
-      // First update status
+      // Update status to active - virtual tickets are available immediately
       const { data: raffle, error } = await supabase
         .from('raffles')
         .update({ status: 'active' })
@@ -311,16 +299,8 @@ export const useRaffles = () => {
 
       if (error) throw error;
 
-      // Generate tickets via edge function
-      const { error: genError } = await supabase.functions.invoke('generate-tickets', {
-        body: { raffle_id: raffleId },
-      });
-
-      if (genError) {
-        // Rollback status
-        await supabase.from('raffles').update({ status: 'draft' }).eq('id', raffleId);
-        throw genError;
-      }
+      // Virtual tickets: No generation needed - tickets are computed on-the-fly
+      // All tickets from 0 to total_tickets-1 are immediately available
 
       return raffle;
     },

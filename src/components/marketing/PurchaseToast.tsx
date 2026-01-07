@@ -40,7 +40,7 @@ export function PurchaseToast({ raffleId }: PurchaseToastProps) {
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'tickets',
+        table: 'sold_tickets',
         filter: `raffle_id=eq.${raffleId}`
       }, (payload) => {
         if (payload.new.status === 'sold' && payload.old.status !== 'sold') {

@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     // Get total count
     let countQuery = supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('raffle_id', raffle_id);
 
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     while (hasMore) {
       let query = supabase
-        .from('tickets')
+        .from('sold_tickets')
         .select('ticket_number, status, buyer_name, buyer_email, buyer_phone, buyer_city, sold_at')
         .eq('raffle_id', raffle_id)
         .order('ticket_index', { ascending: true })

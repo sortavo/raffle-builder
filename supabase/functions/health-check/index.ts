@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     // Get system metrics if detailed mode
     if (detailed) {
       const [ticketResult, raffleResult, orgResult, activeResult] = await Promise.all([
-        supabase.from('tickets').select('*', { count: 'exact', head: true }),
+        supabase.from('sold_tickets').select('*', { count: 'exact', head: true }),
         supabase.from('raffles').select('*', { count: 'exact', head: true }),
         supabase.from('organizations').select('*', { count: 'exact', head: true }),
         supabase.from('raffles').select('*', { count: 'exact', head: true }).eq('status', 'active'),

@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
     // Verify tickets exist for this reference code
     const { data: existingTickets, error: queryError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .select('id, ticket_number, buyer_email, buyer_name, payment_proof_url')
       .eq('raffle_id', raffleId)
       .eq('payment_reference', referenceCode)
@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
 
     // Update all reserved tickets with this reference code
     const { data: updatedTickets, error: updateError } = await supabase
-      .from('tickets')
+      .from('sold_tickets')
       .update({ payment_proof_url: publicUrl })
       .eq('raffle_id', raffleId)
       .eq('payment_reference', referenceCode)

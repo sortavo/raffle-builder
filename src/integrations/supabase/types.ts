@@ -1765,8 +1765,6 @@ export type Database = {
           severity: string
         }[]
       }
-      disable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
-      enable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
       format_virtual_ticket: {
         Args: {
           p_numbering_config: Json
@@ -1827,11 +1825,6 @@ export type Database = {
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
         }[]
-      }
-      get_min_ticket_number: { Args: { p_raffle_id: string }; Returns: number }
-      get_optimal_batch_size: {
-        Args: { p_total_tickets: number }
-        Returns: number
       }
       get_order_by_reference: {
         Args: { p_reference_code: string }
@@ -1947,8 +1940,6 @@ export type Database = {
         }[]
       }
       refresh_raffle_stats: { Args: never; Returns: undefined }
-      refresh_raffle_stats_mv: { Args: never; Returns: undefined }
-      refresh_raffle_stats_now: { Args: never; Returns: undefined }
       register_buyer: {
         Args: {
           p_city?: string
@@ -1995,16 +1986,6 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
-      validate_and_fix_job_batch: {
-        Args: { p_job_id: string }
-        Returns: {
-          job_id: string
-          new_batch: number
-          old_batch: number
-          status: string
-          was_corrupted: boolean
-        }[]
-      }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json

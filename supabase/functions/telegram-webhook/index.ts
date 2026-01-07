@@ -313,7 +313,7 @@ serve(async (req) => {
       const raffleIds = raffles?.map(r => r.id) || [];
 
       const { count: todaySales } = await supabase
-        .from("tickets")
+        .from("sold_tickets")
         .select("*", { count: "exact", head: true })
         .eq("status", "sold")
         .gte("sold_at", today.toISOString())

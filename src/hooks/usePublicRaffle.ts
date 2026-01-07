@@ -141,22 +141,22 @@ export function usePublicRaffle(slug: string | undefined, orgSlug?: string) {
   });
 }
 
+// DEPRECATED: usePublicTickets - Use useVirtualTickets instead
+// This hook is kept for backward compatibility but delegates to the new virtual system
 export function usePublicTickets(raffleId: string | undefined, page: number = 1, pageSize: number = 100) {
   return useQuery({
-    queryKey: ['public-tickets', raffleId, page, pageSize],
+    queryKey: ['virtual-tickets', raffleId, page, pageSize],
     queryFn: async () => {
       if (!raffleId) return { tickets: [], count: 0 };
 
-      // Use secure RPC function that only returns public fields
-      // (id, ticket_number, ticket_index, status, buyer_name, buyer_city)
-      // Protected: buyer_email, buyer_phone, payment_reference, order_total
+      // Use virtual tickets RPC
       const [ticketsResult, countsResult] = await Promise.all([
-        supabase.rpc('get_public_tickets', {
+        supabase.rpc('get_virtual_tickets', {
           p_raffle_id: raffleId,
           p_page: page,
           p_page_size: pageSize,
         }),
-        supabase.rpc('get_public_ticket_counts', {
+        supabase.rpc('get_virtual_ticket_counts', {
           p_raffle_id: raffleId,
         }),
       ]);
@@ -172,7 +172,7 @@ export function usePublicTickets(raffleId: string | undefined, page: number = 1,
       };
     },
     enabled: !!raffleId,
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: 10000,
   });
 }
 
@@ -558,36 +558,20 @@ export function useCheckTicketsAvailability() {
   });
 }
 
+// DEPRECATED: useRepairTickets - No longer needed with virtual tickets
+// Virtual tickets don't require generation or repair
 export function useRepairTickets() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (raffleId: string) => {
-      const { data, error } = await supabase.functions.invoke('generate-tickets', {
-        body: { raffle_id: raffleId, force_rebuild: false },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      return data;
+    mutationFn: async (_raffleId: string) => {
+      // Virtual tickets don't need repair - they are computed on-the-fly
+      return { count: 0, message: 'Virtual tickets do not require repair' };
     },
-    onSuccess: (data, raffleId) => {
+    onSuccess: () => {
       toast({
-        title: data.rebuilt ? 'Boletos regenerados' : 'Boletos generados',
-        description: `Se generaron ${data.count} boletos correctamente`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['public-tickets', raffleId] });
-      queryClient.invalidateQueries({ queryKey: ['public-raffle'] });
-      queryClient.invalidateQueries({ queryKey: ['raffle', raffleId] });
-      queryClient.invalidateQueries({ queryKey: ['raffles'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error al generar boletos',
-        description: error.message,
-        variant: 'destructive',
+        title: 'Sistema de boletos virtuales',
+        description: 'Los boletos virtuales no requieren regeneración',
       });
     },
   });

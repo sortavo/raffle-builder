@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
 
     const { data: pendingTickets, error: fetchError } = await supabase
-      .from("tickets")
+      .from("sold_tickets")
       .select(`
         id,
         ticket_number,

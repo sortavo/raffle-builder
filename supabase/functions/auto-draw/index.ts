@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
         // Get all sold tickets for this raffle
         const { data: soldTickets, error: ticketsError } = await supabase
-          .from("tickets")
+          .from("sold_tickets")
           .select("id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city")
           .eq("raffle_id", raffle.id)
           .eq("status", "sold");
