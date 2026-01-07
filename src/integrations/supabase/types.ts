@@ -2200,34 +2200,6 @@ export type Database = {
         Returns: string
       }
       generate_reference_code: { Args: never; Returns: string }
-      generate_ticket_batch: {
-        Args: {
-          p_end_number: number
-          p_format?: string
-          p_prefix?: string
-          p_raffle_id: string
-          p_start_number: number
-        }
-        Returns: number
-      }
-      generate_ticket_batch_v2: {
-        Args: {
-          p_end_index: number
-          p_numbering_config?: Json
-          p_raffle_id: string
-          p_start_index: number
-        }
-        Returns: number
-      }
-      generate_ticket_batch_v3: {
-        Args: {
-          p_end_index: number
-          p_numbering_config?: Json
-          p_raffle_id: string
-          p_start_index: number
-        }
-        Returns: number
-      }
       get_buyers_paginated: {
         Args: {
           p_city?: string
