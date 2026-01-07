@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
 import { usePublicTickets, useRandomAvailableTickets, useCheckTicketsAvailability } from "@/hooks/usePublicRaffle";
+import { useVirtualTickets } from "@/hooks/useVirtualTickets";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
@@ -67,6 +68,7 @@ interface TicketSelectorProps {
   ticketsAvailable?: number;
   isLightTemplate?: boolean;
   primaryColor?: string;
+  useVirtualTicketsEnabled?: boolean;
 }
 
 export function TicketSelector({
@@ -86,6 +88,7 @@ export function TicketSelector({
   ticketsAvailable = 0,
   isLightTemplate = false,
   primaryColor,
+  useVirtualTicketsEnabled = false,
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
   const { trackRemoveFromCart } = useTrackingEvents();
@@ -220,7 +223,14 @@ export function TicketSelector({
   const maxGridPages = isLargeRaffle ? Math.ceil(100000 / pageSize) : totalPages; // Limit grid to 100K tickets max
   const effectiveTotalPages = Math.min(totalPages, maxGridPages);
 
-  const { data, isLoading } = usePublicTickets(raffleId, page, pageSize);
+  // Conditionally use virtual tickets or physical tickets based on feature flag
+  const physicalTicketsQuery = usePublicTickets(raffleId, page, pageSize);
+  const virtualTicketsQuery = useVirtualTickets(
+    useVirtualTicketsEnabled ? raffleId : undefined, 
+    page, 
+    pageSize
+  );
+  const { data, isLoading } = useVirtualTicketsEnabled ? virtualTicketsQuery : physicalTicketsQuery;
   const randomMutation = useRandomAvailableTickets();
   const checkAvailabilityMutation = useCheckTicketsAvailability();
   const [isSearching, setIsSearching] = useState(false);
