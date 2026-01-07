@@ -569,6 +569,73 @@ export function PaymentMethodsSettings() {
     setValidationErrors({});
   };
 
+  // Generate a unique, descriptive name for internal dashboard identification
+  const generateUniqueName = (
+    subtype: PaymentSubtype,
+    bankName: string | null,
+    accountHolder: string | null,
+    customLabel: string | null,
+    customIdentifier: string | null
+  ): string => {
+    const baseLabel = getSubtypeLabel(subtype, selectedCountry);
+    
+    // For custom methods
+    if (subtype === 'custom') {
+      return customLabel || 'Método Personalizado';
+    }
+    
+    // For bank methods (SPEI, deposit, PIX)
+    if (['bank_transfer', 'bank_deposit', 'pix'].includes(subtype)) {
+      if (bankName && accountHolder) {
+        return `${bankName} - ${accountHolder}`;
+      }
+      if (bankName) {
+        return `${bankName} - ${baseLabel}`;
+      }
+      if (accountHolder) {
+        return `${accountHolder} - ${baseLabel}`;
+      }
+      return baseLabel;
+    }
+    
+    // For store deposits (OXXO, pharmacies, convenience stores)
+    if (['oxxo', 'pharmacy', 'convenience_store'].includes(subtype)) {
+      if (bankName && accountHolder) {
+        return `${bankName} - ${accountHolder}`;
+      }
+      if (accountHolder) {
+        return `${baseLabel} - ${accountHolder}`;
+      }
+      if (bankName) {
+        return `${bankName} - ${baseLabel}`;
+      }
+      return baseLabel;
+    }
+    
+    // For digital methods (Zelle, Venmo, PayPal, etc.)
+    if (customIdentifier) {
+      return `${baseLabel} (${customIdentifier})`;
+    }
+    
+    return baseLabel;
+  };
+
+  // Ensure name is unique by appending a numeric suffix if needed
+  const ensureUniqueName = (baseName: string, existingNames: string[]): string => {
+    const lowerNames = existingNames.map(n => n.toLowerCase());
+    
+    if (!lowerNames.includes(baseName.toLowerCase())) {
+      return baseName;
+    }
+    
+    // Add numeric suffix if name already exists
+    let counter = 2;
+    while (lowerNames.includes(`${baseName} (${counter})`.toLowerCase())) {
+      counter++;
+    }
+    return `${baseName} (${counter})`;
+  };
+
   const handleSaveNewMethods = async () => {
     const errors = validateNewMethodData();
     if (Object.keys(errors).length > 0) {
@@ -584,20 +651,33 @@ export function PaymentMethodsSettings() {
       ? newMethodData.bank_name 
       : newMethodData.bank_select_value;
 
+    // Track names used in this batch to avoid duplicates
+    const existingNames = methods.map(m => m.name);
+
     // Create each selected method with shared data and same group_id
     for (const subtype of selectedSubtypes) {
-      const methodLabel = getSubtypeLabel(subtype, selectedCountry);
       let type: 'bank_transfer' | 'cash' | 'other' = 'other';
       if (subtype === 'bank_transfer' || subtype === 'bank_deposit' || subtype === 'pix') {
         type = 'bank_transfer';
       } else if (subtype === 'cash_in_person') {
         type = 'cash';
       }
+
+      // Generate unique name for this method
+      const baseName = generateUniqueName(
+        subtype,
+        finalBankName || null,
+        newMethodData.account_holder || null,
+        newMethodData.custom_label || null,
+        newMethodData.custom_identifier || null
+      );
+      const uniqueName = ensureUniqueName(baseName, existingNames);
+      existingNames.push(uniqueName); // Track for batch duplicates
       
       await createMethod.mutateAsync({
         type,
         subtype,
-        name: subtype === 'custom' ? (newMethodData.custom_label || 'Método Personalizado') : methodLabel,
+        name: uniqueName,
         instructions: newMethodData.instructions || null,
         enabled: true,
         display_order: methods.length,
