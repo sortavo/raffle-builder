@@ -9,6 +9,7 @@ interface WizardProgressProps {
   steps: { title: string; description: string }[];
   stepStatuses?: StepStatus[];
   stepErrors?: ValidationError[][];
+  onStepClick?: (step: number) => void;
 }
 
 // Icon mapping for each step
@@ -20,7 +21,7 @@ const STEP_ICONS: Record<number, React.ElementType> = {
   5: Palette     // Diseño
 };
 
-export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }: WizardProgressProps) => {
+export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors, onStepClick }: WizardProgressProps) => {
   const getStepStatus = (index: number): 'complete' | 'incomplete' | 'current' => {
     if (stepStatuses) return stepStatuses[index] as 'complete' | 'incomplete' | 'current';
     const stepNumber = index + 1;
@@ -53,9 +54,11 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div
+                        onClick={() => onStepClick?.(index + 1)}
                         className={cn(
                           'relative w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300',
                           'hover:-translate-y-0.5',
+                          onStepClick && 'cursor-pointer hover:ring-2 hover:ring-primary/30',
                           status === 'complete' && !hasErrors && 'bg-success text-success-foreground',
                           status === 'complete' && hasErrors && 'bg-warning text-warning-foreground',
                           status === 'current' && 'bg-primary text-primary-foreground',
@@ -133,13 +136,20 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
 
             return (
               <div key={index} className="flex items-center flex-1">
-                <div className="flex items-center gap-2.5">
+                <div 
+                  onClick={() => onStepClick?.(index + 1)}
+                  className={cn(
+                    "flex items-center gap-2.5",
+                    onStepClick && "cursor-pointer group"
+                  )}
+                >
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div
                         className={cn(
                           'relative w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-300',
-                          'hover:-translate-y-0.5 cursor-default',
+                          'hover:-translate-y-0.5',
+                          onStepClick && 'group-hover:ring-2 group-hover:ring-primary/30',
                           status === 'complete' && !hasErrors && 'bg-success text-success-foreground ring-2 ring-success/20 ring-offset-1 ring-offset-background',
                           status === 'complete' && hasErrors && 'bg-warning text-warning-foreground',
                           status === 'current' && 'bg-primary text-primary-foreground',
@@ -197,6 +207,7 @@ export const WizardProgress = ({ currentStep, steps, stepStatuses, stepErrors }:
                   {/* Inline title */}
                   <span className={cn(
                     'text-sm font-semibold transition-colors whitespace-nowrap',
+                    onStepClick && 'group-hover:text-primary',
                     status === 'current' && 'text-foreground',
                     status === 'complete' && !hasErrors && 'text-success',
                     status === 'complete' && hasErrors && 'text-warning',

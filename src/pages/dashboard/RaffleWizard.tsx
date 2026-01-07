@@ -804,6 +804,7 @@ export default function RaffleWizard() {
               currentStep={currentStep} 
               stepStatuses={stepStatuses}
               stepErrors={stepErrors}
+              onStepClick={setCurrentStep}
             />
           </div>
         </div>
