@@ -606,7 +606,6 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 ticketsAvailable={raffle.ticketsAvailable}
                 isLightTemplate={isLightTemplate}
                 primaryColor={primaryColor}
-                useVirtualTicketsEnabled={(raffle as any).customization?.use_virtual_tickets === true}
               />
 
               {showSocialProof && (
@@ -835,7 +834,6 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           ticketPrice={Number(raffle.ticket_price)}
           packages={raffle.packages?.map(p => ({ quantity: p.quantity, price: Number(p.price) }))}
           onReservationComplete={handleReservationComplete}
-          useVirtualTicketsEnabled={(raffle as any).customization?.use_virtual_tickets === true}
         />
         </div>
       </div>
