@@ -86,16 +86,16 @@ export function useDashboardStats() {
         };
       }
 
-      // Fetch raffles for this organization
+      // Fetch active raffles (lightweight query - no tickets)
       const { data: raffles, error: rafflesError } = await supabase
         .from("raffles")
         .select("id, status, total_tickets, ticket_price, title, created_at, draw_date")
-        .eq("organization_id", organization.id);
+        .eq("organization_id", organization.id)
+        .is("archived_at", null);
 
       if (rafflesError) throw rafflesError;
 
-      const activeRafflesData = raffles?.filter(r => r.status === "active") || [];
-      const activeRaffles = activeRafflesData.length;
+      const activeRafflesData = raffles?.filter(r => r.status === "active" || r.status === "paused") || [];
       const activeRaffleIds = activeRafflesData.map(r => r.id);
 
       // If no raffles, return empty stats
@@ -112,42 +112,24 @@ export function useDashboardStats() {
         };
       }
 
-      // Fetch tickets for active raffles only
-      const { data: tickets, error: ticketsError } = await supabase
-        .from("tickets")
-        .select("id, status, raffle_id, buyer_name, ticket_number, sold_at, reserved_at, approved_at")
-        .in("raffle_id", activeRaffleIds);
+      // Use RPC to get aggregated stats (SCALABLE - no ticket download)
+      const [dashboardStatsResult, raffleStatsResult] = await Promise.all([
+        supabase.rpc('get_dashboard_stats', { p_organization_id: organization.id }),
+        supabase.rpc('get_raffle_stats_list', { p_organization_id: organization.id })
+      ]);
 
-      if (ticketsError) throw ticketsError;
+      // Extract dashboard totals from RPC
+      const dashboardData = dashboardStatsResult.data?.[0];
+      const raffleStatsMap = new Map(
+        (raffleStatsResult.data || []).map((rs: any) => [rs.raffle_id, rs])
+      );
 
-      // Calculate stats for active raffles only
-      const soldTickets = tickets?.filter(t => t.status === "sold") || [];
-      const reservedTickets = tickets?.filter(t => t.status === "reserved") || [];
-      const totalTickets = activeRafflesData.reduce((sum, r) => sum + r.total_tickets, 0);
-      
-      // Calculate revenue based on sold tickets and their raffle prices
-      let totalRevenue = 0;
-      for (const ticket of soldTickets) {
-        const raffle = activeRafflesData.find(r => r.id === ticket.raffle_id);
-        if (raffle) {
-          totalRevenue += Number(raffle.ticket_price);
-        }
-      }
-
-      // Calculate conversion rate
-      const conversionRate = totalTickets > 0 
-        ? Math.round((soldTickets.length / totalTickets) * 100) 
-        : 0;
-
-      // Count pending approvals (reserved tickets)
-      const pendingApprovals = reservedTickets.length;
-
-      // Build individual raffle stats
+      // Build individual raffle stats using RPC data
       const activeRafflesList: RaffleStats[] = activeRafflesData.map(raffle => {
-        const raffleTickets = tickets?.filter(t => t.raffle_id === raffle.id) || [];
-        const raffleSold = raffleTickets.filter(t => t.status === "sold").length;
-        const raffleReserved = raffleTickets.filter(t => t.status === "reserved").length;
-        const raffleRevenue = raffleSold * Number(raffle.ticket_price);
+        const stats = raffleStatsMap.get(raffle.id);
+        const raffleSold = Number(stats?.sold_count || 0);
+        const raffleReserved = Number(stats?.reserved_count || 0);
+        const raffleRevenue = Number(stats?.revenue || 0) || (raffleSold * Number(raffle.ticket_price));
         const raffleConversion = raffle.total_tickets > 0 
           ? Math.round((raffleSold / raffle.total_tickets) * 100) 
           : 0;
@@ -164,59 +146,55 @@ export function useDashboardStats() {
         };
       });
 
-      // Get recent activity from analytics events
-      const { data: analyticsEvents, error: analyticsError } = await supabase
+      // Get recent activity from analytics events (lightweight)
+      const { data: analyticsEvents } = await supabase
         .from("analytics_events")
         .select("event_type, metadata, created_at, raffle_id")
         .eq("organization_id", organization.id)
         .order("created_at", { ascending: false })
         .limit(10);
 
-      // Build recent activity list
+      // Build recent activity from analytics (no ticket query)
       const recentActivity: DashboardStats['recentActivity'] = [];
-
-      // Add recent sold tickets
-      const recentSoldTickets = soldTickets
-        .filter(t => t.sold_at)
-        .sort((a, b) => new Date(b.sold_at!).getTime() - new Date(a.sold_at!).getTime())
-        .slice(0, 3);
-
-      for (const ticket of recentSoldTickets) {
-        const raffle = raffles?.find(r => r.id === ticket.raffle_id);
-        recentActivity.push({
-          title: "Boleto vendido",
-          description: `${raffle?.title || 'Sorteo'} - Boleto #${ticket.ticket_number}`,
-          time: formatTimeAgo(ticket.sold_at!),
-          type: 'ticket_sold'
-        });
+      
+      for (const event of analyticsEvents || []) {
+        const raffle = raffles?.find(r => r.id === event.raffle_id);
+        const metadata = event.metadata as Record<string, any> | null;
+        
+        if (event.event_type === 'purchase') {
+          recentActivity.push({
+            title: "Boleto vendido",
+            description: `${raffle?.title || 'Sorteo'} - ${metadata?.ticket_count || 1} boleto(s)`,
+            time: formatTimeAgo(event.created_at),
+            type: 'ticket_sold'
+          });
+        } else if (event.event_type === 'begin_checkout') {
+          recentActivity.push({
+            title: "Boleto reservado",
+            description: `${metadata?.buyer_name || 'Cliente'} - ${raffle?.title || 'Sorteo'}`,
+            time: formatTimeAgo(event.created_at),
+            type: 'ticket_reserved'
+          });
+        }
       }
 
-      // Add recent reservations
-      const recentReserved = reservedTickets
-        .filter(t => t.reserved_at)
-        .sort((a, b) => new Date(b.reserved_at!).getTime() - new Date(a.reserved_at!).getTime())
-        .slice(0, 2);
-
-      for (const ticket of recentReserved) {
-        const raffle = raffles?.find(r => r.id === ticket.raffle_id);
-        recentActivity.push({
-          title: "Boleto reservado",
-          description: `${ticket.buyer_name || 'Cliente'} - ${raffle?.title || 'Sorteo'}`,
-          time: formatTimeAgo(ticket.reserved_at!),
-          type: 'ticket_reserved'
-        });
-      }
-
-      // Sort by time (most recent first)
-      recentActivity.sort((a, b) => {
-        // Simple sort - activities are already sorted by time
-        return 0;
-      });
+      // Calculate totals from RPC or fallback to raffle sums
+      const totalRevenue = Number(dashboardData?.total_revenue || 0) || 
+        activeRafflesList.reduce((sum, r) => sum + r.revenue, 0);
+      const ticketsSold = Number(dashboardData?.tickets_sold || 0) ||
+        activeRafflesList.reduce((sum, r) => sum + r.ticketsSold, 0);
+      const totalTickets = Number(dashboardData?.total_tickets || 0) ||
+        activeRafflesData.reduce((sum, r) => sum + r.total_tickets, 0);
+      const pendingApprovals = Number(dashboardData?.pending_approvals || 0) ||
+        activeRafflesList.reduce((sum, r) => sum + r.ticketsReserved, 0);
+      const conversionRate = totalTickets > 0 
+        ? Math.round((ticketsSold / totalTickets) * 100) 
+        : 0;
 
       return {
-        activeRaffles,
+        activeRaffles: activeRafflesData.filter(r => r.status === 'active').length,
         totalRevenue,
-        ticketsSold: soldTickets.length,
+        ticketsSold,
         totalTickets,
         conversionRate,
         pendingApprovals,

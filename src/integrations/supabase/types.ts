@@ -111,6 +111,13 @@ export type Database = {
             foreignKeyName: "analytics_events_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -317,6 +324,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "coupons_raffle_id_fkey"
@@ -846,6 +860,13 @@ export type Database = {
             foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -936,6 +957,13 @@ export type Database = {
             foreignKeyName: "raffle_draws_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "raffle_draws_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -991,6 +1019,13 @@ export type Database = {
             foreignKeyName: "raffle_packages_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "raffle_packages_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -999,6 +1034,7 @@ export type Database = {
       raffles: {
         Row: {
           allow_individual_sale: boolean | null
+          archived_at: string | null
           auto_publish_result: boolean | null
           category: string | null
           close_sale_hours_before: number | null
@@ -1028,6 +1064,7 @@ export type Database = {
           prize_video_url: string | null
           prizes: Json | null
           reservation_time_minutes: number | null
+          search_vector: unknown
           slug: string
           start_date: string | null
           status: Database["public"]["Enums"]["raffle_status"] | null
@@ -1045,6 +1082,7 @@ export type Database = {
         }
         Insert: {
           allow_individual_sale?: boolean | null
+          archived_at?: string | null
           auto_publish_result?: boolean | null
           category?: string | null
           close_sale_hours_before?: number | null
@@ -1074,6 +1112,7 @@ export type Database = {
           prize_video_url?: string | null
           prizes?: Json | null
           reservation_time_minutes?: number | null
+          search_vector?: unknown
           slug: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["raffle_status"] | null
@@ -1091,6 +1130,7 @@ export type Database = {
         }
         Update: {
           allow_individual_sale?: boolean | null
+          archived_at?: string | null
           auto_publish_result?: boolean | null
           category?: string | null
           close_sale_hours_before?: number | null
@@ -1120,6 +1160,7 @@ export type Database = {
           prize_video_url?: string | null
           prizes?: Json | null
           reservation_time_minutes?: number | null
+          search_vector?: unknown
           slug?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["raffle_status"] | null
@@ -1402,6 +1443,13 @@ export type Database = {
             foreignKeyName: "ticket_generation_jobs_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "ticket_generation_jobs_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -1494,6 +1542,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "tickets_raffle_id_fkey"
@@ -1695,6 +1750,32 @@ export type Database = {
           },
         ]
       }
+      raffle_stats_mv: {
+        Row: {
+          available_count: number | null
+          canceled_count: number | null
+          last_sale_at: string | null
+          organization_id: string | null
+          raffle_id: string | null
+          refreshed_at: string | null
+          reserved_count: number | null
+          revenue_from_orders: number | null
+          sold_count: number | null
+          status: Database["public"]["Enums"]["raffle_status"] | null
+          ticket_price: number | null
+          total_tickets_in_db: number | null
+          unique_buyers: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raffles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       append_ticket_batch: {
@@ -1711,6 +1792,7 @@ export type Database = {
         Args: { p_numbering_config?: Json; p_raffle_id: string }
         Returns: number
       }
+      archive_old_raffles: { Args: { days_old?: number }; Returns: number }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       generate_reference_code: { Args: never; Returns: string }
       generate_ticket_batch: {
@@ -1770,6 +1852,17 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_dashboard_stats: {
+        Args: { p_organization_id: string }
+        Returns: {
+          active_raffles: number
+          conversion_rate: number
+          pending_approvals: number
+          tickets_sold: number
+          total_revenue: number
+          total_tickets: number
+        }[]
+      }
       get_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -1823,6 +1916,18 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      get_raffle_stats_list: {
+        Args: { p_organization_id: string }
+        Returns: {
+          available_count: number
+          last_sale_at: string
+          raffle_id: string
+          reserved_count: number
+          revenue: number
+          sold_count: number
+          unique_buyers: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
@@ -1864,6 +1969,7 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      refresh_raffle_stats: { Args: never; Returns: undefined }
       register_buyer: {
         Args: {
           p_city?: string
