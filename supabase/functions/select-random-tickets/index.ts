@@ -34,7 +34,30 @@ function getClientIP(req: Request): string {
     || req.headers.get('cf-connecting-ip') 
     || 'unknown';
 }
-// ============================================
+
+// Secure random integer using crypto
+function secureRandomInt(max: number): number {
+  const randomBytes = new Uint32Array(1);
+  crypto.getRandomValues(randomBytes);
+  return randomBytes[0] % max;
+}
+
+// Fisher-Yates shuffle with crypto random
+function secureShuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = secureRandomInt(i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Format ticket number based on raffle config
+function formatTicketNumber(index: number, numberStart: number, totalTickets: number): string {
+  const ticketNum = numberStart + index;
+  const digits = Math.max(String(totalTickets + numberStart - 1).length, 1);
+  return String(ticketNum).padStart(digits, '0');
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -86,22 +109,57 @@ Deno.serve(async (req) => {
 
     console.log(`[SELECT-RANDOM] IP: ${clientIP}, Selecting ${quantity} random tickets for raffle ${raffle_id}`);
 
-    // Get total count of available tickets
-    const { count: totalAvailable, error: countError } = await supabase
-      .from('sold_tickets')
-      .select('*', { count: 'exact', head: true })
-      .eq('raffle_id', raffle_id)
-      .eq('status', 'available');
+    // 1. Get raffle config for total tickets and numbering
+    const { data: raffle, error: raffleError } = await supabase
+      .from('raffles')
+      .select('total_tickets, customization')
+      .eq('id', raffle_id)
+      .single();
 
-    if (countError) {
-      console.error('[SELECT-RANDOM] Error counting tickets:', countError);
-      throw countError;
+    if (raffleError || !raffle) {
+      console.error('[SELECT-RANDOM] Raffle not found:', raffleError);
+      return new Response(
+        JSON.stringify({ error: 'Rifa no encontrada' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    if (!totalAvailable || totalAvailable === 0) {
+    const totalTickets = raffle.total_tickets;
+    const numberStart = raffle.customization?.number_start ?? 1;
+    
+    console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}`);
+
+    // 2. Get ALL unavailable ticket indices (sold + reserved that haven't expired)
+    // This is efficient because sold_tickets only contains sold/reserved tickets, not all tickets
+    const { data: unavailableTickets, error: unavailableError } = await supabase
+      .from('sold_tickets')
+      .select('ticket_index')
+      .eq('raffle_id', raffle_id)
+      .or('status.eq.sold,and(status.eq.reserved,reserved_until.gt.now())');
+
+    if (unavailableError) {
+      console.error('[SELECT-RANDOM] Error fetching unavailable tickets:', unavailableError);
+      throw unavailableError;
+    }
+
+    // Build set of unavailable indices
+    const unavailableSet = new Set<number>(
+      (unavailableTickets || []).map(t => t.ticket_index)
+    );
+
+    // Also exclude numbers already in exclude_numbers (convert to indices)
+    const excludeSet = new Set<string>(exclude_numbers);
+    
+    // Calculate available count
+    const unavailableCount = unavailableSet.size;
+    const totalAvailable = totalTickets - unavailableCount;
+    
+    console.log(`[SELECT-RANDOM] Unavailable: ${unavailableCount}, Available: ${totalAvailable}`);
+
+    if (totalAvailable === 0) {
       return new Response(
         JSON.stringify({ 
-          error: 'No available tickets found', 
+          error: 'No hay boletos disponibles', 
           selected: [],
           requested: quantity,
           available: 0
@@ -110,71 +168,67 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SELECT-RANDOM] Total available: ${totalAvailable}`);
-
-    const excludeSet = new Set(exclude_numbers);
+    // 3. Generate random available tickets
     const selectedTickets: string[] = [];
-    const maxAttempts = quantity * 3;
-    let attempts = 0;
-
-    const useOffsetMethod = quantity <= 1000 && totalAvailable > 10000;
-
-    if (useOffsetMethod) {
-      while (selectedTickets.length < quantity && attempts < maxAttempts) {
-        const randomBytes = new Uint32Array(1);
-        crypto.getRandomValues(randomBytes);
-        const randomOffset = randomBytes[0] % totalAvailable;
-
-        const { data: ticket, error } = await supabase
-          .from('sold_tickets')
-          .select('ticket_number')
-          .eq('raffle_id', raffle_id)
-          .eq('status', 'available')
-          .order('ticket_index', { ascending: true })
-          .range(randomOffset, randomOffset)
-          .single();
-
+    const selectedIndices = new Set<number>();
+    const needed = Math.min(quantity, totalAvailable);
+    
+    // Strategy: For small quantities relative to total, use random sampling
+    // For large quantities, build array of available indices and shuffle
+    
+    const samplingThreshold = Math.min(totalTickets * 0.1, 50000); // 10% of total or 50K max
+    
+    if (needed <= samplingThreshold && totalTickets > 10000) {
+      // Random sampling strategy - good for selecting small % of large pool
+      console.log(`[SELECT-RANDOM] Using sampling strategy for ${needed} tickets from ${totalTickets}`);
+      
+      let attempts = 0;
+      const maxAttempts = needed * 10; // Allow some retries for collisions
+      
+      while (selectedIndices.size < needed && attempts < maxAttempts) {
+        const randomIndex = secureRandomInt(totalTickets);
         attempts++;
-        if (error || !ticket) continue;
-
-        const ticketNum = ticket.ticket_number;
-        if (excludeSet.has(ticketNum) || selectedTickets.includes(ticketNum)) continue;
-
-        selectedTickets.push(ticketNum);
+        
+        // Skip if already selected or unavailable
+        if (selectedIndices.has(randomIndex) || unavailableSet.has(randomIndex)) {
+          continue;
+        }
+        
+        // Format ticket number
+        const ticketNumber = formatTicketNumber(randomIndex, numberStart, totalTickets);
+        
+        // Skip if in exclude list
+        if (excludeSet.has(ticketNumber)) {
+          continue;
+        }
+        
+        selectedIndices.add(randomIndex);
+        selectedTickets.push(ticketNumber);
       }
     } else {
-      const batchSize = Math.min(quantity * 2 + exclude_numbers.length, 50000);
-      const randomBytes = new Uint32Array(1);
-      crypto.getRandomValues(randomBytes);
-      const startOffset = totalAvailable > batchSize 
-        ? randomBytes[0] % (totalAvailable - batchSize) 
-        : 0;
-
-      const { data: tickets, error } = await supabase
-        .from('sold_tickets')
-        .select('ticket_number')
-        .eq('raffle_id', raffle_id)
-        .eq('status', 'available')
-        .order('ticket_index', { ascending: true })
-        .range(startOffset, startOffset + batchSize - 1);
-
-      if (error) throw error;
-
-      if (tickets && tickets.length > 0) {
-        const filtered = tickets.filter(t => !excludeSet.has(t.ticket_number));
-        
-        // Fisher-Yates shuffle
-        for (let i = filtered.length - 1; i > 0; i--) {
-          const randomBytes = new Uint32Array(1);
-          crypto.getRandomValues(randomBytes);
-          const j = randomBytes[0] % (i + 1);
-          [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+      // Build-and-shuffle strategy - good for large selections or small pools
+      console.log(`[SELECT-RANDOM] Using shuffle strategy for ${needed} tickets`);
+      
+      // Build array of available indices
+      const availableIndices: number[] = [];
+      for (let i = 0; i < totalTickets; i++) {
+        if (!unavailableSet.has(i)) {
+          const ticketNumber = formatTicketNumber(i, numberStart, totalTickets);
+          if (!excludeSet.has(ticketNumber)) {
+            availableIndices.push(i);
+          }
         }
-        
-        const needed = Math.min(quantity, filtered.length);
-        for (let i = 0; i < needed; i++) {
-          selectedTickets.push(filtered[i].ticket_number);
-        }
+      }
+      
+      console.log(`[SELECT-RANDOM] Built available array with ${availableIndices.length} indices`);
+      
+      // Shuffle and take what we need
+      const shuffled = secureShuffleArray(availableIndices);
+      const selected = shuffled.slice(0, needed);
+      
+      for (const index of selected) {
+        const ticketNumber = formatTicketNumber(index, numberStart, totalTickets);
+        selectedTickets.push(ticketNumber);
       }
     }
 
