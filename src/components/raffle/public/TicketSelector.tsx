@@ -58,7 +58,7 @@ interface TicketSelectorProps {
   maxPerPurchase: number;
   minPerPurchase?: number;
   packages: Package[];
-  onContinue: (tickets: string[]) => void;
+  onContinue: (tickets: string[], ticketIndices?: number[]) => void;
   // Feature toggles
   showRandomPicker?: boolean;
   showLuckyNumbers?: boolean;
@@ -186,6 +186,7 @@ export function TicketSelector({
     gradientBg: 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10',
   };
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [selectedTicketIndices, setSelectedTicketIndices] = useState<number[]>([]);
   const [mode, setMode] = useState<'manual' | 'random' | 'search' | 'lucky'>('manual');
   const [page, setPage] = useState(1);
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
@@ -391,33 +392,42 @@ export function TicketSelector({
     }
   }, [pendingHighlightTicket, tickets]);
 
-  const handleTicketClick = useCallback((ticketNumber: string, status: string) => {
+  const handleTicketClick = useCallback((ticketNumber: string, status: string, ticketIndex?: number) => {
     if (status !== 'available') return;
 
-    setSelectedTickets(prev => {
-      if (prev.includes(ticketNumber)) {
-        // Track remove from cart event
-        trackRemoveFromCart({
-          itemId: raffleId,
-          itemName: `Boleto ${ticketNumber}`,
-          price: ticketPrice,
-          quantity: 1,
-          currency: currencyCode,
-        });
-        toast.info(`Boleto ${ticketNumber} removido`);
-        return prev.filter(t => t !== ticketNumber);
+    const isSelected = selectedTickets.includes(ticketNumber);
+    
+    if (isSelected) {
+      // Remove ticket
+      trackRemoveFromCart({
+        itemId: raffleId,
+        itemName: `Boleto ${ticketNumber}`,
+        price: ticketPrice,
+        quantity: 1,
+        currency: currencyCode,
+      });
+      toast.info(`Boleto ${ticketNumber} removido`);
+      setSelectedTickets(prev => prev.filter(t => t !== ticketNumber));
+      if (ticketIndex !== undefined) {
+        setSelectedTicketIndices(prev => prev.filter(i => i !== ticketIndex));
       }
-      if (maxPerPurchase > 0 && prev.length >= maxPerPurchase) {
+    } else {
+      // Add ticket
+      if (maxPerPurchase > 0 && selectedTickets.length >= maxPerPurchase) {
         toast.warning(`Máximo ${maxPerPurchase} boletos por compra`);
-        return prev;
+        return;
       }
       toast.success(`Boleto ${ticketNumber} seleccionado`, { duration: 1500 });
-      return [...prev, ticketNumber];
-    });
-  }, [maxPerPurchase, trackRemoveFromCart, raffleId, ticketPrice, currencyCode]);
+      setSelectedTickets(prev => [...prev, ticketNumber]);
+      if (ticketIndex !== undefined) {
+        setSelectedTicketIndices(prev => [...prev, ticketIndex]);
+      }
+    }
+  }, [maxPerPurchase, trackRemoveFromCart, raffleId, ticketPrice, currencyCode, selectedTickets]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedTickets([]);
+    setSelectedTicketIndices([]);
     setGeneratedNumbers([]);
     toast.info('Selección limpiada');
   }, []);
@@ -624,7 +634,7 @@ export function TicketSelector({
       toast.warning(`Debes seleccionar al menos ${minPerPurchase} boleto${minPerPurchase > 1 ? 's' : ''}`);
       return;
     }
-    onContinue(selectedTickets);
+    onContinue(selectedTickets, useVirtualTicketsEnabled ? selectedTicketIndices : undefined);
   };
 
   const bestPackage = packages.reduce((best, pkg) => {
@@ -1006,7 +1016,7 @@ export function TicketSelector({
                         ticketNumber={ticket.ticket_number}
                         status={ticket.status}
                         isSelected={selectedTickets.includes(ticket.ticket_number)}
-                        onClick={() => handleTicketClick(ticket.ticket_number, ticket.status)}
+                        onClick={() => handleTicketClick(ticket.ticket_number, ticket.status, ticket.ticket_index)}
                         disabled={ticket.status !== 'available'}
                         isLastFew={ticket.status === 'available' && filteredTickets.filter(t => t.status === 'available').length <= 10}
                         isHighlighted={highlightedTicket === ticket.ticket_number}

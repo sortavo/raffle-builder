@@ -90,6 +90,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   
   
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [selectedTicketIndices, setSelectedTicketIndices] = useState<number[]>([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -169,7 +170,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
     }
   };
 
-  const handleContinue = (tickets: string[]) => {
+  const handleContinue = (tickets: string[], ticketIndices?: number[]) => {
     // Track add_to_cart event
     if (raffle) {
       const packages = (raffle as any).packages || [];
@@ -186,6 +187,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
     }
     
     setSelectedTickets(tickets);
+    setSelectedTicketIndices(ticketIndices || []);
     setCheckoutOpen(true);
   };
 
@@ -829,9 +831,11 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           onOpenChange={setCheckoutOpen}
           raffle={raffle}
           selectedTickets={selectedTickets}
+          selectedTicketIndices={selectedTicketIndices}
           ticketPrice={Number(raffle.ticket_price)}
           packages={raffle.packages?.map(p => ({ quantity: p.quantity, price: Number(p.price) }))}
           onReservationComplete={handleReservationComplete}
+          useVirtualTicketsEnabled={(raffle as any).customization?.use_virtual_tickets === true}
         />
         </div>
       </div>

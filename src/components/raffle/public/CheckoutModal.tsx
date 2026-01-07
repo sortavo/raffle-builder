@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { formatCurrency } from "@/lib/currency-utils";
 import { useReserveTickets } from "@/hooks/usePublicRaffle";
+import { useReserveVirtualTickets } from "@/hooks/useVirtualTickets";
 import { useEmails } from "@/hooks/useEmails";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 import { notifyPaymentPending } from "@/lib/notifications";
@@ -96,9 +97,11 @@ interface CheckoutModalProps {
   onOpenChange: (open: boolean) => void;
   raffle: Raffle & { organization?: { phone?: string | null; name?: string; logo_url?: string | null; subscription_tier?: string | null } };
   selectedTickets: string[];
+  selectedTicketIndices?: number[];
   ticketPrice: number;
   packages?: { quantity: number; price: number }[];
   onReservationComplete: (tickets: { id: string; ticket_number: string }[], reservedUntil: string, buyerData: { name: string; email: string }, totalAmount: number, referenceCode: string) => void;
+  useVirtualTicketsEnabled?: boolean;
 }
 
 const steps = [
@@ -112,9 +115,11 @@ export function CheckoutModal({
   onOpenChange,
   raffle,
   selectedTickets,
+  selectedTicketIndices = [],
   ticketPrice,
   packages = [],
   onReservationComplete,
+  useVirtualTicketsEnabled = false,
 }: CheckoutModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   // Payment method is always 'manual' (transfer/deposit) - no card payments
@@ -125,7 +130,8 @@ export function CheckoutModal({
   const [referenceCode, setReferenceCode] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false); // Prevent double-click
   
-  const reserveTickets = useReserveTickets();
+  const reservePhysicalTickets = useReserveTickets();
+  const reserveVirtualTickets = useReserveVirtualTickets();
   const { sendReservationEmail } = useEmails();
   const { trackBeginCheckout, trackPurchase } = useTrackingEvents();
   const form = useForm<CheckoutFormData>({
@@ -192,28 +198,70 @@ export function CheckoutModal({
 
   const handleCompleteReservation = async () => {
     // Prevent double-click
-    if (isProcessing || reserveTickets.isPending) return;
+    const isPending = useVirtualTicketsEnabled 
+      ? reserveVirtualTickets.isPending 
+      : reservePhysicalTickets.isPending;
+    if (isProcessing || isPending) return;
     setIsProcessing(true);
 
     const data = form.getValues();
     const cleanPhone = data.phone.replace(/\D/g, '');
 
     try {
-      const result = await reserveTickets.mutateAsync({
-        raffleId: raffle.id,
-        ticketNumbers: selectedTickets,
-        buyerData: {
-          name: data.name.trim(),
-          email: data.email.trim().toLowerCase(),
-          phone: cleanPhone,
-          city: data.city?.trim(),
-        },
-        reservationMinutes: raffle.reservation_time_minutes || 15,
-        orderTotal: total,
-      });
+      let result: {
+        tickets: { id: string; ticket_number: string }[];
+        reservedUntil: string;
+        referenceCode: string;
+      };
+
+      if (useVirtualTicketsEnabled && selectedTicketIndices.length > 0) {
+        // Use virtual tickets hook
+        const virtualResult = await reserveVirtualTickets.mutateAsync({
+          raffleId: raffle.id,
+          ticketIndices: selectedTicketIndices,
+          buyerData: {
+            name: data.name.trim(),
+            email: data.email.trim().toLowerCase(),
+            phone: cleanPhone,
+            city: data.city?.trim(),
+          },
+          reservationMinutes: raffle.reservation_time_minutes || 15,
+          orderTotal: total,
+        });
+
+        // Adapt virtual result to expected format
+        result = {
+          tickets: selectedTickets.map((tn, i) => ({ 
+            id: `virtual-${selectedTicketIndices[i]}`, 
+            ticket_number: tn 
+          })),
+          reservedUntil: virtualResult.reservedUntil,
+          referenceCode: virtualResult.referenceCode,
+        };
+      } else {
+        // Use physical tickets hook (legacy)
+        const physicalResult = await reservePhysicalTickets.mutateAsync({
+          raffleId: raffle.id,
+          ticketNumbers: selectedTickets,
+          buyerData: {
+            name: data.name.trim(),
+            email: data.email.trim().toLowerCase(),
+            phone: cleanPhone,
+            city: data.city?.trim(),
+          },
+          reservationMinutes: raffle.reservation_time_minutes || 15,
+          orderTotal: total,
+        });
+
+        result = {
+          tickets: physicalResult.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })),
+          reservedUntil: physicalResult.reservedUntil,
+          referenceCode: physicalResult.referenceCode,
+        };
+      }
 
       // Store reserved tickets info
-      setReservedTickets(result.tickets.map(t => ({ id: t.id, ticket_number: t.ticket_number })));
+      setReservedTickets(result.tickets);
       setReservedUntil(result.reservedUntil);
       setReferenceCode(result.referenceCode);
 
@@ -673,9 +721,9 @@ export function CheckoutModal({
                   <Button
                     className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                     onClick={handleCompleteReservation}
-                    disabled={isProcessing || reserveTickets.isPending}
+                    disabled={isProcessing || reservePhysicalTickets.isPending || reserveVirtualTickets.isPending}
                   >
-                    {isProcessing || reserveTickets.isPending ? (
+                    {isProcessing || reservePhysicalTickets.isPending || reserveVirtualTickets.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Procesando...
