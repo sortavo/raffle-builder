@@ -539,6 +539,53 @@ export const Step5Design = ({
               })}
             </div>
           </div>
+
+          {/* Branding */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Heart className="w-3 h-3 text-pink-500" />
+              Branding
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <div className={cn(
+                "flex items-start justify-between p-3 rounded-lg border transition-colors gap-3",
+                getFeatureValue('show_powered_by', true) 
+                  ? "border-pink-500/30 bg-pink-500/5" 
+                  : "border-border"
+              )}>
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <Heart className={cn(
+                    "w-5 h-5 shrink-0 mt-0.5",
+                    getFeatureValue('show_powered_by', true) ? "text-pink-500" : "text-muted-foreground"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block flex items-center gap-2">
+                      Powered by Sortavo
+                      {!limits.canRemoveBranding && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          <Lock className="w-2.5 h-2.5 mr-1" />
+                          Pro+
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {limits.canRemoveBranding 
+                        ? 'Muestra el badge de Sortavo en el pie de página'
+                        : 'Upgrade a Pro para poder ocultar el branding'
+                      }
+                    </span>
+                  </div>
+                </div>
+                <Switch
+                  id="show_powered_by"
+                  checked={getFeatureValue('show_powered_by', true)}
+                  onCheckedChange={(checked) => updateCustomization('show_powered_by', checked)}
+                  disabled={!limits.canRemoveBranding}
+                  className="shrink-0"
+                />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

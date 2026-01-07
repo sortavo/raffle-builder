@@ -786,8 +786,8 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           />
         )}
 
-        {/* Footer */}
-        {!limits.canRemoveBranding && (
+        {/* Footer - show if Basic plan OR if Pro+ has it enabled */}
+        {(!limits.canRemoveBranding || customization?.show_powered_by !== false) && (
           <footer className={cn(
             "border-t py-8",
             isLightTemplate 

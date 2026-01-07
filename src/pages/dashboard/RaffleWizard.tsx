@@ -50,6 +50,7 @@ const DEFAULT_FEATURE_CUSTOMIZATION = {
   show_urgency_badge: true,
   show_sticky_banner: true,
   show_social_proof: true,
+  show_powered_by: true,
 };
 
 export default function RaffleWizard() {

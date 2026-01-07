@@ -1132,18 +1132,20 @@ export function RafflePreview({ form, className, activeSection, scrollProgress }
             </div>
           </div>
 
-          {/* Footer Preview */}
-          <div 
-            className="px-3 py-2 text-center border-t"
-            style={{ 
-              backgroundColor: colors.background,
-              borderColor: `${primaryColor}15`,
-            }}
-          >
-            <p className="text-[8px]" style={{ color: colors.textMuted }}>
-              Powered by <span className="font-medium" style={{ color: colors.text }}>Sortavo</span>
-            </p>
-          </div>
+          {/* Footer Preview - conditional based on show_powered_by */}
+          {customization.show_powered_by !== false && (
+            <div 
+              className="px-3 py-2 text-center border-t"
+              style={{ 
+                backgroundColor: colors.background,
+                borderColor: `${primaryColor}15`,
+              }}
+            >
+              <p className="text-[8px]" style={{ color: colors.textMuted }}>
+                Powered by <span className="font-medium" style={{ color: colors.text }}>Sortavo</span>
+              </p>
+            </div>
+          )}
 
           {/* Mobile Sticky Footer Indicator */}
           {isMobile && (
