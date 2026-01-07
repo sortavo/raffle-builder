@@ -1812,6 +1812,8 @@ export type Database = {
       }
       archive_old_raffles: { Args: { days_old?: number }; Returns: number }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
+      disable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
+      enable_non_critical_ticket_indexes: { Args: never; Returns: undefined }
       generate_reference_code: { Args: never; Returns: string }
       generate_ticket_batch: {
         Args: {
@@ -1894,6 +1896,10 @@ export type Database = {
         }[]
       }
       get_min_ticket_number: { Args: { p_raffle_id: string }; Returns: number }
+      get_optimal_batch_size: {
+        Args: { p_total_tickets: number }
+        Returns: number
+      }
       get_order_by_reference: {
         Args: { p_reference_code: string }
         Returns: Json
@@ -1988,6 +1994,7 @@ export type Database = {
         }[]
       }
       refresh_raffle_stats: { Args: never; Returns: undefined }
+      refresh_raffle_stats_mv: { Args: never; Returns: undefined }
       register_buyer: {
         Args: {
           p_city?: string
