@@ -16,6 +16,7 @@ import { Footer } from '@/components/layout/Footer';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { PremiumHero } from '@/components/layout/PremiumBackground';
 import { toast } from 'sonner';
+import { useSortavoTracking } from '@/hooks/useSortavoTracking';
 import { 
   ArrowLeft, 
   Mail, 
@@ -96,6 +97,7 @@ const faqs = [
 ];
 
 export default function Contact() {
+  const { trackLead } = useSortavoTracking();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -112,6 +114,9 @@ export default function Contact() {
     
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Track lead event
+    trackLead('contact_form');
     
     toast.success('¡Mensaje enviado!', {
       description: 'Te responderemos lo antes posible.'

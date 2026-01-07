@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
+import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 import { UpgradeConfirmationModal } from "@/components/subscription/UpgradeConfirmationModal";
 import { CancelSubscriptionModal } from "@/components/subscription/CancelSubscriptionModal";
 import { InvoiceHistory } from "@/components/subscription/InvoiceHistory";
@@ -51,6 +52,7 @@ interface UpgradePreview {
 
 export default function Subscription() {
   const { organization } = useAuth();
+  const { trackSubscribe } = useSortavoTracking();
   const [isLoading, setIsLoading] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -157,6 +159,10 @@ export default function Subscription() {
           (amountFormatted ? ` Se cobró ${amountFormatted}.` : ""),
           { duration: 5000 }
         );
+        
+        // Track upgrade event
+        const planPrice = STRIPE_PLANS[upgradePreview.targetPlan]?.monthlyPrice || 0;
+        trackSubscribe(STRIPE_PLANS[upgradePreview.targetPlan].name, planPrice);
         
         // Recargar la página para reflejar los cambios
         setTimeout(() => window.location.reload(), 2000);

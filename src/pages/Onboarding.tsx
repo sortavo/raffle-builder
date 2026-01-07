@@ -21,6 +21,7 @@ import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/li
 import { z } from "zod";
 import { SinglePhoneInput } from "@/components/ui/SinglePhoneInput";
 import sortavoLogo from "@/assets/sortavo-logo.png";
+import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 
 // Country defaults configuration
 const COUNTRY_DEFAULTS: Record<string, { currency: string; timezone: string; phoneCode: string }> = {
@@ -85,6 +86,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, organization, isLoading, refreshOrganization } = useAuth();
+  const { trackStartTrial, trackSubscribe } = useSortavoTracking();
   
   const initialStep = parseInt(searchParams.get("step") || "1");
   const [currentStep, setCurrentStep] = useState(initialStep);
@@ -196,6 +198,10 @@ export default function Onboarding() {
         if (refreshOrganization) {
           await refreshOrganization();
         }
+        
+        // Track subscription event
+        const planPrice = STRIPE_PLANS[selectedPlan]?.monthlyPrice || 0;
+        trackSubscribe(STRIPE_PLANS[selectedPlan].name, planPrice);
         
         setIsProcessingPayment(false);
         toast.success("¡Suscripción activada exitosamente!");
@@ -418,6 +424,9 @@ export default function Onboarding() {
       toast.error("Error al continuar");
       return;
     }
+
+    // Track trial start
+    trackStartTrial(STRIPE_PLANS[selectedPlan].name);
 
     toast.success("¡Bienvenido a Sortavo!");
     navigate("/dashboard");
