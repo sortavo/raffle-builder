@@ -171,6 +171,63 @@ export default function Approvals() {
     });
   };
 
+  // Bulk rejection
+  const handleBulkReject = async () => {
+    if (selectedOrdersData.length === 0) return;
+    
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    let errorCount = 0;
+    let totalTickets = 0;
+
+    for (const order of selectedOrdersData) {
+      try {
+        const ticketIds = order.tickets.map((t: any) => t.id);
+        
+        const { error } = await supabase
+          .from('sold_tickets')
+          .delete()
+          .in('id', ticketIds);
+
+        if (error) throw error;
+        successCount++;
+        totalTickets += ticketIds.length;
+
+        // Background notification
+        if (order.buyerEmail && order.buyerName) {
+          sendRejectedEmail({
+            to: order.buyerEmail,
+            buyerName: order.buyerName,
+            ticketNumbers: order.tickets.map((t: any) => t.ticket_number),
+            raffleTitle: order.raffleTitle,
+            raffleSlug: order.raffleSlug,
+            rejectionReason: 'El pago no fue verificado correctamente',
+          }).catch(console.error);
+        }
+      } catch (error) {
+        console.error('Bulk rejection error:', error);
+        errorCount++;
+      }
+    }
+
+    // Invalidate queries
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
+      queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+      queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+      refetch(),
+    ]);
+
+    clearSelection();
+    setIsBulkProcessing(false);
+
+    toast({ 
+      title: `${successCount} pedidos rechazados`,
+      description: `${totalTickets} boletos liberados${errorCount > 0 ? `, ${errorCount} fallaron` : ''}`,
+    });
+  };
+
   // Split orders by payment proof
   const ordersWithoutProof = filteredOrders.filter(o => !o.hasProof);
   const ordersWithProof = filteredOrders.filter(o => o.hasProof);
@@ -584,7 +641,21 @@ export default function Approvals() {
                 ) : (
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                 )}
-                Aprobar todos
+                Aprobar
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleBulkReject}
+                disabled={isBulkProcessing}
+                className="bg-white/10 text-white hover:bg-white/20 border border-white/20"
+              >
+                {isBulkProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2" />
+                )}
+                Rechazar
               </Button>
               <Button
                 size="sm"
