@@ -5,31 +5,41 @@
 
 /**
  * Parse a ticket number string to get its numeric index
- * Handles prefixes, padding, and various formats
+ * Handles prefixes, padding, suffixes, and various formats
  * 
- * @param ticketNumber - The formatted ticket number (e.g., "0007", "TICKET-0042")
+ * @param ticketNumber - The formatted ticket number (e.g., "0007", "TICKET-0042", "0042-X")
  * @param numberStart - The starting number for tickets (default: 1)
+ * @param step - The step between ticket numbers (default: 1)
  * @returns The zero-based ticket index, or -1 if parsing fails
  */
 export function parseTicketIndex(
   ticketNumber: string,
-  numberStart: number = 1
+  numberStart: number = 1,
+  step: number = 1
 ): number {
   if (!ticketNumber) return -1;
   
-  // Extract numeric portion from the ticket number
-  // Handles formats like: "0042", "TICKET-0042", "A-0042", "42"
-  const numericMatch = ticketNumber.match(/(\d+)$/);
-  if (!numericMatch) return -1;
+  // Extract all numeric sequences from the ticket number
+  // Handles formats like: "0042", "TICKET-0042", "A-0042", "42", "0042-X", "RIFA-0001-X"
+  const numericMatches = ticketNumber.match(/\d+/g);
+  if (!numericMatches || numericMatches.length === 0) return -1;
   
-  const numericPart = parseInt(numericMatch[1], 10);
+  // Use the longest numeric match (most likely the ticket number)
+  // This handles cases like "TICKET-0042-2024" where we want "0042"
+  const longestMatch = numericMatches.reduce((a, b) => 
+    a.length >= b.length ? a : b
+  );
+  
+  const numericPart = parseInt(longestMatch, 10);
   if (isNaN(numericPart)) return -1;
   
-  // Convert to zero-based index
-  // If numberStart is 1 and ticket is "0042" -> index = 42 - 1 = 41
-  const index = numericPart - numberStart;
+  // Convert to zero-based index using the formula:
+  // display = start + index * step
+  // Therefore: index = (display - start) / step
+  const index = (numericPart - numberStart) / step;
   
-  return index >= 0 ? index : -1;
+  // Validate the index is a valid integer and non-negative
+  return Number.isInteger(index) && index >= 0 ? index : -1;
 }
 
 /**
@@ -38,14 +48,16 @@ export function parseTicketIndex(
  * 
  * @param ticketNumbers - Array of formatted ticket numbers
  * @param numberStart - The starting number for tickets
+ * @param step - The step between ticket numbers (default: 1)
  * @returns Array of valid zero-based indices
  */
 export function parseTicketIndices(
   ticketNumbers: string[],
-  numberStart: number = 1
+  numberStart: number = 1,
+  step: number = 1
 ): number[] {
   return ticketNumbers
-    .map(tn => parseTicketIndex(tn, numberStart))
+    .map(tn => parseTicketIndex(tn, numberStart, step))
     .filter(idx => idx >= 0);
 }
 

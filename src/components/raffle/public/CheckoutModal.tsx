@@ -237,6 +237,18 @@ export function CheckoutModal({
   const subtotal = calculateSubtotal();
   const total = subtotal - discount;
 
+  // PHASE 2: Memoize ticket numbers list to prevent re-computation on every render
+  const ticketNumbersList = useMemo(() => 
+    reservedTickets.map(t => t.ticket_number), 
+    [reservedTickets]
+  );
+  
+  // Memoize ticket summary for components that don't need the full array
+  const ticketSummary = useMemo(() => 
+    formatTicketSummary(selectedTickets, 10),
+    [selectedTickets]
+  );
+
   const copyReferenceCode = async () => {
     await navigator.clipboard.writeText(referenceCode);
     setCopiedRef(true);

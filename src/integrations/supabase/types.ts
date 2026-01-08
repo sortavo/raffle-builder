@@ -2072,10 +2072,15 @@ export type Database = {
           p_buyer_phone?: string
           p_order_total?: number
           p_raffle_id: string
-          p_requested_indices: number[]
           p_reservation_minutes?: number
+          p_ticket_indices: number[]
         }
-        Returns: Json
+        Returns: {
+          reference_code: string
+          reserved_until: string
+          ticket_index: number
+          ticket_number: string
+        }[]
       }
       search_public_tickets: {
         Args: { p_limit?: number; p_raffle_id: string; p_search: string }
