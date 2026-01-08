@@ -143,8 +143,14 @@ export function useReserveVirtualTickets() {
 
       const raw = (data as any[] | null)?.[0] as (ReserveResult | ReserveResilientResult | undefined);
 
-      if (!raw?.success) {
-        throw new Error(raw?.error_message || 'Error al reservar boletos');
+      // Validate response format
+      if (!raw || typeof raw.success !== 'boolean') {
+        console.error('[useReserveVirtualTickets] Unexpected response format:', data);
+        throw new Error('La reserva devolvió un formato inesperado. Intenta de nuevo.');
+      }
+
+      if (!raw.success) {
+        throw new Error(raw.error_message || 'Error al reservar boletos');
       }
 
       const ticketNumbers = (raw as ReserveResilientResult).ticket_numbers || undefined;

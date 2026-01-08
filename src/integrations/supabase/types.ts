@@ -2075,10 +2075,13 @@ export type Database = {
           p_ticket_indices: number[]
         }
         Returns: {
+          error_message: string
           reference_code: string
+          reserved_count: number
           reserved_until: string
-          ticket_index: number
-          ticket_number: string
+          success: boolean
+          ticket_indices: number[]
+          ticket_numbers: string[]
         }[]
       }
       search_public_tickets: {
