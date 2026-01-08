@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,8 @@ import {
   ChevronUp,
   Ticket,
   ExternalLink,
-  DollarSign
+  DollarSign,
+  Loader2
 } from 'lucide-react';
 import { useTickets } from '@/hooks/useTickets';
 import { useBuyers } from '@/hooks/useBuyers';
@@ -61,8 +62,10 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
   const { role } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { useTicketsList, approveTicket, rejectTicket, extendReservation, bulkApprove, bulkReject, approveByReference } = useTickets(raffleId);
   const { getWhatsAppLink } = useBuyers(raffleId);
   const { sendApprovedEmail, sendRejectedEmail, sendBulkApprovedEmail } = useEmails();
@@ -157,19 +160,9 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleApproveOrder = async (order: OrderGroup) => {
-    const ticketIds = order.tickets.map(t => t.id);
-    const ticketNumbers = order.tickets.map(t => t.ticket_number);
-    
+  // Background notifications - separated from main flow
+  const sendApprovalNotificationsInBackground = async (order: OrderGroup, ticketNumbers: string[]) => {
     try {
-      // bulkApprove now handles email sending internally
-      await bulkApprove.mutateAsync({ 
-        ticketIds, 
-        raffleTitle, 
-        raffleSlug 
-      });
-      
-      // Send in-app notification if buyer has an account
       if (order.buyerEmail && order.buyerName) {
         const { data: buyerProfile } = await supabase
           .from('profiles')
@@ -185,10 +178,46 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
           ).catch(console.error);
         }
       }
-      
-      refetch();
     } catch (error) {
+      console.error('Background notification error:', error);
+    }
+  };
+
+  const handleApproveOrder = async (order: OrderGroup) => {
+    const ticketIds = order.tickets.map(t => t.id);
+    const ticketNumbers = order.tickets.map(t => t.ticket_number);
+    
+    // Set processing state
+    setProcessingOrders(prev => new Set(prev).add(order.referenceCode));
+    
+    try {
+      // Main operation - approval
+      await bulkApprove.mutateAsync({ 
+        ticketIds, 
+        raffleTitle, 
+        raffleSlug 
+      });
+      
+      // Immediately invalidate all related queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] }),
+        queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] }),
+        queryClient.invalidateQueries({ queryKey: ['raffle-stats'] }),
+        refetch(),
+      ]);
+      
+      // Background notifications - don't block UI
+      sendApprovalNotificationsInBackground(order, ticketNumbers);
+      
+    } catch (error) {
+      console.error('Approval error:', error);
       toast({ title: 'Error al aprobar', variant: 'destructive' });
+    } finally {
+      setProcessingOrders(prev => {
+        const next = new Set(prev);
+        next.delete(order.referenceCode);
+        return next;
+      });
     }
   };
 
@@ -196,14 +225,25 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     const ticketIds = order.tickets.map(t => t.id);
     const ticketNumbers = order.tickets.map(t => t.ticket_number);
     
+    setProcessingOrders(prev => new Set(prev).add(order.referenceCode));
+    
     try {
       await bulkReject.mutateAsync(ticketIds);
+      
+      // Immediately invalidate and refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] }),
+        queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] }),
+        queryClient.invalidateQueries({ queryKey: ['raffle-stats'] }),
+        refetch(),
+      ]);
+      
       toast({ 
         title: `${ticketIds.length} boletos rechazados`,
         description: `Pedido ${order.referenceCode}`,
       });
       
-      // Send notification
+      // Background notifications
       if (order.buyerEmail && order.buyerName) {
         sendRejectedEmail({
           to: order.buyerEmail,
@@ -214,25 +254,35 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
           rejectionReason: 'El pago no fue verificado correctamente',
         }).catch(console.error);
         
-        const { data: buyerProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', order.buyerEmail)
-          .maybeSingle();
-        
-        if (buyerProfile?.id) {
-          notifyPaymentRejected(
-            buyerProfile.id,
-            raffleTitle,
-            ticketNumbers,
-            'El pago no fue verificado correctamente'
-          ).catch(console.error);
-        }
+        (async () => {
+          try {
+            const { data: buyerProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', order.buyerEmail!)
+              .maybeSingle();
+            
+            if (buyerProfile?.id) {
+              await notifyPaymentRejected(
+                buyerProfile.id,
+                raffleTitle,
+                ticketNumbers,
+                'El pago no fue verificado correctamente'
+              );
+            }
+          } catch (e) {
+            console.error('Background rejection notification error:', e);
+          }
+        })();
       }
-      
-      refetch();
     } catch (error) {
       toast({ title: 'Error al rechazar', variant: 'destructive' });
+    } finally {
+      setProcessingOrders(prev => {
+        const next = new Set(prev);
+        next.delete(order.referenceCode);
+        return next;
+      });
     }
   };
 
@@ -265,6 +315,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     const timeRemaining = getTimeRemaining(order.reservedUntil);
     const isExpired = timeRemaining === 'Expirado';
     const isExpanded = expandedOrders.has(order.referenceCode);
+    const isProcessing = processingOrders.has(order.referenceCode);
     const ticketCount = order.tickets.length;
     const unitTotal = ticketCount * ticketPrice;
     const packagePrice = (rafflePackages as any[]).find(p => p.quantity === ticketCount)?.price;
@@ -410,20 +461,28 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
                   size="sm" 
                   variant="default"
                   onClick={() => handleApproveOrder(order)}
-                  disabled={bulkApprove.isPending}
+                  disabled={isProcessing || bulkApprove.isPending}
                   className="flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {isProcessing ? (
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  )}
                   <span className="truncate">Aprobar{ticketCount > 1 ? ` (${ticketCount})` : ''}</span>
                 </Button>
                 <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => handleRejectOrder(order)}
-                  disabled={bulkReject.isPending}
+                  disabled={isProcessing || bulkReject.isPending}
                   className="flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                 >
-                  <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  {isProcessing ? (
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  )}
                   <span className="truncate">Rechazar</span>
                 </Button>
               </div>
