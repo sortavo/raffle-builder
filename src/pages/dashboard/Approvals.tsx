@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,17 +30,17 @@ import {
   Loader2,
   Gift,
   Inbox,
-  Filter
+  Filter,
+  CheckCheck,
+  X
 } from 'lucide-react';
 import { usePendingOrders } from '@/hooks/usePendingOrders';
-import { useTickets } from '@/hooks/useTickets';
-import { useBuyers } from '@/hooks/useBuyers';
 import { useEmails } from '@/hooks/useEmails';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { notifyPaymentApproved, notifyPaymentRejected } from '@/lib/notifications';
+import { notifyPaymentApproved } from '@/lib/notifications';
 import { formatCurrency } from '@/lib/currency-utils';
 
 export default function Approvals() {
@@ -48,6 +49,8 @@ export default function Approvals() {
   const [selectedRaffle, setSelectedRaffle] = useState<string>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [processingOrders, setProcessingOrders] = useState<Set<string>>(new Set());
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -75,6 +78,98 @@ export default function Approvals() {
       order.tickets.some(t => t.ticket_number?.toLowerCase().includes(query))
     );
   }, [allOrders, searchQuery]);
+
+  // Selection handlers
+  const toggleOrderSelection = (refCode: string) => {
+    setSelectedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(refCode)) {
+        next.delete(refCode);
+      } else {
+        next.add(refCode);
+      }
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedOrders(new Set(filteredOrders.map(o => o.referenceCode)));
+  };
+
+  const clearSelection = () => {
+    setSelectedOrders(new Set());
+  };
+
+  const selectedOrdersData = useMemo(() => {
+    return filteredOrders.filter(o => selectedOrders.has(o.referenceCode));
+  }, [filteredOrders, selectedOrders]);
+
+  const selectedTicketsCount = useMemo(() => {
+    return selectedOrdersData.reduce((sum, o) => sum + o.tickets.length, 0);
+  }, [selectedOrdersData]);
+
+  // Bulk approval
+  const handleBulkApprove = async () => {
+    if (selectedOrdersData.length === 0) return;
+    
+    setIsBulkProcessing(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const order of selectedOrdersData) {
+      try {
+        const { error } = await supabase
+          .from('sold_tickets')
+          .update({ status: 'sold' })
+          .eq('raffle_id', order.raffleId)
+          .eq('payment_reference', order.referenceCode);
+
+        if (error) throw error;
+        successCount++;
+
+        // Background notification
+        if (order.buyerEmail) {
+          try {
+            const { data: buyerProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', order.buyerEmail)
+              .maybeSingle();
+            
+            if (buyerProfile?.id) {
+              notifyPaymentApproved(
+                buyerProfile.id,
+                order.raffleTitle,
+                order.tickets.map((t: any) => t.ticket_number)
+              ).catch(console.error);
+            }
+          } catch (e) {
+            console.error('Notification error:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Bulk approval error:', error);
+        errorCount++;
+      }
+    }
+
+    // Invalidate queries
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
+      queryClient.invalidateQueries({ queryKey: ['tickets'] }),
+      queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+      refetch(),
+    ]);
+
+    clearSelection();
+    setIsBulkProcessing(false);
+
+    toast({ 
+      title: `✓ ${successCount} pedidos aprobados`,
+      description: errorCount > 0 ? `${errorCount} fallaron` : undefined,
+    });
+  };
 
   // Split orders by payment proof
   const ordersWithoutProof = filteredOrders.filter(o => !o.hasProof);
@@ -220,18 +315,25 @@ export default function Approvals() {
     const isExpired = timeRemaining === 'Expirado';
     const isExpanded = expandedOrders.has(order.referenceCode);
     const isProcessing = processingOrders.has(order.referenceCode);
+    const isSelected = selectedOrders.has(order.referenceCode);
     const ticketCount = order.tickets.length;
     const totalAmount = order.orderTotal ?? (ticketCount * order.ticketPrice);
 
     return (
       <Card className={cn(
         'transition-all',
-        isExpired && 'border-destructive/50'
+        isExpired && 'border-destructive/50',
+        isSelected && 'ring-2 ring-primary border-primary'
       )}>
         <CardContent className="p-3 sm:p-4 space-y-2.5">
-          {/* Header with Raffle Info */}
+          {/* Header with Checkbox and Raffle Info */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => toggleOrderSelection(order.referenceCode)}
+                className="shrink-0"
+              />
               <div className={cn(
                 "h-7 w-7 rounded-lg flex items-center justify-center shrink-0",
                 showProof ? "bg-amber-500/10" : "bg-muted"
@@ -457,6 +559,45 @@ export default function Approvals() {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedOrders.size > 0 && (
+          <div className="sticky top-0 z-10 bg-primary text-primary-foreground rounded-lg p-3 flex items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <CheckCheck className="h-5 w-5" />
+              <span className="font-medium">
+                {selectedOrders.size} pedido{selectedOrders.size !== 1 ? 's' : ''} seleccionado{selectedOrders.size !== 1 ? 's' : ''}
+              </span>
+              <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                {selectedTicketsCount} boletos
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleBulkApprove}
+                disabled={isBulkProcessing}
+                className="bg-white text-primary hover:bg-white/90"
+              >
+                {isBulkProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                Aprobar todos
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                className="text-white hover:bg-white/10"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -510,53 +651,71 @@ export default function Approvals() {
 
         {/* Orders Grid */}
         {filteredOrders.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Without Proof */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-500" />
-                <h2 className="font-semibold">Sin Comprobante</h2>
-                <Badge variant="outline">{ordersWithoutProof.length}</Badge>
-              </div>
-              
-              {ordersWithoutProof.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                    No hay pedidos esperando comprobante
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {ordersWithoutProof.map(order => (
-                    <OrderCard key={order.referenceCode} order={order} showProof={false} />
-                  ))}
-                </div>
-              )}
+          <>
+            {/* Select All Button */}
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectedOrders.size === filteredOrders.length ? clearSelection : selectAllVisible}
+                className="text-xs"
+              >
+                <Checkbox
+                  checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
+                  className="mr-2 pointer-events-none"
+                />
+                {selectedOrders.size === filteredOrders.length ? 'Deseleccionar todos' : `Seleccionar todos (${filteredOrders.length})`}
+              </Button>
             </div>
 
-            {/* With Proof */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <h2 className="font-semibold">Con Comprobante</h2>
-                <Badge variant="outline">{ordersWithProof.length}</Badge>
-              </div>
-              
-              {ordersWithProof.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                    No hay pedidos con comprobante adjunto
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {ordersWithProof.map(order => (
-                    <OrderCard key={order.referenceCode} order={order} showProof={true} />
-                  ))}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Without Proof */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  <h2 className="font-semibold">Sin Comprobante</h2>
+                  <Badge variant="outline">{ordersWithoutProof.length}</Badge>
                 </div>
-              )}
+                
+                {ordersWithoutProof.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                      No hay pedidos esperando comprobante
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {ordersWithoutProof.map(order => (
+                      <OrderCard key={order.referenceCode} order={order} showProof={false} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* With Proof */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <h2 className="font-semibold">Con Comprobante</h2>
+                  <Badge variant="outline">{ordersWithProof.length}</Badge>
+                </div>
+                
+                {ordersWithProof.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                      No hay pedidos con comprobante adjunto
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {ordersWithProof.map(order => (
+                      <OrderCard key={order.referenceCode} order={order} showProof={true} />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </DashboardLayout>
