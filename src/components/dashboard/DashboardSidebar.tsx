@@ -44,6 +44,7 @@ import {
   Eye,
   Trophy,
   History,
+  ClipboardCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TicketScannerDialog } from "@/components/scanner";
@@ -65,10 +66,16 @@ const menuItems = [
     badgeKey: 'activeRaffles' as string | null,
   },
   {
+    title: "Aprobaciones",
+    url: "/dashboard/approvals",
+    icon: ClipboardCheck,
+    badgeKey: 'pendingApprovals' as string | null,
+  },
+  {
     title: "Compradores",
     url: "/dashboard/buyers",
     icon: Users,
-    badgeKey: 'pendingApprovals' as string | null,
+    badgeKey: null as string | null,
   },
   {
     title: "Analíticas",

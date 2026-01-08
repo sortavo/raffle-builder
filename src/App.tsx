@@ -41,6 +41,7 @@ import Buyers from "./pages/dashboard/Buyers";
 import Analytics from "./pages/dashboard/Analytics";
 import Subscription from "./pages/dashboard/Subscription";
 import AuditLog from "./pages/dashboard/AuditLog";
+import Approvals from "./pages/dashboard/Approvals";
 import Contact from "./pages/Contact";
 import SystemStatus from "./pages/SystemStatus";
 import LogoPreview from "./pages/LogoPreview";
@@ -133,6 +134,7 @@ const App = () => (
                   <Route path="/dashboard/raffles/:id/edit" element={<RaffleWizard />} />
                   <Route path="/dashboard/raffles/:id/draw" element={<DrawWinner />} />
                   <Route path="/dashboard/settings" element={<Settings />} />
+                  <Route path="/dashboard/approvals" element={<Approvals />} />
                   <Route path="/dashboard/buyers" element={<Buyers />} />
                   <Route path="/dashboard/analytics" element={<Analytics />} />
                   <Route path="/dashboard/subscription" element={<Subscription />} />
