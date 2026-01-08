@@ -244,45 +244,6 @@ export type Database = {
         }
         Relationships: []
       }
-      buyers: {
-        Row: {
-          auth_user_id: string | null
-          city: string | null
-          created_at: string | null
-          email: string
-          email_verified: boolean | null
-          full_name: string
-          id: string
-          is_guest: boolean | null
-          last_login: string | null
-          phone: string | null
-        }
-        Insert: {
-          auth_user_id?: string | null
-          city?: string | null
-          created_at?: string | null
-          email: string
-          email_verified?: boolean | null
-          full_name: string
-          id?: string
-          is_guest?: boolean | null
-          last_login?: string | null
-          phone?: string | null
-        }
-        Update: {
-          auth_user_id?: string | null
-          city?: string | null
-          created_at?: string | null
-          email?: string
-          email_verified?: boolean | null
-          full_name?: string
-          id?: string
-          is_guest?: boolean | null
-          last_login?: string | null
-          phone?: string | null
-        }
-        Relationships: []
-      }
       coupon_usage: {
         Row: {
           coupon_id: string
@@ -626,13 +587,6 @@ export type Database = {
           ticket_ranges?: Json
         }
         Relationships: [
-          {
-            foreignKeyName: "orders_buyer_id_fkey"
-            columns: ["buyer_id"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "orders_organization_id_fkey"
             columns: ["organization_id"]
@@ -1374,110 +1328,6 @@ export type Database = {
           },
         ]
       }
-      sold_tickets: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          buyer_city: string | null
-          buyer_email: string | null
-          buyer_id: string | null
-          buyer_name: string | null
-          buyer_phone: string | null
-          canceled_at: string | null
-          created_at: string | null
-          id: string
-          notes: string | null
-          order_total: number | null
-          payment_method: string | null
-          payment_proof_url: string | null
-          payment_reference: string | null
-          raffle_id: string
-          reserved_at: string | null
-          reserved_until: string | null
-          sold_at: string | null
-          status: Database["public"]["Enums"]["ticket_status"]
-          ticket_index: number
-          ticket_number: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          buyer_city?: string | null
-          buyer_email?: string | null
-          buyer_id?: string | null
-          buyer_name?: string | null
-          buyer_phone?: string | null
-          canceled_at?: string | null
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          order_total?: number | null
-          payment_method?: string | null
-          payment_proof_url?: string | null
-          payment_reference?: string | null
-          raffle_id: string
-          reserved_at?: string | null
-          reserved_until?: string | null
-          sold_at?: string | null
-          status?: Database["public"]["Enums"]["ticket_status"]
-          ticket_index: number
-          ticket_number: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          buyer_city?: string | null
-          buyer_email?: string | null
-          buyer_id?: string | null
-          buyer_name?: string | null
-          buyer_phone?: string | null
-          canceled_at?: string | null
-          created_at?: string | null
-          id?: string
-          notes?: string | null
-          order_total?: number | null
-          payment_method?: string | null
-          payment_proof_url?: string | null
-          payment_reference?: string | null
-          raffle_id?: string
-          reserved_at?: string | null
-          reserved_until?: string | null
-          sold_at?: string | null
-          status?: Database["public"]["Enums"]["ticket_status"]
-          ticket_index?: number
-          ticket_number?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sold_tickets_buyer_id_fkey"
-            columns: ["buyer_id"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sold_tickets_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sold_tickets_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "sold_tickets_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       stripe_events: {
         Row: {
           created_at: string | null
@@ -1943,61 +1793,6 @@ export type Database = {
           },
         ]
       }
-      sold_tickets_compat: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          buyer_city: string | null
-          buyer_email: string | null
-          buyer_id: string | null
-          buyer_name: string | null
-          buyer_phone: string | null
-          canceled_at: string | null
-          created_at: string | null
-          order_id: string | null
-          order_total: number | null
-          payment_method: string | null
-          payment_proof_url: string | null
-          payment_reference: string | null
-          raffle_id: string | null
-          reserved_at: string | null
-          reserved_until: string | null
-          sold_at: string | null
-          status: string | null
-          ticket_index: number | null
-          ticket_number: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_buyer_id_fkey"
-            columns: ["buyer_id"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       append_ticket_batch: {
@@ -2275,14 +2070,6 @@ export type Database = {
         }
         Returns: string
       }
-      migrate_sold_tickets_to_orders: {
-        Args: never
-        Returns: {
-          error_message: string
-          orders_created: number
-          tickets_migrated: number
-        }[]
-      }
       preview_ticket_numbers: {
         Args: {
           p_numbering_config: Json
@@ -2295,15 +2082,6 @@ export type Database = {
         }[]
       }
       refresh_raffle_stats: { Args: never; Returns: undefined }
-      register_buyer: {
-        Args: {
-          p_city?: string
-          p_email: string
-          p_full_name: string
-          p_phone?: string
-        }
-        Returns: string
-      }
       reject_order: {
         Args: { p_order_id: string }
         Returns: {

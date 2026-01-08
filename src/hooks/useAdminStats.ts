@@ -87,7 +87,7 @@ export function useAdminOverviewStats(dateRange: DateRange | undefined) {
       const fromDate = dateRange?.from?.toISOString() || new Date(0).toISOString();
       const toDate = dateRange?.to?.toISOString() || new Date().toISOString();
 
-      // Query orders table instead of sold_tickets for ticket counts
+      // Query orders table for ticket counts
       const [
         { count: totalOrgs },
         { count: totalUsers },
@@ -193,7 +193,7 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
       const fromDate = dateRange?.from?.toISOString() || new Date(0).toISOString();
       const toDate = dateRange?.to?.toISOString() || new Date().toISOString();
 
-      // Query orders table instead of sold_tickets
+      // Query orders table for activity stats
       const [
         { count: activeRaffles },
         { count: completedRaffles },

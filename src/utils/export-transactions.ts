@@ -22,7 +22,7 @@ export async function exportTransactionsToExcel(
   
   const ticketPrice = raffle?.ticket_price || 0;
 
-  // Query orders instead of sold_tickets
+  // Query orders
   const { data: orders, error } = await supabase
     .from('orders')
     .select('*')

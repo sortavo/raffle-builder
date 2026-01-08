@@ -42,7 +42,6 @@ interface RaffleWithOrders {
 
 /**
  * Hook to get all pending orders across all active raffles for the organization
- * Now uses the new `orders` table instead of `sold_tickets`
  */
 export function usePendingOrders(raffleIdFilter?: string) {
   const { organization } = useAuth();

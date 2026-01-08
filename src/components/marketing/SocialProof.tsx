@@ -27,7 +27,7 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
 
   useEffect(() => {
     const fetchRecent = async () => {
-      // Query orders instead of sold_tickets
+      // Query orders for recent sales
       const { data, error } = await supabase
         .from('orders')
         .select('id, buyer_name, buyer_city, ticket_count, sold_at')

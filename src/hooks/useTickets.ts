@@ -31,7 +31,7 @@ export const useTickets = (raffleId: string | undefined) => {
       queryFn: async () => {
         if (!raffleId) return { tickets: [], count: 0 };
 
-        // Query orders instead of sold_tickets
+        // Query orders
         let query = supabase
           .from('orders')
           .select('*', { count: 'exact' })

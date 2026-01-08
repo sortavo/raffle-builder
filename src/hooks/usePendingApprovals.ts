@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Hook to get count of pending approvals (reserved orders) for the organization
- * Now uses the new `orders` table instead of `sold_tickets`
  * Returns the total TICKET count (not order count) for badge display
  */
 export function usePendingApprovals() {
