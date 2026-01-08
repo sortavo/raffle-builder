@@ -50,22 +50,14 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
         const tickets = ordersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
         setTicketCount(tickets);
 
-        // Get buyer count (approximated via paginated function)
-        const { data: buyersData } = await supabase.rpc('get_buyers_paginated', {
-          p_raffle_id: raffleId,
-          p_status: null,
-          p_city: null,
-          p_search: null,
-          p_start_date: null,
-          p_end_date: null,
-          p_page: 1,
-          p_page_size: 1,
-        });
+        // Get buyer count directly from orders
+        const { count: buyerCountResult } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('raffle_id', raffleId)
+          .not('buyer_name', 'is', null);
 
-        const buyers = buyersData && buyersData.length > 0 
-          ? Number(buyersData[0].total_count) 
-          : 0;
-        setBuyerCount(buyers);
+        setBuyerCount(buyerCountResult || 0);
       } catch (error) {
         console.error('Error fetching counts:', error);
       }

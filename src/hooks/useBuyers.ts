@@ -41,39 +41,40 @@ export const useBuyers = (raffleId: string | undefined) => {
 
         const { data, error } = await supabase.rpc('get_buyers_paginated', {
           p_raffle_id: raffleId,
-          p_status: filters?.status || null,
-          p_city: filters?.city || null,
-          p_search: filters?.search || null,
-          p_start_date: filters?.startDate?.toISOString() || null,
-          p_end_date: filters?.endDate?.toISOString() || null,
           p_page: page,
           p_page_size: pageSize,
+          p_search: filters?.search || null,
+          p_status_filter: filters?.status === 'all' ? null : filters?.status || null,
         });
 
         if (error) throw error;
 
         // Transform the database response to Buyer interface
         const buyers: Buyer[] = (data || []).map((row: any, index: number) => ({
-          id: `${row.buyer_key}-${index}`,
+          id: row.order_id || `buyer-${index}`,
           name: row.buyer_name || '',
           email: row.buyer_email || '',
           phone: row.buyer_phone || '',
           city: row.buyer_city || '',
-          tickets: row.ticket_numbers || [],
+          tickets: [],
           ticketCount: Number(row.ticket_count) || 0,
           status: row.status || 'reserved',
-          date: row.first_reserved_at || '',
-          orderTotal: row.order_total ? Number(row.order_total) : null,
+          date: row.reserved_at || '',
+          orderTotal: row.total_amount ? Number(row.total_amount) : null,
           paymentMethod: row.payment_method || null,
-          paymentReference: row.payment_reference || null,
-          hasPaymentProof: row.has_payment_proof || false,
+          paymentReference: row.reference_code || null,
+          hasPaymentProof: !!row.payment_proof_url,
           soldAt: row.sold_at || null,
         }));
 
-        // Get total count from first row (all rows have the same total_count)
-        const count = data && data.length > 0 ? Number(data[0].total_count) : 0;
+        // Get total count separately
+        const { count } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('raffle_id', raffleId)
+          .not('buyer_name', 'is', null);
 
-        return { buyers, count };
+        return { buyers, count: count || 0 };
       },
       enabled: !!raffleId,
     });

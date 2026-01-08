@@ -1963,7 +1963,7 @@ export type Database = {
           reserved_at: string | null
           reserved_until: string | null
           sold_at: string | null
-          status: Database["public"]["Enums"]["ticket_status"] | null
+          status: string | null
           ticket_index: number | null
           ticket_number: string | null
         }
@@ -2060,60 +2060,30 @@ export type Database = {
         Returns: string
       }
       generate_reference_code: { Args: never; Returns: string }
-      get_buyers_paginated:
-        | {
-            Args: {
-              p_page?: number
-              p_page_size?: number
-              p_raffle_id: string
-              p_search?: string
-              p_status_filter?: string
-            }
-            Returns: {
-              buyer_city: string
-              buyer_email: string
-              buyer_name: string
-              buyer_phone: string
-              order_id: string
-              payment_method: string
-              payment_proof_url: string
-              reference_code: string
-              reserved_at: string
-              sold_at: string
-              status: string
-              ticket_count: number
-              total_amount: number
-            }[]
-          }
-        | {
-            Args: {
-              p_city?: string
-              p_end_date?: string
-              p_page?: number
-              p_page_size?: number
-              p_raffle_id: string
-              p_search?: string
-              p_start_date?: string
-              p_status?: string
-            }
-            Returns: {
-              buyer_city: string
-              buyer_email: string
-              buyer_key: string
-              buyer_name: string
-              buyer_phone: string
-              first_reserved_at: string
-              has_payment_proof: boolean
-              order_total: number
-              payment_method: string
-              payment_reference: string
-              sold_at: string
-              status: string
-              ticket_count: number
-              ticket_numbers: string[]
-              total_count: number
-            }[]
-          }
+      get_buyers_paginated: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_raffle_id: string
+          p_search?: string
+          p_status_filter?: string
+        }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          order_id: string
+          payment_method: string
+          payment_proof_url: string
+          reference_code: string
+          reserved_at: string
+          sold_at: string
+          status: string
+          ticket_count: number
+          total_amount: number
+        }[]
+      }
       get_dashboard_charts: {
         Args: { p_end_date: string; p_org_id: string; p_start_date: string }
         Returns: Json
@@ -2218,8 +2188,14 @@ export type Database = {
         | {
             Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
             Returns: {
+              buyer_city: string
+              buyer_email: string
               buyer_name: string
-              reserved_until: string
+              buyer_phone: string
+              order_id: string
+              reference_code: string
+              reserved_at: string
+              sold_at: string
               status: string
               ticket_index: number
               ticket_number: string

@@ -65,21 +65,14 @@ async function exportBuyersClientSide(
 ): Promise<{ success: boolean; count: number }> {
   if (import.meta.env.DEV) console.log('Using client-side buyer export');
 
-  // Get total count first
-  const { data: firstPage } = await supabase.rpc('get_buyers_paginated', {
-    p_raffle_id: raffleId,
-    p_status: null,
-    p_city: null,
-    p_search: null,
-    p_start_date: null,
-    p_end_date: null,
-    p_page: 1,
-    p_page_size: 1,
-  });
+  // Get total count first using direct query
+  const { count: totalCount } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('raffle_id', raffleId)
+    .not('buyer_name', 'is', null);
 
-  const totalCount = firstPage && firstPage.length > 0 ? Number(firstPage[0].total_count) : 0;
-
-  if (totalCount === 0) {
+  if (!totalCount || totalCount === 0) {
     return { success: true, count: 0 };
   }
 
@@ -91,13 +84,10 @@ async function exportBuyersClientSide(
   while (hasMore) {
     const { data, error } = await supabase.rpc('get_buyers_paginated', {
       p_raffle_id: raffleId,
-      p_status: null,
-      p_city: null,
-      p_search: null,
-      p_start_date: null,
-      p_end_date: null,
       p_page: page,
       p_page_size: BATCH_SIZE,
+      p_search: null,
+      p_status_filter: null,
     });
 
     if (error) throw error;
@@ -169,22 +159,15 @@ export async function exportBuyersToCSV(
   onProgress?: (loaded: number, total: number) => void
 ) {
   // Get total count to decide export strategy
-  const { data: firstPage } = await supabase.rpc('get_buyers_paginated', {
-    p_raffle_id: raffleId,
-    p_status: null,
-    p_city: null,
-    p_search: null,
-    p_start_date: null,
-    p_end_date: null,
-    p_page: 1,
-    p_page_size: 1,
-  });
-
-  const totalCount = firstPage && firstPage.length > 0 ? Number(firstPage[0].total_count) : 0;
+  const { count: totalCount } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('raffle_id', raffleId)
+    .not('buyer_name', 'is', null);
 
   if (import.meta.env.DEV) console.log(`Buyer count: ${totalCount}, threshold: ${SERVER_EXPORT_THRESHOLD}`);
 
-  if (totalCount >= SERVER_EXPORT_THRESHOLD) {
+  if ((totalCount || 0) >= SERVER_EXPORT_THRESHOLD) {
     return exportBuyersViaServer(raffleId, raffleName, undefined, onProgress);
   } else {
     return exportBuyersClientSide(raffleId, raffleName, onProgress);
