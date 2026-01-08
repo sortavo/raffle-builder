@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
@@ -30,6 +30,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSkeleton } from "@/components/ui/skeletons/DashboardSkeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PullToRefresh } from "@/components/mobile/PullToRefresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -54,6 +56,13 @@ export default function Dashboard() {
     isError: chartsError,
     refetch: refetchCharts 
   } = useDashboardCharts(dateRange);
+
+  const isMobile = useIsMobile();
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refetchStats(), refetchCharts()]);
+  }, [refetchStats, refetchCharts]);
 
   // Calculate period label for charts
   const getPeriodLabel = () => {
@@ -203,13 +212,13 @@ export default function Dashboard() {
     }
   };
 
-  return (
-    <DashboardLayout
-      breadcrumbs={[{ label: "Dashboard" }]}
-    >
-      {statsLoading ? (
-        <DashboardSkeleton />
-      ) : statsError ? (
+  const renderDashboardContent = () => {
+    if (statsLoading) {
+      return <DashboardSkeleton />;
+    }
+    
+    if (statsError) {
+      return (
         <ErrorState 
           title="Error cargando estadísticas"
           message="No pudimos cargar tus datos. Esto puede ser un problema temporal."
@@ -218,15 +227,18 @@ export default function Dashboard() {
             refetchCharts();
           }}
         />
-      ) : (
-        <div className="space-y-6">
-          {/* Premium Welcome Banner */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-4 sm:p-6 lg:p-8">
-            {/* Decorative elements - hidden on mobile */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl hidden sm:block"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl hidden sm:block"></div>
-            
-            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+      );
+    }
+    
+    return (
+      <div className="space-y-6">
+        {/* Premium Welcome Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-4 sm:p-6 lg:p-8">
+          {/* Decorative elements - hidden on mobile */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl hidden sm:block"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl hidden sm:block"></div>
+          
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
               <div className="space-y-1 sm:space-y-2">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary-foreground">
                   ¡Bienvenido, {profile?.full_name?.split(" ")[0] || "Usuario"}! 👋
@@ -471,6 +483,19 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+    );
+  };
+
+  return (
+    <DashboardLayout
+      breadcrumbs={[{ label: "Dashboard" }]}
+    >
+      {isMobile ? (
+        <PullToRefresh onRefresh={handleRefresh} className="min-h-full">
+          {renderDashboardContent()}
+        </PullToRefresh>
+      ) : (
+        renderDashboardContent()
       )}
     </DashboardLayout>
   );
