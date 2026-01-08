@@ -71,6 +71,7 @@ interface TicketSelectorProps {
   primaryColor?: string;
   // Numbering config - needed for consistent index calculation
   numberStart?: number;
+  step?: number;
 }
 
 export function TicketSelector({
@@ -91,6 +92,7 @@ export function TicketSelector({
   isLightTemplate = false,
   primaryColor,
   numberStart = 1,
+  step = 1,
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
   const { trackRemoveFromCart } = useTrackingEvents();
@@ -1095,7 +1097,7 @@ export function TicketSelector({
                   <AnimatePresence>
                     {filteredTickets.map((ticket) => (
                       <TicketButton
-                        key={ticket.id}
+                        key={ticket.ticket_index}
                         ticketNumber={ticket.ticket_number}
                         status={ticket.status}
                         isSelected={selectedTickets.includes(ticket.ticket_number)}
@@ -1466,6 +1468,9 @@ export function TicketSelector({
                 isLoading={checkAvailabilityMutation.isPending}
                 showWinnersHistory={showWinnersHistory}
                 isLightTemplate={isLightTemplate}
+                numberStart={numberStart}
+                step={step}
+                totalTickets={totalTickets}
               />
             </TabsContent>
           )}

@@ -28,6 +28,10 @@ interface LuckyNumbersInputProps {
   isLoading?: boolean;
   showWinnersHistory?: boolean;
   isLightTemplate?: boolean;
+  // Numbering config for proper validation
+  numberStart?: number;
+  step?: number;
+  totalTickets?: number;
 }
 
 export function LuckyNumbersInput({
@@ -36,8 +40,13 @@ export function LuckyNumbersInput({
   checkAvailability,
   isLoading,
   showWinnersHistory = true,
-  isLightTemplate = false
+  isLightTemplate = false,
+  numberStart = 1,
+  step = 1,
+  totalTickets = 1000
 }: LuckyNumbersInputProps) {
+  // Calculate max valid ticket number based on numbering config
+  const maxValidNumber = numberStart + (totalTickets - 1) * step;
   const [mode, setMode] = useState<'birthday' | 'favorites'>('birthday');
   const [birthdayDate, setBirthdayDate] = useState('');
   const [favoriteNumbers, setFavoriteNumbers] = useState<string[]>([]);
@@ -80,6 +89,20 @@ export function LuckyNumbersInput({
     resultsBg: 'bg-white/[0.03] border-white/[0.06]',
     suggestBtn: 'border-white/20 text-white/60 hover:text-white hover:bg-white/10',
   };
+
+  // Helper to check if a number is valid within the raffle range
+  const isValidNumber = useCallback((numStr: string): boolean => {
+    const num = parseInt(numStr, 10);
+    if (isNaN(num)) return false;
+    
+    // Check if the number is within the valid range
+    if (num < numberStart || num > maxValidNumber) return false;
+    
+    // Check if the number aligns with the step (i.e., (num - numberStart) % step === 0)
+    if (step !== 1 && (num - numberStart) % step !== 0) return false;
+    
+    return true;
+  }, [numberStart, maxValidNumber, step]);
 
   // Generate ticket numbers from birthday
   const generateFromBirthday = useCallback((date: string): string[] => {
@@ -136,8 +159,10 @@ export function LuckyNumbersInput({
     const tripleDay = parseInt(`${day}${day}${day}`);
     numbers.add(formatNum(tripleDay));
     
-    return Array.from(numbers).filter(n => n.length <= maxDigits);
-  }, [maxDigits]);
+    // Filter to only include valid numbers within the raffle range
+    return Array.from(numbers)
+      .filter(n => n.length <= maxDigits && isValidNumber(n));
+  }, [maxDigits, isValidNumber]);
 
   // Add favorite number
   const handleAddFavorite = () => {

@@ -1983,17 +1983,34 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_virtual_tickets: {
-        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
-        Returns: {
-          buyer_city: string
-          buyer_name: string
-          id: string
-          status: string
-          ticket_index: number
-          ticket_number: string
-        }[]
-      }
+      get_virtual_tickets:
+        | {
+            Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
+            Returns: {
+              buyer_city: string
+              buyer_name: string
+              id: string
+              status: string
+              ticket_index: number
+              ticket_number: string
+            }[]
+          }
+        | {
+            Args: {
+              p_filter?: string
+              p_page?: number
+              p_page_size?: number
+              p_raffle_id: string
+              p_search?: string
+            }
+            Returns: {
+              buyer_email: string
+              buyer_name: string
+              status: string
+              ticket_index: number
+              ticket_number: string
+            }[]
+          }
       has_org_access: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -2088,6 +2105,14 @@ export type Database = {
           buyer_city: string
           buyer_name: string
           id: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
+      search_virtual_tickets: {
+        Args: { p_limit?: number; p_raffle_id: string; p_search: string }
+        Returns: {
           status: string
           ticket_index: number
           ticket_number: string

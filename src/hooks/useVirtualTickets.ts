@@ -3,12 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface VirtualTicket {
-  id: string;
   ticket_number: string;
   ticket_index: number;
   status: string;
   buyer_name: string | null;
-  buyer_city: string | null;
+  buyer_email: string | null;
 }
 
 interface VirtualTicketCounts {
