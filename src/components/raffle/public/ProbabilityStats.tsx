@@ -13,6 +13,22 @@ import {
   BarChart3
 } from "lucide-react";
 
+// Smart probability formatting for small percentages
+function formatProbability(probability: number): string {
+  if (probability >= 1) {
+    return probability.toFixed(1) + '%';
+  } else if (probability >= 0.1) {
+    return probability.toFixed(2) + '%';
+  } else if (probability >= 0.01) {
+    return probability.toFixed(3) + '%';
+  } else if (probability >= 0.001) {
+    return probability.toFixed(4) + '%';
+  } else if (probability > 0) {
+    return probability.toFixed(5) + '%';
+  }
+  return '0%';
+}
+
 interface ProbabilityStatsProps {
   totalTickets: number;
   ticketsSold: number;
@@ -183,7 +199,7 @@ export function ProbabilityStats({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
             >
-              {stats.probabilityPerTicket.toFixed(2)}%
+              {formatProbability(stats.probabilityPerTicket)}
             </motion.span>
           </div>
         </div>
@@ -251,7 +267,7 @@ export function ProbabilityStats({
                     <span className={cn("text-sm", colors.textMuted)}>{pkg.label}</span>
                   </div>
                   <p className="text-2xl lg:text-3xl font-black text-emerald-500 tracking-tight">
-                    {pkgProbability.toFixed(2)}%
+                    {formatProbability(pkgProbability)}
                   </p>
                   <p className={cn("text-sm mt-2", colors.textSubtle)}>
                     {formatCurrency(cost, currencyCode)}
@@ -273,7 +289,7 @@ export function ProbabilityStats({
               <div>
                 <p className="text-base opacity-90">Con tus {selectedCount} boletos</p>
                 <p className="text-4xl lg:text-5xl font-black tracking-[-0.04em]">
-                  {stats.probabilityWithSelection.toFixed(2)}% de ganar
+                  {formatProbability(stats.probabilityWithSelection)} de ganar
                 </p>
               </div>
               <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
