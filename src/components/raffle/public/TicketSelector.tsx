@@ -224,11 +224,11 @@ export function TicketSelector({
   const pageSize = 100;
   const totalPages = Math.ceil(totalTickets / pageSize);
 
-  // Detect large raffle and limit grid display
+  // Detect large raffle for UI hints (no longer limits grid - DB is optimized)
   const isLargeRaffle = totalTickets > LARGE_RAFFLE_THRESHOLD;
-  const isMegaRaffle = totalTickets > MEGA_RAFFLE_THRESHOLD; // 100K+ hides grid completely
-  const maxGridPages = isLargeRaffle ? Math.ceil(100000 / pageSize) : totalPages; // Limit grid to 100K tickets max
-  const effectiveTotalPages = Math.min(totalPages, maxGridPages);
+  const isMegaRaffle = totalTickets > MEGA_RAFFLE_THRESHOLD;
+  // With optimized get_virtual_tickets (range-based pagination), all pages are fast (~10ms)
+  const effectiveTotalPages = totalPages;
 
   // Always use virtual tickets - with error handling
   const { data, isLoading, error: ticketsError, refetch } = useVirtualTickets(raffleId, page, pageSize);
@@ -1155,6 +1155,23 @@ export function TicketSelector({
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 
+              {/* For mega raffles (1000+ pages), use numeric input instead of select */}
+              {effectiveTotalPages > 1000 ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={1}
+                    max={effectiveTotalPages}
+                    value={page}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setPage(Math.min(effectiveTotalPages, Math.max(1, val)));
+                    }}
+                    className={cn("h-10 w-20 px-2 rounded-lg border text-sm text-center focus:outline-none focus:border-emerald-500/50", colors.inputBg, colors.inputBorder, colors.inputText)}
+                  />
+                  <span className={cn("text-xs", colors.textMuted)}>/ {effectiveTotalPages.toLocaleString('es-MX')}</span>
+                </div>
+              ) : (
                 <select
                   value={page}
                   onChange={(e) => setPage(Number(e.target.value))}
@@ -1164,6 +1181,7 @@ export function TicketSelector({
                     <option key={p} value={p} className={colors.selectBg}>{p}</option>
                   ))}
                 </select>
+              )}
                 
                 <Button
                   variant="outline"
