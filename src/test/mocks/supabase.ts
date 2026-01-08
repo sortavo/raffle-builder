@@ -1,15 +1,35 @@
 import { vi } from 'vitest';
 
-// Mock ticket data
-export const mockAvailableTickets = [
-  { id: '1', ticket_number: '0001', status: 'available' },
-  { id: '2', ticket_number: '0002', status: 'available' },
-  { id: '3', ticket_number: '0003', status: 'available' },
-];
-
-export const mockReservedTickets = [
-  { id: '1', ticket_number: '0001', status: 'reserved', buyer_email: 'test@test.com' },
-  { id: '2', ticket_number: '0002', status: 'reserved', buyer_email: 'test@test.com' },
+// Mock order data (replaces legacy ticket mocks)
+export const mockOrders = [
+  { 
+    id: '1', 
+    reference_code: 'REF001',
+    ticket_ranges: [{ s: 0, e: 0 }],
+    ticket_count: 1,
+    status: 'reserved', 
+    buyer_name: 'Test User',
+    buyer_email: 'test@test.com',
+    buyer_phone: '+1234567890',
+    order_total: 100,
+    raffle_id: 'raffle-1',
+    reserved_at: new Date().toISOString(),
+    reserved_until: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  },
+  { 
+    id: '2', 
+    reference_code: 'REF002',
+    ticket_ranges: [{ s: 1, e: 2 }],
+    ticket_count: 2,
+    status: 'sold', 
+    buyer_name: 'Sold User',
+    buyer_email: 'sold@test.com',
+    buyer_phone: '+0987654321',
+    order_total: 200,
+    raffle_id: 'raffle-1',
+    reserved_at: new Date().toISOString(),
+    sold_at: new Date().toISOString(),
+  },
 ];
 
 // Create chainable mock for Supabase client
@@ -70,4 +90,10 @@ export const mockSupabase = {
   functions: {
     invoke: vi.fn().mockResolvedValue({ data: {}, error: null }),
   },
+  rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+  channel: vi.fn().mockReturnValue({
+    on: vi.fn().mockReturnThis(),
+    subscribe: vi.fn().mockReturnThis(),
+  }),
+  removeChannel: vi.fn(),
 };

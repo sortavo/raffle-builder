@@ -16,10 +16,33 @@ export const mockRaffles = [
   },
 ];
 
-export const mockTickets = [
-  { id: '1', ticket_number: '001', status: 'available', raffle_id: '1' },
-  { id: '2', ticket_number: '002', status: 'available', raffle_id: '1' },
-  { id: '3', ticket_number: '003', status: 'sold', raffle_id: '1' },
+export const mockOrders = [
+  { 
+    id: '1', 
+    reference_code: 'REF001',
+    ticket_ranges: [{ s: 0, e: 2 }],
+    ticket_count: 3,
+    status: 'sold', 
+    raffle_id: '1',
+    buyer_name: 'Test Buyer',
+    buyer_email: 'buyer@test.com',
+    order_total: 300,
+    reserved_at: new Date().toISOString(),
+    sold_at: new Date().toISOString(),
+  },
+  { 
+    id: '2', 
+    reference_code: 'REF002',
+    ticket_ranges: [{ s: 3, e: 4 }],
+    ticket_count: 2,
+    status: 'reserved', 
+    raffle_id: '1',
+    buyer_name: 'Another Buyer',
+    buyer_email: 'another@test.com',
+    order_total: 200,
+    reserved_at: new Date().toISOString(),
+    sold_at: null,
+  },
 ];
 
 export const mockOrganization = {
@@ -77,22 +100,40 @@ export const handlers = [
       : HttpResponse.json({ error: 'Not found' }, { status: 404 });
   }),
 
-  // Tickets endpoints
-  http.get(`${SUPABASE_URL}/rest/v1/tickets`, ({ request }) => {
+  // Orders endpoints
+  http.get(`${SUPABASE_URL}/rest/v1/orders`, ({ request }) => {
     const url = new URL(request.url);
     const raffleId = url.searchParams.get('raffle_id');
     
     if (raffleId) {
-      const tickets = mockTickets.filter(t => t.raffle_id === raffleId.replace('eq.', ''));
-      return HttpResponse.json(tickets);
+      const orders = mockOrders.filter(o => o.raffle_id === raffleId.replace('eq.', ''));
+      return HttpResponse.json(orders);
     }
     
-    return HttpResponse.json(mockTickets);
+    return HttpResponse.json(mockOrders);
   }),
 
-  http.patch(`${SUPABASE_URL}/rest/v1/tickets`, async ({ request }) => {
+  http.patch(`${SUPABASE_URL}/rest/v1/orders`, async ({ request }) => {
     const body = await request.json() as Record<string, unknown>;
-    return HttpResponse.json([{ ...mockTickets[0], ...body }]);
+    return HttpResponse.json([{ ...mockOrders[0], ...body }]);
+  }),
+
+  http.post(`${SUPABASE_URL}/rest/v1/orders`, async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    const newOrder = {
+      id: `order-${Date.now()}`,
+      reference_code: `REF${Date.now()}`,
+      ticket_ranges: body.ticket_ranges || [{ s: 0, e: 0 }],
+      ticket_count: body.ticket_count || 1,
+      status: 'reserved',
+      raffle_id: body.raffle_id,
+      buyer_name: body.buyer_name,
+      buyer_email: body.buyer_email,
+      order_total: body.order_total || 100,
+      reserved_at: new Date().toISOString(),
+      ...body,
+    };
+    return HttpResponse.json([newOrder], { status: 201 });
   }),
 
   // Organizations endpoints

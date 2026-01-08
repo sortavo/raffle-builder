@@ -35,8 +35,7 @@ export function useTicketVerification(ticketId: string | undefined) {
     queryFn: async (): Promise<VerifiedTicket | null> => {
       if (!ticketId) return null;
 
-      // Query orders table instead of sold_tickets
-      // ticketId could be an order ID or we need to search by ticket number
+      // Query orders table by order ID
       const { data: order, error } = await supabase
         .from('orders')
         .select(`
