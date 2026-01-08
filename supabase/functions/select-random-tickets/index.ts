@@ -52,10 +52,11 @@ function secureShuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// Format ticket number based on raffle config
-function formatTicketNumber(index: number, numberStart: number, totalTickets: number): string {
-  const ticketNum = numberStart + index;
-  const digits = Math.max(String(totalTickets + numberStart - 1).length, 1);
+// Format ticket number based on raffle config (supports step for non-sequential numbering)
+function formatTicketNumber(index: number, numberStart: number, step: number, totalTickets: number): string {
+  const ticketNum = numberStart + (index * step);
+  const maxTicketNum = numberStart + ((totalTickets - 1) * step);
+  const digits = Math.max(String(maxTicketNum).length, 1);
   return String(ticketNum).padStart(digits, '0');
 }
 
@@ -126,11 +127,12 @@ Deno.serve(async (req) => {
     }
 
     const totalTickets = raffle.total_tickets;
-    // Use numbering_config.start_number (consistent with frontend TicketSelector)
-    const numberingConfig = raffle.numbering_config as { start_number?: number } | null;
+    // Use numbering_config for consistency with frontend TicketSelector
+    const numberingConfig = raffle.numbering_config as { start_number?: number; step?: number } | null;
     const numberStart = numberingConfig?.start_number ?? 1;
+    const numberStep = numberingConfig?.step ?? 1;
     
-    console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}`);
+    console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}, Step: ${numberStep}`);
 
     // 2. Get ALL unavailable ticket indices (sold + reserved that haven't expired)
     // IMPORTANT: default API limit is 1000 rows, so we must paginate.
@@ -226,7 +228,7 @@ Deno.serve(async (req) => {
         }
         
         // Format ticket number
-        const ticketNumber = formatTicketNumber(randomIndex, numberStart, totalTickets);
+        const ticketNumber = formatTicketNumber(randomIndex, numberStart, numberStep, totalTickets);
         
         // Skip if in exclude list
         if (excludeSet.has(ticketNumber)) {
@@ -245,7 +247,7 @@ Deno.serve(async (req) => {
       const availableIndices: number[] = [];
       for (let i = 0; i < totalTickets; i++) {
         if (!unavailableSet.has(i)) {
-          const ticketNumber = formatTicketNumber(i, numberStart, totalTickets);
+          const ticketNumber = formatTicketNumber(i, numberStart, numberStep, totalTickets);
           if (!excludeSet.has(ticketNumber)) {
             availableIndices.push(i);
           }
@@ -259,7 +261,7 @@ Deno.serve(async (req) => {
       const selected = shuffled.slice(0, needed);
       
       for (const index of selected) {
-        const ticketNumber = formatTicketNumber(index, numberStart, totalTickets);
+        const ticketNumber = formatTicketNumber(index, numberStart, numberStep, totalTickets);
         selectedTickets.push(ticketNumber);
         selectedIndexArray.push(index);
       }
