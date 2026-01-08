@@ -161,7 +161,7 @@ export function TemplateHeroLayout({
         {/* Organization branding - Position based on logoPosition */}
         <div 
           className={`flex items-center transition-all duration-500 ease-out ${
-            isScrolled ? 'py-2' : 'py-5'
+            isScrolled ? 'py-2' : 'py-3'
           } ${
             logoPosition === 'top-center' ? 'justify-center' :
             logoPosition === 'top-right' ? 'justify-end' : 'justify-start'
@@ -605,9 +605,9 @@ export function TemplateHeroLayout({
   );
 
   const TitleSection = () => (
-    <div className="space-y-4 text-center">
+    <div className="space-y-2 text-center">
       {showUrgencyBadge && raffle.draw_date && (
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <UrgencyBadge
             drawDate={raffle.draw_date}
             totalTickets={raffle.total_tickets}
@@ -616,7 +616,7 @@ export function TemplateHeroLayout({
         </div>
       )}
       <motion.h1 
-        className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight"
+        className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-[0.9] tracking-tight"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -1112,7 +1112,7 @@ export function TemplateHeroLayout({
       default:
         // Visual-First Premium Layout: Title → Gallery → Video → Prizes → Description → Stats → CTAs
         return (
-          <div className="relative py-16 lg:py-24">
+          <div className="relative py-8 lg:py-12">
             <PatternOverlay />
             
             {/* Animated orbs like /pricing */}
@@ -1124,7 +1124,7 @@ export function TemplateHeroLayout({
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
             
             <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col items-center gap-10 lg:gap-12">
+              <div className="flex flex-col items-center gap-6 lg:gap-8">
                 
                 {/* 1. Header badges + Title - FIRST */}
                 <div className="w-full text-center space-y-6">
