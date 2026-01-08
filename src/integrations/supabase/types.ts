@@ -1901,14 +1901,7 @@ export type Database = {
       }
       get_dashboard_stats: {
         Args: { p_organization_id: string }
-        Returns: {
-          active_raffles: number
-          conversion_rate: number
-          pending_approvals: number
-          tickets_sold: number
-          total_revenue: number
-          total_tickets: number
-        }[]
+        Returns: Json
       }
       get_invitation_by_token: {
         Args: { p_token: string }
@@ -1964,15 +1957,7 @@ export type Database = {
       }
       get_raffle_stats_list: {
         Args: { p_organization_id: string }
-        Returns: {
-          available_count: number
-          last_sale_at: string
-          raffle_id: string
-          reserved_count: number
-          revenue: number
-          sold_count: number
-          unique_buyers: number
-        }[]
+        Returns: Json
       }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_virtual_ticket_counts: {

@@ -118,11 +118,19 @@ export function useDashboardStats() {
         supabase.rpc('get_raffle_stats_list', { p_organization_id: organization.id })
       ]);
 
-      // Extract dashboard totals from RPC
-      const dashboardData = dashboardStatsResult.data?.[0];
-      const raffleStatsMap = new Map(
-        (raffleStatsResult.data || []).map((rs: any) => [rs.raffle_id, rs])
-      );
+      // Extract dashboard totals from RPC (returns jsonb object directly, not array)
+      const dashboardData = dashboardStatsResult.data as { 
+        total_raffles: number; 
+        active_raffles: number; 
+        total_tickets_sold: number; 
+        total_revenue: number; 
+      } | null;
+      
+      // Parse raffle stats list (returns jsonb array)
+      const raffleStatsList = (Array.isArray(raffleStatsResult.data) 
+        ? raffleStatsResult.data 
+        : []) as Array<{ id: string; sold_count: number; reserved_count: number; revenue: number }>;
+      const raffleStatsMap = new Map(raffleStatsList.map(rs => [rs.id, rs]));
 
       // Build individual raffle stats using RPC data
       const activeRafflesList: RaffleStats[] = activeRafflesData.map(raffle => {
@@ -181,12 +189,10 @@ export function useDashboardStats() {
       // Calculate totals from RPC or fallback to raffle sums
       const totalRevenue = Number(dashboardData?.total_revenue || 0) || 
         activeRafflesList.reduce((sum, r) => sum + r.revenue, 0);
-      const ticketsSold = Number(dashboardData?.tickets_sold || 0) ||
+      const ticketsSold = Number(dashboardData?.total_tickets_sold || 0) ||
         activeRafflesList.reduce((sum, r) => sum + r.ticketsSold, 0);
-      const totalTickets = Number(dashboardData?.total_tickets || 0) ||
-        activeRafflesData.reduce((sum, r) => sum + r.total_tickets, 0);
-      const pendingApprovals = Number(dashboardData?.pending_approvals || 0) ||
-        activeRafflesList.reduce((sum, r) => sum + r.ticketsReserved, 0);
+      const totalTickets = activeRafflesData.reduce((sum, r) => sum + r.total_tickets, 0);
+      const pendingApprovals = activeRafflesList.reduce((sum, r) => sum + r.ticketsReserved, 0);
       const conversionRate = totalTickets > 0 
         ? Math.round((ticketsSold / totalTickets) * 100) 
         : 0;
