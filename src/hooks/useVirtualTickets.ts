@@ -100,6 +100,17 @@ export function useVirtualTicketCounts(raffleId: string | undefined) {
   });
 }
 
+interface ReserveTicketsV2Result {
+  success: boolean;
+  order_id: string | null;
+  reference_code: string | null;
+  reserved_until: string | null;
+  ticket_count: number;
+  ticket_ranges: { s: number; e: number }[] | null;
+  lucky_indices: number[] | null;
+  error_message: string | null;
+}
+
 export function useReserveVirtualTickets() {
   const queryClient = useQueryClient();
 
@@ -110,6 +121,7 @@ export function useReserveVirtualTickets() {
       buyerData,
       reservationMinutes = 15,
       orderTotal,
+      isLuckyNumbers = false,
     }: {
       raffleId: string;
       ticketIndices: number[];
@@ -121,14 +133,10 @@ export function useReserveVirtualTickets() {
       };
       reservationMinutes?: number;
       orderTotal?: number;
+      isLuckyNumbers?: boolean;
     }) => {
-      // For very large selections (e.g. 10,000), use the resilient RPC that can "fill" collisions.
-      const useResilient = ticketIndices.length >= 1000;
-      const rpcName = useResilient
-        ? ('reserve_virtual_tickets_resilient' as any)
-        : ('reserve_virtual_tickets' as any);
-
-      const { data, error } = await (supabase as any).rpc(rpcName, {
+      // Use the new compressed orders architecture
+      const { data, error } = await supabase.rpc('reserve_tickets_v2', {
         p_raffle_id: raffleId,
         p_ticket_indices: ticketIndices,
         p_buyer_name: buyerData.name,
@@ -137,11 +145,12 @@ export function useReserveVirtualTickets() {
         p_buyer_city: buyerData.city || null,
         p_reservation_minutes: reservationMinutes,
         p_order_total: orderTotal || null,
+        p_is_lucky_numbers: isLuckyNumbers,
       });
 
       if (error) throw error;
 
-      const raw = (data as any[] | null)?.[0] as (ReserveResult | ReserveResilientResult | undefined);
+      const raw = (data as ReserveTicketsV2Result[] | null)?.[0];
 
       // Validate response format
       if (!raw || typeof raw.success !== 'boolean') {
@@ -153,18 +162,13 @@ export function useReserveVirtualTickets() {
         throw new Error(raw.error_message || 'Error al reservar boletos');
       }
 
-      const ticketNumbers = (raw as ReserveResilientResult).ticket_numbers || undefined;
-      const finalTicketNumbers = ticketNumbers && ticketNumbers.length > 0 ? ticketNumbers : undefined;
-
-      const ticketIdx = (raw as ReserveResilientResult).ticket_indices || undefined;
-      const finalTicketIndices = ticketIdx && ticketIdx.length > 0 ? ticketIdx : undefined;
-
       return {
         referenceCode: raw.reference_code!,
         reservedUntil: raw.reserved_until!,
-        count: raw.reserved_count,
-        ticketNumbers: finalTicketNumbers,
-        ticketIndices: finalTicketIndices,
+        count: raw.ticket_count,
+        orderId: raw.order_id,
+        ticketRanges: raw.ticket_ranges,
+        luckyIndices: raw.lucky_indices,
       };
     },
     onSuccess: (_, variables) => {
@@ -173,6 +177,9 @@ export function useReserveVirtualTickets() {
       });
       queryClient.invalidateQueries({ 
         queryKey: ['virtual-ticket-counts', variables.raffleId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['orders', variables.raffleId] 
       });
     },
     onError: (error: Error) => {
@@ -193,21 +200,52 @@ export function useCheckVirtualTicket() {
       raffleId: string;
       ticketNumber: string;
     }) => {
-      // For virtual tickets, we check against sold_tickets table
-      const { data, error } = await supabase
-        .from('sold_tickets')
-        .select('id, ticket_number, status, buyer_name')
+      // Check against orders table - extract ticket index from number and search in ranges
+      // For now, use a simple query against orders with the reference
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('id, status, buyer_name, ticket_ranges, lucky_indices')
         .eq('raffle_id', raffleId)
-        .eq('ticket_number', ticketNumber)
-        .maybeSingle();
+        .in('status', ['reserved', 'sold']);
 
       if (error) throw error;
 
+      // Parse ticket number to get index (simplified - assumes numeric suffix)
+      const ticketIndex = parseInt(ticketNumber.replace(/\D/g, ''), 10);
+
+      // Check if this index exists in any order's ranges
+      for (const order of orders || []) {
+        const ranges = (order.ticket_ranges as { s: number; e: number }[]) || [];
+        const luckyIndices = (order.lucky_indices as number[]) || [];
+
+        // Check ranges
+        for (const range of ranges) {
+          if (ticketIndex >= range.s && ticketIndex <= range.e) {
+            return {
+              exists: true,
+              isAvailable: false,
+              status: order.status || 'reserved',
+              buyerName: order.buyer_name || null,
+            };
+          }
+        }
+
+        // Check lucky indices
+        if (luckyIndices.includes(ticketIndex)) {
+          return {
+            exists: true,
+            isAvailable: false,
+            status: order.status || 'reserved',
+            buyerName: order.buyer_name || null,
+          };
+        }
+      }
+
       return {
         exists: true,
-        isAvailable: !data,
-        status: data?.status || 'available',
-        buyerName: data?.buyer_name || null,
+        isAvailable: true,
+        status: 'available',
+        buyerName: null,
       };
     },
   });

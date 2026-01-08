@@ -12,8 +12,6 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: 'Cancelado'
 };
 
-const BATCH_SIZE = 10000;
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -33,29 +31,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get raffle info for filename
+    // Get raffle info for filename and config
     const { data: raffle } = await supabase
       .from('raffles')
-      .select('title')
+      .select('title, total_tickets, numbering_config')
       .eq('id', raffle_id)
       .single();
 
-    // Get total count
-    let countQuery = supabase
-      .from('sold_tickets')
-      .select('*', { count: 'exact', head: true })
-      .eq('raffle_id', raffle_id);
+    // Use the sold_tickets_compat view which expands orders into individual tickets
+    let query = supabase
+      .from('sold_tickets_compat')
+      .select('ticket_number, status, buyer_name, buyer_email, buyer_phone, buyer_city, approved_at')
+      .eq('raffle_id', raffle_id)
+      .order('ticket_index', { ascending: true });
 
     if (status_filter) {
       if (Array.isArray(status_filter)) {
-        countQuery = countQuery.in('status', status_filter);
+        query = query.in('status', status_filter);
       } else {
-        countQuery = countQuery.eq('status', status_filter);
+        query = query.eq('status', status_filter);
       }
     }
 
-    const { count: totalCount } = await countQuery;
-    console.log(`Exporting ${totalCount} tickets for raffle ${raffle_id}`);
+    const { data: tickets, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching tickets:', error);
+      throw error;
+    }
+
+    console.log(`Exporting ${tickets?.length || 0} tickets for raffle ${raffle_id}`);
 
     // CSV headers
     const headers = [
@@ -65,57 +70,23 @@ Deno.serve(async (req) => {
       'Email',
       'Teléfono',
       'Ciudad',
-      'Fecha de Compra'
+      'Fecha de Aprobación'
     ];
 
-    // Build CSV content in batches
+    // Build CSV content
     const csvRows: string[] = [headers.join(',')];
-    let offset = 0;
-    let hasMore = true;
 
-    while (hasMore) {
-      let query = supabase
-        .from('sold_tickets')
-        .select('ticket_number, status, buyer_name, buyer_email, buyer_phone, buyer_city, sold_at')
-        .eq('raffle_id', raffle_id)
-        .order('ticket_index', { ascending: true })
-        .range(offset, offset + BATCH_SIZE - 1);
-
-      if (status_filter) {
-        if (Array.isArray(status_filter)) {
-          query = query.in('status', status_filter);
-        } else {
-          query = query.eq('status', status_filter);
-        }
-      }
-
-      const { data: tickets, error } = await query;
-
-      if (error) {
-        console.error('Error fetching tickets:', error);
-        throw error;
-      }
-
-      if (tickets && tickets.length > 0) {
-        for (const ticket of tickets) {
-          const row = [
-            ticket.ticket_number,
-            STATUS_LABELS[ticket.status || 'available'] || ticket.status,
-            ticket.buyer_name || '-',
-            ticket.buyer_email || '-',
-            ticket.buyer_phone || '-',
-            ticket.buyer_city || '-',
-            ticket.sold_at ? new Date(ticket.sold_at).toLocaleDateString('es-MX') : '-'
-          ];
-          csvRows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
-        }
-        
-        offset += BATCH_SIZE;
-        hasMore = tickets.length === BATCH_SIZE;
-        console.log(`Processed ${offset} tickets...`);
-      } else {
-        hasMore = false;
-      }
+    for (const ticket of tickets || []) {
+      const row = [
+        ticket.ticket_number,
+        STATUS_LABELS[ticket.status || 'available'] || ticket.status,
+        ticket.buyer_name || '-',
+        ticket.buyer_email || '-',
+        ticket.buyer_phone || '-',
+        ticket.buyer_city || '-',
+        ticket.approved_at ? new Date(ticket.approved_at).toLocaleDateString('es-MX') : '-'
+      ];
+      csvRows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
     }
 
     const BOM = '\uFEFF';
@@ -133,7 +104,7 @@ Deno.serve(async (req) => {
         ...corsHeaders,
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'X-Total-Count': String(totalCount || 0),
+        'X-Total-Count': String(tickets?.length || 0),
         'X-Filename': filename
       }
     });

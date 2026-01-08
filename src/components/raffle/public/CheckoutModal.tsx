@@ -377,9 +377,18 @@ export function CheckoutModal({
         orderTotal: total,
       });
 
-      // If we used the resilient reservation, it may return the final list (filled if some collided)
-      const finalTicketNumbers = virtualResult.ticketNumbers ?? selectedTickets;
-      const finalTicketIndices = virtualResult.ticketIndices ?? selectedTicketIndices;
+      // Expand ticket ranges to get individual ticket numbers for display
+      const expandedIndices: number[] = [];
+      for (const range of virtualResult.ticketRanges || []) {
+        for (let i = range.s; i <= range.e; i++) {
+          expandedIndices.push(i);
+        }
+      }
+      expandedIndices.push(...(virtualResult.luckyIndices || []));
+
+      // Use the selected tickets (already formatted) or fall back to indices
+      const finalTicketNumbers = selectedTickets.slice(0, virtualResult.count);
+      const finalTicketIndices = selectedTicketIndices.slice(0, virtualResult.count);
 
       // Adapt result to expected format
       const result = {

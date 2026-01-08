@@ -5,14 +5,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WinnerTicket {
+interface OrderData {
   id: string;
-  ticket_number: string;
+  ticket_count: number;
+  ticket_ranges: { s: number; e: number }[];
+  lucky_indices: number[];
   buyer_name: string | null;
   buyer_email: string | null;
   buyer_phone: string | null;
   buyer_city: string | null;
-  ticket_index: number | null;
+}
+
+interface WinnerTicket {
+  id: string;
+  ticket_number: string;
+  ticket_index: number;
+  buyer_name: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
+  buyer_city: string | null;
+}
+
+// Expand a single order's ranges to get the ticket index at a specific position
+function getTicketIndexAtPosition(order: OrderData, position: number): number {
+  let accumulated = 0;
+  
+  // First check regular ranges
+  for (const range of order.ticket_ranges || []) {
+    const rangeSize = range.e - range.s + 1;
+    if (accumulated + rangeSize > position) {
+      return range.s + (position - accumulated);
+    }
+    accumulated += rangeSize;
+  }
+  
+  // Then check lucky indices
+  const luckyPosition = position - accumulated;
+  if (order.lucky_indices && luckyPosition < order.lucky_indices.length) {
+    return order.lucky_indices[luckyPosition];
+  }
+  
+  throw new Error('Position out of bounds');
 }
 
 Deno.serve(async (req) => {
@@ -37,19 +70,23 @@ Deno.serve(async (req) => {
 
     console.log(`[DRAW-RANDOM-WINNER] Selecting random winner for raffle ${raffle_id}`);
 
-    // Get count of sold tickets first
-    const { count: soldCount, error: countError } = await supabase
-      .from('sold_tickets')
-      .select('*', { count: 'exact', head: true })
+    // Get all sold orders with their ticket counts (from orders table)
+    const { data: soldOrders, error: ordersError } = await supabase
+      .from('orders')
+      .select('id, ticket_count, ticket_ranges, lucky_indices, buyer_name, buyer_email, buyer_phone, buyer_city')
       .eq('raffle_id', raffle_id)
-      .eq('status', 'sold');
+      .eq('status', 'sold')
+      .order('created_at', { ascending: true });
 
-    if (countError) {
-      console.error('[DRAW-RANDOM-WINNER] Error counting sold tickets:', countError);
-      throw countError;
+    if (ordersError) {
+      console.error('[DRAW-RANDOM-WINNER] Error fetching orders:', ordersError);
+      throw ordersError;
     }
 
-    if (!soldCount || soldCount === 0) {
+    // Calculate total sold tickets
+    const soldCount = soldOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+
+    if (soldCount === 0) {
       console.log('[DRAW-RANDOM-WINNER] No sold tickets found');
       return new Response(
         JSON.stringify({ 
@@ -60,69 +97,71 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[DRAW-RANDOM-WINNER] Found ${soldCount} sold tickets`);
+    console.log(`[DRAW-RANDOM-WINNER] Found ${soldCount} sold tickets across ${soldOrders?.length} orders`);
 
     // Generate cryptographically secure random offset
-    // Using Web Crypto API for true randomness
     const randomBytes = new Uint32Array(1);
     crypto.getRandomValues(randomBytes);
     const randomOffset = randomBytes[0] % soldCount;
 
     console.log(`[DRAW-RANDOM-WINNER] Random offset: ${randomOffset} of ${soldCount}`);
 
-    // Select winner using SQL ORDER BY with random offset
-    // This efficiently selects a single random row from potentially millions
-    const { data: winner, error: winnerError } = await supabase
-      .from('sold_tickets')
-      .select('id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_index')
-      .eq('raffle_id', raffle_id)
-      .eq('status', 'sold')
-      .order('ticket_index', { ascending: true })
-      .range(randomOffset, randomOffset)
-      .single();
+    // Find the order and ticket at this offset
+    let accumulatedCount = 0;
+    let winnerOrder: OrderData | null = null;
+    let positionInOrder = 0;
 
-    if (winnerError) {
-      console.error('[DRAW-RANDOM-WINNER] Error selecting winner:', winnerError);
-      
-      // Fallback: If range fails, try with offset/limit pattern
-      console.log('[DRAW-RANDOM-WINNER] Trying fallback method...');
-      const { data: winnerFallback, error: fallbackError } = await supabase
-        .from('sold_tickets')
-        .select('id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_index')
-        .eq('raffle_id', raffle_id)
-        .eq('status', 'sold')
-        .order('created_at', { ascending: true })
-        .range(randomOffset, randomOffset)
-        .single();
-      
-      if (fallbackError) {
-        console.error('[DRAW-RANDOM-WINNER] Fallback also failed:', fallbackError);
-        throw fallbackError;
+    for (const order of soldOrders || []) {
+      const orderData = order as OrderData;
+      if (accumulatedCount + orderData.ticket_count > randomOffset) {
+        winnerOrder = orderData;
+        positionInOrder = randomOffset - accumulatedCount;
+        break;
       }
-      
-      const typedWinner = winnerFallback as unknown as WinnerTicket;
-      console.log(`[DRAW-RANDOM-WINNER] Winner selected via fallback: #${typedWinner.ticket_number}`);
-      
-      return new Response(
-        JSON.stringify({
-          winner: typedWinner,
-          sold_count: soldCount,
-          random_offset: randomOffset,
-          method: 'secure_random_offset_fallback'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      accumulatedCount += orderData.ticket_count;
     }
 
-    const typedWinner = winner as unknown as WinnerTicket;
-    console.log(`[DRAW-RANDOM-WINNER] Winner selected: #${typedWinner.ticket_number} - ${typedWinner.buyer_name}`);
+    if (!winnerOrder) {
+      throw new Error('Could not find winner order');
+    }
+
+    // Get the actual ticket index from the order's ranges
+    const winnerTicketIndex = getTicketIndexAtPosition(winnerOrder, positionInOrder);
+
+    // Get raffle config to format ticket number
+    const { data: raffle } = await supabase
+      .from('raffles')
+      .select('numbering_config, total_tickets')
+      .eq('id', raffle_id)
+      .single();
+
+    // Format ticket number using the raffle's config
+    const { data: formattedNumber } = await supabase.rpc('format_virtual_ticket', {
+      p_index: winnerTicketIndex,
+      p_config: raffle?.numbering_config || {},
+      p_total: raffle?.total_tickets || 1000,
+    });
+
+    const ticketNumber = formattedNumber || String(winnerTicketIndex);
+
+    const winner: WinnerTicket = {
+      id: winnerOrder.id,
+      ticket_number: ticketNumber,
+      ticket_index: winnerTicketIndex,
+      buyer_name: winnerOrder.buyer_name,
+      buyer_email: winnerOrder.buyer_email,
+      buyer_phone: winnerOrder.buyer_phone,
+      buyer_city: winnerOrder.buyer_city,
+    };
+
+    console.log(`[DRAW-RANDOM-WINNER] Winner selected: #${ticketNumber} - ${winner.buyer_name}`);
 
     return new Response(
       JSON.stringify({
-        winner: typedWinner,
+        winner,
         sold_count: soldCount,
         random_offset: randomOffset,
-        method: 'secure_random_offset'
+        method: 'secure_random_orders'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -34,6 +34,25 @@ function getClientIP(req: Request): string {
     || req.headers.get('cf-connecting-ip') 
     || 'unknown';
 }
+
+// Helper to expand ticket ranges into readable format
+function formatTicketRanges(ranges: { s: number; e: number }[], luckyIndices: number[]): string[] {
+  const result: string[] = [];
+  
+  for (const range of ranges || []) {
+    if (range.s === range.e) {
+      result.push(`#${range.s}`);
+    } else {
+      result.push(`#${range.s}-${range.e}`);
+    }
+  }
+  
+  for (const idx of luckyIndices || []) {
+    result.push(`#${idx}★`);
+  }
+  
+  return result;
+}
 // ============================================
 
 Deno.serve(async (req) => {
@@ -80,28 +99,29 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify tickets exist for this reference code
-    const { data: existingTickets, error: queryError } = await supabase
-      .from('sold_tickets')
-      .select('id, ticket_number, buyer_email, buyer_name, payment_proof_url')
+    // Query the orders table (new compressed architecture)
+    const { data: existingOrder, error: queryError } = await supabase
+      .from('orders')
+      .select('id, ticket_count, ticket_ranges, lucky_indices, buyer_email, buyer_name, payment_proof_url')
       .eq('raffle_id', raffleId)
-      .eq('payment_reference', referenceCode)
-      .eq('status', 'reserved');
+      .eq('reference_code', referenceCode)
+      .eq('status', 'reserved')
+      .maybeSingle();
 
     if (queryError) {
-      console.error('Error querying tickets:', queryError);
+      console.error('Error querying order:', queryError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Error al buscar boletos', details: queryError.message }),
+        JSON.stringify({ success: false, error: 'Error al buscar orden', details: queryError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!existingTickets || existingTickets.length === 0) {
-      console.warn('No reserved tickets found for reference:', referenceCode);
+    if (!existingOrder) {
+      console.warn('No reserved order found for reference:', referenceCode);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'No se encontraron boletos reservados con esta clave',
+          error: 'No se encontró orden reservada con esta clave',
           updatedCount: 0 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -110,72 +130,71 @@ Deno.serve(async (req) => {
 
     // Optional: validate buyerEmail matches if provided
     if (buyerEmail) {
-      const ticketEmail = existingTickets[0]?.buyer_email?.toLowerCase();
-      if (ticketEmail && ticketEmail !== buyerEmail.toLowerCase()) {
-        console.warn('Email mismatch:', { provided: buyerEmail, stored: ticketEmail });
+      const orderEmail = existingOrder.buyer_email?.toLowerCase();
+      if (orderEmail && orderEmail !== buyerEmail.toLowerCase()) {
+        console.warn('Email mismatch:', { provided: buyerEmail, stored: orderEmail });
       }
     }
 
-    const hadPreviousProof = existingTickets.some(t => t.payment_proof_url);
+    const hadPreviousProof = !!existingOrder.payment_proof_url;
     if (hadPreviousProof) {
       console.log('Replacing existing payment proof for reference:', referenceCode);
     }
 
-    // Update all reserved tickets with this reference code
-    const { data: updatedTickets, error: updateError } = await supabase
-      .from('sold_tickets')
+    // Update the order with the payment proof
+    const { error: updateError } = await supabase
+      .from('orders')
       .update({ payment_proof_url: publicUrl })
-      .eq('raffle_id', raffleId)
-      .eq('payment_reference', referenceCode)
-      .eq('status', 'reserved')
-      .select('id, ticket_number');
+      .eq('id', existingOrder.id);
 
     if (updateError) {
-      console.error('Error updating tickets:', updateError);
+      console.error('Error updating order:', updateError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to update tickets', details: updateError.message }),
+        JSON.stringify({ success: false, error: 'Failed to update order', details: updateError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const updatedCount = updatedTickets?.length || 0;
-    console.log(`[PAYMENT-PROOF] Updated ${updatedCount} tickets with payment proof`);
+    const updatedCount = existingOrder.ticket_count || 1;
+    console.log(`[PAYMENT-PROOF] Updated order with ${updatedCount} tickets with payment proof`);
 
     // Notify the organizer
-    if (updatedCount > 0) {
-      const { data: raffle } = await supabase
-        .from('raffles')
-        .select('title, organization_id, created_by')
-        .eq('id', raffleId)
-        .single();
+    const { data: raffle } = await supabase
+      .from('raffles')
+      .select('title, organization_id, created_by')
+      .eq('id', raffleId)
+      .single();
 
-      if (raffle?.created_by && raffle?.organization_id) {
-        const ticketNumbers = updatedTickets.map(t => t.ticket_number);
-        const buyerName = existingTickets[0]?.buyer_name || 'Un comprador';
+    if (raffle?.created_by && raffle?.organization_id) {
+      const ticketDisplay = formatTicketRanges(
+        existingOrder.ticket_ranges as { s: number; e: number }[] || [],
+        existingOrder.lucky_indices as number[] || []
+      );
+      const buyerName = existingOrder.buyer_name || 'Un comprador';
 
-        await supabase.from('notifications').insert({
-          user_id: raffle.created_by,
-          organization_id: raffle.organization_id,
-          type: 'payment_pending',
-          title: hadPreviousProof ? 'Comprobante actualizado' : 'Nuevo comprobante de pago',
-          message: `${buyerName} ha ${hadPreviousProof ? 'actualizado' : 'subido'} comprobante para los boletos ${ticketNumbers.join(', ')}`,
-          link: `/dashboard/raffles/${raffleId}?tab=approvals`,
-          metadata: {
-            raffle_id: raffleId,
-            ticket_numbers: ticketNumbers,
-            buyer_name: buyerName,
-            reference_code: referenceCode,
-            replaced_previous: hadPreviousProof,
-          },
-        });
-      }
+      await supabase.from('notifications').insert({
+        user_id: raffle.created_by,
+        organization_id: raffle.organization_id,
+        type: 'payment_pending',
+        title: hadPreviousProof ? 'Comprobante actualizado' : 'Nuevo comprobante de pago',
+        message: `${buyerName} ha ${hadPreviousProof ? 'actualizado' : 'subido'} comprobante para ${updatedCount} boleto${updatedCount > 1 ? 's' : ''}: ${ticketDisplay.slice(0, 5).join(', ')}${ticketDisplay.length > 5 ? '...' : ''}`,
+        link: `/dashboard/raffles/${raffleId}?tab=approvals`,
+        metadata: {
+          raffle_id: raffleId,
+          ticket_count: updatedCount,
+          ticket_ranges: existingOrder.ticket_ranges,
+          buyer_name: buyerName,
+          reference_code: referenceCode,
+          replaced_previous: hadPreviousProof,
+        },
+      });
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         updatedCount,
-        ticketNumbers: updatedTickets?.map(t => t.ticket_number) || [],
+        ticketRanges: existingOrder.ticket_ranges,
         replacedPrevious: hadPreviousProof,
       }),
       { 
