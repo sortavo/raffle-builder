@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * Hook to get count of pending approvals (reserved tickets) for the organization
- * Includes realtime subscription for live updates
+ * Hook to get count of pending approvals (reserved orders) for the organization
+ * Now uses the new `orders` table instead of `sold_tickets`
+ * Returns the total TICKET count (not order count) for badge display
  */
 export function usePendingApprovals() {
   const { organization } = useAuth();
@@ -28,22 +29,25 @@ export function usePendingApprovals() {
 
       const raffleIds = raffles.map(r => r.id);
 
-      // Count reserved tickets (pending approvals) across all active raffles
-      const { count, error } = await supabase
-        .from('sold_tickets')
-        .select('*', { count: 'exact', head: true })
+      // Sum ticket_count from orders table for reserved orders
+      const { data, error } = await supabase
+        .from('orders')
+        .select('ticket_count')
         .in('raffle_id', raffleIds)
         .eq('status', 'reserved');
 
       if (error) throw error;
-      return count || 0;
+      
+      // Sum all ticket counts
+      const totalCount = (data || []).reduce((sum, order) => sum + (order.ticket_count || 0), 0);
+      return totalCount;
     },
     enabled: !!organization?.id,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute as backup
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
-  // Realtime subscription for ticket changes
+  // Realtime subscription for orders table
   useEffect(() => {
     if (!organization?.id) return;
 
@@ -54,11 +58,10 @@ export function usePendingApprovals() {
         {
           event: '*',
           schema: 'public',
-          table: 'sold_tickets',
+          table: 'orders',
           filter: `status=eq.reserved`,
         },
         () => {
-          // Invalidate the count query when tickets change
           queryClient.invalidateQueries({ 
             queryKey: ['pending-approvals-count', organization.id] 
           });

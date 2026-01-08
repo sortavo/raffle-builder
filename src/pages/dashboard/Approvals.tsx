@@ -34,7 +34,8 @@ import {
   CheckCheck,
   X
 } from 'lucide-react';
-import { usePendingOrders } from '@/hooks/usePendingOrders';
+import { usePendingOrders, OrderGroup } from '@/hooks/usePendingOrders';
+import { useApproveOrder, useRejectOrder } from '@/hooks/useOrders';
 import { useEmails } from '@/hooks/useEmails';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +43,37 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyPaymentApproved } from '@/lib/notifications';
 import { formatCurrency } from '@/lib/currency-utils';
+
+// Helper to format ticket display from ranges
+function formatTicketRanges(order: OrderGroup, maxDisplay: number = 4): string {
+  const ranges = order.ticketRanges || [];
+  const luckyIndices = order.luckyIndices || [];
+  
+  // For small orders, just show ticket count
+  if (order.ticketCount <= maxDisplay) {
+    // Generate first few numbers from ranges
+    const numbers: number[] = [];
+    for (const range of ranges) {
+      for (let i = range.s; i <= range.e && numbers.length < maxDisplay; i++) {
+        numbers.push(i + 1); // Convert 0-based index to 1-based number
+      }
+    }
+    for (const idx of luckyIndices) {
+      if (numbers.length < maxDisplay) {
+        numbers.push(idx + 1);
+      }
+    }
+    return numbers.map(n => `#${n}`).join(', ');
+  }
+  
+  // For larger orders, show summary
+  if (ranges.length === 1) {
+    const r = ranges[0];
+    return `#${r.s + 1} - #${r.e + 1} (${order.ticketCount} boletos)`;
+  }
+  
+  return `${order.ticketCount} boletos`;
+}
 
 export default function Approvals() {
   const { organization } = useAuth();
@@ -65,7 +97,7 @@ export default function Approvals() {
     return raffles.flatMap(r => r.orders);
   }, [raffles]);
 
-  // Filter orders based on search query
+  // Filter orders based on search query (now searches by reference and buyer info only)
   const filteredOrders = useMemo(() => {
     if (!searchQuery.trim()) return allOrders;
     
@@ -74,8 +106,7 @@ export default function Approvals() {
       order.referenceCode.toLowerCase().includes(query) ||
       order.buyerName?.toLowerCase().includes(query) ||
       order.buyerPhone?.includes(query) ||
-      order.buyerEmail?.toLowerCase().includes(query) ||
-      order.tickets.some(t => t.ticket_number?.toLowerCase().includes(query))
+      order.buyerEmail?.toLowerCase().includes(query)
     );
   }, [allOrders, searchQuery]);
 
@@ -105,27 +136,34 @@ export default function Approvals() {
   }, [filteredOrders, selectedOrders]);
 
   const selectedTicketsCount = useMemo(() => {
-    return selectedOrdersData.reduce((sum, o) => sum + o.tickets.length, 0);
+    return selectedOrdersData.reduce((sum, o) => sum + o.ticketCount, 0);
   }, [selectedOrdersData]);
 
-  // Bulk approval
+  // Bulk approval - now uses orders table with RPC
   const handleBulkApprove = async () => {
     if (selectedOrdersData.length === 0) return;
     
     setIsBulkProcessing(true);
     let successCount = 0;
     let errorCount = 0;
+    let totalTickets = 0;
 
     for (const order of selectedOrdersData) {
       try {
-        const { error } = await supabase
-          .from('sold_tickets')
-          .update({ status: 'sold' })
-          .eq('raffle_id', order.raffleId)
-          .eq('payment_reference', order.referenceCode);
+        // Use approve_order RPC instead of direct sold_tickets update
+        const { data, error } = await supabase.rpc('approve_order', {
+          p_order_id: order.id,
+        });
 
         if (error) throw error;
-        successCount++;
+        
+        const result = (data as any[])?.[0];
+        if (result?.success) {
+          successCount++;
+          totalTickets += result.ticket_count || order.ticketCount;
+        } else {
+          throw new Error(result?.error_message || 'Error al aprobar');
+        }
 
         // Background notification
         if (order.buyerEmail) {
@@ -140,7 +178,7 @@ export default function Approvals() {
               notifyPaymentApproved(
                 buyerProfile.id,
                 order.raffleTitle,
-                order.tickets.map((t: any) => t.ticket_number)
+                [`${order.ticketCount} boletos`]
               ).catch(console.error);
             }
           } catch (e) {
@@ -157,8 +195,8 @@ export default function Approvals() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
-      queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-      queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
       refetch(),
     ]);
 
@@ -167,11 +205,11 @@ export default function Approvals() {
 
     toast({ 
       title: `✓ ${successCount} pedidos aprobados`,
-      description: errorCount > 0 ? `${errorCount} fallaron` : undefined,
+      description: `${totalTickets} boletos confirmados${errorCount > 0 ? `, ${errorCount} fallaron` : ''}`,
     });
   };
 
-  // Bulk rejection
+  // Bulk rejection - now uses orders table with RPC
   const handleBulkReject = async () => {
     if (selectedOrdersData.length === 0) return;
     
@@ -182,23 +220,27 @@ export default function Approvals() {
 
     for (const order of selectedOrdersData) {
       try {
-        const ticketIds = order.tickets.map((t: any) => t.id);
-        
-        const { error } = await supabase
-          .from('sold_tickets')
-          .delete()
-          .in('id', ticketIds);
+        // Use reject_order RPC instead of direct sold_tickets delete
+        const { data, error } = await supabase.rpc('reject_order', {
+          p_order_id: order.id,
+        });
 
         if (error) throw error;
-        successCount++;
-        totalTickets += ticketIds.length;
+        
+        const result = (data as any[])?.[0];
+        if (result?.success) {
+          successCount++;
+          totalTickets += result.ticket_count || order.ticketCount;
+        } else {
+          throw new Error(result?.error_message || 'Error al rechazar');
+        }
 
         // Background notification
         if (order.buyerEmail && order.buyerName) {
           sendRejectedEmail({
             to: order.buyerEmail,
             buyerName: order.buyerName,
-            ticketNumbers: order.tickets.map((t: any) => t.ticket_number),
+            ticketNumbers: [`${order.ticketCount} boletos`],
             raffleTitle: order.raffleTitle,
             raffleSlug: order.raffleSlug,
             rejectionReason: 'El pago no fue verificado correctamente',
@@ -214,8 +256,8 @@ export default function Approvals() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
       queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
-      queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-      queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['orders'] }),
+      queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
       refetch(),
     ]);
 
@@ -247,31 +289,34 @@ export default function Approvals() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleApproveOrder = async (order: any) => {
+  const handleApproveOrder = async (order: OrderGroup) => {
     setProcessingOrders(prev => new Set(prev).add(order.referenceCode));
     
     try {
-      // Update all tickets with this payment_reference to 'sold'
-      const { error } = await supabase
-        .from('sold_tickets')
-        .update({ status: 'sold' })
-        .eq('raffle_id', order.raffleId)
-        .eq('payment_reference', order.referenceCode);
+      // Use approve_order RPC
+      const { data, error } = await supabase.rpc('approve_order', {
+        p_order_id: order.id,
+      });
 
       if (error) throw error;
+      
+      const result = (data as any[])?.[0];
+      if (!result?.success) {
+        throw new Error(result?.error_message || 'Error al aprobar');
+      }
 
       // Invalidate queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
-        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-        queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
         refetch(),
       ]);
 
       toast({ 
         title: `✓ Pedido aprobado`,
-        description: `${order.tickets.length} boletos de ${order.raffleTitle}`,
+        description: `${order.ticketCount} boletos de ${order.raffleTitle}`,
       });
 
       // Background notification
@@ -287,7 +332,7 @@ export default function Approvals() {
             notifyPaymentApproved(
               buyerProfile.id,
               order.raffleTitle,
-              order.tickets.map((t: any) => t.ticket_number)
+              [`${order.ticketCount} boletos`]
             ).catch(console.error);
           }
         } catch (e) {
@@ -306,30 +351,32 @@ export default function Approvals() {
     }
   };
 
-  const handleRejectOrder = async (order: any) => {
+  const handleRejectOrder = async (order: OrderGroup) => {
     setProcessingOrders(prev => new Set(prev).add(order.referenceCode));
     
     try {
-      const ticketIds = order.tickets.map((t: any) => t.id);
-      
-      // Reset tickets to available
-      const { error } = await supabase
-        .from('sold_tickets')
-        .delete()
-        .in('id', ticketIds);
+      // Use reject_order RPC
+      const { data, error } = await supabase.rpc('reject_order', {
+        p_order_id: order.id,
+      });
 
       if (error) throw error;
+      
+      const result = (data as any[])?.[0];
+      if (!result?.success) {
+        throw new Error(result?.error_message || 'Error al rechazar');
+      }
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
-        queryClient.invalidateQueries({ queryKey: ['tickets'] }),
-        queryClient.invalidateQueries({ queryKey: ['ticket-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['orders'] }),
+        queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
         refetch(),
       ]);
 
       toast({ 
-        title: `${ticketIds.length} boletos rechazados`,
+        title: `${order.ticketCount} boletos rechazados`,
         description: `Pedido ${order.referenceCode}`,
       });
 
@@ -338,7 +385,7 @@ export default function Approvals() {
         sendRejectedEmail({
           to: order.buyerEmail,
           buyerName: order.buyerName,
-          ticketNumbers: order.tickets.map((t: any) => t.ticket_number),
+          ticketNumbers: [`${order.ticketCount} boletos`],
           raffleTitle: order.raffleTitle,
           raffleSlug: order.raffleSlug,
           rejectionReason: 'El pago no fue verificado correctamente',
@@ -367,14 +414,17 @@ export default function Approvals() {
     });
   };
 
-  const OrderCard = ({ order, showProof }: { order: any; showProof: boolean }) => {
+  const OrderCard = ({ order, showProof }: { order: OrderGroup; showProof: boolean }) => {
     const timeRemaining = getTimeRemaining(order.reservedUntil);
     const isExpired = timeRemaining === 'Expirado';
     const isExpanded = expandedOrders.has(order.referenceCode);
     const isProcessing = processingOrders.has(order.referenceCode);
     const isSelected = selectedOrders.has(order.referenceCode);
-    const ticketCount = order.tickets.length;
+    const ticketCount = order.ticketCount;
     const totalAmount = order.orderTotal ?? (ticketCount * order.ticketPrice);
+
+    // Format ticket display from ranges
+    const ticketDisplay = formatTicketRanges(order);
 
     return (
       <Card className={cn(
@@ -444,38 +494,11 @@ export default function Approvals() {
             )}
           </div>
 
-          {/* Ticket Numbers - Collapsible */}
-          <Collapsible open={isExpanded} onOpenChange={() => toggleOrderExpanded(order.referenceCode)}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between px-2 py-1.5 h-auto bg-muted/50 hover:bg-muted">
-                <div className="flex items-center gap-2">
-                  <Ticket className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs">
-                    {ticketCount <= 4 
-                      ? order.tickets.map((t: any) => `#${t.ticket_number}`).join(', ')
-                      : `${order.tickets.slice(0, 3).map((t: any) => `#${t.ticket_number}`).join(', ')} +${ticketCount - 3} más`
-                    }
-                  </span>
-                </div>
-                {ticketCount > 4 && (
-                  isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2">
-              <div className="flex flex-wrap gap-1 px-2">
-                {order.tickets.map((ticket: any) => (
-                  <Badge 
-                    key={ticket.id} 
-                    variant="outline" 
-                    className="font-mono text-xs px-1.5 py-0"
-                  >
-                    #{ticket.ticket_number}
-                  </Badge>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          {/* Ticket Numbers - Simplified display (no individual expansion for compressed data) */}
+          <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded-md">
+            <Ticket className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-mono">{ticketDisplay}</span>
+          </div>
 
           {/* Total Amount */}
           {order.ticketPrice > 0 && (
