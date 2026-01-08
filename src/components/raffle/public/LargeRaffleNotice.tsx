@@ -135,12 +135,12 @@ export function LargeRaffleNotice({
               {isMegaRaffle ? (
                 <>
                   <Grid3X3 className="w-3 h-3" />
-                  La cuadrícula está deshabilitada para mega-rifas
+                  La cuadrícula tiene {new Intl.NumberFormat('es-MX').format(Math.ceil(totalTickets / 100))} páginas - usa búsqueda para mayor rapidez
                 </>
               ) : (
                 <>
                   <AlertTriangle className="w-3 h-3" />
-                  La vista de cuadrícula muestra máximo 100,000 boletos
+                  Usa búsqueda o aleatorio para encontrar boletos más rápido
                 </>
               )}
             </p>
