@@ -184,16 +184,16 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
   };
 
   const handleApproveOrder = async (order: OrderGroup) => {
-    const ticketIds = order.tickets.map(t => t.id);
     const ticketNumbers = order.tickets.map(t => t.ticket_number);
     
     // Set processing state
     setProcessingOrders(prev => new Set(prev).add(order.referenceCode));
     
     try {
-      // Main operation - approval
-      await bulkApprove.mutateAsync({ 
-        ticketIds, 
+      // Use approveByReference to approve ALL tickets with this payment_reference
+      // This ensures orders with 1000+ tickets are fully approved, not just the loaded ones
+      await approveByReference.mutateAsync({ 
+        referenceCode: order.referenceCode, 
         raffleTitle, 
         raffleSlug 
       });
@@ -461,7 +461,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
                   size="sm" 
                   variant="default"
                   onClick={() => handleApproveOrder(order)}
-                  disabled={isProcessing || bulkApprove.isPending}
+                  disabled={isProcessing || approveByReference.isPending}
                   className="flex-1 h-8 sm:h-9 text-xs sm:text-sm gap-1"
                 >
                   {isProcessing ? (
