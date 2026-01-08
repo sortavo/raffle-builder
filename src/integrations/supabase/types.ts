@@ -1806,21 +1806,14 @@ export type Database = {
       }
       raffle_stats_mv: {
         Row: {
-          available_count: number | null
-          created_at: string | null
-          draw_date: string | null
-          last_sale_at: string | null
           organization_id: string | null
           raffle_id: string | null
           reserved_count: number | null
-          revenue_from_orders: number | null
+          revenue: number | null
           sold_count: number | null
           status: Database["public"]["Enums"]["raffle_status"] | null
           ticket_price: number | null
-          title: string | null
           total_tickets: number | null
-          total_tickets_in_db: number | null
-          unique_buyers: number | null
         }
         Relationships: [
           {
@@ -1897,6 +1890,14 @@ export type Database = {
           ticket_numbers: string[]
           total_count: number
         }[]
+      }
+      get_dashboard_charts: {
+        Args: {
+          p_end_date: string
+          p_organization_id: string
+          p_start_date: string
+        }
+        Returns: Json
       }
       get_dashboard_stats: {
         Args: { p_organization_id: string }

@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { subDays, format, startOfDay, eachDayOfInterval } from "date-fns";
-import { es } from "date-fns/locale";
 import { useEffect } from "react";
+import { eachDayOfInterval, format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface DailyRevenue {
   date: string;
@@ -49,14 +49,13 @@ export function useDashboardCharts(dateRange?: DateRange) {
   const { organization } = useAuth();
   const queryClient = useQueryClient();
 
-  // Calculate date ranges based on input or default to last 30 days
-  const endDate = dateRange?.to || new Date();
-  const startDate = dateRange?.from || subDays(endDate, 30);
+  // Default to last 30 days if no date range provided
+  const now = new Date();
+  const defaultFrom = new Date(now);
+  defaultFrom.setDate(defaultFrom.getDate() - 30);
   
-  // Calculate previous period for comparison (same duration before start date)
-  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-  const previousStartDate = subDays(startDate, daysDiff);
-  const previousEndDate = subDays(startDate, 1);
+  const startDate = dateRange?.from || defaultFrom;
+  const endDate = dateRange?.to || now;
 
   // Real-time subscription for sold_tickets table
   useEffect(() => {
@@ -72,8 +71,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
           table: 'sold_tickets'
         },
         () => {
-          // Invalidate and refetch chart data when tickets change
-          queryClient.invalidateQueries({ queryKey: ["dashboard-charts"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-charts", organization.id] });
         }
       )
       .subscribe();
@@ -97,206 +95,94 @@ export function useDashboardCharts(dateRange?: DateRange) {
         };
       }
 
-      // Fetch raffles for this organization
-      const { data: raffles, error: rafflesError } = await supabase
-        .from("raffles")
-        .select("id, title, total_tickets, ticket_price, status")
-        .eq("organization_id", organization.id);
+      // Use the new RPC that aggregates data on the server (no 1000-row limit)
+      const { data, error } = await supabase.rpc('get_dashboard_charts', {
+        p_organization_id: organization.id,
+        p_start_date: startDate.toISOString(),
+        p_end_date: endDate.toISOString()
+      });
 
-      if (rafflesError) throw rafflesError;
-
-      const raffleIds = raffles?.map(r => r.id) || [];
-
-      if (raffleIds.length === 0) {
-        // Generate empty chart data with dates
-        const days = eachDayOfInterval({
-          start: startDate,
-          end: endDate,
-        });
-
-        return {
-          dailyRevenue: days.map(day => ({
-            date: format(day, "dd MMM", { locale: es }),
-            revenue: 0,
-            tickets: 0,
-          })),
-          raffleSales: [],
-          totalRevenue: 0,
-          totalTicketsSold: 0,
-          revenueChange: 0,
-          ticketsChange: 0,
-        };
+      if (error) {
+        console.error('Error fetching dashboard charts:', error);
+        throw error;
       }
 
-      // Fetch tickets sold in the selected date range - include order_total and payment_reference
-      const { data: recentTickets, error: recentError } = await supabase
-        .from("sold_tickets")
-        .select("id, raffle_id, sold_at, status, order_total, payment_reference")
-        .in("raffle_id", raffleIds)
-        .eq("status", "sold")
-        .gte("sold_at", startDate.toISOString())
-        .lte("sold_at", endDate.toISOString());
-
-      if (recentError) throw recentError;
-
-      // Fetch tickets sold in previous period (for comparison)
-      const { data: previousTickets, error: previousError } = await supabase
-        .from("sold_tickets")
-        .select("id, raffle_id, sold_at, order_total, payment_reference")
-        .in("raffle_id", raffleIds)
-        .eq("status", "sold")
-        .gte("sold_at", previousStartDate.toISOString())
-        .lte("sold_at", previousEndDate.toISOString());
-
-      if (previousError) throw previousError;
-
-      // Fetch all tickets for raffle breakdown
-      const { data: allTickets, error: allError } = await supabase
-        .from("sold_tickets")
-        .select("id, raffle_id, status, order_total, payment_reference")
-        .in("raffle_id", raffleIds);
-
-      if (allError) throw allError;
-
-      // Helper function to calculate revenue correctly using order_total grouped by payment_reference
-      type TicketWithRevenue = {
-        id: string;
-        raffle_id: string;
-        order_total: number | null;
-        payment_reference: string | null;
+      // Parse the JSONB response
+      const chartData = data as {
+        daily_revenue: { date: string; revenue: number; tickets: number }[];
+        raffle_sales: { id: string; name: string; sold: number; available: number; total: number; revenue: number; ticket_price: number }[];
+        period_totals: { tickets_sold: number; revenue: number };
+        previous_totals: { tickets_sold: number; revenue: number };
       };
+
+      // Generate all days in the range to fill gaps
+      const days = eachDayOfInterval({ start: startDate, end: endDate });
+      const revenueByDate = new Map<string, { revenue: number; tickets: number }>();
       
-      const calculateRevenue = (tickets: TicketWithRevenue[] | null, rafflesData: typeof raffles) => {
-        if (!tickets || tickets.length === 0) return 0;
-        
-        // Group by payment_reference to avoid counting the same order multiple times
-        const processedReferences = new Set<string>();
-        let totalRevenue = 0;
-        
-        for (const ticket of tickets) {
-          // If ticket has payment_reference, only count once per reference
-          if (ticket.payment_reference) {
-            if (processedReferences.has(ticket.payment_reference)) {
-              continue; // Skip, already counted this order
-            }
-            processedReferences.add(ticket.payment_reference);
-            
-            // Count tickets in this order
-            const ticketsInOrder = tickets.filter(t => t.payment_reference === ticket.payment_reference);
-            const raffle = rafflesData?.find(r => r.id === ticket.raffle_id);
-            const maxPossibleValue = ticketsInOrder.length * Number(raffle?.ticket_price || 0);
-            
-            // Use order_total if available, but validate it doesn't exceed max possible
-            if (ticket.order_total) {
-              // IMPORTANT: Validate order_total is reasonable (not more than tickets * price)
-              // This prevents inflated values from corrupted data
-              const orderTotal = Number(ticket.order_total);
-              totalRevenue += Math.min(orderTotal, maxPossibleValue);
-            } else {
-              totalRevenue += maxPossibleValue;
-            }
-          } else {
-            // No payment_reference, count individually using order_total or ticket_price
-            const raffle = rafflesData?.find(r => r.id === ticket.raffle_id);
-            const maxSingleTicketValue = Number(raffle?.ticket_price || 0);
-            
-            if (ticket.order_total) {
-              // Validate individual ticket order_total
-              totalRevenue += Math.min(Number(ticket.order_total), maxSingleTicketValue);
-            } else {
-              totalRevenue += maxSingleTicketValue;
-            }
-          }
-        }
-        
-        return totalRevenue;
-      };
+      // Index the data from RPC by date
+      for (const day of chartData.daily_revenue || []) {
+        revenueByDate.set(day.date, { 
+          revenue: Number(day.revenue) || 0, 
+          tickets: Number(day.tickets) || 0 
+        });
+      }
 
-      // Build daily revenue data
-      const days = eachDayOfInterval({
-        start: startDate,
-        end: endDate,
-      });
-
+      // Build daily revenue with all days (fill gaps with 0)
       const dailyRevenue: DailyRevenue[] = days.map(day => {
-        const dayStart = startOfDay(day);
-        const dayEnd = new Date(dayStart);
-        dayEnd.setDate(dayEnd.getDate() + 1);
-
-        const dayTickets = recentTickets?.filter(t => {
-          if (!t.sold_at) return false;
-          const soldDate = new Date(t.sold_at);
-          return soldDate >= dayStart && soldDate < dayEnd;
-        }) || [];
-
-        // Calculate revenue correctly for this day
-        const dayRevenue = calculateRevenue(dayTickets, raffles);
-
+        const dateKey = format(day, 'yyyy-MM-dd');
+        const dayData = revenueByDate.get(dateKey);
         return {
           date: format(day, "dd MMM", { locale: es }),
-          revenue: dayRevenue,
-          tickets: dayTickets.length,
+          revenue: dayData?.revenue || 0,
+          tickets: dayData?.tickets || 0,
         };
       });
 
-      // Build raffle sales breakdown with correct revenue calculation and discount detection
-      const raffleSales: RaffleSales[] = raffles
-        ?.filter(r => r.status === "active" || r.status === "completed")
-        .map((raffle, index) => {
-          const raffleTickets = allTickets?.filter(t => t.raffle_id === raffle.id) || [];
-          const soldTickets = raffleTickets.filter(t => t.status === "sold");
-          const soldCount = soldTickets.length;
-          const availableCount = raffleTickets.filter(t => t.status === "available").length;
+      // Transform raffle sales with colors and discount detection
+      const raffleSales: RaffleSales[] = (chartData.raffle_sales || []).map((raffle, index) => {
+        const expectedRevenue = Number(raffle.sold) * Number(raffle.ticket_price);
+        const actualRevenue = Number(raffle.revenue) || 0;
+        const hasDiscounts = actualRevenue < expectedRevenue * 0.99 && actualRevenue > 0; // 1% tolerance
+        const discountAmount = hasDiscounts ? expectedRevenue - actualRevenue : 0;
 
-          // Calculate revenue correctly using order_total grouped by payment_reference
-          const raffleRevenue = calculateRevenue(soldTickets, raffles);
-          
-          // Calculate expected revenue without discounts (tickets * price)
-          const expectedRevenue = soldCount * Number(raffle.ticket_price);
-          
-          // Detect if discounts were applied
-          const hasDiscounts = raffleRevenue < expectedRevenue && raffleRevenue > 0;
-          const discountAmount = hasDiscounts ? expectedRevenue - raffleRevenue : 0;
+        return {
+          name: raffle.name.length > 20 ? raffle.name.substring(0, 20) + "..." : raffle.name,
+          sold: Number(raffle.sold) || 0,
+          available: Number(raffle.available) || 0,
+          total: Number(raffle.total) || 0,
+          revenue: actualRevenue,
+          color: CHART_COLORS[index % CHART_COLORS.length],
+          hasDiscounts,
+          discountAmount,
+        };
+      });
 
-          return {
-            name: raffle.title.length > 20 ? raffle.title.substring(0, 20) + "..." : raffle.title,
-            sold: soldCount,
-            available: availableCount,
-            total: raffle.total_tickets,
-            revenue: raffleRevenue,
-            color: CHART_COLORS[index % CHART_COLORS.length],
-            hasDiscounts,
-            discountAmount,
-          };
-        })
-        .sort((a, b) => b.sold - a.sold)
-        .slice(0, 6) || [];
+      // Period totals
+      const totalRevenue = Number(chartData.period_totals?.revenue) || 0;
+      const totalTicketsSold = Number(chartData.period_totals?.tickets_sold) || 0;
 
-      // Calculate totals using the correct revenue calculation
-      const currentRevenue = calculateRevenue(recentTickets, raffles);
-      const previousRevenue = calculateRevenue(previousTickets, raffles);
-
-      const currentTickets = recentTickets?.length || 0;
-      const previousTicketsCount = previousTickets?.length || 0;
+      // Calculate percentage changes
+      const previousRevenue = Number(chartData.previous_totals?.revenue) || 0;
+      const previousTickets = Number(chartData.previous_totals?.tickets_sold) || 0;
 
       const revenueChange = previousRevenue > 0 
-        ? Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 100)
-        : currentRevenue > 0 ? 100 : 0;
+        ? Math.round(((totalRevenue - previousRevenue) / previousRevenue) * 100) 
+        : totalRevenue > 0 ? 100 : 0;
 
-      const ticketsChange = previousTicketsCount > 0
-        ? Math.round(((currentTickets - previousTicketsCount) / previousTicketsCount) * 100)
-        : currentTickets > 0 ? 100 : 0;
+      const ticketsChange = previousTickets > 0 
+        ? Math.round(((totalTicketsSold - previousTickets) / previousTickets) * 100) 
+        : totalTicketsSold > 0 ? 100 : 0;
 
       return {
         dailyRevenue,
         raffleSales,
-        totalRevenue: currentRevenue,
-        totalTicketsSold: currentTickets,
+        totalRevenue,
+        totalTicketsSold,
         revenueChange,
         ticketsChange,
       };
     },
     enabled: !!organization?.id,
-    staleTime: 60000, // Consider data stale after 1 minute
+    staleTime: 60000, // 1 minute
   });
 }
