@@ -2069,21 +2069,13 @@ export type Database = {
           p_buyer_city?: string
           p_buyer_email: string
           p_buyer_name: string
-          p_buyer_phone: string
+          p_buyer_phone?: string
           p_order_total?: number
           p_raffle_id: string
+          p_requested_indices: number[]
           p_reservation_minutes?: number
-          p_ticket_indices: number[]
         }
-        Returns: {
-          error_message: string
-          reference_code: string
-          reserved_count: number
-          reserved_until: string
-          success: boolean
-          ticket_indices: number[]
-          ticket_numbers: string[]
-        }[]
+        Returns: Json
       }
       search_public_tickets: {
         Args: { p_limit?: number; p_raffle_id: string; p_search: string }

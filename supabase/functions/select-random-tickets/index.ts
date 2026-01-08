@@ -110,9 +110,10 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] IP: ${clientIP}, Selecting ${quantity} random tickets for raffle ${raffle_id}`);
 
     // 1. Get raffle config for total tickets and numbering
+    // PHASE 1: Read from numbering_config.start_number for consistency with frontend
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
-      .select('total_tickets, customization')
+      .select('total_tickets, numbering_config')
       .eq('id', raffle_id)
       .single();
 
@@ -125,7 +126,9 @@ Deno.serve(async (req) => {
     }
 
     const totalTickets = raffle.total_tickets;
-    const numberStart = raffle.customization?.number_start ?? 1;
+    // Use numbering_config.start_number (consistent with frontend TicketSelector)
+    const numberingConfig = raffle.numbering_config as { start_number?: number } | null;
+    const numberStart = numberingConfig?.start_number ?? 1;
     
     console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}`);
 

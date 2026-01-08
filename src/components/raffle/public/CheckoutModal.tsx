@@ -596,7 +596,8 @@ export function CheckoutModal({
                     
                     <CollapsibleContent>
                       <div className="flex flex-wrap gap-1.5 pt-4 mt-4 border-t border-emerald-500/20">
-                        {selectedTickets.map(ticket => (
+                        {/* PHASE 2: Limit badge rendering to prevent UI freezes on bulk purchases */}
+                        {selectedTickets.slice(0, 50).map(ticket => (
                           <Badge 
                             key={ticket} 
                             variant="secondary" 
@@ -605,6 +606,14 @@ export function CheckoutModal({
                             #{ticket}
                           </Badge>
                         ))}
+                        {selectedTickets.length > 50 && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-sm text-muted-foreground"
+                          >
+                            y {selectedTickets.length - 50} más
+                          </Badge>
+                        )}
                       </div>
                     </CollapsibleContent>
                   </div>

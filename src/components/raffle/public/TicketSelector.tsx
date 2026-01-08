@@ -672,6 +672,24 @@ export function TicketSelector({
       toast.warning(`Debes seleccionar al menos ${minPerPurchase} boleto${minPerPurchase > 1 ? 's' : ''}`);
       return;
     }
+    
+    // PHASE 3: Validate indices before proceeding to checkout
+    if (selectedTicketIndices.length === 0 && selectedTickets.length > 0) {
+      console.error('[TicketSelector] No indices available for selected tickets');
+      toast.error('Error en la selección', {
+        description: 'Por favor, vuelve a seleccionar tus boletos.',
+      });
+      return;
+    }
+    
+    if (selectedTicketIndices.length !== selectedTickets.length) {
+      console.warn('[TicketSelector] Index count mismatch:', {
+        tickets: selectedTickets.length,
+        indices: selectedTicketIndices.length,
+      });
+      // Proceed anyway - the resilient RPC can handle partial indices
+    }
+    
     onContinue(selectedTickets, selectedTicketIndices);
   };
 
