@@ -107,58 +107,45 @@ export function UpcomingPreDraws({
                   </div>
                 )}
 
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex items-start gap-3">
+              <CardContent className="p-4">
+                  {/* Vertical centered layout */}
+                  <div className="flex flex-col items-center text-center">
                     {/* Icon */}
                     <div 
-                      className="flex-shrink-0 h-12 w-12 rounded-xl flex items-center justify-center"
+                      className="h-10 w-10 rounded-lg flex items-center justify-center mb-3"
                       style={{ 
                         backgroundColor: primaryColor ? `${primaryColor}20` : 'rgba(16, 185, 129, 0.2)',
                       }}
                     >
                       <Gift 
-                        className="h-6 w-6" 
+                        className="h-5 w-5" 
                         style={{ color: primaryColor || '#10B981' }}
                       />
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <Badge variant="secondary" className="mb-2 text-[10px]">
-                        Pre-sorteo
-                      </Badge>
-                      <h3 className={cn("font-semibold line-clamp-2 text-sm", textColor)}>
-                        {prize.name || 'Premio'}
-                      </h3>
-                      {prize.value && (
-                        <p className={cn("text-sm", textMuted)}>
-                          Valor: {formatCurrency(prize.value, currencyCode)}
-                        </p>
-                      )}
-                    </div>
+                    {/* Badge */}
+                    <Badge variant="secondary" className="mb-2 text-[10px]">
+                      Pre-sorteo
+                    </Badge>
+                    
+                    {/* Title - 2 lines */}
+                    <h3 className={cn("font-semibold text-sm line-clamp-2 min-h-[2.5rem]", textColor)}>
+                      {prize.name || 'Premio'}
+                    </h3>
+                    
+                    {/* Value */}
+                    {prize.value && (
+                      <p className={cn("text-xs mt-1", textMuted)}>
+                        {formatCurrency(prize.value, currencyCode)}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Date and countdown */}
-                  <div className={cn(
-                    "mt-4 pt-4 border-t flex items-center justify-between gap-2",
-                    borderColor
-                  )}>
-                    <div className="flex items-center gap-2">
-                      <Calendar className={cn("h-4 w-4", textMuted)} />
-                      <span className={cn("text-sm", textMuted)}>
-                        {format(drawDate, "d 'de' MMMM", { locale: es })}
-                      </span>
-                    </div>
-                    <div 
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                      style={{ 
-                        backgroundColor: primaryColor ? `${primaryColor}15` : 'rgba(16, 185, 129, 0.15)',
-                        color: primaryColor || '#10B981',
-                      }}
-                    >
-                      <Clock className="h-3 w-3" />
-                      En {timeUntil}
-                    </div>
+                  {/* Compact date footer */}
+                  <div className={cn("mt-3 pt-3 border-t text-center", borderColor)}>
+                    <span className={cn("text-xs", textMuted)}>
+                      {format(drawDate, "d MMM", { locale: es })}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

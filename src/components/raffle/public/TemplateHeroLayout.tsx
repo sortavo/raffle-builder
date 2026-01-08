@@ -683,7 +683,7 @@ export function TemplateHeroLayout({
     };
 
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
         <motion.div 
           className={cn(
             "p-5 rounded-2xl transition-all duration-300 text-center border-2",
@@ -909,7 +909,7 @@ export function TemplateHeroLayout({
     
     return (
       <motion.div
-        className="w-full max-w-6xl mx-auto"
+        className="w-full"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
@@ -1132,7 +1132,7 @@ export function TemplateHeroLayout({
             {/* Grid pattern like /pricing */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
             
-            <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex flex-col items-center gap-6 lg:gap-8">
                 
                 {/* 1. Header badges + Title - FIRST */}
