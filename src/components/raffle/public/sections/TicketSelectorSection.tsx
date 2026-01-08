@@ -84,12 +84,12 @@ export function TicketSelectorSection({
           raffleId={raffle.id || ''}
           totalTickets={raffle.total_tickets || 100}
           ticketPrice={raffle.ticket_price || 0}
-          maxPerPurchase={raffle.max_tickets_per_purchase}
+          currencyCode={currency}
+          maxPerPurchase={raffle.max_tickets_per_purchase ?? 0}
           minPerPurchase={raffle.min_tickets_per_purchase}
-          luckyNumbersEnabled={raffle.lucky_numbers_enabled}
-          luckyNumbersConfig={raffle.lucky_numbers_config as any}
-          selectedTickets={selectedTickets}
-          onSelectionChange={onTicketSelect}
+          showLuckyNumbers={raffle.lucky_numbers_enabled}
+          packages={[]}
+          onContinue={(tickets) => onTicketSelect?.(tickets)}
         />
       </div>
     </section>
