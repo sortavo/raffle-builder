@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/currency-utils";
+import { formatTicketSummary, isBulkPurchase, BULK_PURCHASE_THRESHOLD } from "@/lib/ticket-utils";
 import { useReserveVirtualTickets } from "@/hooks/useVirtualTickets";
 import { useEmails } from "@/hooks/useEmails";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
@@ -294,6 +295,24 @@ export function CheckoutModal({
   const handleCompleteReservation = async () => {
     // Prevent double-click
     if (isProcessing || reserveTickets.isPending) return;
+    
+    // PHASE B: Validate that we have indices before proceeding
+    if (selectedTicketIndices.length === 0) {
+      toast.error('Error en la selección', {
+        description: 'No pudimos preparar tus boletos. Por favor, vuelve a seleccionarlos.',
+      });
+      console.error('[CheckoutModal] No ticket indices available for reservation');
+      return;
+    }
+    
+    if (selectedTicketIndices.length !== selectedTickets.length) {
+      console.warn('[CheckoutModal] Ticket count mismatch:', {
+        tickets: selectedTickets.length,
+        indices: selectedTicketIndices.length,
+      });
+      // Still proceed - the resilient RPC can handle this
+    }
+    
     setIsProcessing(true);
 
     const data = form.getValues();
@@ -332,70 +351,95 @@ export function CheckoutModal({
       setReservedTickets(result.tickets);
       setReservedUntil(result.reservedUntil);
       setReferenceCode(result.referenceCode);
-
-      // Send reservation email (non-blocking)
-      sendReservationEmail({
-        to: data.email,
-        buyerName: data.name,
-        ticketNumbers: result.tickets.map(t => t.ticket_number),
-        raffleTitle: raffle.title,
-        raffleSlug: raffle.slug,
-        amount: total,
-        currency: raffle.currency_code || 'MXN',
-        timerMinutes: raffle.reservation_time_minutes || 15,
-        referenceCode: result.referenceCode,
-      }).catch(console.error);
-
-      // Notify organizer about pending payment (non-blocking)
-      (async () => {
-        try {
-          const { data: orgData } = await supabase
-            .from('user_roles')
-            .select('user_id')
-            .eq('organization_id', raffle.organization_id)
-            .in('role', ['owner', 'admin']);
-          
-          if (orgData && orgData.length > 0) {
-            await Promise.all(
-              orgData.map(member =>
-                notifyPaymentPending(
-                  member.user_id,
-                  raffle.organization_id,
-                  raffle.id,
-                  raffle.title,
-                  selectedTickets,
-                  data.name
-                )
-              )
-            );
-          }
-        } catch (err) {
-          console.error('Error notifying organizer:', err);
-        }
-      })();
-
-      // Fire confetti celebration
-      fireConfetti();
-
-      // Track purchase conversion event
-      trackPurchase({
-        transactionId: result.referenceCode,
-        itemId: raffle.id,
-        itemName: raffle.title,
-        value: total,
-        quantity: result.tickets.length,
-        currency: raffle.currency_code || 'MXN',
-        userEmail: data.email,
-        userPhone: cleanPhone,
-      });
-
+      
       // Clear saved form data on success
       clearSavedFormData();
 
-      // Move to success step
+      // PHASE A: Move to success step FIRST (before any side-effects)
       setCurrentStep(3);
+
+      // PHASE A: Execute side-effects outside critical path using queueMicrotask
+      // This ensures the UI updates immediately before these run
+      queueMicrotask(() => {
+        // Fire confetti celebration (non-blocking)
+        try {
+          fireConfetti();
+        } catch (err) {
+          console.error('[CheckoutModal] Confetti error:', err);
+        }
+        
+        // Track purchase conversion event (non-blocking)
+        try {
+          trackPurchase({
+            transactionId: result.referenceCode,
+            itemId: raffle.id,
+            itemName: raffle.title,
+            value: total,
+            quantity: result.tickets.length,
+            currency: raffle.currency_code || 'MXN',
+            userEmail: data.email,
+            userPhone: cleanPhone,
+          });
+        } catch (err) {
+          console.error('[CheckoutModal] Tracking error:', err);
+        }
+      });
+
+      // PHASE A: Send emails and notifications asynchronously (don't block UI)
+      // Use setTimeout to ensure these don't interfere with React's render cycle
+      setTimeout(() => {
+        // Send reservation email (non-blocking)
+        sendReservationEmail({
+          to: data.email,
+          buyerName: data.name,
+          // For bulk purchases, limit ticket numbers in email
+          ticketNumbers: finalTicketNumbers.length > 100 
+            ? finalTicketNumbers.slice(0, 100) 
+            : finalTicketNumbers,
+          raffleTitle: raffle.title,
+          raffleSlug: raffle.slug,
+          amount: total,
+          currency: raffle.currency_code || 'MXN',
+          timerMinutes: raffle.reservation_time_minutes || 15,
+          referenceCode: result.referenceCode,
+        }).catch(err => console.error('[CheckoutModal] Email error:', err));
+
+        // Notify organizer about pending payment (non-blocking)
+        (async () => {
+          try {
+            const { data: orgData } = await supabase
+              .from('user_roles')
+              .select('user_id')
+              .eq('organization_id', raffle.organization_id)
+              .in('role', ['owner', 'admin']);
+            
+            if (orgData && orgData.length > 0) {
+              await Promise.all(
+                orgData.map(member =>
+                  notifyPaymentPending(
+                    member.user_id,
+                    raffle.organization_id,
+                    raffle.id,
+                    raffle.title,
+                    // For bulk, just pass first few tickets
+                    finalTicketNumbers.slice(0, 10),
+                    data.name
+                  )
+                )
+              );
+            }
+          } catch (err) {
+            console.error('[CheckoutModal] Notification error:', err);
+          }
+        })();
+      }, 0);
+
     } catch (error) {
-      // Error handled in mutation
+      // PHASE D: Better error handling with clear message
+      console.error('[CheckoutModal] Reservation failed:', error);
+      toast.error('No se pudo completar la reserva', {
+        description: error instanceof Error ? error.message : 'Por favor, intenta de nuevo.',
+      });
     } finally {
       setIsProcessing(false);
     }

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
+import { parseTicketIndex } from "@/lib/ticket-utils";
 import { useRandomAvailableTickets, useCheckTicketsAvailability } from "@/hooks/usePublicRaffle";
 import { useVirtualTickets } from "@/hooks/useVirtualTickets";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,8 @@ interface TicketSelectorProps {
   ticketsAvailable?: number;
   isLightTemplate?: boolean;
   primaryColor?: string;
+  // Numbering config - needed for consistent index calculation
+  numberStart?: number;
 }
 
 export function TicketSelector({
@@ -87,6 +90,7 @@ export function TicketSelector({
   ticketsAvailable = 0,
   isLightTemplate = false,
   primaryColor,
+  numberStart = 1,
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
   const { trackRemoveFromCart } = useTrackingEvents();
@@ -496,10 +500,23 @@ export function TicketSelector({
     await handleRandomGenerate();
   };
 
+  // PHASE B: Fix Lucky Numbers to also set indices
   const handleLuckyNumbersSelect = useCallback((numbers: string[]) => {
+    // Calculate indices from the ticket numbers
+    const indices = numbers.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
+    
     setSelectedTickets(numbers);
+    setSelectedTicketIndices(indices);
+    
+    if (indices.length !== numbers.length) {
+      console.warn('[TicketSelector] Some lucky numbers could not be parsed to indices:', {
+        numbers: numbers.length,
+        indices: indices.length,
+      });
+    }
+    
     toast.success(`${numbers.length} número${numbers.length !== 1 ? 's' : ''} de la suerte seleccionado${numbers.length !== 1 ? 's' : ''}`);
-  }, []);
+  }, [numberStart]);
 
   const checkTicketsAvailability = useCallback(async (numbers: string[]): Promise<string[]> => {
     return checkAvailabilityMutation.mutateAsync({ raffleId, ticketNumbers: numbers });
@@ -580,12 +597,19 @@ export function TicketSelector({
     }
   };
 
+  // PHASE B: Fix Search tab selection to also set indices
   const handleSelectSearchResult = (ticketNumber: string, status: string) => {
     if (status !== 'available') return;
+    
+    const ticketIndex = parseTicketIndex(ticketNumber, numberStart);
     
     setSelectedTickets(prev => {
       if (prev.includes(ticketNumber)) {
         toast.info(`Boleto ${ticketNumber} removido`);
+        // Also remove from indices
+        if (ticketIndex >= 0) {
+          setSelectedTicketIndices(prevIdx => prevIdx.filter(i => i !== ticketIndex));
+        }
         return prev.filter(t => t !== ticketNumber);
       }
       if (maxPerPurchase > 0 && prev.length >= maxPerPurchase) {
@@ -593,10 +617,15 @@ export function TicketSelector({
         return prev;
       }
       toast.success(`Boleto ${ticketNumber} seleccionado`);
+      // Also add to indices
+      if (ticketIndex >= 0) {
+        setSelectedTicketIndices(prevIdx => [...prevIdx, ticketIndex]);
+      }
       return [...prev, ticketNumber];
     });
   };
 
+  // PHASE B: Fix "Select All" in search to also set indices
   const handleSelectAllAvailableResults = () => {
     const availableResults = searchResults
       .filter(t => t.status === 'available')
@@ -608,6 +637,8 @@ export function TicketSelector({
     }
 
     const newTickets = availableResults.filter(t => !selectedTickets.includes(t));
+    // Calculate indices for new tickets
+    const newIndices = newTickets.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
     
     if (maxPerPurchase > 0 && selectedTickets.length + newTickets.length > maxPerPurchase) {
       const canAdd = maxPerPurchase - selectedTickets.length;
@@ -615,10 +646,15 @@ export function TicketSelector({
         toast.warning(`Ya alcanzaste el máximo de ${maxPerPurchase} boletos`);
         return;
       }
-      setSelectedTickets(prev => [...prev, ...newTickets.slice(0, canAdd)]);
+      const ticketsToAdd = newTickets.slice(0, canAdd);
+      const indicesToAdd = ticketsToAdd.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
+      
+      setSelectedTickets(prev => [...prev, ...ticketsToAdd]);
+      setSelectedTicketIndices(prev => [...prev, ...indicesToAdd]);
       toast.success(`Se agregaron ${canAdd} boletos (límite alcanzado)`);
     } else {
       setSelectedTickets(prev => [...prev, ...newTickets]);
+      setSelectedTicketIndices(prev => [...prev, ...newIndices]);
       toast.success(`${newTickets.length} boletos agregados`);
     }
   };
@@ -837,6 +873,8 @@ export function TicketSelector({
                               if (availableResults.length === 0) return;
 
                               const newTickets = availableResults.filter(t => !selectedTickets.includes(t));
+                              // PHASE B: Calculate indices for new tickets
+                              const newIndices = newTickets.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
                               
                               if (maxPerPurchase > 0 && selectedTickets.length + newTickets.length > maxPerPurchase) {
                                 const canAdd = maxPerPurchase - selectedTickets.length;
@@ -844,10 +882,15 @@ export function TicketSelector({
                                   toast.warning(`Ya alcanzaste el máximo de ${maxPerPurchase} boletos`);
                                   return;
                                 }
-                                setSelectedTickets(prev => [...prev, ...newTickets.slice(0, canAdd)]);
+                                const ticketsToAdd = newTickets.slice(0, canAdd);
+                                const indicesToAdd = ticketsToAdd.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
+                                
+                                setSelectedTickets(prev => [...prev, ...ticketsToAdd]);
+                                setSelectedTicketIndices(prev => [...prev, ...indicesToAdd]);
                                 toast.success(`Se agregaron ${canAdd} boletos (límite alcanzado)`);
                               } else {
                                 setSelectedTickets(prev => [...prev, ...newTickets]);
+                                setSelectedTicketIndices(prev => [...prev, ...newIndices]);
                                 toast.success(`${newTickets.length} boletos agregados`);
                               }
                             }}

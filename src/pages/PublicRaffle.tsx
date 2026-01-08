@@ -631,6 +631,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 ticketsAvailable={raffle.ticketsAvailable}
                 isLightTemplate={isLightTemplate}
                 primaryColor={primaryColor}
+                numberStart={((raffle as any).numbering_config as any)?.number_start ?? 1}
               />
 
               {showSocialProof && (

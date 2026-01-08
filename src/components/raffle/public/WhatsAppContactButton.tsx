@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Phone, Copy, Check, ExternalLink, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency-utils";
+import { formatTicketSummary, BULK_PURCHASE_THRESHOLD } from "@/lib/ticket-utils";
 
 interface WhatsAppContactButtonProps {
   organizationPhone?: string | null;
@@ -36,39 +37,61 @@ export function WhatsAppContactButton({
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(variant === 'expanded');
 
-  if (!organizationPhone) return null;
+  // Memoize message construction to avoid re-computing on every render
+  const { message, whatsappLink, formattedPhone } = useMemo(() => {
+    if (!organizationPhone) {
+      return { message: '', whatsappLink: '', formattedPhone: '' };
+    }
 
-  // Clean phone number (remove non-digits)
-  const cleanPhone = organizationPhone.replace(/\D/g, '');
-  
-  // Format phone for display
-  const formattedPhone = organizationPhone;
+    // Clean phone number (remove non-digits)
+    const cleanPhone = organizationPhone.replace(/\D/g, '');
+    
+    // Format phone for display
+    const formatted = organizationPhone;
 
-  // Create WhatsApp message with reference code
-  const referenceSection = referenceCode 
-    ? `🎫 *Código de Referencia:* ${referenceCode}\n`
-    : '';
-  
-  const message = buyerName
-    ? `¡Hola! Soy ${buyerName} y acabo de reservar ${ticketNumbers.length} boleto(s) para "${raffleTitle}".
+    // Create WhatsApp message with reference code
+    // CRITICAL: Avoid joining large arrays - use summary for bulk purchases
+    const referenceSection = referenceCode 
+      ? `🎫 *Código de Referencia:* ${referenceCode}\n`
+      : '';
+    
+    // For bulk purchases (>200 tickets), don't list all numbers - use reference code
+    const isBulk = ticketNumbers.length >= BULK_PURCHASE_THRESHOLD;
+    const ticketSection = isBulk
+      ? `📋 *Boletos:* ${ticketNumbers.length.toLocaleString()} boletos (ver con código de referencia)`
+      : `📋 *Números:* ${formatTicketSummary(ticketNumbers, 20)}`;
+    
+    const msg = buyerName
+      ? `¡Hola! Soy ${buyerName} y acabo de reservar ${ticketNumbers.length.toLocaleString()} boleto(s) para "${raffleTitle}".
 
-${referenceSection}📋 *Números:* ${ticketNumbers.join(', ')}
+${referenceSection}${ticketSection}
 💰 *Total:* ${formatCurrency(totalAmount, currencyCode)}
 
-¿Me pueden confirmar los datos para realizar el pago? Una vez confirmado mi pago, por favor apruébenlo en su sistema con el código de referencia.`
-    : `¡Hola! Acabo de reservar ${ticketNumbers.length} boleto(s) para "${raffleTitle}".
+¿Me pueden confirmar los datos para realizar el pago? Una vez confirmado mi pago, por favor apruébenlo en su sistema${referenceCode ? ` con el código de referencia ${referenceCode}` : ''}.`
+      : `¡Hola! Acabo de reservar ${ticketNumbers.length.toLocaleString()} boleto(s) para "${raffleTitle}".
 
-${referenceSection}📋 *Números:* ${ticketNumbers.join(', ')}
+${referenceSection}${ticketSection}
 💰 *Total:* ${formatCurrency(totalAmount, currencyCode)}
 
 ¿Me pueden confirmar los datos para realizar el pago?`;
 
-  const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    return {
+      message: msg,
+      whatsappLink: `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`,
+      formattedPhone: formatted,
+    };
+  }, [organizationPhone, ticketNumbers, totalAmount, currencyCode, buyerName, referenceCode, raffleTitle]);
+
+  if (!organizationPhone) return null;
 
   const handleCopyPhone = async () => {
-    await navigator.clipboard.writeText(formattedPhone);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(formattedPhone);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy phone:', err);
+    }
   };
 
   if (variant === 'button') {
