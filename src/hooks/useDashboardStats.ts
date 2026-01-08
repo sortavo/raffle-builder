@@ -129,8 +129,8 @@ export function useDashboardStats() {
       // Parse raffle stats list (returns jsonb array)
       const raffleStatsList = (Array.isArray(raffleStatsResult.data) 
         ? raffleStatsResult.data 
-        : []) as Array<{ id: string; sold_count: number; reserved_count: number; revenue: number }>;
-      const raffleStatsMap = new Map(raffleStatsList.map(rs => [rs.id, rs]));
+        : []) as Array<{ raffle_id: string; sold_count: number; reserved_count: number; revenue: number }>;
+      const raffleStatsMap = new Map(raffleStatsList.map(rs => [rs.raffle_id, rs]));
 
       // Build individual raffle stats using RPC data
       const activeRafflesList: RaffleStats[] = activeRafflesData.map(raffle => {
