@@ -894,7 +894,7 @@ export function TicketSelector({
 
                               const newTickets = availableResults.filter(t => !selectedTickets.includes(t));
                               // PHASE B: Calculate indices for new tickets
-                              const newIndices = newTickets.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
+                              const newIndices = newTickets.map(tn => parseTicketIndex(tn, numberStart, step)).filter(idx => idx >= 0);
                               
                               if (maxPerPurchase > 0 && selectedTickets.length + newTickets.length > maxPerPurchase) {
                                 const canAdd = maxPerPurchase - selectedTickets.length;
@@ -903,7 +903,7 @@ export function TicketSelector({
                                   return;
                                 }
                                 const ticketsToAdd = newTickets.slice(0, canAdd);
-                                const indicesToAdd = ticketsToAdd.map(tn => parseTicketIndex(tn, numberStart)).filter(idx => idx >= 0);
+                                const indicesToAdd = ticketsToAdd.map(tn => parseTicketIndex(tn, numberStart, step)).filter(idx => idx >= 0);
                                 
                                 setSelectedTickets(prev => [...prev, ...ticketsToAdd]);
                                 setSelectedTicketIndices(prev => [...prev, ...indicesToAdd]);
