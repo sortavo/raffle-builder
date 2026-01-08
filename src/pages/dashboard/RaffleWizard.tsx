@@ -717,7 +717,7 @@ export default function RaffleWizard() {
 
   return (
     <DashboardLayout>
-      <div className={cn("max-w-7xl mx-auto space-y-5 md:space-y-6", showPreview && "lg:pr-[400px]")}>
+      <div className="max-w-7xl mx-auto space-y-5 md:space-y-6">
         {/* Banner for published raffle editing */}
         {isRafflePublished && (
           <Alert className="bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300">
@@ -825,10 +825,10 @@ export default function RaffleWizard() {
           </Alert>
         )}
 
-        {/* Main Content with Preview */}
-        <div className="space-y-4">
+        {/* Main Content: Flex layout with Form and Preview */}
+        <div className="lg:flex lg:gap-6">
           {/* Left: Form */}
-          <div ref={wizardContentRef} className="space-y-4">
+          <div ref={wizardContentRef} className="flex-1 min-w-0 space-y-4">
             <Form {...form}>
               <form onSubmit={(e) => e.preventDefault()}>
                 <Card className="overflow-hidden border-border/50 shadow-sm bg-card rounded-xl">
@@ -887,23 +887,22 @@ export default function RaffleWizard() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right: Preview - OUTSIDE container for proper fixed positioning */}
-        {showPreview && (
-          <div
-            className="hidden lg:block z-20"
-            style={{ position: 'fixed', top: '120px', right: '32px', width: '360px' }}
-          >
-            <RafflePreview 
-              form={form} 
-              activeSection={currentStep === 5 ? activePreviewSection : undefined}
-              scrollProgress={previewScrollProgress}
-            />
-          </div>
-        )}
+          {/* Right: Preview - Sticky positioning within flex layout */}
+          {showPreview && (
+            <div className="hidden lg:block w-[360px] shrink-0">
+              <div className="sticky top-[72px]">
+                <RafflePreview 
+                  form={form} 
+                  activeSection={currentStep === 5 ? activePreviewSection : undefined}
+                  scrollProgress={previewScrollProgress}
+                />
+              </div>
+            </div>
+          )}
+        </div>
         
-        {/* Floating step indicator when progress is hidden - OUTSIDE container */}
+        {/* Floating step indicator when progress is hidden */}
         {isProgressHidden && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
