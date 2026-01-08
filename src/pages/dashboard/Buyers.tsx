@@ -46,26 +46,26 @@ export default function Buyers() {
 
       if (!raffles?.length) return [];
 
-      // Get all tickets with buyer info from these raffles
-      const { data: tickets } = await supabase
-        .from("sold_tickets")
+      // Get all orders with buyer info from these raffles
+      const { data: orders } = await supabase
+        .from("orders")
         .select("buyer_name, buyer_email, buyer_phone, buyer_city, reserved_at, status")
         .in("raffle_id", raffles.map(r => r.id))
         .not("buyer_name", "is", null);
 
       // Group by email to get unique buyers
       const buyerMap = new Map<string, BuyerData>();
-      tickets?.forEach((ticket) => {
-        const key = ticket.buyer_email || ticket.buyer_phone || ticket.buyer_name;
+      orders?.forEach((order) => {
+        const key = order.buyer_email || order.buyer_phone || order.buyer_name;
         if (key && !buyerMap.has(key)) {
           buyerMap.set(key, {
             id: key,
-            full_name: ticket.buyer_name || "",
-            email: ticket.buyer_email || "",
-            phone: ticket.buyer_phone,
-            city: ticket.buyer_city,
+            full_name: order.buyer_name || "",
+            email: order.buyer_email || "",
+            phone: order.buyer_phone,
+            city: order.buyer_city,
             email_verified: false,
-            created_at: ticket.reserved_at,
+            created_at: order.reserved_at,
           });
         }
       });

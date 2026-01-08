@@ -141,22 +141,18 @@ export const useRaffles = () => {
             stats.tickets_reserved = ticketCounts[0].reserved_count || 0;
           }
 
-          // Calculate revenue separately - try direct query for authenticated users
+          // Calculate revenue from orders table
           const { data: revenueData } = await supabase
-            .from('sold_tickets')
-            .select('payment_reference, order_total')
+            .from('orders')
+            .select('reference_code, order_total')
             .eq('raffle_id', raffleId)
-            .eq('status', 'sold')
-            .not('payment_reference', 'is', null);
+            .eq('status', 'sold');
 
           if (revenueData && revenueData.length > 0) {
-            const uniqueGroups = new Map<string, number>();
-            for (const ticket of revenueData) {
-              if (ticket.payment_reference && ticket.order_total !== null) {
-                uniqueGroups.set(ticket.payment_reference, Number(ticket.order_total));
-              }
-            }
-            stats.total_revenue = Array.from(uniqueGroups.values()).reduce((sum, val) => sum + val, 0);
+            // Each order already has unique reference_code, just sum order_totals
+            stats.total_revenue = revenueData.reduce((sum, order) => 
+              sum + (order.order_total || 0), 0
+            );
           }
 
           // Fallback: for sold tickets without order_total, use ticket_price
@@ -378,8 +374,8 @@ export const useRaffles = () => {
   // Delete raffle
   const deleteRaffle = useMutation({
     mutationFn: async (raffleId: string) => {
-      // First delete all sold tickets
-      await supabase.from('sold_tickets').delete().eq('raffle_id', raffleId);
+      // First delete all orders
+      await supabase.from('orders').delete().eq('raffle_id', raffleId);
       
       // Then delete packages
       await supabase.from('raffle_packages').delete().eq('raffle_id', raffleId);

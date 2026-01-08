@@ -56,16 +56,17 @@ export function useDrawWinner() {
         metadata,
       } = params;
 
-      // Verify ticket exists and is sold
-      const { data: ticket, error: ticketError } = await supabase
-        .from('sold_tickets')
+      // Verify ticket exists in orders and is sold
+      // ticketId in this context is the order ID
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
         .select('*')
         .eq('id', ticketId)
         .eq('status', 'sold')
-        .single();
+        .maybeSingle();
 
-      if (ticketError || !ticket) {
-        throw new Error('El boleto no existe o no está vendido');
+      if (orderError || !order) {
+        throw new Error('La orden no existe o no está vendida');
       }
 
       const winnerData: WinnerData = {

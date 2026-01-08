@@ -719,10 +719,8 @@ Deno.serve(async (req) => {
         const raffleIds = raffles?.map(r => r.id) || [];
         
         if (raffleIds.length > 0) {
-          // Delete from orders table (new)
+          // Delete from orders table
           await supabase.from('orders').delete().in('raffle_id', raffleIds);
-          // Delete from sold_tickets (legacy, for backward compatibility)
-          await supabase.from('sold_tickets').delete().in('raffle_id', raffleIds);
           await supabase.from('raffle_packages').delete().in('raffle_id', raffleIds);
           await supabase.from('raffle_draws').delete().in('raffle_id', raffleIds);
         }

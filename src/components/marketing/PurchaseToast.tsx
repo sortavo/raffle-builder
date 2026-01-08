@@ -33,14 +33,14 @@ export function PurchaseToast({ raffleId }: PurchaseToastProps) {
     return () => clearTimeout(timeout);
   }, [currentPurchase, queue]);
 
-  // Subscribe to real-time purchases
+  // Subscribe to real-time purchases from orders
   useEffect(() => {
     const channel = supabase
       .channel(`purchase-toast-${raffleId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'sold_tickets',
+        table: 'orders',
         filter: `raffle_id=eq.${raffleId}`
       }, (payload) => {
         if (payload.new.status === 'sold' && payload.old.status !== 'sold') {
@@ -48,7 +48,7 @@ export function PurchaseToast({ raffleId }: PurchaseToastProps) {
             id: payload.new.id as string,
             buyer_name: payload.new.buyer_name as string | null,
             buyer_city: payload.new.buyer_city as string | null,
-            ticket_number: payload.new.ticket_number as string,
+            ticket_number: `${payload.new.ticket_count} boleto${(payload.new.ticket_count as number) !== 1 ? 's' : ''}`,
           };
           setQueue(prev => [...prev, purchase]);
         }

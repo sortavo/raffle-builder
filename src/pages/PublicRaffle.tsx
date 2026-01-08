@@ -127,7 +127,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   // Detect if we're coming from organization route (via URL param or tenant)
   const isFromOrganization = !!effectiveOrgSlug;
 
-  // Subscribe to realtime updates on sold_tickets (virtual ticket model)
+  // Subscribe to realtime updates on orders
   useEffect(() => {
     if (!raffle?.id) return;
 
@@ -136,7 +136,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'sold_tickets',
+        table: 'orders',
         filter: `raffle_id=eq.${raffle.id}`,
       }, () => {
         queryClient.invalidateQueries({ queryKey: ['public-raffle', slug] });

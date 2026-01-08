@@ -169,10 +169,10 @@ export default function PaymentInstructions({ tenantOrgSlug, raffleSlugOverride 
       if (!raffleId || !referenceCode) return null;
       
       const { data, error } = await supabase
-        .from('sold_tickets')
+        .from('orders')
         .select('payment_proof_url')
         .eq('raffle_id', raffleId)
-        .eq('payment_reference', referenceCode)
+        .eq('reference_code', referenceCode)
         .eq('status', 'reserved')
         .not('payment_proof_url', 'is', null)
         .limit(1)
