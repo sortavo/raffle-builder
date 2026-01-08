@@ -13,45 +13,38 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
 
   if (!raffle) throw new Error('Raffle not found');
 
-  // 2. Get aggregated ticket stats using count queries (much faster than loading all)
-  const { count: soldCount } = await supabase
-    .from('sold_tickets')
-    .select('*', { count: 'exact', head: true })
+  // 2. Get aggregated ticket stats from orders table
+  const { data: soldOrdersData } = await supabase
+    .from('orders')
+    .select('ticket_count, payment_method, buyer_city, order_total')
     .eq('raffle_id', raffleId)
     .eq('status', 'sold');
 
-  const { count: reservedCount } = await supabase
-    .from('sold_tickets')
-    .select('*', { count: 'exact', head: true })
+  const { data: reservedOrdersData } = await supabase
+    .from('orders')
+    .select('ticket_count')
     .eq('raffle_id', raffleId)
     .eq('status', 'reserved');
 
-  // 3. Get payment method breakdown using aggregation
-  const { data: paymentMethodData } = await supabase
-    .from('sold_tickets')
-    .select('payment_method')
-    .eq('raffle_id', raffleId)
-    .eq('status', 'sold')
-    .not('payment_method', 'is', null);
+  const soldCount = soldOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+  const reservedCount = reservedOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
 
+  // 3. Get payment method breakdown from orders
   const paymentMethods: Record<string, number> = {};
-  paymentMethodData?.forEach(t => {
-    const method = t.payment_method || 'No especificado';
-    paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+  soldOrdersData?.forEach(o => {
+    if (o.payment_method) {
+      const method = o.payment_method;
+      paymentMethods[method] = (paymentMethods[method] || 0) + (o.ticket_count || 0);
+    }
   });
 
-  // 4. Get city breakdown
-  const { data: cityData } = await supabase
-    .from('sold_tickets')
-    .select('buyer_city')
-    .eq('raffle_id', raffleId)
-    .eq('status', 'sold')
-    .not('buyer_city', 'is', null);
-
+  // 4. Get city breakdown from orders
   const cities: Record<string, number> = {};
-  cityData?.forEach(t => {
-    const city = t.buyer_city || 'No especificado';
-    cities[city] = (cities[city] || 0) + 1;
+  soldOrdersData?.forEach(o => {
+    if (o.buyer_city) {
+      const city = o.buyer_city;
+      cities[city] = (cities[city] || 0) + (o.ticket_count || 0);
+    }
   });
 
   // 5. Get top buyers using the paginated function (already aggregated)

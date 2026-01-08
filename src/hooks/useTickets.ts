@@ -1,9 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Tables } from '@/integrations/supabase/types';
-
-type Ticket = Tables<'sold_tickets'>;
 
 export interface TicketFilters {
   status?: string;
@@ -24,7 +21,7 @@ export const useTickets = (raffleId: string | undefined) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get tickets with pagination and filters
+  // Get tickets with pagination and filters - uses orders table
   const useTicketsList = (filters?: TicketFilters) => {
     const page = filters?.page || 1;
     const pageSize = filters?.pageSize || 100;
@@ -34,31 +31,33 @@ export const useTickets = (raffleId: string | undefined) => {
       queryFn: async () => {
         if (!raffleId) return { tickets: [], count: 0 };
 
+        // Query orders instead of sold_tickets
         let query = supabase
-          .from('sold_tickets')
+          .from('orders')
           .select('*', { count: 'exact' })
           .eq('raffle_id', raffleId)
-          .order('ticket_number', { ascending: true })
+          .order('created_at', { ascending: false })
           .range((page - 1) * pageSize, page * pageSize - 1);
 
         if (filters?.status && filters.status !== 'all') {
-          query = query.eq('status', filters.status as 'available' | 'reserved' | 'sold' | 'canceled');
+          query = query.eq('status', filters.status);
         }
 
         if (filters?.search) {
-          query = query.ilike('ticket_number', `%${filters.search}%`);
+          // Search in reference_code or buyer info
+          query = query.or(`reference_code.ilike.%${filters.search}%,buyer_name.ilike.%${filters.search}%,buyer_email.ilike.%${filters.search}%`);
         }
 
         const { data, error, count } = await query;
 
         if (error) throw error;
-        return { tickets: data as Ticket[], count: count || 0 };
+        return { tickets: data || [], count: count || 0 };
       },
       enabled: !!raffleId,
     });
   };
 
-  // Get ticket stats using virtual tickets RPC (correct for virtual model)
+  // Get ticket stats using virtual tickets RPC
   const useTicketStats = () => {
     return useQuery({
       queryKey: ['ticket-stats', raffleId],
@@ -67,12 +66,12 @@ export const useTickets = (raffleId: string | undefined) => {
           return { available: 0, reserved: 0, sold: 0, canceled: 0, total: 0 };
         }
 
-        // Use virtual ticket counts RPC - this correctly calculates available from total
+        // Use virtual ticket counts RPC
         const [countsRes, canceledRes] = await Promise.all([
           supabase.rpc('get_virtual_ticket_counts', { p_raffle_id: raffleId }),
           supabase
-            .from('sold_tickets')
-            .select('*', { count: 'exact', head: true })
+            .from('orders')
+            .select('ticket_count')
             .eq('raffle_id', raffleId)
             .eq('status', 'canceled'),
         ]);
@@ -80,12 +79,13 @@ export const useTickets = (raffleId: string | undefined) => {
         if (countsRes.error) throw countsRes.error;
         
         const counts = countsRes.data?.[0];
+        const canceledCount = canceledRes.data?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
 
         return {
           available: counts?.available_count || 0,
           reserved: counts?.reserved_count || 0,
           sold: counts?.sold_count || 0,
-          canceled: canceledRes.count || 0,
+          canceled: canceledCount,
           total: counts?.total_count || 0,
         };
       },
@@ -93,11 +93,12 @@ export const useTickets = (raffleId: string | undefined) => {
     });
   };
 
-  // Approve ticket and send notification email + Telegram
+  // Approve order and send notification email + Telegram
   const approveTicket = useMutation({
     mutationFn: async ({ ticketId, raffleTitle, raffleSlug, organizationId }: { ticketId: string; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
+      // ticketId here is actually the order ID
       const { data, error } = await supabase
-        .from('sold_tickets')
+        .from('orders')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
@@ -112,15 +113,19 @@ export const useTickets = (raffleId: string | undefined) => {
       // Send notification email (non-blocking)
       if (data?.buyer_email && raffleTitle) {
         const baseUrl = window.location.origin;
+        
+        // Generate ticket numbers from ranges
+        const ticketNumbers = expandOrderToTicketNumbers(data.ticket_ranges, data.lucky_indices);
+        
         supabase.functions.invoke('send-email', {
           body: {
             to: data.buyer_email,
             template: 'approved_bulk',
             data: {
               buyer_name: data.buyer_name || 'Participante',
-              ticket_numbers: [data.ticket_number],
+              ticket_numbers: ticketNumbers,
               raffle_title: raffleTitle,
-              reference_code: data.payment_reference,
+              reference_code: data.reference_code,
               raffle_url: `${baseUrl}/r/${raffleSlug}`,
               my_tickets_url: `${baseUrl}/my-tickets`,
             },
@@ -134,7 +139,7 @@ export const useTickets = (raffleId: string | undefined) => {
             buyerEmail: data.buyer_email,
             data: {
               raffleName: raffleTitle,
-              ticketNumbers: [data.ticket_number],
+              ticketNumbers,
             },
           },
         }).catch(console.error);
@@ -147,7 +152,7 @@ export const useTickets = (raffleId: string | undefined) => {
               organizationId,
               data: {
                 buyerName: data.buyer_name,
-                ticketNumbers: [data.ticket_number],
+                ticketNumbers,
               },
             },
           }).catch(console.error);
@@ -159,43 +164,31 @@ export const useTickets = (raffleId: string | undefined) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: 'Boleto aprobado', description: 'Se envió email de confirmación al comprador' });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
+      toast({ title: 'Orden aprobada', description: 'Se envió email de confirmación al comprador' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
-  // Reject ticket (return to available)
+  // Reject order (delete from orders, tickets become available again)
   const rejectTicket = useMutation({
     mutationFn: async (ticketId: string) => {
-      const { data, error } = await supabase
-        .from('sold_tickets')
-        .update({
-          status: 'available',
-          buyer_id: null,
-          buyer_name: null,
-          buyer_email: null,
-          buyer_phone: null,
-          buyer_city: null,
-          payment_proof_url: null,
-          payment_reference: null,
-          payment_method: null,
-          reserved_at: null,
-          reserved_until: null,
-          canceled_at: new Date().toISOString(),
-        })
-        .eq('id', ticketId)
-        .select()
-        .single();
+      // Simply delete the order - tickets become available again in virtual model
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', ticketId);
 
       if (error) throw error;
-      return data;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: 'Boleto rechazado y liberado' });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
+      toast({ title: 'Orden rechazada y boletos liberados' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -209,7 +202,7 @@ export const useTickets = (raffleId: string | undefined) => {
       newExpiry.setMinutes(newExpiry.getMinutes() + minutes);
 
       const { data, error } = await supabase
-        .from('sold_tickets')
+        .from('orders')
         .update({ reserved_until: newExpiry.toISOString() })
         .eq('id', ticketId)
         .select()
@@ -220,6 +213,7 @@ export const useTickets = (raffleId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
       toast({ title: 'Reservación extendida' });
     },
     onError: (error) => {
@@ -227,11 +221,11 @@ export const useTickets = (raffleId: string | undefined) => {
     },
   });
 
-  // Bulk approve tickets and send notification email + Telegram
+  // Bulk approve orders
   const bulkApprove = useMutation({
     mutationFn: async ({ ticketIds, raffleTitle, raffleSlug, organizationId }: { ticketIds: string[]; raffleTitle?: string; raffleSlug?: string; organizationId?: string }) => {
       const { data, error } = await supabase
-        .from('sold_tickets')
+        .from('orders')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
@@ -242,25 +236,26 @@ export const useTickets = (raffleId: string | undefined) => {
 
       if (error) throw error;
       
-      // Group tickets by buyer email and send notifications
+      // Group orders by buyer email and send notifications
       if (data && raffleTitle) {
         const baseUrl = window.location.origin;
-        const ticketsByEmail = data.reduce((acc, ticket) => {
-          if (ticket.buyer_email) {
-            if (!acc[ticket.buyer_email]) {
-              acc[ticket.buyer_email] = {
-                buyer_name: ticket.buyer_name,
-                ticket_numbers: [],
-                reference_code: ticket.payment_reference,
+        const ordersByEmail = data.reduce((acc, order) => {
+          if (order.buyer_email) {
+            if (!acc[order.buyer_email]) {
+              acc[order.buyer_email] = {
+                buyer_name: order.buyer_name,
+                ticket_numbers: [] as string[],
+                reference_code: order.reference_code,
               };
             }
-            acc[ticket.buyer_email].ticket_numbers.push(ticket.ticket_number);
+            const ticketNums = expandOrderToTicketNumbers(order.ticket_ranges, order.lucky_indices);
+            acc[order.buyer_email].ticket_numbers.push(...ticketNums);
           }
           return acc;
         }, {} as Record<string, { buyer_name: string | null; ticket_numbers: string[]; reference_code: string | null }>);
         
         // Send email and Telegram to each buyer (non-blocking)
-        Object.entries(ticketsByEmail).forEach(([email, info]) => {
+        Object.entries(ordersByEmail).forEach(([email, info]) => {
           supabase.functions.invoke('send-email', {
             body: {
               to: email,
@@ -276,7 +271,6 @@ export const useTickets = (raffleId: string | undefined) => {
             },
           }).catch(console.error);
 
-          // Telegram notification to buyer
           supabase.functions.invoke('telegram-notify', {
             body: {
               type: 'buyer_payment_approved',
@@ -291,13 +285,14 @@ export const useTickets = (raffleId: string | undefined) => {
 
         // Notify organizer via Telegram (non-blocking)
         if (organizationId) {
+          const allTickets = data.flatMap(o => expandOrderToTicketNumbers(o.ticket_ranges, o.lucky_indices));
           supabase.functions.invoke('telegram-notify', {
             body: {
               type: 'payment_approved',
               organizationId,
               data: {
                 buyerName: 'Múltiples compradores',
-                ticketNumbers: data.map(t => t.ticket_number),
+                ticketNumbers: allTickets,
               },
             },
           }).catch(console.error);
@@ -309,24 +304,25 @@ export const useTickets = (raffleId: string | undefined) => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: `${data?.length} boletos aprobados`, description: 'Se enviaron emails de confirmación' });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
+      toast({ title: `${data?.length} órdenes aprobadas`, description: 'Se enviaron emails de confirmación' });
     },
   });
 
-  // Approve all tickets by reference code and send notification email
+  // Approve all orders by reference code
   const approveByReference = useMutation({
     mutationFn: async ({ referenceCode, raffleTitle, raffleSlug }: { referenceCode: string; raffleTitle?: string; raffleSlug?: string }) => {
       if (!raffleId) throw new Error('Raffle ID required');
       
       const { data, error } = await supabase
-        .from('sold_tickets')
+        .from('orders')
         .update({
           status: 'sold',
           approved_at: new Date().toISOString(),
           sold_at: new Date().toISOString(),
         })
         .eq('raffle_id', raffleId)
-        .eq('payment_reference', referenceCode)
+        .eq('reference_code', referenceCode)
         .eq('status', 'reserved')
         .select();
 
@@ -335,13 +331,15 @@ export const useTickets = (raffleId: string | undefined) => {
       // Send notification email (non-blocking)
       if (data && data.length > 0 && data[0].buyer_email && raffleTitle) {
         const baseUrl = window.location.origin;
+        const allTickets = data.flatMap(o => expandOrderToTicketNumbers(o.ticket_ranges, o.lucky_indices));
+        
         supabase.functions.invoke('send-email', {
           body: {
             to: data[0].buyer_email,
             template: 'approved_bulk',
             data: {
               buyer_name: data[0].buyer_name || 'Participante',
-              ticket_numbers: data.map(t => t.ticket_number),
+              ticket_numbers: allTickets,
               raffle_title: raffleTitle,
               reference_code: referenceCode,
               raffle_url: `${baseUrl}/r/${raffleSlug}`,
@@ -356,42 +354,31 @@ export const useTickets = (raffleId: string | undefined) => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: `${data?.length} boletos aprobados`, description: 'Se envió email de confirmación al comprador' });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
+      toast({ title: `${data?.length} órdenes aprobadas`, description: 'Se envió email de confirmación al comprador' });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
-  // Bulk reject tickets
+  // Bulk reject orders
   const bulkReject = useMutation({
     mutationFn: async (ticketIds: string[]) => {
-      const { data, error } = await supabase
-        .from('sold_tickets')
-        .update({
-          status: 'available',
-          buyer_id: null,
-          buyer_name: null,
-          buyer_email: null,
-          buyer_phone: null,
-          buyer_city: null,
-          payment_proof_url: null,
-          payment_reference: null,
-          payment_method: null,
-          reserved_at: null,
-          reserved_until: null,
-          canceled_at: new Date().toISOString(),
-        })
-        .in('id', ticketIds)
-        .select();
+      // Delete orders to release tickets
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', ticketIds);
 
       if (error) throw error;
-      return data;
+      return { count: ticketIds.length };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] });
       queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] });
-      toast({ title: `${data?.length} boletos rechazados` });
+      queryClient.invalidateQueries({ queryKey: ['orders', raffleId] });
+      toast({ title: `${data?.count} órdenes rechazadas` });
     },
   });
 
@@ -406,3 +393,25 @@ export const useTickets = (raffleId: string | undefined) => {
     approveByReference,
   };
 };
+
+// Helper to expand order ranges to ticket numbers (for display/notifications)
+function expandOrderToTicketNumbers(ticketRanges: any, luckyIndices?: number[]): string[] {
+  const numbers: string[] = [];
+  const ranges = ticketRanges as Array<{ s: number; e: number }> || [];
+  
+  for (const range of ranges) {
+    for (let i = range.s; i <= range.e; i++) {
+      numbers.push(String(i + 1)); // 0-indexed to 1-indexed
+    }
+  }
+  
+  if (luckyIndices) {
+    for (const idx of luckyIndices) {
+      if (!numbers.includes(String(idx + 1))) {
+        numbers.push(String(idx + 1));
+      }
+    }
+  }
+  
+  return numbers.sort((a, b) => Number(a) - Number(b));
+}

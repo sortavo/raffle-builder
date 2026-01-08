@@ -87,29 +87,34 @@ export function useAdminOverviewStats(dateRange: DateRange | undefined) {
       const fromDate = dateRange?.from?.toISOString() || new Date(0).toISOString();
       const toDate = dateRange?.to?.toISOString() || new Date().toISOString();
 
+      // Query orders table instead of sold_tickets for ticket counts
       const [
         { count: totalOrgs },
         { count: totalUsers },
         { count: totalRaffles },
         { count: activeRaffles },
-        { count: totalTicketsSold },
+        { data: soldOrdersData },
         { count: newOrgsInPeriod },
         { count: newUsersInPeriod },
         { count: newRafflesInPeriod },
-        { count: ticketsSoldInPeriod },
+        { data: soldInPeriodData },
         { data: subscriptionData },
       ] = await Promise.all([
         supabase.from("organizations").select("*", { count: "exact", head: true }),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("raffles").select("*", { count: "exact", head: true }),
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold"),
+        supabase.from("orders").select("ticket_count").eq("status", "sold"),
         supabase.from("organizations").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
         supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
         supabase.from("raffles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
-        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
+        supabase.from("orders").select("ticket_count").eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
         supabase.from("organizations").select("subscription_tier, subscription_status"),
       ]);
+
+      // Sum ticket_count from orders
+      const totalTicketsSold = soldOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+      const ticketsSoldInPeriod = soldInPeriodData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
 
       const subscriptionStats = { basic: 0, pro: 0, premium: 0, trial: 0, active: 0 };
       subscriptionData?.forEach((org) => {
@@ -188,20 +193,21 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
       const fromDate = dateRange?.from?.toISOString() || new Date(0).toISOString();
       const toDate = dateRange?.to?.toISOString() || new Date().toISOString();
 
+      // Query orders table instead of sold_tickets
       const [
         { count: activeRaffles },
         { count: completedRaffles },
-        { count: ticketsSold },
-        { count: ticketsReserved },
-        { count: pendingApprovals },
+        { data: soldOrdersData },
+        { data: reservedOrdersData },
+        { data: pendingOrdersData },
         { data: recentEvents },
         { data: rafflesData },
       ] = await Promise.all([
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "completed"),
-        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
-        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "reserved"),
-        supabase.from("sold_tickets").select("*", { count: "exact", head: true }).eq("status", "reserved").not("buyer_name", "is", null),
+        supabase.from("orders").select("ticket_count").eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
+        supabase.from("orders").select("ticket_count").eq("status", "reserved"),
+        supabase.from("orders").select("ticket_count").eq("status", "reserved").not("buyer_name", "is", null),
         supabase.from("analytics_events").select("id, event_type, metadata, created_at").gte("created_at", fromDate).lte("created_at", toDate).order("created_at", { ascending: false }).limit(20),
         supabase.from("raffles").select(`
           id, title, total_tickets, organization_id,
@@ -209,21 +215,28 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
         `).eq("status", "active").limit(10),
       ]);
 
-      // Get ticket counts for each raffle
+      // Sum ticket_count from orders
+      const ticketsSold = soldOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+      const ticketsReserved = reservedOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+      const pendingApprovals = pendingOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+
+      // Get ticket counts for each raffle from orders
       const topRaffles: AdminActivityStats["topRaffles"] = [];
       if (rafflesData) {
         for (const raffle of rafflesData) {
-          const { count } = await supabase
-            .from("sold_tickets")
-            .select("*", { count: "exact", head: true })
+          const { data: raffleSoldData } = await supabase
+            .from("orders")
+            .select("ticket_count")
             .eq("raffle_id", raffle.id)
             .eq("status", "sold");
+
+          const soldCount = raffleSoldData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
 
           topRaffles.push({
             id: raffle.id,
             title: raffle.title,
             organization_name: (raffle.organizations as any)?.name || "Sin organización",
-            tickets_sold: count || 0,
+            tickets_sold: soldCount,
             total_tickets: raffle.total_tickets,
           });
         }

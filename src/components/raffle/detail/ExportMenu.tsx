@@ -41,13 +41,14 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        // Get ticket count
-        const { count: tickets } = await supabase
-          .from('sold_tickets')
-          .select('*', { count: 'exact', head: true })
+        // Get ticket count from orders table
+        const { data: ordersData } = await supabase
+          .from('orders')
+          .select('ticket_count')
           .eq('raffle_id', raffleId);
         
-        setTicketCount(tickets || 0);
+        const tickets = ordersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+        setTicketCount(tickets);
 
         // Get buyer count (approximated via paginated function)
         const { data: buyersData } = await supabase.rpc('get_buyers_paginated', {

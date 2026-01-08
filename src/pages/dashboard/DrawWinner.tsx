@@ -51,6 +51,42 @@ interface Ticket {
   status: string | null;
 }
 
+// Helper to expand orders to tickets
+function expandOrdersToTickets(orders: any[]): Ticket[] {
+  const tickets: Ticket[] = [];
+  for (const order of orders) {
+    const ranges = order.ticket_ranges as Array<{ s: number; e: number }> || [];
+    for (const range of ranges) {
+      for (let i = range.s; i <= range.e; i++) {
+        tickets.push({
+          id: order.id,
+          ticket_number: String(i + 1),
+          buyer_name: order.buyer_name,
+          buyer_email: order.buyer_email,
+          buyer_phone: order.buyer_phone,
+          buyer_city: order.buyer_city,
+          status: order.status,
+        });
+      }
+    }
+    const lucky = order.lucky_indices as number[] || [];
+    for (const idx of lucky) {
+      if (!tickets.some(t => t.ticket_number === String(idx + 1))) {
+        tickets.push({
+          id: order.id,
+          ticket_number: String(idx + 1),
+          buyer_name: order.buyer_name,
+          buyer_email: order.buyer_email,
+          buyer_phone: order.buyer_phone,
+          buyer_city: order.buyer_city,
+          status: order.status,
+        });
+      }
+    }
+  }
+  return tickets;
+}
+
 export default function DrawWinner() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,7 +96,8 @@ export default function DrawWinner() {
   const { data: raffle, isLoading } = useRaffleById(id);
   const { useTicketsList } = useTickets(id);
   const { data: ticketsData } = useTicketsList({ status: 'sold', pageSize: 1000 });
-  const allTickets = ticketsData?.tickets || [];
+  const rawOrders = ticketsData?.tickets || [];
+  const allTickets = expandOrdersToTickets(rawOrders);
   const { selectWinner, notifyWinner, publishResult, generateRandomNumber, drawRandomWinner } = useDrawWinner();
   
   // Pre-draw system

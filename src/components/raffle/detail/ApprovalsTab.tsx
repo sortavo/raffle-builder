@@ -93,34 +93,55 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
   const orderGroups = useMemo(() => {
     const groups: Record<string, OrderGroup> = {};
     
-    reservedTickets.forEach(ticket => {
-      const refCode = ticket.payment_reference || `no-ref-${ticket.id}`;
+    // reservedTickets now comes from orders table
+    reservedTickets.forEach(order => {
+      const refCode = order.reference_code || `no-ref-${order.id}`;
+      
+      // Generate ticket numbers from ranges for display
+      const ranges = order.ticket_ranges as Array<{ s: number; e: number }> || [];
+      const ticketNumbers: string[] = [];
+      for (const range of ranges) {
+        for (let i = range.s; i <= range.e; i++) {
+          ticketNumbers.push(String(i + 1));
+        }
+      }
+      const lucky = order.lucky_indices as number[] || [];
+      for (const idx of lucky) {
+        if (!ticketNumbers.includes(String(idx + 1))) {
+          ticketNumbers.push(String(idx + 1));
+        }
+      }
+      ticketNumbers.sort((a, b) => Number(a) - Number(b));
       
       if (!groups[refCode]) {
         groups[refCode] = {
-          referenceCode: ticket.payment_reference || 'Sin código',
-          buyerName: ticket.buyer_name,
-          buyerPhone: ticket.buyer_phone,
-          buyerEmail: ticket.buyer_email,
+          referenceCode: order.reference_code || 'Sin código',
+          buyerName: order.buyer_name,
+          buyerPhone: order.buyer_phone,
+          buyerEmail: order.buyer_email,
           tickets: [],
-          reservedUntil: ticket.reserved_until,
-          hasProof: !!ticket.payment_proof_url,
-          proofUrl: ticket.payment_proof_url,
-          orderTotal: ticket.order_total ?? null,
+          reservedUntil: order.reserved_until,
+          hasProof: !!order.payment_proof_url,
+          proofUrl: order.payment_proof_url,
+          orderTotal: order.order_total ?? null,
         };
       }
       
-      groups[refCode].tickets.push(ticket);
+      // Add order with its ticket numbers
+      groups[refCode].tickets.push({
+        ...order,
+        ticket_numbers: ticketNumbers,
+        ticket_number: ticketNumbers[0] || String(order.ticket_count),
+      });
       
-      // Update proof status if any ticket has proof
-      if (ticket.payment_proof_url) {
+      // Update proof status
+      if (order.payment_proof_url) {
         groups[refCode].hasProof = true;
-        groups[refCode].proofUrl = ticket.payment_proof_url;
+        groups[refCode].proofUrl = order.payment_proof_url;
       }
       
-      // Capture order_total from any ticket if not already set
-      if (ticket.order_total && !groups[refCode].orderTotal) {
-        groups[refCode].orderTotal = ticket.order_total;
+      if (order.order_total && !groups[refCode].orderTotal) {
+        groups[refCode].orderTotal = order.order_total;
       }
     });
     

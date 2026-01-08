@@ -79,7 +79,7 @@ export const useBuyers = (raffleId: string | undefined) => {
     });
   };
 
-  // Get unique cities for filter
+  // Get unique cities for filter - uses orders table
   const useCities = () => {
     return useQuery({
       queryKey: ['buyer-cities', raffleId],
@@ -87,14 +87,14 @@ export const useBuyers = (raffleId: string | undefined) => {
         if (!raffleId) return [];
 
         const { data, error } = await supabase
-          .from('sold_tickets')
+          .from('orders')
           .select('buyer_city')
           .eq('raffle_id', raffleId)
           .not('buyer_city', 'is', null);
 
         if (error) throw error;
 
-        const cities = [...new Set(data?.map(t => t.buyer_city).filter(Boolean))];
+        const cities = [...new Set(data?.map(o => o.buyer_city).filter(Boolean))];
         return cities as string[];
       },
       enabled: !!raffleId,

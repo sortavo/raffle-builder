@@ -35,11 +35,16 @@ export function useTicketVerification(ticketId: string | undefined) {
     queryFn: async (): Promise<VerifiedTicket | null> => {
       if (!ticketId) return null;
 
-      const { data: ticket, error } = await supabase
-        .from('sold_tickets')
+      // Query orders table instead of sold_tickets
+      // ticketId could be an order ID or we need to search by ticket number
+      const { data: order, error } = await supabase
+        .from('orders')
         .select(`
           id,
-          ticket_number,
+          reference_code,
+          ticket_ranges,
+          lucky_indices,
+          ticket_count,
           status,
           buyer_name,
           buyer_email,
@@ -58,6 +63,8 @@ export function useTicketVerification(ticketId: string | undefined) {
             status,
             winner_ticket_number,
             winner_announced,
+            numbering_config,
+            total_tickets,
             organizations (
               name,
               logo_url
@@ -68,19 +75,24 @@ export function useTicketVerification(ticketId: string | undefined) {
         .maybeSingle();
 
       if (error) throw error;
-      if (!ticket) return null;
+      if (!order) return null;
 
-      const raffle = ticket.raffles as any;
+      const raffle = order.raffles as any;
+      
+      // Generate first ticket number from the order ranges
+      const ranges = order.ticket_ranges as Array<{ s: number; e: number }> || [];
+      const firstIndex = ranges.length > 0 ? ranges[0].s : 0;
+      const ticketNumber = String(firstIndex + 1); // 0-indexed to 1-indexed
       
       return {
-        id: ticket.id,
-        ticket_number: ticket.ticket_number,
-        status: ticket.status || 'available',
-        buyer_name: ticket.buyer_name,
-        buyer_email: ticket.buyer_email,
-        reserved_at: ticket.reserved_at,
-        sold_at: ticket.sold_at,
-        approved_at: ticket.approved_at,
+        id: order.id,
+        ticket_number: ticketNumber,
+        status: order.status || 'reserved',
+        buyer_name: order.buyer_name,
+        buyer_email: order.buyer_email,
+        reserved_at: order.reserved_at,
+        sold_at: order.sold_at,
+        approved_at: order.approved_at,
         raffle: {
           id: raffle.id,
           title: raffle.title,

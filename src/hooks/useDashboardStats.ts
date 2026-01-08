@@ -45,10 +45,10 @@ export function useDashboardStats() {
         {
           event: '*',
           schema: 'public',
-          table: 'sold_tickets'
+          table: 'orders'
         },
         () => {
-          // Invalidate and refetch dashboard stats when tickets change
+          // Invalidate and refetch dashboard stats when orders change
           queryClient.invalidateQueries({ queryKey: ["dashboard-stats", organization.id] });
         }
       )

@@ -57,7 +57,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
   const startDate = dateRange?.from || defaultFrom;
   const endDate = dateRange?.to || now;
 
-  // Real-time subscription for sold_tickets table
+  // Real-time subscription for orders table
   useEffect(() => {
     if (!organization?.id) return;
 
@@ -68,7 +68,7 @@ export function useDashboardCharts(dateRange?: DateRange) {
         {
           event: '*',
           schema: 'public',
-          table: 'sold_tickets'
+          table: 'orders'
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ["dashboard-charts", organization.id] });

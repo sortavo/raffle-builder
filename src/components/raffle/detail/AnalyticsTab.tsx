@@ -63,15 +63,15 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
   const limits = getSubscriptionLimits(organization?.subscription_tier as SubscriptionTier);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
 
-  // Fetch sold tickets for analytics
-  const { data: soldTickets = [], isLoading } = useQuery({
-    queryKey: ['analytics-tickets', raffle.id, timeRange],
+  // Fetch sold orders for analytics
+  const { data: soldOrders = [], isLoading } = useQuery({
+    queryKey: ['analytics-orders', raffle.id, timeRange],
     queryFn: async () => {
       const { start } = getTimeRangeDates(timeRange);
       
       let query = supabase
-        .from('sold_tickets')
-        .select('*')
+        .from('orders')
+        .select('id, buyer_email, buyer_city, sold_at, ticket_count, order_total, payment_method')
         .eq('raffle_id', raffle.id)
         .eq('status', 'sold')
         .order('sold_at', { ascending: true });
@@ -82,10 +82,26 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      // Transform orders to ticket-like objects for analytics helpers
+      // Each order represents multiple tickets
+      const expandedData: any[] = [];
+      for (const order of data || []) {
+        for (let i = 0; i < (order.ticket_count || 1); i++) {
+          expandedData.push({
+            buyer_email: order.buyer_email,
+            buyer_city: order.buyer_city,
+            sold_at: order.sold_at,
+          });
+        }
+      }
+      return expandedData;
     },
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
+
+  // Alias for compatibility
+  const soldTickets = soldOrders;
 
   // Calculate unique buyers
   const uniqueBuyers = useMemo(() => {

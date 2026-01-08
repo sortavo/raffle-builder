@@ -10,7 +10,7 @@ interface Purchase {
   id: string;
   buyer_name: string | null;
   buyer_city: string | null;
-  ticket_number: string;
+  ticket_count: number;
   sold_at: string;
 }
 
@@ -27,9 +27,10 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
 
   useEffect(() => {
     const fetchRecent = async () => {
+      // Query orders instead of sold_tickets
       const { data, error } = await supabase
-        .from('sold_tickets')
-        .select('id, buyer_name, buyer_city, ticket_number, sold_at')
+        .from('orders')
+        .select('id, buyer_name, buyer_city, ticket_count, sold_at')
         .eq('raffle_id', raffleId)
         .eq('status', 'sold')
         .not('sold_at', 'is', null)
@@ -44,13 +45,13 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
 
     fetchRecent();
 
-    // Subscribe to new purchases
+    // Subscribe to new purchases - listen to orders table
     const channel = supabase
       .channel(`purchases-${raffleId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
-        table: 'sold_tickets',
+        table: 'orders',
         filter: `raffle_id=eq.${raffleId}`
       }, (payload) => {
         if (payload.new.status === 'sold') {
@@ -58,7 +59,7 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
             id: payload.new.id as string,
             buyer_name: payload.new.buyer_name as string | null,
             buyer_city: payload.new.buyer_city as string | null,
-            ticket_number: payload.new.ticket_number as string,
+            ticket_count: payload.new.ticket_count as number,
             sold_at: payload.new.sold_at as string
           }, ...prev].slice(0, 10));
         }
@@ -122,7 +123,7 @@ export function SocialProof({ raffleId, className, primaryColor = '#10b981', isL
                   "flex items-center gap-2 text-sm",
                   isLightTemplate ? "text-gray-500" : "text-white/60"
                 )}>
-                  <span>Boleto #{purchase.ticket_number}</span>
+                  <span>{purchase.ticket_count} boleto{purchase.ticket_count !== 1 && 's'}</span>
                   {purchase.buyer_city && (
                     <>
                       <span>•</span>

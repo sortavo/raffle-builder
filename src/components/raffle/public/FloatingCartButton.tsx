@@ -46,20 +46,38 @@ export function FloatingCartButton({
       return;
     }
 
-    // Check availability before proceeding
+    // Check availability before proceeding - query orders table
     setIsChecking(true);
     try {
-      const { data: takenTickets, error } = await supabase
-        .from('sold_tickets')
-        .select('ticket_number')
+      // Get all orders for this raffle and check if any selected tickets are taken
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('ticket_ranges, lucky_indices')
         .eq('raffle_id', raffleId)
-        .in('ticket_number', selectedTickets)
-        .neq('status', 'available')
-        .neq('status', 'canceled');
+        .in('status', ['reserved', 'sold']);
 
       if (error) throw error;
 
-      const unavailable = takenTickets?.map(t => t.ticket_number) || [];
+      // Expand orders to get all taken ticket indices
+      const takenIndices = new Set<number>();
+      for (const order of orders || []) {
+        const ranges = order.ticket_ranges as Array<{ s: number; e: number }> || [];
+        for (const range of ranges) {
+          for (let i = range.s; i <= range.e; i++) {
+            takenIndices.add(i);
+          }
+        }
+        const lucky = order.lucky_indices as number[] || [];
+        for (const idx of lucky) {
+          takenIndices.add(idx);
+        }
+      }
+
+      // Check if any selected tickets (as numbers) are taken
+      const unavailable = selectedTickets.filter(t => {
+        const idx = parseInt(t, 10) - 1; // Convert 1-indexed to 0-indexed
+        return takenIndices.has(idx);
+      });
       
       if (unavailable.length > 0) {
         toast.error(`Boletos no disponibles: ${unavailable.join(', ')}`, {

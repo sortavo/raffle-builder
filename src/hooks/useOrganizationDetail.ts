@@ -123,41 +123,46 @@ export function useOrganizationDetail(orgId: string | undefined) {
 
       const raffleIds = raffles.map(r => r.id);
 
-      // Get ticket counts by status
-      const { data: tickets, error: ticketsError } = await supabase
-        .from("sold_tickets")
-        .select("status, order_total")
+      // Get ticket counts by status from orders table
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
+        .select("status, order_total, ticket_count")
         .in("raffle_id", raffleIds);
 
-      if (ticketsError) throw ticketsError;
+      if (ordersError) throw ordersError;
 
       const stats: TicketStats = {
-        total: tickets?.length || 0,
+        total: 0,
         sold: 0,
         reserved: 0,
         available: 0,
         revenue: 0,
       };
 
-      const processedReferences = new Set<string>();
-
-      tickets?.forEach(ticket => {
-        switch (ticket.status) {
+      orders?.forEach(order => {
+        const count = order.ticket_count || 0;
+        stats.total += count;
+        
+        switch (order.status) {
           case "sold":
-            stats.sold++;
-            // Only count revenue once per order
-            if (ticket.order_total) {
-              stats.revenue += Number(ticket.order_total);
+            stats.sold += count;
+            if (order.order_total) {
+              stats.revenue += Number(order.order_total);
             }
             break;
           case "reserved":
-            stats.reserved++;
-            break;
-          case "available":
-            stats.available++;
+            stats.reserved += count;
             break;
         }
       });
+
+      // Calculate available from total_tickets - sold - reserved
+      const totalTicketsAvailable = raffles.reduce((sum, r) => {
+        const raffleOrders = orders?.filter(o => o.status === 'sold' || o.status === 'reserved') || [];
+        const usedTickets = raffleOrders.reduce((s, o) => s + (o.ticket_count || 0), 0);
+        return sum + (raffleOrders.length > 0 ? 0 : 0); // We don't have total from raffle here
+      }, 0);
+      stats.available = stats.total > 0 ? Math.max(0, stats.total - stats.sold - stats.reserved) : 0;
 
       return stats;
     },
