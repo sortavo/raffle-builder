@@ -157,8 +157,9 @@ export function CheckoutModal({
   // Fetch payment methods for the organization
   const { data: paymentMethods, isLoading: isLoadingPaymentMethods } = usePublicPaymentMethods(raffle.organization?.id);
   
-  // LocalStorage key for auto-save
+  // LocalStorage keys for auto-save
   const STORAGE_KEY = `checkout_draft_${raffle.id}`;
+  const BUYER_PROFILE_KEY = 'sortavo_buyer_profile';
   const { sendReservationEmail } = useEmails();
   const { trackBeginCheckout, trackPurchase } = useTrackingEvents();
   const form = useForm<CheckoutFormData>({
@@ -172,22 +173,41 @@ export function CheckoutModal({
     },
   });
 
-  // Load saved form data from localStorage
+  // Load saved form data from localStorage (prioritize draft, then global profile)
   useEffect(() => {
     if (open) {
       try {
-        const savedData = localStorage.getItem(STORAGE_KEY);
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
+        // Priority 1: Draft for this specific raffle (interrupted session)
+        const savedDraft = localStorage.getItem(STORAGE_KEY);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
           if (parsed.name || parsed.email || parsed.phone || parsed.city) {
             form.reset({
               name: parsed.name || '',
               email: parsed.email || '',
               phone: parsed.phone || '',
               city: parsed.city || '',
-              acceptTerms: false, // Always require re-acceptance
+              acceptTerms: false,
             });
-            toast.info('Recuperamos tus datos anteriores');
+            toast.info('Recuperamos tu borrador anterior');
+            return;
+          }
+        }
+        
+        // Priority 2: Global buyer profile (returning customer)
+        const buyerProfile = localStorage.getItem(BUYER_PROFILE_KEY);
+        if (buyerProfile) {
+          const parsed = JSON.parse(buyerProfile);
+          if (parsed.name || parsed.email) {
+            form.reset({
+              name: parsed.name || '',
+              email: parsed.email || '',
+              phone: parsed.phone || '',
+              city: parsed.city || '',
+              acceptTerms: false,
+            });
+            const firstName = parsed.name?.split(' ')[0] || '';
+            toast.info(`¡Bienvenido de vuelta${firstName ? ', ' + firstName : ''}!`);
           }
         }
       } catch (e) {
@@ -264,14 +284,26 @@ export function CheckoutModal({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Clear saved data on successful reservation
-  const clearSavedFormData = useCallback(() => {
+  // Save buyer profile globally and clear draft on successful reservation
+  const saveBuyerProfileAndClearDraft = useCallback(() => {
     try {
+      const values = form.getValues();
+      
+      // Save to global buyer profile for future purchases
+      localStorage.setItem(BUYER_PROFILE_KEY, JSON.stringify({
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        city: values.city,
+        lastPurchase: new Date().toISOString(),
+      }));
+      
+      // Clear the draft for this specific raffle
       localStorage.removeItem(STORAGE_KEY);
     } catch (e) {
-      console.error('Error clearing saved checkout data:', e);
+      console.error('Error saving buyer profile:', e);
     }
-  }, [STORAGE_KEY]);
+  }, [form, STORAGE_KEY, BUYER_PROFILE_KEY]);
 
   const handleContinueToPayment = async () => {
     const isValid = await form.trigger(['name', 'email', 'phone', 'city', 'acceptTerms']);
@@ -364,8 +396,8 @@ export function CheckoutModal({
       setReservedUntil(result.reservedUntil);
       setReferenceCode(result.referenceCode);
       
-      // Clear saved form data on success
-      clearSavedFormData();
+      // Save buyer profile and clear draft on success
+      saveBuyerProfileAndClearDraft();
 
       // PHASE A: Move to success step FIRST (before any side-effects)
       setCurrentStep(3);
