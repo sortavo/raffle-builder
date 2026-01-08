@@ -12,6 +12,7 @@ interface PendingApproval {
   org_name: string;
   created_by: string;
   pending_count: number;
+  pending_tickets: number;
   oldest_pending: string;
 }
 
@@ -28,13 +29,14 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find tickets with payment proof that haven't been approved yet
+    // Find orders with payment proof that haven't been approved yet
     // Status is still 'reserved' but has payment_proof_url
-    const { data: pendingTickets, error: fetchError } = await supabase
-      .from("sold_tickets")
+    const { data: pendingOrders, error: fetchError } = await supabase
+      .from("orders")
       .select(`
         id,
-        ticket_number,
+        reference_code,
+        ticket_count,
         buyer_name,
         reserved_at,
         payment_proof_url,
@@ -54,11 +56,11 @@ Deno.serve(async (req) => {
       .not("payment_proof_url", "is", null);
 
     if (fetchError) {
-      console.error("Error fetching pending tickets:", fetchError);
+      console.error("Error fetching pending orders:", fetchError);
       throw fetchError;
     }
 
-    if (!pendingTickets || pendingTickets.length === 0) {
+    if (!pendingOrders || pendingOrders.length === 0) {
       console.log("No pending approvals found");
       return new Response(
         JSON.stringify({ success: true, message: "No pending approvals", notified: 0 }),
@@ -66,13 +68,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${pendingTickets.length} tickets pending approval`);
+    // Calculate total pending tickets
+    const totalPendingTickets = pendingOrders.reduce((sum, o) => sum + (o.ticket_count || 0), 0);
+    console.log(`Found ${pendingOrders.length} orders (${totalPendingTickets} tickets) pending approval`);
 
     // Group by organization and raffle
     const pendingByOrg = new Map<string, PendingApproval[]>();
     
-    for (const ticket of pendingTickets) {
-      const raffle = ticket.raffles as any;
+    for (const order of pendingOrders) {
+      const raffle = order.raffles as any;
       const org = raffle?.organizations;
       const createdBy = raffle?.created_by;
       
@@ -96,16 +100,18 @@ Deno.serve(async (req) => {
           org_name: org.name,
           created_by: createdBy,
           pending_count: 0,
-          oldest_pending: ticket.reserved_at || new Date().toISOString(),
+          pending_tickets: 0,
+          oldest_pending: order.reserved_at || new Date().toISOString(),
         };
         orgRaffles.push(raffleEntry);
       }
       
       raffleEntry.pending_count++;
+      raffleEntry.pending_tickets += order.ticket_count || 0;
       
       // Track oldest pending
-      if (ticket.reserved_at && ticket.reserved_at < raffleEntry.oldest_pending) {
-        raffleEntry.oldest_pending = ticket.reserved_at;
+      if (order.reserved_at && order.reserved_at < raffleEntry.oldest_pending) {
+        raffleEntry.oldest_pending = order.reserved_at;
       }
     }
 
@@ -115,6 +121,7 @@ Deno.serve(async (req) => {
     // Create notifications for each organization owner
     for (const [orgId, raffles] of pendingByOrg) {
       const totalPending = raffles.reduce((sum, r) => sum + r.pending_count, 0);
+      const totalTickets = raffles.reduce((sum, r) => sum + r.pending_tickets, 0);
       const createdBy = raffles[0].created_by;
       const orgName = raffles[0].org_name;
       
@@ -123,7 +130,7 @@ Deno.serve(async (req) => {
       const waitingHours = Math.round((Date.now() - oldestDate.getTime()) / (1000 * 60 * 60));
       
       // Build message
-      let message = `Tienes ${totalPending} comprobante${totalPending > 1 ? 's' : ''} de pago pendiente${totalPending > 1 ? 's' : ''} por aprobar`;
+      let message = `Tienes ${totalPending} comprobante${totalPending > 1 ? 's' : ''} de pago pendiente${totalPending > 1 ? 's' : ''} por aprobar (${totalTickets} boletos)`;
       
       if (raffles.length === 1) {
         message += ` en "${raffles[0].raffle_title}"`;
@@ -167,7 +174,8 @@ Deno.serve(async (req) => {
             link: `/dashboard/raffles/${raffles[0].raffle_id}?tab=approvals`,
             metadata: {
               total_pending: totalPending,
-              raffles: raffles.map(r => ({ id: r.raffle_id, title: r.raffle_title, count: r.pending_count })),
+              total_tickets: totalTickets,
+              raffles: raffles.map(r => ({ id: r.raffle_id, title: r.raffle_title, count: r.pending_count, tickets: r.pending_tickets })),
             },
           });
 
@@ -175,7 +183,7 @@ Deno.serve(async (req) => {
           console.error(`Error creating notification for ${createdBy}:`, notifError);
           errors.push(`${createdBy}: ${notifError.message}`);
         } else {
-          console.log(`Notification created for ${createdBy}: ${totalPending} pending approvals`);
+          console.log(`Notification created for ${createdBy}: ${totalPending} pending approvals (${totalTickets} tickets)`);
           notifiedCount++;
         }
 
@@ -192,13 +200,14 @@ Deno.serve(async (req) => {
             await supabase.functions.invoke("send-email", {
               body: {
                 to: profile.email,
-                subject: `📋 ${totalPending} comprobantes pendientes de aprobar`,
+                subject: `📋 ${totalPending} comprobantes pendientes de aprobar (${totalTickets} boletos)`,
                 template: "pending_approvals",
                 data: {
                   org_name: orgName,
                   total_pending: totalPending,
+                  total_tickets: totalTickets,
                   waiting_hours: waitingHours,
-                  raffles: raffles.map(r => ({ title: r.raffle_title, count: r.pending_count })),
+                  raffles: raffles.map(r => ({ title: r.raffle_title, count: r.pending_count, tickets: r.pending_tickets })),
                   dashboard_url: `${Deno.env.get("SITE_URL") || "https://sortavo.com"}/dashboard/raffles/${raffles[0].raffle_id}?tab=approvals`,
                 },
               },
@@ -219,7 +228,8 @@ Deno.serve(async (req) => {
         success: true,
         message: `Notified ${notifiedCount} organizers about pending approvals`,
         notified: notifiedCount,
-        totalPending: pendingTickets.length,
+        totalPendingOrders: pendingOrders.length,
+        totalPendingTickets,
         failed: errors.length,
         errors: errors.length > 0 ? errors : undefined,
       }),

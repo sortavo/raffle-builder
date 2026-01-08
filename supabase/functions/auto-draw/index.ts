@@ -5,9 +5,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface OrderData {
+  id: string;
+  ticket_count: number;
+  ticket_ranges: { s: number; e: number }[];
+  lucky_indices: number[];
+  buyer_name: string | null;
+  buyer_email: string | null;
+  buyer_phone: string | null;
+  buyer_city: string | null;
+}
+
 interface WinnerData {
-  ticket_id: string;
+  order_id: string;
   ticket_number: string;
+  ticket_index: number;
   buyer_name: string;
   buyer_email: string;
   buyer_phone: string | null;
@@ -17,10 +29,32 @@ interface WinnerData {
   auto_executed: boolean;
 }
 
+// Get the ticket index at a specific position within an order
+function getTicketIndexAtPosition(order: OrderData, position: number): number {
+  let accumulated = 0;
+  
+  // First check regular ranges
+  for (const range of order.ticket_ranges || []) {
+    const rangeSize = range.e - range.s + 1;
+    if (accumulated + rangeSize > position) {
+      return range.s + (position - accumulated);
+    }
+    accumulated += rangeSize;
+  }
+  
+  // Then check lucky indices
+  const luckyPosition = position - accumulated;
+  if (order.lucky_indices && luckyPosition < order.lucky_indices.length) {
+    return order.lucky_indices[luckyPosition];
+  }
+  
+  throw new Error('Position out of bounds');
+}
+
 function generateSecureRandomNumber(max: number): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  return (array[0] % max) + 1;
+  return array[0] % max;
 }
 
 Deno.serve(async (req) => {
@@ -49,7 +83,9 @@ Deno.serve(async (req) => {
         draw_date,
         organization_id,
         created_by,
-        auto_publish_result
+        auto_publish_result,
+        numbering_config,
+        total_tickets
       `)
       .eq("status", "active")
       .not("draw_date", "is", null)
@@ -76,20 +112,24 @@ Deno.serve(async (req) => {
       try {
         console.log(`Processing raffle: ${raffle.id} - ${raffle.title}`);
 
-        // Get all sold tickets for this raffle
-        const { data: soldTickets, error: ticketsError } = await supabase
-          .from("sold_tickets")
-          .select("id, ticket_number, buyer_name, buyer_email, buyer_phone, buyer_city")
+        // Get all sold orders for this raffle (using orders table)
+        const { data: soldOrders, error: ordersError } = await supabase
+          .from("orders")
+          .select("id, ticket_count, ticket_ranges, lucky_indices, buyer_name, buyer_email, buyer_phone, buyer_city")
           .eq("raffle_id", raffle.id)
-          .eq("status", "sold");
+          .eq("status", "sold")
+          .order("created_at", { ascending: true });
 
-        if (ticketsError) {
-          console.error(`Error fetching tickets for raffle ${raffle.id}:`, ticketsError);
-          results.push({ raffleId: raffle.id, success: false, error: ticketsError.message });
+        if (ordersError) {
+          console.error(`Error fetching orders for raffle ${raffle.id}:`, ordersError);
+          results.push({ raffleId: raffle.id, success: false, error: ordersError.message });
           continue;
         }
 
-        if (!soldTickets || soldTickets.length === 0) {
+        // Calculate total sold tickets
+        const soldCount = soldOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+
+        if (soldCount === 0) {
           console.log(`No sold tickets for raffle ${raffle.id}, skipping`);
           // Mark as completed without winner if no tickets sold
           await supabase
@@ -101,17 +141,50 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Select a random winner
-        const randomIndex = generateSecureRandomNumber(soldTickets.length) - 1;
-        const winnerTicket = soldTickets[randomIndex];
+        console.log(`Found ${soldCount} sold tickets across ${soldOrders?.length} orders`);
+
+        // Select a random position from total sold tickets
+        const randomOffset = generateSecureRandomNumber(soldCount);
+
+        // Find the order and ticket at this offset
+        let accumulatedCount = 0;
+        let winnerOrder: OrderData | null = null;
+        let positionInOrder = 0;
+
+        for (const order of soldOrders || []) {
+          const orderData = order as OrderData;
+          if (accumulatedCount + orderData.ticket_count > randomOffset) {
+            winnerOrder = orderData;
+            positionInOrder = randomOffset - accumulatedCount;
+            break;
+          }
+          accumulatedCount += orderData.ticket_count;
+        }
+
+        if (!winnerOrder) {
+          throw new Error('Could not find winner order');
+        }
+
+        // Get the actual ticket index from the order's ranges
+        const winnerTicketIndex = getTicketIndexAtPosition(winnerOrder, positionInOrder);
+
+        // Format ticket number using the raffle's config
+        const { data: formattedNumber } = await supabase.rpc('format_virtual_ticket', {
+          p_index: winnerTicketIndex,
+          p_config: raffle.numbering_config || {},
+          p_total: raffle.total_tickets || 1000,
+        });
+
+        const ticketNumber = formattedNumber || String(winnerTicketIndex);
 
         const winnerData: WinnerData = {
-          ticket_id: winnerTicket.id,
-          ticket_number: winnerTicket.ticket_number,
-          buyer_name: winnerTicket.buyer_name || "Anónimo",
-          buyer_email: winnerTicket.buyer_email || "",
-          buyer_phone: winnerTicket.buyer_phone,
-          buyer_city: winnerTicket.buyer_city,
+          order_id: winnerOrder.id,
+          ticket_number: ticketNumber,
+          ticket_index: winnerTicketIndex,
+          buyer_name: winnerOrder.buyer_name || "Anónimo",
+          buyer_email: winnerOrder.buyer_email || "",
+          buyer_phone: winnerOrder.buyer_phone,
+          buyer_city: winnerOrder.buyer_city,
           draw_method: "random_org", // Crypto random is equivalent security
           draw_timestamp: new Date().toISOString(),
           auto_executed: true,
@@ -122,7 +195,7 @@ Deno.serve(async (req) => {
           .from("raffles")
           .update({
             status: "completed",
-            winner_ticket_number: winnerTicket.ticket_number,
+            winner_ticket_number: ticketNumber,
             winner_data: winnerData,
             winner_announced: raffle.auto_publish_result || false,
           })
@@ -156,7 +229,7 @@ Deno.serve(async (req) => {
         }
 
         // Send email to winner if we have their email
-        if (winnerTicket.buyer_email) {
+        if (winnerOrder.buyer_email) {
           try {
             // Get organization name for email
             const { data: org } = await supabase
@@ -167,11 +240,11 @@ Deno.serve(async (req) => {
 
             await supabase.functions.invoke("send-email", {
               body: {
-                to: winnerTicket.buyer_email,
+                to: winnerOrder.buyer_email,
                 template: "winner",
                 data: {
-                  buyer_name: winnerTicket.buyer_name || "Participante",
-                  ticket_numbers: [winnerTicket.ticket_number],
+                  buyer_name: winnerOrder.buyer_name || "Participante",
+                  ticket_numbers: [ticketNumber],
                   prize_name: raffle.prize_name,
                   raffle_title: raffle.title,
                   org_name: org?.name || "Organizador",
@@ -179,7 +252,7 @@ Deno.serve(async (req) => {
                 },
               },
             });
-            console.log(`Winner notification email sent to ${winnerTicket.buyer_email}`);
+            console.log(`Winner notification email sent to ${winnerOrder.buyer_email}`);
           } catch (emailError) {
             console.error("Error sending winner email:", emailError);
             // Don't fail the whole process for email errors

@@ -60,6 +60,23 @@ function formatTicketNumber(index: number, numberStart: number, step: number, to
   return String(ticketNum).padStart(digits, '0');
 }
 
+// Expand order ranges/indices to a set of ticket indices
+function expandOrderToIndices(order: { ticket_ranges: { s: number; e: number }[]; lucky_indices?: number[] }): number[] {
+  const indices: number[] = [];
+  
+  for (const range of order.ticket_ranges || []) {
+    for (let i = range.s; i <= range.e; i++) {
+      indices.push(i);
+    }
+  }
+  
+  if (order.lucky_indices) {
+    indices.push(...order.lucky_indices);
+  }
+  
+  return indices;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -111,7 +128,6 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] IP: ${clientIP}, Selecting ${quantity} random tickets for raffle ${raffle_id}`);
 
     // 1. Get raffle config for total tickets and numbering
-    // PHASE 1: Read from numbering_config.start_number for consistency with frontend
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
       .select('total_tickets, numbering_config')
@@ -127,31 +143,27 @@ Deno.serve(async (req) => {
     }
 
     const totalTickets = raffle.total_tickets;
-    // Use numbering_config for consistency with frontend TicketSelector
     const numberingConfig = raffle.numbering_config as { start_number?: number; step?: number } | null;
     const numberStart = numberingConfig?.start_number ?? 1;
     const numberStep = numberingConfig?.step ?? 1;
     
     console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}, Step: ${numberStep}`);
 
-    // 2. Get ALL unavailable ticket indices (sold + reserved that haven't expired)
-    // IMPORTANT: default API limit is 1000 rows, so we must paginate.
+    // 2. Get ALL unavailable ticket indices from orders table
+    // Fetch orders that are sold or have active reservations
     const nowIso = new Date().toISOString();
     const PAGE_SIZE = 1000;
 
-    const fetchAllIndices = async (
-      status: 'sold' | 'reserved'
-    ): Promise<number[]> => {
+    const fetchAllOrderIndices = async (status: 'sold' | 'reserved'): Promise<number[]> => {
       const indices: number[] = [];
       let from = 0;
 
       while (true) {
         let q = supabase
-          .from('sold_tickets')
-          .select('ticket_index')
+          .from('orders')
+          .select('ticket_ranges, lucky_indices, reserved_until')
           .eq('raffle_id', raffle_id)
           .eq('status', status)
-          .order('ticket_index', { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
 
         if (status === 'reserved') {
@@ -161,10 +173,15 @@ Deno.serve(async (req) => {
         const { data, error } = await q;
         if (error) throw error;
 
-        const batch = (data || []) as { ticket_index: number }[];
+        const batch = (data || []) as { ticket_ranges: { s: number; e: number }[]; lucky_indices?: number[] }[];
         if (batch.length === 0) break;
 
-        indices.push(...batch.map((t) => t.ticket_index));
+        // Expand each order's ranges to indices
+        for (const order of batch) {
+          const orderIndices = expandOrderToIndices(order);
+          indices.push(...orderIndices);
+        }
+
         if (batch.length < PAGE_SIZE) break;
         from += PAGE_SIZE;
       }
@@ -173,8 +190,8 @@ Deno.serve(async (req) => {
     };
 
     const [soldIndices, reservedActiveIndices] = await Promise.all([
-      fetchAllIndices('sold'),
-      fetchAllIndices('reserved'),
+      fetchAllOrderIndices('sold'),
+      fetchAllOrderIndices('reserved'),
     ]);
 
     const unavailableSet = new Set<number>([...soldIndices, ...reservedActiveIndices]);

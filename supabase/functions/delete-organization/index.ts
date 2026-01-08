@@ -147,7 +147,10 @@ Deno.serve(async (req) => {
     if (raffles && raffles.length > 0) {
       const raffleIds = raffles.map(r => r.id);
       
-      // Delete sold tickets
+      // Delete orders (new table)
+      await supabaseAdmin.from("orders").delete().in("raffle_id", raffleIds);
+      
+      // Delete sold tickets (legacy table, for backward compatibility)
       await supabaseAdmin.from("sold_tickets").delete().in("raffle_id", raffleIds);
       
       // Delete raffle packages
@@ -155,6 +158,9 @@ Deno.serve(async (req) => {
       
       // Delete raffle custom numbers
       await supabaseAdmin.from("raffle_custom_numbers").delete().in("raffle_id", raffleIds);
+      
+      // Delete raffle draws
+      await supabaseAdmin.from("raffle_draws").delete().in("raffle_id", raffleIds);
     }
     
     // Delete coupons (and their usage will cascade)
@@ -174,6 +180,9 @@ Deno.serve(async (req) => {
     
     // Delete payment methods
     await supabaseAdmin.from("payment_methods").delete().eq("organization_id", organizationId);
+    
+    // Delete custom domains
+    await supabaseAdmin.from("custom_domains").delete().eq("organization_id", organizationId);
     
     // Delete user roles for this organization
     await supabaseAdmin.from("user_roles").delete().eq("organization_id", organizationId);

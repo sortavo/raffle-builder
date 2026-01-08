@@ -5,6 +5,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Format ticket numbers from order's ticket_ranges and lucky_indices
+function formatTicketNumbers(
+  order: { ticket_ranges: { s: number; e: number }[]; lucky_indices?: number[] },
+  numberingConfig: { start_number?: number; step?: number } | null,
+  totalTickets: number
+): string[] {
+  const startNumber = numberingConfig?.start_number ?? 1;
+  const step = numberingConfig?.step ?? 1;
+  const maxTicketNum = startNumber + ((totalTickets - 1) * step);
+  const digits = Math.max(String(maxTicketNum).length, 1);
+  
+  const tickets: string[] = [];
+  
+  // Expand ranges
+  for (const range of order.ticket_ranges || []) {
+    for (let i = range.s; i <= range.e && tickets.length < 10; i++) {
+      const num = startNumber + (i * step);
+      tickets.push(String(num).padStart(digits, '0'));
+    }
+  }
+  
+  // Add lucky indices
+  for (const idx of order.lucky_indices || []) {
+    if (tickets.length >= 10) break;
+    const num = startNumber + (idx * step);
+    tickets.push(String(num).padStart(digits, '0'));
+  }
+  
+  return tickets;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,19 +49,21 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Find reservations that:
+    // Find orders that:
     // 1. Are still reserved (not expired, not sold)
     // 2. Have no payment proof uploaded
-    // 3. Have been reserved for more than 30% of the reservation time (to give them a chance)
-    // 4. Are expiring within the next 30 minutes
+    // 3. Are expiring within the next 30 minutes
     const now = new Date();
     const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
 
-    const { data: pendingTickets, error: fetchError } = await supabase
-      .from("sold_tickets")
+    const { data: pendingOrders, error: fetchError } = await supabase
+      .from("orders")
       .select(`
         id,
-        ticket_number,
+        reference_code,
+        ticket_count,
+        ticket_ranges,
+        lucky_indices,
         buyer_name,
         buyer_email,
         reserved_at,
@@ -41,6 +74,8 @@ Deno.serve(async (req) => {
           title,
           slug,
           organization_id,
+          numbering_config,
+          total_tickets,
           organizations!inner (
             slug
           )
@@ -52,11 +87,11 @@ Deno.serve(async (req) => {
       .gt("reserved_until", now.toISOString());
 
     if (fetchError) {
-      console.error("Error fetching pending tickets:", fetchError);
+      console.error("Error fetching pending orders:", fetchError);
       throw fetchError;
     }
 
-    if (!pendingTickets || pendingTickets.length === 0) {
+    if (!pendingOrders || pendingOrders.length === 0) {
       console.log("No pending reservations need reminders");
       return new Response(
         JSON.stringify({ success: true, message: "No reminders needed", sent: 0 }),
@@ -64,37 +99,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Found ${pendingTickets.length} tickets needing reminders`);
-
-    // Group tickets by buyer email and raffle
-    const groupedByBuyer = new Map<string, typeof pendingTickets>();
-    
-    for (const ticket of pendingTickets) {
-      if (!ticket.buyer_email) continue;
-      
-      const key = `${ticket.buyer_email}-${ticket.raffle_id}`;
-      if (!groupedByBuyer.has(key)) {
-        groupedByBuyer.set(key, []);
-      }
-      groupedByBuyer.get(key)!.push(ticket);
-    }
+    console.log(`Found ${pendingOrders.length} orders needing reminders`);
 
     let sentCount = 0;
     const errors: string[] = [];
 
-    for (const [key, tickets] of groupedByBuyer) {
-      const firstTicket = tickets[0];
-      const buyerEmail = firstTicket.buyer_email;
-      const buyerName = firstTicket.buyer_name || "Participante";
-      const raffleTitle = (firstTicket.raffles as any)?.title || "Sorteo";
-      const orgSlug = (firstTicket.raffles as any)?.organizations?.slug || "";
-      const raffleSlug = (firstTicket.raffles as any)?.slug || "";
-      const reservedUntil = new Date(firstTicket.reserved_until!);
+    for (const order of pendingOrders) {
+      const buyerEmail = order.buyer_email;
+      if (!buyerEmail) continue;
+      
+      const buyerName = order.buyer_name || "Participante";
+      const raffle = order.raffles as any;
+      const raffleTitle = raffle?.title || "Sorteo";
+      const orgSlug = raffle?.organizations?.slug || "";
+      const raffleSlug = raffle?.slug || "";
+      const reservedUntil = new Date(order.reserved_until!);
       
       // Calculate minutes remaining
       const minutesRemaining = Math.max(0, Math.round((reservedUntil.getTime() - now.getTime()) / 60000));
       
-      const ticketNumbers = tickets.map(t => t.ticket_number);
+      // Format ticket numbers from ranges
+      const ticketNumbers = formatTicketNumbers(
+        { ticket_ranges: order.ticket_ranges as any, lucky_indices: order.lucky_indices as any },
+        raffle?.numbering_config,
+        raffle?.total_tickets || 1000
+      );
       
       // Build payment URL
       const baseUrl = Deno.env.get("SITE_URL") || "https://sortavo.com";
@@ -113,8 +142,10 @@ Deno.serve(async (req) => {
               buyer_name: buyerName,
               raffle_title: raffleTitle,
               ticket_numbers: ticketNumbers,
+              ticket_count: order.ticket_count,
               minutes_remaining: minutesRemaining,
               payment_url: paymentUrl,
+              reference_code: order.reference_code,
             },
           },
         });
@@ -123,7 +154,7 @@ Deno.serve(async (req) => {
           console.error(`Error sending reminder to ${buyerEmail}:`, emailError);
           errors.push(`${buyerEmail}: ${emailError.message}`);
         } else {
-          console.log(`Reminder sent to ${buyerEmail} for ${ticketNumbers.length} tickets`);
+          console.log(`Reminder sent to ${buyerEmail} for ${order.ticket_count} tickets`);
           sentCount++;
         }
       } catch (err) {

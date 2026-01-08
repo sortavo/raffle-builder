@@ -719,6 +719,9 @@ Deno.serve(async (req) => {
         const raffleIds = raffles?.map(r => r.id) || [];
         
         if (raffleIds.length > 0) {
+          // Delete from orders table (new)
+          await supabase.from('orders').delete().in('raffle_id', raffleIds);
+          // Delete from sold_tickets (legacy, for backward compatibility)
           await supabase.from('sold_tickets').delete().in('raffle_id', raffleIds);
           await supabase.from('raffle_packages').delete().in('raffle_id', raffleIds);
           await supabase.from('raffle_draws').delete().in('raffle_id', raffleIds);
@@ -875,37 +878,35 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Simulate some sales (only for smaller raffles to keep it fast)
+      // Simulate some sales using orders table (compressed ranges)
       const soldCount = Math.floor(raffleConfig.total_tickets * (raffleConfig.sold_percentage / 100));
       const maxSimulatedSales = Math.min(soldCount, 500); // Cap at 500 for performance
       
       if (maxSimulatedSales > 0) {
-        logStep(`Simulating ${maxSimulatedSales} sales for raffle ${i + 1}`);
+        logStep(`Simulating ${maxSimulatedSales} sales for raffle ${i + 1} using orders table`);
         
         const referenceCode = `DEMO${Date.now().toString(36).toUpperCase()}${i}`;
-        const padWidth = raffleConfig.total_tickets.toString().length;
+        const cities = ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Cancún'];
         
-        const ticketsToInsert = [];
-        for (let k = 0; k < maxSimulatedSales; k++) {
-          const ticketNumber = String(k + 1).padStart(padWidth, '0');
-          ticketsToInsert.push({
-            raffle_id: raffle.id,
-            ticket_index: k,
-            ticket_number: ticketNumber,
-            status: 'sold',
-            buyer_name: `Cliente Demo ${k + 1}`,
-            buyer_email: `cliente${k + 1}@ejemplo.com`,
-            buyer_phone: '+52 55 1234 5678',
-            buyer_city: ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Cancún'][k % 5],
-            sold_at: new Date().toISOString(),
-            payment_reference: referenceCode,
-            payment_method: 'bank_transfer',
-          });
-        }
-
+        // Create a single compressed order with range [0, maxSimulatedSales - 1]
         const { error: insertError } = await supabase
-          .from('sold_tickets')
-          .insert(ticketsToInsert);
+          .from('orders')
+          .insert({
+            raffle_id: raffle.id,
+            organization_id: orgId,
+            reference_code: referenceCode,
+            ticket_count: maxSimulatedSales,
+            ticket_ranges: [{ s: 0, e: maxSimulatedSales - 1 }],
+            lucky_indices: [],
+            status: 'sold',
+            buyer_name: 'Clientes Demo',
+            buyer_email: 'demo@sortavo.com',
+            buyer_phone: '+52 55 1234 5678',
+            buyer_city: cities[i % 5],
+            sold_at: new Date().toISOString(),
+            payment_method: 'bank_transfer',
+            order_total: raffleConfig.ticket_price * maxSimulatedSales,
+          });
 
         if (insertError) {
           logStep(`Error simulating sales for raffle ${i + 1}`, { error: insertError.message });

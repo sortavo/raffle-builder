@@ -286,7 +286,7 @@ serve(async (req) => {
       await sendTelegramMessage(chatId, "⚙️ <b>Tus Preferencias de Notificación</b>\n\nToca para activar/desactivar:", keyboard);
     }
 
-    // Handle /ventas command
+    // Handle /ventas command - UPDATED to use orders table
     else if (text === "/ventas") {
       const { data: conn } = await supabase
         .from("telegram_connections")
@@ -312,17 +312,20 @@ serve(async (req) => {
       
       const raffleIds = raffles?.map(r => r.id) || [];
 
-      const { count: todaySales } = await supabase
-        .from("sold_tickets")
-        .select("*", { count: "exact", head: true })
+      // Sum ticket_count from orders table instead of counting sold_tickets
+      const { data: todayOrders } = await supabase
+        .from("orders")
+        .select("ticket_count")
         .eq("status", "sold")
         .gte("sold_at", today.toISOString())
         .in("raffle_id", raffleIds);
 
+      const todaySales = todayOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+
       await sendTelegramMessage(
         chatId,
         `📊 <b>Ventas de Hoy</b>\n\n` +
-        `Boletos vendidos: <b>${todaySales || 0}</b>\n\n` +
+        `Boletos vendidos: <b>${todaySales}</b>\n\n` +
         `Visita el Dashboard para ver el reporte completo.`
       );
     }
