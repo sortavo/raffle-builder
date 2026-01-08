@@ -1,14 +1,22 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-interface OrderGroup {
+interface TicketRange {
+  s: number;
+  e: number;
+}
+
+export interface OrderGroup {
+  id: string;
   referenceCode: string;
   buyerName: string | null;
   buyerPhone: string | null;
   buyerEmail: string | null;
-  tickets: any[];
+  ticketCount: number;
+  ticketRanges: TicketRange[];
+  luckyIndices: number[];
   reservedUntil: string | null;
   hasProof: boolean;
   proofUrl: string | null;
@@ -18,6 +26,8 @@ interface OrderGroup {
   raffleSlug: string;
   ticketPrice: number;
   currencyCode: string;
+  status: string;
+  createdAt: string;
 }
 
 interface RaffleWithOrders {
@@ -32,6 +42,7 @@ interface RaffleWithOrders {
 
 /**
  * Hook to get all pending orders across all active raffles for the organization
+ * Now uses the new `orders` table instead of `sold_tickets`
  */
 export function usePendingOrders(raffleIdFilter?: string) {
   const { organization } = useAuth();
@@ -62,18 +73,18 @@ export function usePendingOrders(raffleIdFilter?: string) {
 
       const raffleIds = raffles.map(r => r.id);
 
-      // Get all reserved tickets across all raffles
-      const { data: tickets, error: ticketsError } = await supabase
-        .from('sold_tickets')
+      // Get all reserved orders across all raffles from the NEW orders table
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
         .select('*')
         .in('raffle_id', raffleIds)
         .eq('status', 'reserved')
         .order('created_at', { ascending: false })
-        .limit(500); // Limit for performance
+        .limit(500);
 
-      if (ticketsError) throw ticketsError;
+      if (ordersError) throw ordersError;
 
-      // Group tickets by raffle, then by payment_reference
+      // Build raffle map
       const raffleMap = new Map<string, RaffleWithOrders>();
 
       raffles.forEach(raffle => {
@@ -88,54 +99,44 @@ export function usePendingOrders(raffleIdFilter?: string) {
         });
       });
 
-      // Group tickets into orders
-      const orderMap = new Map<string, OrderGroup>();
+      // Map orders directly (no grouping needed - each row is already an order)
+      let totalTickets = 0;
 
-      (tickets || []).forEach(ticket => {
-        const key = `${ticket.raffle_id}:${ticket.payment_reference || `no-ref-${ticket.id}`}`;
-        const raffle = raffleMap.get(ticket.raffle_id);
-        
+      (orders || []).forEach(order => {
+        const raffle = raffleMap.get(order.raffle_id);
         if (!raffle) return;
 
-        if (!orderMap.has(key)) {
-          orderMap.set(key, {
-            referenceCode: ticket.payment_reference || 'Sin código',
-            buyerName: ticket.buyer_name,
-            buyerPhone: ticket.buyer_phone,
-            buyerEmail: ticket.buyer_email,
-            tickets: [],
-            reservedUntil: ticket.reserved_until,
-            hasProof: !!ticket.payment_proof_url,
-            proofUrl: ticket.payment_proof_url,
-            orderTotal: ticket.order_total ?? null,
-            raffleId: ticket.raffle_id,
-            raffleTitle: raffle.title,
-            raffleSlug: raffle.slug,
-            ticketPrice: raffle.ticket_price,
-            currencyCode: raffle.currency_code,
-          });
+        // Parse ticket_ranges from JSONB safely
+        let ticketRanges: TicketRange[] = [];
+        if (order.ticket_ranges && Array.isArray(order.ticket_ranges)) {
+          ticketRanges = (order.ticket_ranges as unknown as TicketRange[]);
         }
 
-        const order = orderMap.get(key)!;
-        order.tickets.push(ticket);
+        const orderGroup: OrderGroup = {
+          id: order.id,
+          referenceCode: order.reference_code || 'Sin código',
+          buyerName: order.buyer_name,
+          buyerPhone: order.buyer_phone,
+          buyerEmail: order.buyer_email,
+          ticketCount: order.ticket_count,
+          ticketRanges,
+          luckyIndices: order.lucky_indices || [],
+          reservedUntil: order.reserved_until,
+          hasProof: !!order.payment_proof_url,
+          proofUrl: order.payment_proof_url,
+          orderTotal: order.order_total,
+          raffleId: order.raffle_id,
+          raffleTitle: raffle.title,
+          raffleSlug: raffle.slug,
+          ticketPrice: raffle.ticket_price,
+          currencyCode: raffle.currency_code,
+          status: order.status,
+          createdAt: order.created_at,
+        };
 
-        if (ticket.payment_proof_url) {
-          order.hasProof = true;
-          order.proofUrl = ticket.payment_proof_url;
-        }
-
-        if (ticket.order_total && !order.orderTotal) {
-          order.orderTotal = ticket.order_total;
-        }
-      });
-
-      // Assign orders to raffles
-      orderMap.forEach(order => {
-        const raffle = raffleMap.get(order.raffleId);
-        if (raffle) {
-          raffle.orders.push(order);
-          raffle.pendingCount += order.tickets.length;
-        }
+        raffle.orders.push(orderGroup);
+        raffle.pendingCount += order.ticket_count;
+        totalTickets += order.ticket_count;
       });
 
       // Convert to array and filter out raffles with no orders
@@ -143,8 +144,7 @@ export function usePendingOrders(raffleIdFilter?: string) {
         .filter(r => r.orders.length > 0)
         .sort((a, b) => b.pendingCount - a.pendingCount);
 
-      const totalOrders = orderMap.size;
-      const totalTickets = tickets?.length || 0;
+      const totalOrders = orders?.length || 0;
 
       return { raffles: rafflesWithOrders, totalOrders, totalTickets };
     },
@@ -153,7 +153,7 @@ export function usePendingOrders(raffleIdFilter?: string) {
     refetchInterval: 60000,
   });
 
-  // Realtime subscription for ticket changes
+  // Realtime subscription for orders table
   useEffect(() => {
     if (!organization?.id) return;
 
@@ -164,7 +164,7 @@ export function usePendingOrders(raffleIdFilter?: string) {
         {
           event: '*',
           schema: 'public',
-          table: 'sold_tickets',
+          table: 'orders',
           filter: `status=eq.reserved`,
         },
         () => {
