@@ -1943,6 +1943,21 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      get_raffle_stats_for_org: {
+        Args: { p_organization_id: string }
+        Returns: {
+          created_at: string
+          draw_date: string
+          raffle_id: string
+          reserved_count: number
+          revenue: number
+          sold_count: number
+          status: Database["public"]["Enums"]["raffle_status"]
+          ticket_price: number
+          title: string
+          total_tickets: number
+        }[]
+      }
       get_raffle_stats_list: {
         Args: { p_organization_id: string }
         Returns: Json
@@ -2112,8 +2127,6 @@ export type Database = {
         Args: { p_domain_id: string; p_organization_id: string }
         Returns: boolean
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
