@@ -382,42 +382,7 @@ export function MobileHero({
         </div>
       </div>
 
-      {/* Ticket Price Section - TIER S DRAMATIC PREMIUM */}
-      <div className={cn(
-        "relative py-10 px-6",
-        isLightTemplate ? "bg-white" : "bg-ultra-dark"
-      )}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            {/* TIER S: w-24 h-24 icon container */}
-            <div className={cn(
-              "w-24 h-24 rounded-2xl flex items-center justify-center shadow-xl border",
-              isLightTemplate
-                ? "bg-gradient-to-br from-emerald-100 to-teal-100 shadow-emerald-200/50 border-emerald-200"
-                : "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-emerald-500/20 border-emerald-500/20"
-            )}>
-              <Ticket className={cn(
-                "w-12 h-12",
-                isLightTemplate ? "text-emerald-600" : "text-emerald-400"
-              )} />
-            </div>
-            <div>
-              <p className={cn(
-                "text-[10px] font-semibold uppercase tracking-[0.25em] mb-1.5",
-                isLightTemplate ? "text-gray-400" : "text-white/40"
-              )}>
-                Precio por boleto
-              </p>
-              <p className={cn(
-                "text-6xl sm:text-7xl lg:text-8xl font-black tracking-[-0.05em]",
-                isLightTemplate ? "text-gray-900" : "text-white"
-              )}>
-                {formatCurrency(raffle.ticket_price, currency)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Countdown Timer - TIER S Enterprise lottery style */}
       {raffle.draw_date && (
