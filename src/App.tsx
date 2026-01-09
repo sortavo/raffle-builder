@@ -48,6 +48,7 @@ import LogoPreview from "./pages/LogoPreview";
 import ColorPalette from "./components/design-system/ColorPalette";
 import SentryTest from "./pages/SentryTest";
 import Features from "./pages/Features";
+import { GuidesIndex, ComoOrganizarRifaLegal, MejoresPremiosRifas, ComoVenderBoletosOnline } from "./pages/guides";
 
 // Tenant-aware routing components
 import { TenantAwareOrgOrRaffle, TenantHome, TenantAwarePayment } from "@/components/routing/TenantAwareRouter";
@@ -77,6 +78,7 @@ function AdaptiveToaster() {
      !location.pathname.startsWith('/admin') &&
      !location.pathname.startsWith('/pricing') &&
      !location.pathname.startsWith('/help') &&
+     !location.pathname.startsWith('/guias') &&
      !location.pathname.startsWith('/terms') &&
      !location.pathname.startsWith('/privacy') &&
      !location.pathname.startsWith('/contact') &&
@@ -156,6 +158,11 @@ const App = () => (
                   <Route path="/pricing/compare" element={<PlanComparison />} />
                   <Route path="/features" element={<Features />} />
                   <Route path="/help" element={<HelpCenter />} />
+                  {/* SEO Guides */}
+                  <Route path="/guias" element={<GuidesIndex />} />
+                  <Route path="/guias/como-organizar-rifa-legal-mexico" element={<ComoOrganizarRifaLegal />} />
+                  <Route path="/guias/mejores-premios-para-rifas" element={<MejoresPremiosRifas />} />
+                  <Route path="/guias/como-vender-boletos-online" element={<ComoVenderBoletosOnline />} />
                   {/* Legacy raffle routes */}
                   <Route path="/r/:slug" element={<PublicRaffle />} />
                   <Route path="/r/:slug/payment" element={<PaymentInstructions />} />
