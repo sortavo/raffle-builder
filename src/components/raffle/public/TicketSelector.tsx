@@ -204,6 +204,7 @@ export function TicketSelector({
   const [page, setPage] = useState(1);
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [randomCount, setRandomCount] = useState(1);
+  const [randomCountDisplay, setRandomCountDisplay] = useState('1');
   // Separate states for Manual tab (local filter) and Search tab (backend search)
   const [manualFilter, setManualFilter] = useState('');
   const [debouncedManual, setDebouncedManual] = useState('');
@@ -1431,13 +1432,26 @@ export function TicketSelector({
                         <Label className={cn("text-base", colors.text)}>¿Cuántos boletos quieres?</Label>
                         <div className="flex items-center gap-2">
                           <Input
-                            type="number"
-                            min={1}
-                            max={10000}
-                            value={randomCount}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={randomCountDisplay}
                             onChange={(e) => {
-                              const value = parseInt(e.target.value) || 1;
-                              setRandomCount(Math.min(10000, Math.max(1, value)));
+                              // Solo permitir dígitos - sin parseo inmediato
+                              const cleaned = e.target.value.replace(/\D/g, '');
+                              setRandomCountDisplay(cleaned);
+                            }}
+                            onBlur={() => {
+                              // Al perder foco, parsear y aplicar límites
+                              const value = parseInt(randomCountDisplay) || 1;
+                              const clamped = Math.min(10000, Math.max(1, value));
+                              setRandomCount(clamped);
+                              setRandomCountDisplay(String(clamped));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
                             }}
                             className={cn("h-12 text-lg border-2 text-center flex-1", colors.inputBg, colors.inputBorder, colors.inputText)}
                           />
@@ -1462,7 +1476,10 @@ export function TicketSelector({
                               key={pkg.id}
                               variant={randomCount === pkg.quantity ? 'default' : 'outline'}
                               size="lg"
-                              onClick={() => setRandomCount(pkg.quantity)}
+                              onClick={() => {
+                                setRandomCount(pkg.quantity);
+                                setRandomCountDisplay(String(pkg.quantity));
+                              }}
                               className={cn(
                                 "border-2",
                                 randomCount === pkg.quantity && "bg-gradient-to-r from-primary to-accent"
