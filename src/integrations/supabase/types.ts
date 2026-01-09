@@ -1972,45 +1972,28 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_virtual_tickets:
-        | {
-            Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
-            Returns: {
-              buyer_city: string
-              buyer_email: string
-              buyer_name: string
-              buyer_phone: string
-              order_id: string
-              reference_code: string
-              reserved_at: string
-              sold_at: string
-              status: string
-              ticket_index: number
-              ticket_number: string
-            }[]
-          }
-        | {
-            Args: {
-              p_page?: number
-              p_page_size?: number
-              p_raffle_id: string
-              p_search?: string
-              p_status_filter?: string
-            }
-            Returns: {
-              buyer_city: string
-              buyer_email: string
-              buyer_name: string
-              buyer_phone: string
-              order_id: string
-              payment_reference: string
-              reserved_at: string
-              sold_at: string
-              status: string
-              ticket_index: number
-              ticket_number: string
-            }[]
-          }
+      get_virtual_tickets: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_raffle_id: string
+          p_search?: string
+          p_status_filter?: string
+        }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          order_id: string
+          payment_reference: string
+          reserved_at: string
+          sold_at: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
       get_virtual_tickets_v2: {
         Args: {
           p_page_number?: number
