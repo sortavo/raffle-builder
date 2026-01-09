@@ -24,13 +24,14 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 ## Parte 2: Tipos Enumerados
 
 ```sql
--- Crear tipos enumerados
+-- Crear tipos enumerados (valores exactos del schema actual)
 CREATE TYPE public.subscription_tier AS ENUM ('basic', 'pro', 'premium', 'enterprise');
-CREATE TYPE public.subscription_status AS ENUM ('trial', 'active', 'past_due', 'canceled', 'incomplete');
+CREATE TYPE public.subscription_status AS ENUM ('active', 'canceled', 'past_due', 'trial');
 CREATE TYPE public.subscription_period AS ENUM ('monthly', 'annual');
 CREATE TYPE public.raffle_status AS ENUM ('draft', 'active', 'paused', 'completed', 'canceled');
-CREATE TYPE public.draw_method AS ENUM ('manual', 'lottery', 'auto');
-CREATE TYPE public.ticket_number_format AS ENUM ('sequential', 'random', 'custom');
+CREATE TYPE public.draw_method AS ENUM ('lottery_nacional', 'manual', 'random_org');
+CREATE TYPE public.ticket_number_format AS ENUM ('sequential', 'prefixed', 'random');
+CREATE TYPE public.ticket_status AS ENUM ('available', 'reserved', 'sold', 'canceled');
 CREATE TYPE public.app_role AS ENUM ('owner', 'admin', 'member');
 ```
 
