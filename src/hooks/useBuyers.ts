@@ -28,7 +28,41 @@ export interface BuyerFilters {
   pageSize?: number;
 }
 
+export interface BuyersSummaryStats {
+  totalBuyers: number;
+  totalRevenue: number;
+  pendingCount: number;
+  confirmedCount: number;
+  avgPerBuyer: number;
+}
+
 export const useBuyers = (raffleId: string | undefined) => {
+  // Get summary stats (global, not paginated)
+  const useSummaryStats = () => {
+    return useQuery({
+      queryKey: ['buyers-summary-stats', raffleId],
+      queryFn: async (): Promise<BuyersSummaryStats> => {
+        if (!raffleId) return { totalBuyers: 0, totalRevenue: 0, pendingCount: 0, confirmedCount: 0, avgPerBuyer: 0 };
+
+        const { data, error } = await supabase.rpc('get_buyers_summary_stats' as any, {
+          p_raffle_id: raffleId,
+        });
+
+        if (error) throw error;
+
+        const row = (data as any)?.[0];
+        return {
+          totalBuyers: Number(row?.total_buyers || 0),
+          totalRevenue: Number(row?.total_revenue || 0),
+          pendingCount: Number(row?.pending_count || 0),
+          confirmedCount: Number(row?.confirmed_count || 0),
+          avgPerBuyer: Number(row?.avg_per_buyer || 0),
+        };
+      },
+      enabled: !!raffleId,
+    });
+  };
+
   // Get buyers with server-side pagination using the database function
   const useBuyersList = (filters?: BuyerFilters) => {
     const page = filters?.page || 1;
@@ -56,7 +90,7 @@ export const useBuyers = (raffleId: string | undefined) => {
           email: row.buyer_email || '',
           phone: row.buyer_phone || '',
           city: row.buyer_city || '',
-          tickets: [],
+          tickets: row.ticket_numbers || [],
           ticketCount: Number(row.ticket_count) || 0,
           status: row.status || 'reserved',
           date: row.reserved_at || '',
@@ -191,6 +225,7 @@ export const useBuyers = (raffleId: string | undefined) => {
   return {
     useBuyersList,
     useCities,
+    useSummaryStats,
     exportBuyers,
     getWhatsAppLink,
     getMailtoLink,

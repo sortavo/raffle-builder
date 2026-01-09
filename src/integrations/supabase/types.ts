@@ -1854,6 +1854,7 @@ export type Database = {
           sold_at: string
           status: string
           ticket_count: number
+          ticket_numbers: string[]
           total_amount: number
         }[]
       }

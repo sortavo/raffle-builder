@@ -56,13 +56,6 @@ export interface BuyersTabProps {
   organizationLogo?: string | null;
 }
 
-interface SummaryStats {
-  totalRevenue: number;
-  avgPerBuyer: number;
-  pendingCount: number;
-  confirmedCount: number;
-}
-
 export function BuyersTab({ 
   raffleId, 
   raffleTitle,
@@ -76,7 +69,7 @@ export function BuyersTab({
   organizationLogo,
 }: BuyersTabProps) {
   const { toast } = useToast();
-  const { useBuyersList, useCities, exportBuyers, getWhatsAppLink } = useBuyers(raffleId);
+  const { useBuyersList, useCities, useSummaryStats, exportBuyers, getWhatsAppLink } = useBuyers(raffleId);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -95,34 +88,11 @@ export function BuyersTab({
   });
   
   const { data: citiesData } = useCities();
+  const { data: summaryStats } = useSummaryStats();
   
   const buyers = buyersData?.buyers || [];
   const totalCount = buyersData?.count || 0;
   const cities = citiesData || [];
-
-  // Summary stats
-  const summaryStats = useMemo<SummaryStats>(() => {
-    if (!buyers || buyers.length === 0) {
-      return {
-        totalRevenue: 0,
-        avgPerBuyer: 0,
-        pendingCount: 0,
-        confirmedCount: 0
-      };
-    }
-
-    const totalRevenue = buyers.reduce((sum, buyer) => sum + (buyer.orderTotal || 0), 0);
-    const avgPerBuyer = buyers.length > 0 ? totalRevenue / buyers.length : 0;
-    const pendingCount = buyers.filter(b => b.status === 'reserved').length;
-    const confirmedCount = buyers.filter(b => b.status === 'sold').length;
-
-    return {
-      totalRevenue,
-      avgPerBuyer,
-      pendingCount,
-      confirmedCount
-    };
-  }, [buyers]);
 
   // Pagination
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -238,7 +208,7 @@ export function BuyersTab({
                 </span>
               </div>
               <p className="text-sm sm:text-lg font-bold truncate w-full text-center">
-                {formatCurrency(summaryStats.totalRevenue, currencyCode)}
+                {formatCurrency(summaryStats?.totalRevenue || 0, currencyCode)}
               </p>
             </div>
           </CardContent>
@@ -255,7 +225,7 @@ export function BuyersTab({
                 </span>
               </div>
               <p className="text-sm sm:text-lg font-bold truncate w-full text-center">
-                {formatCurrency(summaryStats.avgPerBuyer, currencyCode)}
+                {formatCurrency(summaryStats?.avgPerBuyer || 0, currencyCode)}
               </p>
             </div>
           </CardContent>
@@ -272,7 +242,7 @@ export function BuyersTab({
                 </span>
               </div>
               <p className="text-sm sm:text-lg font-bold truncate w-full text-center">
-                {summaryStats.pendingCount}
+                {summaryStats?.pendingCount || 0}
               </p>
             </div>
           </CardContent>
@@ -289,7 +259,7 @@ export function BuyersTab({
                 </span>
               </div>
               <p className="text-sm sm:text-lg font-bold truncate w-full text-center">
-                {summaryStats.confirmedCount}
+                {summaryStats?.confirmedCount || 0}
               </p>
             </div>
           </CardContent>
@@ -379,19 +349,29 @@ export function BuyersTab({
                   </div>
 
                   {/* Info Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Cant:</span>
+                      <p className="font-semibold">{buyer.ticketCount}</p>
+                    </div>
                     <div>
                       <span className="text-muted-foreground">Boletos:</span>
                       <div className="flex flex-wrap gap-1 mt-0.5">
-                        {buyer.tickets.slice(0, 3).map((ticket, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-[10px] px-1">
-                            {ticket}
-                          </Badge>
-                        ))}
-                        {buyer.tickets.length > 3 && (
-                          <Badge variant="secondary" className="text-[10px] px-1">
-                            +{buyer.tickets.length - 3}
-                          </Badge>
+                        {buyer.tickets.length > 0 ? (
+                          <>
+                            {buyer.tickets.slice(0, 2).map((ticket, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-[10px] px-1">
+                                {ticket}
+                              </Badge>
+                            ))}
+                            {buyer.tickets.length > 2 && (
+                              <Badge variant="secondary" className="text-[10px] px-1">
+                                +{buyer.tickets.length - 2}
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </div>
                     </div>
@@ -466,6 +446,7 @@ export function BuyersTab({
                   <TableHead>Nombre</TableHead>
                   <TableHead>Ciudad</TableHead>
                   <TableHead>Contacto</TableHead>
+                  <TableHead className="text-center">Cant.</TableHead>
                   <TableHead>Boletos</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Método</TableHead>
@@ -478,7 +459,7 @@ export function BuyersTab({
                 {buyers.map((buyer) => (
                   <TableRow key={buyer.id}>
                     <TableCell className="font-medium">{buyer.name}</TableCell>
-                    <TableCell>{buyer.city}</TableCell>
+                    <TableCell>{buyer.city || '-'}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {buyer.email && (
@@ -511,30 +492,39 @@ export function BuyersTab({
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-center font-semibold">
+                      {buyer.ticketCount}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {buyer.tickets.slice(0, 5).map((ticket, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {ticket}
-                          </Badge>
-                        ))}
-                        {buyer.tickets.length > 5 && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge variant="outline" className="text-xs cursor-help">
-                                  +{buyer.tickets.length - 5}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="grid grid-cols-5 gap-1 max-w-xs">
-                                  {buyer.tickets.slice(5).map((ticket, idx) => (
-                                    <span key={idx} className="text-xs">{ticket}</span>
-                                  ))}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                        {buyer.tickets.length > 0 ? (
+                          <>
+                            {buyer.tickets.slice(0, 5).map((ticket, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {ticket}
+                              </Badge>
+                            ))}
+                            {buyer.tickets.length > 5 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="text-xs cursor-help">
+                                      +{buyer.tickets.length - 5}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="grid grid-cols-5 gap-1 max-w-xs">
+                                      {buyer.tickets.slice(5).map((ticket, idx) => (
+                                        <span key={idx} className="text-xs">{ticket}</span>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">{buyer.ticketCount} boletos</span>
                         )}
                       </div>
                     </TableCell>
