@@ -36,36 +36,45 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
     const isAvailable = status === 'available';
     const badgeType = isAvailable ? getNumberBadgeType(ticketNumber, luckyNumbers, popularNumbers, isLastFew) : null;
 
-    // Theme-aware colors
+    // Theme-aware colors - TRAFFIC LIGHT SYSTEM
+    // Green = Available | Red = Sold | Yellow = Reserved
     const colors = isLightTemplate ? {
       focusRingOffset: 'focus:ring-offset-white',
       highlightRingOffset: 'ring-offset-white',
-      availableBg: 'bg-gray-50 border border-gray-200',
-      availableText: 'text-gray-700',
-      availableHover: 'hover:bg-gray-100 hover:border-gray-300 hover:text-gray-900',
-      availableHoverShadow: 'hover:shadow-md hover:shadow-emerald-500/10',
-      soldBg: 'bg-gray-100 border border-gray-200',
-      soldText: 'text-gray-300 cursor-not-allowed',
-      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(0,0,0,0.03)_3px,rgba(0,0,0,0.03)_6px)]',
-      reservedBg: 'bg-amber-50 border border-amber-200',
-      reservedText: 'text-amber-400 cursor-not-allowed',
-      canceledBg: 'bg-red-50 border border-red-200',
-      canceledText: 'text-red-300 cursor-not-allowed',
+      // AVAILABLE - Green (clearly visible)
+      availableBg: 'bg-emerald-100 border border-emerald-300',
+      availableText: 'text-emerald-700',
+      availableHover: 'hover:bg-emerald-200 hover:border-emerald-400 hover:text-emerald-800',
+      availableHoverShadow: 'hover:shadow-md hover:shadow-emerald-500/20',
+      // SOLD - Red (clearly unavailable)
+      soldBg: 'bg-red-100 border border-red-200',
+      soldText: 'text-red-400 cursor-not-allowed',
+      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.08)_3px,rgba(239,68,68,0.08)_6px)]',
+      // RESERVED - Amber/Yellow (waiting state)
+      reservedBg: 'bg-amber-100 border border-amber-300',
+      reservedText: 'text-amber-600 cursor-not-allowed',
+      // CANCELED - Gray
+      canceledBg: 'bg-gray-100 border border-gray-200',
+      canceledText: 'text-gray-400 cursor-not-allowed',
       checkBg: 'bg-white',
     } : {
       focusRingOffset: 'focus:ring-offset-[#030712]',
       highlightRingOffset: 'ring-offset-[#030712]',
-      availableBg: 'bg-white/[0.03] border border-white/[0.08]',
-      availableText: 'text-white/70',
-      availableHover: 'hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white',
-      availableHoverShadow: 'hover:shadow-lg hover:shadow-emerald-500/10',
-      soldBg: 'bg-white/[0.02] border border-white/[0.04]',
-      soldText: 'text-white/20 cursor-not-allowed',
-      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(255,255,255,0.03)_3px,rgba(255,255,255,0.03)_6px)]',
-      reservedBg: 'bg-amber-500/10 border border-amber-500/20',
-      reservedText: 'text-amber-500/50 cursor-not-allowed',
-      canceledBg: 'bg-red-500/5 border border-red-500/10',
-      canceledText: 'text-red-500/30 cursor-not-allowed',
+      // AVAILABLE - Green (clearly visible on dark)
+      availableBg: 'bg-emerald-500/20 border border-emerald-500/40',
+      availableText: 'text-emerald-300',
+      availableHover: 'hover:bg-emerald-500/30 hover:border-emerald-500/50 hover:text-emerald-200',
+      availableHoverShadow: 'hover:shadow-lg hover:shadow-emerald-500/20',
+      // SOLD - Red (clearly unavailable)
+      soldBg: 'bg-red-500/15 border border-red-500/30',
+      soldText: 'text-red-400/60 cursor-not-allowed',
+      soldPattern: 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,rgba(239,68,68,0.1)_3px,rgba(239,68,68,0.1)_6px)]',
+      // RESERVED - Amber/Yellow (waiting state)
+      reservedBg: 'bg-amber-500/20 border border-amber-500/40',
+      reservedText: 'text-amber-400 cursor-not-allowed',
+      // CANCELED - Muted gray
+      canceledBg: 'bg-gray-500/10 border border-gray-500/20',
+      canceledText: 'text-gray-500/50 cursor-not-allowed',
       checkBg: 'bg-[#030712]',
     };
 

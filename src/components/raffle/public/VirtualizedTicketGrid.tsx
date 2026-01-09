@@ -53,18 +53,31 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
   const isAvailable = ticket.status === 'available';
   const isSelected = selectedTickets.includes(ticket.ticket_number);
 
-  // Theme-aware colors
+  // Theme-aware colors - TRAFFIC LIGHT SYSTEM
+  // Green = Available | Red = Sold | Yellow = Reserved
   const colors = isLightTemplate ? {
-    available: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100',
+    // AVAILABLE - Green
+    available: 'bg-emerald-100 border-emerald-300 text-emerald-700 hover:bg-emerald-200',
     selected: 'bg-emerald-500 border-emerald-400 text-white',
+    // SOLD - Red
+    sold: 'bg-red-100 border-red-200 text-red-400 cursor-not-allowed',
+    // RESERVED - Amber
+    reserved: 'bg-amber-100 border-amber-300 text-amber-600 cursor-not-allowed',
+    // Fallback unavailable
     unavailable: 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed',
     checkBg: 'bg-white',
     checkBorder: 'border-emerald-500',
     checkText: 'text-emerald-500',
   } : {
-    available: 'bg-card/50 border-border/50 text-foreground hover:bg-muted',
+    // AVAILABLE - Green
+    available: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30',
     selected: 'bg-emerald-500 border-emerald-400 text-white',
-    unavailable: 'bg-muted/30 border-border/30 text-muted-foreground/50 cursor-not-allowed',
+    // SOLD - Red  
+    sold: 'bg-red-500/15 border-red-500/30 text-red-400/60 cursor-not-allowed',
+    // RESERVED - Amber
+    reserved: 'bg-amber-500/20 border-amber-500/40 text-amber-400 cursor-not-allowed',
+    // Fallback unavailable
+    unavailable: 'bg-gray-500/10 border-gray-500/20 text-gray-500/50 cursor-not-allowed',
     checkBg: 'bg-background',
     checkBorder: 'border-emerald-500',
     checkText: 'text-emerald-500',
@@ -79,7 +92,9 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
           "relative w-full h-full rounded-lg text-xs font-mono font-bold transition-all border flex items-center justify-center",
           isAvailable && !isSelected && colors.available,
           isAvailable && isSelected && colors.selected,
-          !isAvailable && colors.unavailable
+          ticket.status === 'sold' && colors.sold,
+          ticket.status === 'reserved' && colors.reserved,
+          !isAvailable && ticket.status !== 'sold' && ticket.status !== 'reserved' && colors.unavailable
         )}
       >
         {ticket.ticket_number}

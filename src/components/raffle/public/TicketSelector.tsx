@@ -122,12 +122,16 @@ export function TicketSelector({
     loadingBorder: 'border-gray-200 border-t-emerald-500',
     paginationText: 'text-gray-500',
     paginationBtn: 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700',
-    legendCard: 'bg-gray-100 border-gray-200',
+    // Legend colors matching traffic light system
+    legendAvailable: 'bg-emerald-100 border-emerald-300',
+    legendSold: 'bg-red-100 border-red-200',
+    legendReserved: 'bg-amber-100 border-amber-300',
+    legendCard: 'bg-emerald-100 border-emerald-300',
     legendText: 'text-gray-500',
     emptyState: 'text-gray-400',
     searchResultBg: 'bg-gray-50 border-gray-200',
-    ticketAvailable: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300',
-    ticketUnavailable: 'bg-gray-100 border-gray-200 text-gray-300',
+    ticketAvailable: 'bg-emerald-100 border-emerald-300 text-emerald-700 hover:bg-emerald-200 hover:border-emerald-400',
+    ticketUnavailable: 'bg-red-100 border-red-200 text-red-400',
     checkBg: 'bg-white',
     goButton: 'bg-emerald-600 text-white hover:bg-emerald-700',
     clearButton: 'text-gray-500 hover:text-red-500 hover:bg-red-50',
@@ -167,12 +171,16 @@ export function TicketSelector({
     loadingBorder: 'border-white/20 border-t-emerald-500',
     paginationText: 'text-white/40',
     paginationBtn: 'border-white/[0.08] text-white/50 hover:bg-white/[0.06] hover:text-white',
-    legendCard: 'bg-white/[0.03] border-white/[0.08]',
+    // Legend colors matching traffic light system
+    legendAvailable: 'bg-emerald-500/20 border-emerald-500/40',
+    legendSold: 'bg-red-500/15 border-red-500/30',
+    legendReserved: 'bg-amber-500/20 border-amber-500/40',
+    legendCard: 'bg-emerald-500/20 border-emerald-500/40',
     legendText: 'text-white/50',
     emptyState: 'text-white/30',
     searchResultBg: 'bg-white/[0.02] border-white/[0.06]',
-    ticketAvailable: 'bg-white/[0.03] border-white/[0.06] text-white/70 hover:bg-white/[0.06] hover:border-white/[0.1]',
-    ticketUnavailable: 'bg-white/[0.02] border-white/[0.04] text-white/20',
+    ticketAvailable: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 hover:border-emerald-500/50',
+    ticketUnavailable: 'bg-red-500/15 border-red-500/30 text-red-400/60',
     checkBg: 'bg-[#030712]',
     goButton: 'bg-white text-[#030712] hover:bg-white/90',
     clearButton: 'text-white/50 hover:text-red-400 hover:bg-red-500/10',
@@ -1273,22 +1281,22 @@ export function TicketSelector({
               </div>
             </div>
 
-            {/* Legend */}
+            {/* Legend - Traffic Light System */}
             <div className={cn("flex flex-wrap gap-6 text-sm justify-center pt-4 border-t", colors.border)}>
               <div className="flex items-center gap-2">
-                <div className={cn("w-6 h-6 rounded-lg border", colors.legendCard)} />
+                <div className={cn("w-6 h-6 rounded-lg border", colors.legendAvailable)} />
                 <span className={colors.legendText}>Disponible</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-500" />
+                <div className="w-6 h-6 rounded-lg bg-emerald-500 border border-emerald-400" />
                 <span className={colors.legendText}>Seleccionado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/50" />
+                <div className={cn("w-6 h-6 rounded-lg border", colors.legendReserved)} />
                 <span className={colors.legendText}>Reservado</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className={cn("w-6 h-6 rounded-lg border", colors.ticketUnavailable)} />
+                <div className={cn("w-6 h-6 rounded-lg border", colors.legendSold)} />
                 <span className={colors.legendText}>Vendido</span>
               </div>
             </div>
