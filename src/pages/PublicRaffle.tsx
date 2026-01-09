@@ -38,6 +38,7 @@ import { ContactSection } from "@/components/raffle/public/ContactSection";
 import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 import { UpcomingPreDraws } from "@/components/raffle/public/UpcomingPreDraws";
 import { AnnouncedWinners } from "@/components/raffle/public/AnnouncedWinners";
+import { PricingSection } from "@/components/raffle/public/sections/PricingSection";
 import { parsePrizes } from "@/types/prize";
 import { StructuredData, createEventSchema, createBreadcrumbSchema } from "@/components/seo/StructuredData";
 
@@ -585,6 +586,20 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
               customColors={customColors}
               upcomingPreDrawPrizes={upcomingPreDrawPrizes}
             />
+
+            {/* Pricing Section - ANTES del Countdown */}
+            {showPackages && (raffle.packages || []).length > 0 && (
+              <PricingSection
+                ticketPrice={Number(raffle.ticket_price)}
+                packages={raffle.packages || []}
+                currencyCode={currency}
+                isLightTemplate={isLightTemplate}
+                primaryColor={primaryColor}
+                onPackageSelect={(qty) => {
+                  scrollToTickets();
+                }}
+              />
+            )}
 
             {/* Desktop Countdown */}
             {showCountdown && raffle.draw_date && (

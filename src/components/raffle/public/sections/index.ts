@@ -9,6 +9,7 @@ export { StatsSection } from './StatsSection';
 export { GallerySection } from './GallerySection';
 export { PackagesSection } from './PackagesSection';
 export { HowToParticipateSection } from './HowToParticipateSection';
+export { PricingSection } from './PricingSection';
 // Additional sections will be added incrementally
 // export { PreDrawsSection } from './PreDrawsSection';
 // export { PrizesSection } from './PrizesSection';

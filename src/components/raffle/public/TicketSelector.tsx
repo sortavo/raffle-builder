@@ -774,50 +774,7 @@ export function TicketSelector({
 
   return (
     <div className="space-y-6 pb-40 sm:pb-48">
-      {/* Precio por boleto - prominente */}
-      <div className={cn(
-        "text-center p-6 sm:p-8 rounded-2xl border backdrop-blur-xl",
-        colors.cardBg, colors.border
-      )}>
-        <p className={cn("text-sm font-medium mb-2", colors.textMuted)}>
-          Precio por boleto
-        </p>
-        <p 
-          className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight"
-          style={{ color: primaryColor || '#10b981' }}
-        >
-          {formatCurrency(ticketPrice, currencyCode)}
-        </p>
-      </div>
-
-      {/* Paquetes de descuento - debajo del precio */}
-      {packages.length > 0 && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <p className={cn("text-sm font-medium flex items-center justify-center gap-2", colors.textMuted)}>
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              Ahorra con nuestros paquetes
-            </p>
-          </div>
-          <PackageCards
-            packages={packages}
-            ticketPrice={ticketPrice}
-            currency={currencyCode}
-            selectedQuantity={selectedTickets.length}
-            onSelect={(qty) => setRandomCount(qty)}
-            onOpenCheckout={() => {
-              if (selectedTickets.length > 0) {
-                onContinue(selectedTickets, selectedTicketIndices);
-              }
-            }}
-            bestPackageId={bestPackage?.id}
-            isLightTemplate={isLightTemplate}
-            primaryColor={primaryColor}
-          />
-        </div>
-      )}
-
-      {/* Probabilidades - después de los paquetes */}
+      {/* Probabilidades - al inicio del TicketSelector */}
       {showProbabilityStats && (
         <ProbabilityStats
           totalTickets={totalTickets}
