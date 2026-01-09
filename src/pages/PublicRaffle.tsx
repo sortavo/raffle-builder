@@ -545,6 +545,20 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
             <p className={`text-center mt-2 ${isLightTemplate ? 'text-gray-500' : 'text-white/50'}`}>{raffle.prize_name}</p>
           </div>
         ) : null}
+
+        {/* Mobile Pricing Section - Paquetes de descuento */}
+        {isMobile && showPackages && (raffle.packages || []).length > 0 && (
+          <PricingSection
+            ticketPrice={Number(raffle.ticket_price)}
+            packages={raffle.packages || []}
+            currencyCode={currency}
+            isLightTemplate={isLightTemplate}
+            primaryColor={primaryColor}
+            onPackageSelect={(qty) => {
+              scrollToTickets();
+            }}
+          />
+        )}
         
         {!isMobile && showHero && (
           <>
