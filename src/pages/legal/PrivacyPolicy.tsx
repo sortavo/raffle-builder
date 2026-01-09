@@ -1,9 +1,9 @@
-import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { Footer } from '@/components/layout/Footer';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
+import { SEOHead } from '@/components/seo';
 
 export default function PrivacyPolicy() {
   useScopedDarkMode();
@@ -14,10 +14,11 @@ export default function PrivacyPolicy() {
 
   return (
     <>
-      <Helmet>
-        <title>Política de Privacidad | Sortavo</title>
-        <meta name="description" content="Política de privacidad de Sortavo. Conoce cómo recopilamos, usamos y protegemos tu información personal." />
-      </Helmet>
+      <SEOHead
+        title="Política de Privacidad"
+        description="Política de privacidad de Sortavo. Conoce cómo recopilamos, usamos y protegemos tu información personal."
+        noindex={true}
+      />
 
       <div className="min-h-screen bg-ultra-dark">
         <PremiumNavbar variant="solid" showCTA={false} />

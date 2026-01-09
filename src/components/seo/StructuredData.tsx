@@ -146,8 +146,11 @@ type StructuredDataType =
   | BreadcrumbSchema
   | WebSiteSchema;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GenericSchema = Record<string, any>;
+
 interface StructuredDataProps {
-  data: StructuredDataType | StructuredDataType[];
+  data: StructuredDataType | StructuredDataType[] | GenericSchema | GenericSchema[];
 }
 
 export function StructuredData({ data }: StructuredDataProps) {

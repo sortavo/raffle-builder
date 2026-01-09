@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +16,7 @@ import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { PremiumHero } from '@/components/layout/PremiumBackground';
 import { toast } from 'sonner';
 import { useSortavoTracking } from '@/hooks/useSortavoTracking';
+import { SEOHead, StructuredData } from '@/components/seo';
 import { 
   ArrowLeft, 
   Mail, 
@@ -132,12 +132,45 @@ export default function Contact() {
     setIsSubmitting(false);
   };
 
+  const contactSchema = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Contacto - Sortavo",
+    "description": "Página de contacto de Sortavo. Contáctanos para cualquier consulta sobre sorteos profesionales.",
+    "url": "https://sortavo.com/contact",
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "Sortavo",
+      "email": "soporte@sortavo.com",
+      "telephone": "+52 55 1234 5678",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Ciudad de México",
+        "addressCountry": "MX"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+52 55 1234 5678",
+        "contactType": "customer service",
+        "availableLanguage": "Spanish",
+        "hoursAvailable": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "opens": "09:00",
+          "closes": "18:00"
+        }
+      }
+    }
+  };
+
   return (
     <>
-      <Helmet>
-        <title>Contacto | Sortavo</title>
-        <meta name="description" content="Contáctanos para cualquier consulta sobre Sortavo. Estamos aquí para ayudarte con tus sorteos." />
-      </Helmet>
+      <SEOHead
+        title="Contacto"
+        description="Contáctanos para cualquier consulta sobre Sortavo. Estamos aquí para ayudarte con tus sorteos profesionales."
+        canonical="https://sortavo.com/contact"
+      />
+      <StructuredData data={contactSchema} />
 
       <div className="min-h-screen bg-ultra-dark">
         {/* Navigation */}

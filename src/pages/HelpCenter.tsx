@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Footer } from '@/components/layout/Footer';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { PremiumHero } from '@/components/layout/PremiumBackground';
+import { SEOHead, StructuredData, createFAQSchema } from '@/components/seo';
 
 const faqCategories = [
   {
@@ -201,10 +202,24 @@ export default function HelpCenter() {
     }
   };
 
+  // Collect all FAQs for schema
+  const allFaqs = faqCategories.flatMap(cat => 
+    cat.questions.map(q => ({ question: q.q, answer: q.a }))
+  );
+
   return (
-    <div className="min-h-screen bg-ultra-dark">
-      {/* Premium Navigation */}
-      <PremiumNavbar variant="solid" />
+    <>
+      <SEOHead
+        title="Centro de Ayuda"
+        description="Encuentra respuestas a tus preguntas sobre Sortavo. Guías, tutoriales y soporte para crear sorteos exitosos."
+        canonical="https://sortavo.com/help"
+        keywords="ayuda sortavo, preguntas frecuentes sorteos, soporte rifas, tutorial sorteos online"
+      />
+      <StructuredData data={createFAQSchema(allFaqs)} />
+      
+      <div className="min-h-screen bg-ultra-dark">
+        {/* Premium Navigation */}
+        <PremiumNavbar variant="solid" />
 
       {/* Hero Header */}
       <PremiumHero className="pt-28 pb-16 lg:pt-36 lg:pb-20">
@@ -450,6 +465,7 @@ export default function HelpCenter() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </>
   );
 }

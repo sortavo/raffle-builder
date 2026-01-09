@@ -1,9 +1,9 @@
-import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { Footer } from '@/components/layout/Footer';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
+import { SEOHead } from '@/components/seo';
 
 export default function TermsOfService() {
   useScopedDarkMode();
@@ -14,10 +14,11 @@ export default function TermsOfService() {
 
   return (
     <>
-      <Helmet>
-        <title>Términos y Condiciones | Sortavo</title>
-        <meta name="description" content="Términos y condiciones de uso de la plataforma Sortavo para organización de sorteos en línea." />
-      </Helmet>
+      <SEOHead
+        title="Términos y Condiciones"
+        description="Términos y condiciones de uso de la plataforma Sortavo para organización de sorteos en línea."
+        noindex={true}
+      />
 
       <div className="min-h-screen bg-ultra-dark">
         <PremiumNavbar variant="solid" showCTA={false} />

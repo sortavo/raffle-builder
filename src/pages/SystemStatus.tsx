@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { toast } from 'sonner';
 import { useSystemStatus, ServiceStatus } from '@/hooks/useSystemStatus';
+import { SEOHead } from '@/components/seo';
 import { 
   CheckCircle2, 
   AlertTriangle, 
@@ -142,10 +142,11 @@ export default function SystemStatus() {
 
   return (
     <>
-      <Helmet>
-        <title>Estado del Sistema | Sortavo</title>
-        <meta name="description" content="Monitorea el estado en tiempo real de todos los servicios de Sortavo." />
-      </Helmet>
+      <SEOHead
+        title="Estado del Sistema"
+        description="Monitorea el estado en tiempo real de todos los servicios de Sortavo. Verifica si hay interrupciones o mantenimiento programado."
+        canonical="https://sortavo.com/status"
+      />
 
       <div className="min-h-screen bg-ultra-dark">
         <PremiumNavbar variant="solid" />
