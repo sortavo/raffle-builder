@@ -160,31 +160,94 @@ is_platform_admin()           -- Es admin de plataforma
 
 ## Paso 4: Storage Buckets
 
-### Crear Buckets
+### Crear Buckets (4 total)
 ```sql
 -- Bucket para imágenes de premios (público)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('prizes', 'prizes', true);
+VALUES ('prize-images', 'prize-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Bucket para logos de organizaciones (público)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('organizations', 'organizations', true);
+VALUES ('organization-assets', 'organization-assets', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Bucket para comprobantes de pago (privado)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('payment-proofs', 'payment-proofs', false);
+VALUES ('payment-proofs', 'payment-proofs', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
 ```
 
-### Políticas de Storage
-```sql
--- Políticas para prizes bucket
-CREATE POLICY "Public read access" ON storage.objects
-FOR SELECT USING (bucket_id = 'prizes');
+### Políticas de Storage Completas
 
-CREATE POLICY "Org members can upload" ON storage.objects
-FOR INSERT WITH CHECK (
-  bucket_id = 'prizes' AND
-  auth.role() = 'authenticated'
+```sql
+-- ============ prize-images bucket ============
+CREATE POLICY "Public can view prize images" ON storage.objects
+FOR SELECT TO public USING (bucket_id = 'prize-images');
+
+CREATE POLICY "Org members can upload prize images" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'prize-images' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+CREATE POLICY "Org members can update prize images" ON storage.objects
+FOR UPDATE TO authenticated
+USING (
+  bucket_id = 'prize-images' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+CREATE POLICY "Org members can delete prize images" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'prize-images' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+-- ============ organization-assets bucket ============
+CREATE POLICY "Public can view organization assets" ON storage.objects
+FOR SELECT TO public USING (bucket_id = 'organization-assets');
+
+CREATE POLICY "Org members can upload organization assets" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'organization-assets' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+CREATE POLICY "Org members can update organization assets" ON storage.objects
+FOR UPDATE TO authenticated
+USING (
+  bucket_id = 'organization-assets' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+CREATE POLICY "Org members can delete organization assets" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'organization-assets' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+-- ============ payment-proofs bucket (privado) ============
+CREATE POLICY "Org admins can view payment proofs" ON storage.objects
+FOR SELECT TO authenticated
+USING (
+  bucket_id = 'payment-proofs' AND
+  public.has_org_access(auth.uid(), ((storage.foldername(name))[1])::uuid)
+);
+
+CREATE POLICY "Anyone can upload payment proofs" ON storage.objects
+FOR INSERT TO public
+WITH CHECK (bucket_id = 'payment-proofs');
+
+CREATE POLICY "Org admins can delete payment proofs" ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'payment-proofs' AND
+  public.is_org_admin(auth.uid(), ((storage.foldername(name))[1])::uuid)
 );
 ```
 
@@ -360,19 +423,28 @@ SELECT * FROM pg_policies WHERE schemaname = 'public';
 - ✅ Políticas RLS endurecidas para `notifications` y `telegram_buyer_links`
 - ✅ Todas las funciones RPC tienen `SET search_path = public`
 - ✅ Función `search_virtual_tickets` actualizada a arquitectura `orders`
+- ✅ Vistas `public_raffles` y `public_custom_domains` convertidas a `SECURITY INVOKER`
+- ✅ Acceso directo a `raffle_stats_mv` revocado (solo via `service_role`)
 
 ### Linter Score Final
 | Categoría | Estado |
 |-----------|--------|
 | Tables with RLS | ✅ 25/25 |
-| Functions with search_path | ✅ 45/45 |
+| Functions with search_path | ✅ 52/52 |
 | Extensions in public | ✅ 0 |
+| Views with security_invoker | ✅ 2/2 |
 | Permissive policies | ✅ Solo intencionales |
 
-### Pendiente en Supabase Externo
-- [ ] Habilitar "Leaked Password Protection" en Auth Settings
-- [ ] Configurar backups automáticos (Plan Pro)
-- [ ] Habilitar PITR si se requiere (Plan Pro)
+### ⚠️ Configuración Manual en Supabase Externo
+
+**Crítico (Hacer inmediatamente después de migrar):**
+- [ ] Habilitar **"Leaked Password Protection"** en Auth Settings → Password Settings
+- [ ] Verificar redirect URLs en Auth Settings
+
+**Recomendado (Plan Pro):**
+- [ ] Configurar backups automáticos
+- [ ] Habilitar PITR (Point-in-Time Recovery)
+- [ ] Configurar alertas de uso
 
 ---
 
@@ -385,4 +457,4 @@ Para asistencia con la migración:
 ---
 
 *Última auditoría: 9 de Enero 2026*
-*Score de preparación: 98/100*
+*Score de preparación: 100/100* ✅

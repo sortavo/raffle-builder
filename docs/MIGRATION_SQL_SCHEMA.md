@@ -625,32 +625,37 @@ CREATE TABLE public.archived_raffle_summary (
 
 ---
 
-## Parte 5: Vistas
+## Parte 5: Vistas (Con Security Invoker)
 
 ```sql
--- Vista pública de sorteos
-CREATE OR REPLACE VIEW public.public_raffles AS
+-- Vista pública de sorteos (SECURITY INVOKER para respetar RLS)
+CREATE OR REPLACE VIEW public.public_raffles
+WITH (security_invoker = true)
+AS
 SELECT 
-  id, organization_id, title, slug, description, category,
-  prize_name, prize_value, prize_images, prize_video_url, prize_terms, prize_display_mode, prizes,
-  ticket_price, total_tickets, currency_code,
-  draw_date, draw_method, lottery_digits, lottery_draw_number,
-  start_date, status, template_id, customization,
-  reservation_time_minutes, max_tickets_per_person, max_tickets_per_purchase,
-  close_sale_hours_before, livestream_url,
-  allow_individual_sale, lucky_numbers_enabled,
-  winner_announced, winner_ticket_number,
-  created_at, updated_at
-FROM public.raffles
-WHERE status IN ('active', 'completed');
+  r.id, r.organization_id, r.title, r.slug, r.description, r.category,
+  r.prize_name, r.prize_value, r.prize_images, r.prize_video_url, r.prize_terms, 
+  r.prize_display_mode, r.prizes,
+  r.ticket_price, r.total_tickets, r.currency_code,
+  r.draw_date, r.draw_method, r.lottery_digits, r.lottery_draw_number,
+  r.start_date, r.status, r.template_id, r.customization,
+  r.reservation_time_minutes, r.max_tickets_per_person, r.max_tickets_per_purchase,
+  r.close_sale_hours_before, r.livestream_url,
+  r.allow_individual_sale, r.lucky_numbers_enabled,
+  r.winner_announced, r.winner_ticket_number,
+  r.created_at, r.updated_at
+FROM public.raffles r
+WHERE r.status IN ('active', 'completed');
 
--- Vista pública de dominios
-CREATE OR REPLACE VIEW public.public_custom_domains AS
-SELECT id, organization_id, domain, verified, is_primary, created_at
-FROM public.custom_domains
-WHERE verified = true;
+-- Vista pública de dominios (SECURITY INVOKER para respetar RLS)
+CREATE OR REPLACE VIEW public.public_custom_domains
+WITH (security_invoker = true)
+AS
+SELECT cd.id, cd.organization_id, cd.domain, cd.verified, cd.is_primary, cd.created_at
+FROM public.custom_domains cd
+WHERE cd.verified = true;
 
--- Vista materializada de estadísticas
+-- Vista materializada de estadísticas (acceso restringido via RPC)
 CREATE MATERIALIZED VIEW public.raffle_stats_mv AS
 SELECT 
   r.id as raffle_id,
@@ -671,6 +676,12 @@ WHERE r.archived_at IS NULL
 GROUP BY r.id;
 
 CREATE UNIQUE INDEX ON public.raffle_stats_mv (raffle_id);
+
+-- IMPORTANTE: Revocar acceso directo a raffle_stats_mv
+-- El acceso debe ser solo via funciones RPC con control de acceso
+REVOKE SELECT ON public.raffle_stats_mv FROM anon;
+REVOKE SELECT ON public.raffle_stats_mv FROM authenticated;
+GRANT SELECT ON public.raffle_stats_mv TO service_role;
 ```
 
 ---
