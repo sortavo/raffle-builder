@@ -19,6 +19,8 @@ import { PricingCard, PricingToggle, SocialProofSection, TrustBadges } from '@/c
 import { PremiumNavbar } from '@/components/layout/PremiumNavbar';
 import { PremiumHero } from '@/components/layout/PremiumBackground';
 import { cn } from '@/lib/utils';
+import { SEOHead } from '@/components/seo/SEOHead';
+import { StructuredData, ProductSchema, createFAQSchema } from '@/components/seo/StructuredData';
 
 export default function Pricing() {
   // Activate dark mode for this page
@@ -134,8 +136,43 @@ export default function Pricing() {
     },
   ];
 
+  // Product schema for pricing
+  const productSchema: ProductSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: 'Sortavo - Plataforma de Sorteos',
+    description: 'Plataforma profesional para crear y gestionar sorteos y rifas online',
+    brand: {
+      '@type': 'Brand',
+      name: 'Sortavo',
+    },
+    offers: [
+      { '@type': 'Offer', name: 'Básico', price: '199', priceCurrency: 'MXN', description: 'Para organizadores casuales' },
+      { '@type': 'Offer', name: 'Pro', price: '399', priceCurrency: 'MXN', description: 'Para organizadores profesionales' },
+      { '@type': 'Offer', name: 'Premium', price: '799', priceCurrency: 'MXN', description: 'Para equipos y empresas' },
+      { '@type': 'Offer', name: 'Enterprise', price: '2499', priceCurrency: 'MXN', description: 'Para grandes organizaciones' },
+    ],
+  };
+
+  // FAQ schema data
+  const faqSchemaData = faqs.map(faq => ({
+    question: faq.question,
+    answer: faq.answer,
+  }));
+
   return (
     <div className="min-h-screen bg-ultra-dark overflow-x-hidden">
+      {/* SEO Head */}
+      <SEOHead
+        title="Planes y Precios | Sortavo - Desde $199 MXN/mes"
+        description="Elige el plan perfecto para tu negocio de sorteos. Sin comisiones por venta, sin costos ocultos. Planes desde $199 MXN/mes con prueba gratis de 7 días."
+        canonical="https://sortavo.com/pricing"
+        keywords="precios sortavo, planes sorteos, software rifas precio, plataforma sorteos costo"
+      />
+      
+      {/* Structured Data */}
+      <StructuredData data={[productSchema, createFAQSchema(faqSchemaData)]} />
+
       {/* Premium Navigation */}
       <PremiumNavbar variant="solid" />
 

@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,6 +13,8 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useScopedDarkMode } from '@/hooks/useScopedDarkMode';
 import { useSortavoTracking } from '@/hooks/useSortavoTracking';
+import { SEOHead } from '@/components/seo/SEOHead';
+import { StructuredData, createSoftwareApplicationSchema } from '@/components/seo/StructuredData';
 
 const categories = [
   {
@@ -130,10 +131,27 @@ export default function Features() {
 
   return (
     <>
-      <Helmet>
-        <title>Características | Sortavo - Plataforma de Sorteos</title>
-        <meta name="description" content="Descubre todas las características de Sortavo: selector visual de boletos, múltiples métodos de pago, notificaciones en tiempo real y más." />
-      </Helmet>
+      {/* SEO Head */}
+      <SEOHead
+        title="Características | Sortavo - Todo para Sorteos Exitosos"
+        description="Descubre todas las características de Sortavo: selector visual de boletos, múltiples métodos de pago, sorteos transparentes, notificaciones en tiempo real y más."
+        canonical="https://sortavo.com/features"
+        keywords="funcionalidades sortavo, características plataforma sorteos, herramientas rifas, software sorteos funciones"
+      />
+      
+      {/* Structured Data */}
+      <StructuredData data={createSoftwareApplicationSchema({
+        featureList: [
+          'Selector visual de números',
+          'Múltiples métodos de pago',
+          'Sorteos transparentes verificables',
+          'Notificaciones en tiempo real',
+          'Exportación Excel/CSV',
+          'Dominios personalizados',
+          'Bot Telegram integrado',
+          'Analytics avanzado',
+        ],
+      })} />
 
       <div className="min-h-screen bg-ultra-dark text-white overflow-x-hidden">
         {/* Premium background with 6+ animated orbs - TIER S */}

@@ -1,3 +1,17 @@
+# Sortavo - Plataforma de Sorteos Online
+# https://sortavo.com
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sortavo.com/sitemap.xml
+
+# Crawl-delay for bots (optional, respectful crawling)
+User-agent: *
+Crawl-delay: 1
+
+# Allow social media bots
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +24,29 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# Block internal/admin routes
+Disallow: /dashboard/
+Disallow: /dashboard
+Disallow: /admin/
+Disallow: /admin
+Disallow: /auth
+Disallow: /onboarding
+Disallow: /invite/
+Disallow: /ticket/
+Disallow: /order/
+Disallow: /my-tickets
+Disallow: /api/
+
+# Block query parameters that create duplicate content
+Disallow: /*?preview=
+Disallow: /*?ref=
+Disallow: /*?utm_

@@ -39,6 +39,7 @@ import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 import { UpcomingPreDraws } from "@/components/raffle/public/UpcomingPreDraws";
 import { AnnouncedWinners } from "@/components/raffle/public/AnnouncedWinners";
 import { parsePrizes } from "@/types/prize";
+import { StructuredData, createEventSchema, createBreadcrumbSchema } from "@/components/seo/StructuredData";
 
 interface PublicRaffleProps {
   tenantOrgSlug?: string;
@@ -354,16 +355,59 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
     fontBody: fontBody,
   };
 
+  // Build canonical URL
+  const canonicalUrl = orgSlugValue 
+    ? `https://sortavo.com/${orgSlugValue}/${raffle.slug}`
+    : url;
+
+  // Create structured data for this raffle
+  const eventSchema = createEventSchema(
+    {
+      title: raffle.title,
+      description: raffle.description || undefined,
+      drawDate: raffle.draw_date || undefined,
+      ticketPrice: raffle.ticket_price,
+      currencyCode: currency,
+      prizeImages: raffle.prize_images || undefined,
+      slug: raffle.slug,
+      status: raffle.status || 'active',
+    },
+    {
+      name: orgName,
+      slug: orgSlugValue || undefined,
+    },
+    canonicalUrl
+  );
+
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Inicio', url: 'https://sortavo.com' },
+    ...(orgSlugValue ? [{ name: orgName, url: `https://sortavo.com/${orgSlugValue}` }] : []),
+    { name: raffle.title },
+  ]);
+
   return (
     <>
       <Helmet>
         <title>{raffle.title} - {orgName || "Sortavo"}</title>
-        <meta name="description" content={raffle.description || `Participa en ${raffle.title}`} />
-        <meta property="og:title" content={raffle.title} />
-        <meta property="og:description" content={raffle.description || ''} />
+        <meta name="description" content={raffle.description || `Participa en ${raffle.title}. Boletos desde ${formatCurrency(raffle.ticket_price, currency)}.`} />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={canonicalUrl} />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Sortavo" />
+        <meta property="og:title" content={`${raffle.title} - ${orgName}`} />
+        <meta property="og:description" content={raffle.description || `Participa en ${raffle.title}`} />
         {raffle.prize_images?.[0] && <meta property="og:image" content={raffle.prize_images[0]} />}
-        <meta property="og:url" content={url} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:locale" content="es_MX" />
+        
+        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${raffle.title} - ${orgName}`} />
+        <meta name="twitter:description" content={raffle.description || `Participa en ${raffle.title}`} />
+        {raffle.prize_images?.[0] && <meta name="twitter:image" content={raffle.prize_images[0]} />}
+        
         {/* Dynamic Google Fonts for custom typography */}
         {(customization.title_font || customization.body_font) && (
           <link
@@ -375,6 +419,9 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           />
         )}
       </Helmet>
+
+      {/* Schema.org Structured Data */}
+      <StructuredData data={[eventSchema, breadcrumbSchema]} />
 
       {/* Preview Banner for organizers viewing draft raffles */}
       {isPreviewMode && (

@@ -25,6 +25,7 @@ import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
+import { StructuredData, createOrganizationSchema, createBreadcrumbSchema } from "@/components/seo/StructuredData";
 
 // TikTok icon component
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -107,12 +108,44 @@ export default function OrganizationHome({ orgSlugOverride }: OrganizationHomePr
     return [];
   })();
 
+  // Create structured data
+  const canonicalUrl = `https://sortavo.com/${orgSlug}`;
+  const orgSchema = createOrganizationSchema({
+    name: organization.name,
+    slug: orgSlug,
+    description: organization.description || undefined,
+    logoUrl: organization.logo_url || undefined,
+    email: organization.email || undefined,
+    phone: organization.phone || undefined,
+    city: organization.city || undefined,
+    facebookUrl: organization.facebook_url || undefined,
+    instagramUrl: organization.instagram_url || undefined,
+    tiktokUrl: organization.tiktok_url || undefined,
+    websiteUrl: organization.website_url || undefined,
+  });
+  
+  const breadcrumbSchema = createBreadcrumbSchema([
+    { name: 'Inicio', url: 'https://sortavo.com' },
+    { name: organization.name },
+  ]);
+
   return (
     <>
       <Helmet>
-        <title>{organization.name} - Sorteos</title>
+        <title>{organization.name} - Sorteos | Sortavo</title>
         <meta name="description" content={organization.description || `Participa en los sorteos de ${organization.name}. Compra tus boletos y gana increíbles premios.`} />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:site_name" content="Sortavo" />
+        <meta property="og:title" content={`${organization.name} - Sorteos`} />
+        <meta property="og:description" content={organization.description || `Sorteos de ${organization.name}`} />
+        {organization.logo_url && <meta property="og:image" content={organization.logo_url} />}
+        <meta property="og:url" content={canonicalUrl} />
       </Helmet>
+      
+      {/* Schema.org Structured Data */}
+      <StructuredData data={[orgSchema, breadcrumbSchema]} />
 
       <div className="min-h-screen bg-ultra-dark overflow-x-hidden">
         {/* Premium Navbar */}

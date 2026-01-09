@@ -7,6 +7,8 @@ import { useScopedDarkMode } from "@/hooks/useScopedDarkMode";
 import { useSortavoTracking } from "@/hooks/useSortavoTracking";
 import { PremiumNavbar } from "@/components/layout/PremiumNavbar";
 import { DemoSelectorDialog } from "@/components/marketing/DemoSelectorDialog";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { StructuredData, createSoftwareApplicationSchema, createFAQSchema, createWebSiteSchema } from "@/components/seo/StructuredData";
 import { 
   Sparkles, 
   Trophy, 
@@ -136,8 +138,30 @@ const Index = () => {
     }
   ];
 
+  // FAQ data for Schema.org
+  const faqData = [
+    { question: '¿Cómo funciona Sortavo?', answer: 'Sortavo es una plataforma que te permite crear, gestionar y ejecutar sorteos y rifas online. Configura tu sorteo en minutos, vende boletos con múltiples métodos de pago y realiza el sorteo de forma transparente.' },
+    { question: '¿Cuánto cuesta usar Sortavo?', answer: 'Sortavo ofrece planes desde $199 MXN/mes. No cobramos comisión por boletos vendidos - tú recibes el 100% de tus ventas.' },
+    { question: '¿Es seguro vender boletos con Sortavo?', answer: 'Sí, Sortavo utiliza encriptación de nivel bancario, auditoría completa de transacciones y métodos de sorteo verificables para máxima transparencia.' },
+  ];
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      {/* SEO Head */}
+      <SEOHead
+        title="Sortavo - Plataforma #1 para Crear y Gestionar Sorteos Online en México"
+        description="Crea sorteos y rifas profesionales en minutos. Vende boletos online, acepta múltiples métodos de pago y realiza sorteos transparentes. Prueba gratis 7 días."
+        canonical="https://sortavo.com/"
+        keywords="sorteos online, rifas, vender boletos, crear sorteo, plataforma de sorteos, rifas mexico, sorteos profesionales"
+      />
+      
+      {/* Structured Data */}
+      <StructuredData data={[
+        createSoftwareApplicationSchema(),
+        createWebSiteSchema(),
+        createFAQSchema(faqData),
+      ]} />
+
       {/* Premium Navigation */}
       <PremiumNavbar variant="transparent" showCTA={true} />
 

@@ -119,3 +119,6 @@ verify_jwt = true
 
 [functions.create-demo-account]
 verify_jwt = false
+
+[functions.sitemap]
+verify_jwt = false
