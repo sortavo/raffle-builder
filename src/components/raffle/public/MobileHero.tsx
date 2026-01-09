@@ -348,26 +348,35 @@ export function MobileHero({
         )}
 
         {/* Prize info overlay - TIER S DRAMATIC PREMIUM typography */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4 pointer-events-none">
-          {/* Title - TIER S Extra Large and dramatic */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 space-y-3 pointer-events-none">
+          {/* Title - Adaptive sizing based on title length */}
           <h1 className={cn(
-            "text-5xl sm:text-6xl lg:text-7xl font-black leading-[0.85] tracking-[-0.05em]",
+            "font-black leading-[0.85] tracking-[-0.03em]",
+            // Adaptive sizing: shorter titles get larger text
+            raffle.title.length > 40 
+              ? "text-2xl sm:text-3xl" 
+              : raffle.title.length > 25 
+                ? "text-3xl sm:text-4xl" 
+                : "text-4xl sm:text-5xl",
             isLightTemplate ? "text-gray-900" : "text-white"
           )}>
             {raffle.title}
           </h1>
           
-          {/* Prize name with value */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Prize name with subtle value text */}
+          <div className="flex flex-col gap-1">
             <span className={cn(
-              "text-lg tracking-tight",
-              isLightTemplate ? "text-gray-700" : "text-white/80"
+              "text-lg font-semibold tracking-tight",
+              isLightTemplate ? "text-gray-800" : "text-white"
             )}>
               {raffle.prize_name}
             </span>
             {raffle.prize_value && (
-              <span className="px-3 py-1.5 rounded-lg text-sm font-bold bg-emerald-500/15 text-emerald-600 shimmer-badge border border-emerald-500/30">
-                {formatCurrency(raffle.prize_value, currency)}
+              <span className={cn(
+                "text-sm font-medium",
+                isLightTemplate ? "text-gray-500" : "text-white/60"
+              )}>
+                Valor estimado: {formatCurrency(raffle.prize_value, currency)}
               </span>
             )}
           </div>
