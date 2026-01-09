@@ -13,18 +13,23 @@ import {
   BarChart3
 } from "lucide-react";
 
-// Smart probability formatting for small percentages
+// Smart probability formatting - shows readable format for small percentages
 function formatProbability(probability: number): string {
-  if (probability >= 1) {
+  if (probability >= 10) {
+    return probability.toFixed(0) + '%';
+  } else if (probability >= 1) {
     return probability.toFixed(1) + '%';
   } else if (probability >= 0.1) {
     return probability.toFixed(2) + '%';
   } else if (probability >= 0.01) {
-    return probability.toFixed(3) + '%';
-  } else if (probability >= 0.001) {
-    return probability.toFixed(4) + '%';
+    return probability.toFixed(2) + '%';
   } else if (probability > 0) {
-    return probability.toFixed(5) + '%';
+    // For very small percentages, show as "1 en X" format which is more readable
+    const oneInX = Math.round(100 / probability);
+    if (oneInX >= 1000) {
+      return `1 en ${oneInX.toLocaleString()}`;
+    }
+    return probability.toFixed(2) + '%';
   }
   return '0%';
 }
