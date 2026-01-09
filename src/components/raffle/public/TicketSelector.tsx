@@ -405,6 +405,23 @@ export function TicketSelector({
     return tickets.filter(t => t.status === 'available');
   }, [tickets, showOnlyAvailable]);
 
+  // Auto-navigate to first page with available tickets when filter is active and page is empty
+  useEffect(() => {
+    // Only act when filter is active and page appears empty
+    if (!showOnlyAvailable) return;
+    if (filteredTickets.length > 0) return;
+    if (isLoading || !tickets.length) return;
+    
+    // Calculate first page with available tickets based on sold count
+    const sold = data?.sold || 0;
+    const firstAvailablePage = Math.floor(sold / pageSize) + 1;
+    
+    if (firstAvailablePage !== page && firstAvailablePage <= effectiveTotalPages) {
+      setPage(firstAvailablePage);
+      toast.info(`Navegando a página ${firstAvailablePage.toLocaleString('es-MX')} con boletos disponibles`);
+    }
+  }, [showOnlyAvailable, filteredTickets.length, isLoading, tickets.length, data?.sold, page, pageSize, effectiveTotalPages]);
+
   // Effect to handle pending highlight after page change
   useEffect(() => {
     if (pendingHighlightTicket && tickets.length > 0) {
@@ -1114,6 +1131,28 @@ export function TicketSelector({
             ) : isLoading ? (
               <div className="flex justify-center py-16">
                 <div className={cn("w-10 h-10 border-2 rounded-full animate-spin", colors.loadingBorder)} />
+              </div>
+            ) : filteredTickets.length === 0 && tickets.length > 0 && showOnlyAvailable ? (
+              /* Empty page banner when filter is active but no available tickets on this page */
+              <div className={cn("flex flex-col items-center justify-center py-12 gap-4 rounded-xl border", colors.cardBg, colors.border)}>
+                <Ticket className={cn("w-12 h-12", colors.textMuted)} />
+                <p className={cn("text-center", colors.textMuted)}>
+                  No hay boletos disponibles en esta página
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const sold = data?.sold || 0;
+                    const firstAvailablePage = Math.floor(sold / pageSize) + 1;
+                    if (firstAvailablePage <= effectiveTotalPages) {
+                      setPage(firstAvailablePage);
+                    }
+                  }}
+                  className={cn("gap-2", colors.buttonOutline)}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Ir a boletos disponibles
+                </Button>
               </div>
             ) : (
               <div
