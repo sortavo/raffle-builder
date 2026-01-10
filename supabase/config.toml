@@ -97,25 +97,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.add-vercel-domain]
-verify_jwt = true
+verify_jwt = false
 
 [functions.remove-vercel-domain]
-verify_jwt = true
+verify_jwt = false
 
 [functions.diagnose-vercel-access]
-verify_jwt = true
+verify_jwt = false
 
 [functions.list-vercel-domains]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-domains]
 verify_jwt = false
 
 [functions.sync-domains]
-verify_jwt = true
+verify_jwt = false
 
 [functions.monitor-domains]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-demo-account]
 verify_jwt = false
