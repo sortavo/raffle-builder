@@ -29,6 +29,13 @@ serve(async (req) => {
 
   try {
     // ==========================================
+    // DEBUG: Log Authorization header presence
+    // ==========================================
+    const authHeader = req.headers.get('Authorization');
+    console.log('[list-vercel-domains] Authorization header present:', !!authHeader);
+    console.log('[list-vercel-domains] Authorization header starts with Bearer:', authHeader?.startsWith('Bearer ') || false);
+    
+    // ==========================================
     // AUTHENTICATION: Allow cron jobs or platform admins
     // ==========================================
     const isCron = isCronRequest(req);

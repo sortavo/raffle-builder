@@ -1,6 +1,41 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper to invoke edge functions with explicit Authorization header
+async function invokeWithSession(functionName: string, options?: { body?: unknown }) {
+  // Get current session explicitly
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  
+  console.log(`[invokeWithSession] ${functionName} - Session exists: ${!!sessionData?.session}, Token exists: ${!!accessToken}`);
+  
+  if (!accessToken) {
+    console.warn(`[invokeWithSession] ${functionName} - No access token available`);
+    const authError = new Error('AUTH_ERROR');
+    (authError as any).status = 401;
+    (authError as any).reason = 'no_token';
+    throw authError;
+  }
+  
+  // Invoke with explicit Authorization header
+  const result = await supabase.functions.invoke(functionName, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  
+  console.log(`[invokeWithSession] ${functionName} - Response:`, {
+    hasData: !!result.data,
+    hasError: !!result.error,
+    errorMessage: result.error?.message,
+    responseStatus: (result as any).response?.status,
+    dataCode: result.data?.code,
+  });
+  
+  return result;
+}
+
 export interface VercelDomain {
   name: string;
   apexName: string;
@@ -46,12 +81,10 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
   const vercelDomainsQuery = useQuery({
     queryKey: ['vercel-domains'],
     queryFn: async () => {
-      const result = await supabase.functions.invoke('list-vercel-domains');
-      const { data, error, response } = result as { 
-        data: any; 
-        error: any; 
-        response?: Response 
-      };
+      // Use explicit session injection to ensure Authorization header is sent
+      const result = await invokeWithSession('list-vercel-domains');
+      const { data, error } = result;
+      const response = (result as any).response as Response | undefined;
       
       // Extract HTTP status from multiple possible locations:
       // 1. response?.status - from the Response object returned by invoke
