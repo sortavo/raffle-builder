@@ -39,7 +39,7 @@ export interface DomainCheckResponse {
   checkedAt: string;
 }
 
-export function useDomainStatus() {
+export function useDomainStatus(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
 
   // Fetch Vercel domains
@@ -47,29 +47,61 @@ export function useDomainStatus() {
     queryKey: ['vercel-domains'],
     queryFn: async () => {
       const result = await supabase.functions.invoke('list-vercel-domains');
-      const { data, error } = result;
+      const { data, error, response } = result as { 
+        data: any; 
+        error: any; 
+        response?: Response 
+      };
       
-      // Check for HTTP status errors (FunctionsHttpError)
-      // The error object may have a 'status' property or we can check the context
-      const httpStatus = (error as any)?.status || (error as any)?.context?.status;
+      // Extract HTTP status from multiple possible locations:
+      // 1. response?.status - from the Response object returned by invoke
+      // 2. error?.context?.status - FunctionsHttpError stores Response in context
+      // 3. error?.status - fallback
+      const httpStatus = 
+        response?.status || 
+        (error as any)?.context?.status || 
+        (error as any)?.status;
       
-      if (httpStatus === 401 || error?.message?.includes('401') || error?.message?.includes('Unauthorized') || error?.message?.includes('Authentication required')) {
+      // Also check error body for status code
+      const errorCode = data?.code || (error as any)?.context?.code;
+      
+      // Detect auth errors by status OR message patterns
+      const isAuthError = 
+        httpStatus === 401 ||
+        errorCode === 401 ||
+        error?.message?.includes('401') ||
+        error?.message?.includes('Unauthorized') ||
+        error?.message?.includes('Authentication required') ||
+        error?.message?.includes('Missing authorization') ||
+        data?.message?.includes?.('Missing authorization') ||
+        data?.message?.includes?.('Authentication required');
+      
+      if (isAuthError) {
         const authError = new Error('AUTH_ERROR');
         (authError as any).status = 401;
         throw authError;
       }
       
-      if (httpStatus === 403 || error?.message?.includes('403') || error?.message?.includes('Forbidden') || error?.message?.includes('platform admin')) {
+      // Detect forbidden errors
+      const isForbiddenError =
+        httpStatus === 403 ||
+        errorCode === 403 ||
+        error?.message?.includes('403') ||
+        error?.message?.includes('Forbidden') ||
+        error?.message?.includes('platform admin') ||
+        data?.message?.includes?.('platform admin');
+      
+      if (isForbiddenError) {
         const forbiddenError = new Error('FORBIDDEN');
         (forbiddenError as any).status = 403;
         throw forbiddenError;
       }
       
+      // Detect server errors
       if (httpStatus >= 500 || error?.message?.includes('non-2xx')) {
-        // Check if it's a Vercel credentials issue
         const serverError = new Error('SERVER_ERROR');
         (serverError as any).status = httpStatus || 500;
-        (serverError as any).details = error?.message || 'Error del servidor';
+        (serverError as any).details = error?.message || data?.message || 'Error del servidor';
         throw serverError;
       }
       
@@ -80,12 +112,13 @@ export function useDomainStatus() {
       }
       
       if (!data?.success) {
-        if (data?.error?.includes('Authentication') || data?.error?.includes('401')) {
+        // Check response body for auth errors
+        if (data?.error?.includes?.('Authentication') || data?.error?.includes?.('401') || data?.error?.includes?.('Missing authorization')) {
           const authError = new Error('AUTH_ERROR');
           (authError as any).status = 401;
           throw authError;
         }
-        if (data?.error?.includes('platform admin') || data?.error?.includes('403')) {
+        if (data?.error?.includes?.('platform admin') || data?.error?.includes?.('403')) {
           const forbiddenError = new Error('FORBIDDEN');
           (forbiddenError as any).status = 403;
           throw forbiddenError;
@@ -94,6 +127,7 @@ export function useDomainStatus() {
       }
       return data.domains as VercelDomain[];
     },
+    enabled: options?.enabled !== false,
     retry: (failureCount, error) => {
       // Don't retry on auth/permission errors
       if (error instanceof Error) {

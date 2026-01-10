@@ -10,6 +10,8 @@ import { RefreshCw, Globe, CheckCircle2, AlertTriangle, XCircle, Clock, Building
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 
 // Error type detection helper
 function getErrorType(error: Error | null): 'auth' | 'forbidden' | 'server' | 'unknown' | null {
@@ -17,7 +19,7 @@ function getErrorType(error: Error | null): 'auth' | 'forbidden' | 'server' | 'u
   const msg = error.message;
   const status = (error as any).status;
   
-  if (msg === 'AUTH_ERROR' || status === 401) return 'auth';
+  if (msg === 'AUTH_ERROR' || status === 401 || msg?.includes('Missing authorization')) return 'auth';
   if (msg === 'FORBIDDEN' || status === 403) return 'forbidden';
   if (msg === 'SERVER_ERROR' || status >= 500) return 'server';
   if (msg?.includes('non-2xx')) return 'server';
@@ -26,6 +28,12 @@ function getErrorType(error: Error | null): 'auth' | 'forbidden' | 'server' | 'u
 
 export default function AdminDomains() {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  const { isPlatformAdmin, isLoading: adminLoading } = useIsPlatformAdmin();
+  
+  // Only enable domain fetching when auth is fully loaded and user is platform admin
+  const isAuthReady = !authLoading && !adminLoading && !!user && isPlatformAdmin;
+  
   const {
     vercelDomains,
     customDomains,
@@ -35,7 +43,7 @@ export default function AdminDomains() {
     isChecking,
     checkAllDomains,
     refresh,
-  } = useDomainStatus();
+  } = useDomainStatus({ enabled: isAuthReady });
 
   const [autoRefresh, setAutoRefresh] = useState(false);
 
@@ -51,21 +59,21 @@ export default function AdminDomains() {
     navigate('/dashboard');
   };
 
-  // Auto-check on mount (only if no error)
+  // Auto-check on mount (only if no error and auth is ready)
   useEffect(() => {
-    if (!isLoadingDomains && !errorType && vercelDomains.length > 0) {
+    if (!isLoadingDomains && !errorType && isAuthReady && vercelDomains.length > 0) {
       checkAllDomains();
     }
-  }, [isLoadingDomains, errorType, vercelDomains.length]);
+  }, [isLoadingDomains, errorType, isAuthReady, vercelDomains.length]);
 
   // Auto-refresh every 60 seconds (only if no error)
   useEffect(() => {
-    if (!autoRefresh || errorType) return;
+    if (!autoRefresh || errorType || !isAuthReady) return;
     const interval = setInterval(() => {
       checkAllDomains();
     }, 60000);
     return () => clearInterval(interval);
-  }, [autoRefresh, errorType]);
+  }, [autoRefresh, errorType, isAuthReady]);
 
 
   const getStatusForDomain = (domain: string): DomainCheckResult | undefined => {
