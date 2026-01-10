@@ -46,26 +46,62 @@ export function useDomainStatus() {
   const vercelDomainsQuery = useQuery({
     queryKey: ['vercel-domains'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('list-vercel-domains');
+      const result = await supabase.functions.invoke('list-vercel-domains');
+      const { data, error } = result;
       
-      // Detect authentication errors
-      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized') || error?.message?.includes('Authentication required')) {
-        throw new Error('AUTH_ERROR');
+      // Check for HTTP status errors (FunctionsHttpError)
+      // The error object may have a 'status' property or we can check the context
+      const httpStatus = (error as any)?.status || (error as any)?.context?.status;
+      
+      if (httpStatus === 401 || error?.message?.includes('401') || error?.message?.includes('Unauthorized') || error?.message?.includes('Authentication required')) {
+        const authError = new Error('AUTH_ERROR');
+        (authError as any).status = 401;
+        throw authError;
       }
       
-      if (error) throw error;
-      if (!data.success) {
-        if (data.error?.includes('Authentication') || data.error?.includes('401')) {
-          throw new Error('AUTH_ERROR');
+      if (httpStatus === 403 || error?.message?.includes('403') || error?.message?.includes('Forbidden') || error?.message?.includes('platform admin')) {
+        const forbiddenError = new Error('FORBIDDEN');
+        (forbiddenError as any).status = 403;
+        throw forbiddenError;
+      }
+      
+      if (httpStatus >= 500 || error?.message?.includes('non-2xx')) {
+        // Check if it's a Vercel credentials issue
+        const serverError = new Error('SERVER_ERROR');
+        (serverError as any).status = httpStatus || 500;
+        (serverError as any).details = error?.message || 'Error del servidor';
+        throw serverError;
+      }
+      
+      if (error) {
+        const genericError = new Error(error.message || 'Error desconocido');
+        (genericError as any).status = httpStatus;
+        throw genericError;
+      }
+      
+      if (!data?.success) {
+        if (data?.error?.includes('Authentication') || data?.error?.includes('401')) {
+          const authError = new Error('AUTH_ERROR');
+          (authError as any).status = 401;
+          throw authError;
         }
-        throw new Error(data.error);
+        if (data?.error?.includes('platform admin') || data?.error?.includes('403')) {
+          const forbiddenError = new Error('FORBIDDEN');
+          (forbiddenError as any).status = 403;
+          throw forbiddenError;
+        }
+        throw new Error(data?.error || 'Error desconocido');
       }
       return data.domains as VercelDomain[];
     },
     retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      if (error instanceof Error && error.message === 'AUTH_ERROR') {
-        return false;
+      // Don't retry on auth/permission errors
+      if (error instanceof Error) {
+        const msg = error.message;
+        const status = (error as any).status;
+        if (msg === 'AUTH_ERROR' || msg === 'FORBIDDEN' || status === 401 || status === 403) {
+          return false;
+        }
       }
       return failureCount < 2;
     },

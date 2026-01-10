@@ -6,10 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDomainStatus, DomainCheckResult } from "@/hooks/useDomainStatus";
-import { RefreshCw, Globe, CheckCircle2, AlertTriangle, XCircle, Clock, Building2, ExternalLink, Wifi, LogOut } from "lucide-react";
+import { RefreshCw, Globe, CheckCircle2, AlertTriangle, XCircle, Clock, Building2, ExternalLink, Wifi, LogOut, ShieldX, ServerCrash, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+
+// Error type detection helper
+function getErrorType(error: Error | null): 'auth' | 'forbidden' | 'server' | 'unknown' | null {
+  if (!error) return null;
+  const msg = error.message;
+  const status = (error as any).status;
+  
+  if (msg === 'AUTH_ERROR' || status === 401) return 'auth';
+  if (msg === 'FORBIDDEN' || status === 403) return 'forbidden';
+  if (msg === 'SERVER_ERROR' || status >= 500) return 'server';
+  if (msg?.includes('non-2xx')) return 'server';
+  return 'unknown';
+}
 
 export default function AdminDomains() {
   const navigate = useNavigate();
@@ -26,33 +39,34 @@ export default function AdminDomains() {
 
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  // Check if it's an authentication error
-  const isAuthError = domainsError instanceof Error && 
-    (domainsError.message === 'AUTH_ERROR' || 
-     domainsError.message.includes('401') || 
-     domainsError.message.includes('Unauthorized') ||
-     domainsError.message.includes('Authentication'));
+  // Detect error type
+  const errorType = getErrorType(domainsError as Error | null);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
   };
 
-  // Auto-check on mount
+  const handleGoToDashboard = () => {
+    navigate('/dashboard');
+  };
+
+  // Auto-check on mount (only if no error)
   useEffect(() => {
-    if (!isLoadingDomains && vercelDomains.length > 0) {
+    if (!isLoadingDomains && !errorType && vercelDomains.length > 0) {
       checkAllDomains();
     }
-  }, [isLoadingDomains, vercelDomains.length]);
+  }, [isLoadingDomains, errorType, vercelDomains.length]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh every 60 seconds (only if no error)
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || errorType) return;
     const interval = setInterval(() => {
       checkAllDomains();
     }, 60000);
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, errorType]);
+
 
   const getStatusForDomain = (domain: string): DomainCheckResult | undefined => {
     return checkResults?.results.find(r => r.domain === domain);
@@ -180,7 +194,7 @@ export default function AdminDomains() {
               </div>
             ) : domainsError ? (
               <div className="text-center py-8 space-y-4">
-                {isAuthError ? (
+                {errorType === 'auth' ? (
                   <>
                     <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
                       <LogOut className="h-6 w-6 text-amber-500" />
@@ -194,8 +208,53 @@ export default function AdminDomains() {
                       Volver a iniciar sesión
                     </Button>
                   </>
+                ) : errorType === 'forbidden' ? (
+                  <>
+                    <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                      <ShieldX className="h-6 w-6 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-red-600">Acceso denegado</p>
+                      <p className="text-sm text-muted-foreground mt-1">No tienes permisos de Super Admin para ver esta sección.</p>
+                    </div>
+                    <Button onClick={handleGoToDashboard} variant="outline">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Volver al Dashboard
+                    </Button>
+                  </>
+                ) : errorType === 'server' ? (
+                  <>
+                    <div className="mx-auto w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                      <ServerCrash className="h-6 w-6 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-orange-600">Error del servidor</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Puede que las credenciales de Vercel no estén configuradas correctamente.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Revisa que los secretos VERCEL_API_TOKEN, VERCEL_PROJECT_ID y VERCEL_TEAM_ID estén configurados.
+                      </p>
+                    </div>
+                    <Button onClick={refresh} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reintentar
+                    </Button>
+                  </>
                 ) : (
-                  <p className="text-red-500">Error cargando dominios: {(domainsError as Error).message}</p>
+                  <>
+                    <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                      <XCircle className="h-6 w-6 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-red-600">Error cargando dominios</p>
+                      <p className="text-sm text-muted-foreground mt-1">{(domainsError as Error).message}</p>
+                    </div>
+                    <Button onClick={refresh} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reintentar
+                    </Button>
+                  </>
                 )}
               </div>
             ) : (
