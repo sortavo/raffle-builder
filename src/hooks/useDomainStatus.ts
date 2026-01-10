@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -262,23 +263,28 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     queryClient.invalidateQueries({ queryKey: ['custom-domains-admin'] });
   };
 
-  // Enrich custom domains with Vercel sync status
-  const enrichedCustomDomains = (customDomainsQuery.data || []).map(cd => ({
-    ...cd,
-    in_vercel: vercelDomainsQuery.data?.some(vd => vd.name === cd.domain) || false,
-  }));
+  // Enrich custom domains with Vercel sync status - wrapped in useMemo for reactivity
+  const enrichedCustomDomains = useMemo(() => {
+    return (customDomainsQuery.data || []).map(cd => ({
+      ...cd,
+      in_vercel: vercelDomainsQuery.data?.some(vd => vd.name === cd.domain) || false,
+    }));
+  }, [customDomainsQuery.data, vercelDomainsQuery.data]);
 
-  // Create a map of Vercel domains to their linked organizations
-  const vercelToOrgMap = new Map<string, { org_name: string; org_id: string; org_slug?: string }>();
-  enrichedCustomDomains.forEach(cd => {
-    if (cd.in_vercel && cd.organization_name) {
-      vercelToOrgMap.set(cd.domain, {
-        org_name: cd.organization_name,
-        org_id: cd.organization_id,
-        org_slug: cd.organization_slug,
-      });
-    }
-  });
+  // Create a map of Vercel domains to their linked organizations - wrapped in useMemo
+  const vercelToOrgMap = useMemo(() => {
+    const map = new Map<string, { org_name: string; org_id: string; org_slug?: string }>();
+    enrichedCustomDomains.forEach(cd => {
+      if (cd.in_vercel && cd.organization_name) {
+        map.set(cd.domain, {
+          org_name: cd.organization_name,
+          org_id: cd.organization_id,
+          org_slug: cd.organization_slug,
+        });
+      }
+    });
+    return map;
+  }, [enrichedCustomDomains]);
 
   return {
     vercelDomains: vercelDomainsQuery.data || [],
