@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDomainStatus, DomainCheckResult } from "@/hooks/useDomainStatus";
-import { RefreshCw, Globe, CheckCircle2, AlertTriangle, XCircle, Clock, Building2, ExternalLink, Wifi, LogOut, ShieldX, ServerCrash, ArrowLeft } from "lucide-react";
+import { RefreshCw, Globe, CheckCircle2, AlertTriangle, XCircle, Clock, Building2, ExternalLink, Wifi, LogOut, ShieldX, ServerCrash, ArrowLeft, Search, Check, X, Shield, Activity, Link2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Error type detection helper
 function getErrorType(error: Error | null): 'auth' | 'forbidden' | 'server' | 'unknown' | null {
@@ -43,7 +46,11 @@ export default function AdminDomains() {
     isChecking,
     checkAllDomains,
     refresh,
+    vercelToOrgMap,
   } = useDomainStatus({ enabled: isAuthReady });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [healthPanelOpen, setHealthPanelOpen] = useState(true);
 
   const [autoRefresh, setAutoRefresh] = useState(false);
 
@@ -78,6 +85,79 @@ export default function AdminDomains() {
 
   const getStatusForDomain = (domain: string): DomainCheckResult | undefined => {
     return checkResults?.results.find(r => r.domain === domain);
+  };
+
+  // Determine domain type for Vercel domains
+  const getDomainType = (domainName: string): { type: 'platform' | 'whitelabel' | 'wildcard'; label: string; variant: 'default' | 'secondary' | 'outline' } => {
+    if (domainName.includes('*')) {
+      return { type: 'wildcard', label: 'Wildcard', variant: 'secondary' };
+    }
+    if (domainName.includes('sortavo') || domainName.includes('vercel')) {
+      return { type: 'platform', label: 'Plataforma', variant: 'default' };
+    }
+    return { type: 'whitelabel', label: 'White-label', variant: 'outline' };
+  };
+
+  // Filter domains by search query
+  const filteredVercelDomains = useMemo(() => {
+    if (!searchQuery.trim()) return vercelDomains;
+    const q = searchQuery.toLowerCase();
+    return vercelDomains.filter(d => {
+      const orgInfo = vercelToOrgMap?.get(d.name);
+      return d.name.toLowerCase().includes(q) || 
+             orgInfo?.org_name.toLowerCase().includes(q);
+    });
+  }, [vercelDomains, searchQuery, vercelToOrgMap]);
+
+  const filteredCustomDomains = useMemo(() => {
+    if (!searchQuery.trim()) return customDomains;
+    const q = searchQuery.toLowerCase();
+    return customDomains.filter(d => 
+      d.domain.toLowerCase().includes(q) || 
+      d.organization_name?.toLowerCase().includes(q)
+    );
+  }, [customDomains, searchQuery]);
+
+  // Health stats
+  const healthStats = useMemo(() => {
+    const vercelDomainNames = new Set(vercelDomains.map(d => d.name));
+    const customDomainNames = new Set(customDomains.map(d => d.domain));
+    
+    const syncedToVercel = customDomains.filter(d => d.in_vercel).length;
+    const orphanedInVercel = vercelDomains.filter(d => 
+      !d.name.includes('*') && 
+      !d.name.includes('sortavo') && 
+      !d.name.includes('vercel') && 
+      !customDomainNames.has(d.name)
+    ).length;
+    const orphanedInDb = customDomains.filter(d => !d.in_vercel).length;
+    const sslActive = customDomains.filter(d => d.ssl_status === 'active').length;
+    const sslPending = customDomains.filter(d => d.ssl_status !== 'active').length;
+    
+    return {
+      totalVercel: vercelDomains.length,
+      totalCustom: customDomains.length,
+      syncedToVercel,
+      orphanedInVercel,
+      orphanedInDb,
+      sslActive,
+      sslPending,
+    };
+  }, [vercelDomains, customDomains]);
+
+  // Tier badge helper
+  const TierBadge = ({ tier }: { tier?: string | null }) => {
+    if (!tier) return <Badge variant="outline" className="text-muted-foreground">-</Badge>;
+    
+    const tierConfig: Record<string, { label: string; className: string }> = {
+      basic: { label: 'Basic', className: 'bg-gray-500/10 text-gray-600 border-gray-500/30' },
+      pro: { label: 'Pro', className: 'bg-blue-500/10 text-blue-600 border-blue-500/30' },
+      business: { label: 'Business', className: 'bg-purple-500/10 text-purple-600 border-purple-500/30' },
+      enterprise: { label: 'Enterprise', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
+    };
+    
+    const config = tierConfig[tier.toLowerCase()] || tierConfig.basic;
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
   const StatusIcon = ({ status }: { status?: DomainCheckResult['status'] }) => {
@@ -182,12 +262,83 @@ export default function AdminDomains() {
           </CardContent>
         </Card>
 
+        {/* Health Summary Panel */}
+        {!isLoadingDomains && !domainsError && (
+          <Collapsible open={healthPanelOpen} onOpenChange={setHealthPanelOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-base">Resumen de Salud</CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {healthPanelOpen ? 'Ocultar' : 'Mostrar'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="text-center p-3 rounded-lg bg-muted/50">
+                      <p className="text-2xl font-bold text-primary">{healthStats.totalVercel}</p>
+                      <p className="text-xs text-muted-foreground">Vercel</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-muted/50">
+                      <p className="text-2xl font-bold text-primary">{healthStats.totalCustom}</p>
+                      <p className="text-xs text-muted-foreground">Organizaciones</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-green-500/10">
+                      <p className="text-2xl font-bold text-green-600">{healthStats.syncedToVercel}</p>
+                      <p className="text-xs text-muted-foreground">Sincronizados</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-yellow-500/10">
+                      <p className="text-2xl font-bold text-yellow-600">{healthStats.orphanedInVercel}</p>
+                      <p className="text-xs text-muted-foreground">Huérfanos Vercel</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-orange-500/10">
+                      <p className="text-2xl font-bold text-orange-600">{healthStats.orphanedInDb}</p>
+                      <p className="text-xs text-muted-foreground">Sin Vercel</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-green-500/10">
+                      <p className="text-2xl font-bold text-green-600">{healthStats.sslActive}</p>
+                      <p className="text-xs text-muted-foreground">SSL Activo</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-yellow-500/10">
+                      <p className="text-2xl font-bold text-yellow-600">{healthStats.sslPending}</p>
+                      <p className="text-xs text-muted-foreground">SSL Pendiente</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
+        {/* Search Bar */}
+        {!isLoadingDomains && !domainsError && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por dominio u organización..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        )}
+
         {/* Vercel Domains */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              <CardTitle>Dominios en Vercel</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                <CardTitle>Dominios en Vercel</CardTitle>
+                <Badge variant="secondary" className="ml-2">{filteredVercelDomains.length}</Badge>
+              </div>
             </div>
             <CardDescription>
               Dominios configurados en el proyecto de Vercel
@@ -270,16 +421,19 @@ export default function AdminDomains() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Dominio</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Organización</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Latencia</TableHead>
                     <TableHead>Verificado</TableHead>
-                    <TableHead>Redirección</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vercelDomains.map(domain => {
+                  {filteredVercelDomains.map(domain => {
                     const check = getStatusForDomain(domain.name);
+                    const domainType = getDomainType(domain.name);
+                    const orgInfo = vercelToOrgMap?.get(domain.name);
                     const isWildcard = domain.name.includes('*');
                     return (
                       <TableRow key={domain.name}>
@@ -287,10 +441,34 @@ export default function AdminDomains() {
                           <div className="flex items-center gap-2">
                             <StatusIcon status={isWildcard ? undefined : check?.status} />
                             <span>{domain.name}</span>
-                            {isWildcard && (
-                              <Badge variant="secondary" className="text-xs">Wildcard</Badge>
-                            )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={domainType.variant} className="text-xs">
+                            {domainType.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {orgInfo ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Link 
+                                    to={`/admin/organizations/${orgInfo.org_id}`}
+                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    {orgInfo.org_name}
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver organización</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {isWildcard ? (
@@ -319,15 +497,6 @@ export default function AdminDomains() {
                             <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600">Pendiente</Badge>
                           )}
                         </TableCell>
-                        <TableCell>
-                          {domain.redirect ? (
-                            <span className="text-sm text-muted-foreground">
-                              → {domain.redirect} ({domain.redirectStatusCode})
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -351,9 +520,12 @@ export default function AdminDomains() {
         {/* Custom Domains */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <CardTitle>Dominios de Organizaciones</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle>Dominios de Organizaciones</CardTitle>
+                <Badge variant="secondary" className="ml-2">{filteredCustomDomains.length}</Badge>
+              </div>
             </div>
             <CardDescription>
               Dominios personalizados configurados por organizaciones
@@ -376,16 +548,19 @@ export default function AdminDomains() {
                   <TableRow>
                     <TableHead>Dominio</TableHead>
                     <TableHead>Organización</TableHead>
+                    <TableHead>Tier</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Latencia</TableHead>
+                    <TableHead>En Vercel</TableHead>
                     <TableHead>DNS</TableHead>
                     <TableHead>SSL</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customDomains.map(domain => {
+                  {filteredCustomDomains.map(domain => {
                     const check = getStatusForDomain(domain.domain);
+                    // Basic tier should not have custom domains
+                    const tierWarning = domain.subscription_tier === 'basic';
                     return (
                       <TableRow key={domain.id}>
                         <TableCell className="font-medium">
@@ -398,22 +573,54 @@ export default function AdminDomains() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{domain.organization_name}</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link 
+                                  to={`/admin/organizations/${domain.organization_id}`}
+                                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                                >
+                                  {domain.organization_name}
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{domain.organization_email}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <TierBadge tier={domain.subscription_tier} />
+                            {tierWarning && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Plan Basic no incluye dominios personalizados</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={check?.status} />
                         </TableCell>
                         <TableCell>
-                          {check?.latency ? (
-                            <span className={cn(
-                              "font-mono text-sm",
-                              check.latency < 500 ? "text-green-600" :
-                              check.latency < 2000 ? "text-yellow-600" : "text-red-600"
-                            )}>
-                              {check.latency}ms
-                            </span>
+                          {domain.in_vercel ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600">
+                              <Check className="h-3 w-3 mr-1" />
+                              Sí
+                            </Badge>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <Badge variant="outline" className="bg-red-500/10 text-red-600">
+                              <X className="h-3 w-3 mr-1" />
+                              No
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell>

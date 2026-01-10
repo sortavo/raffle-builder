@@ -52,6 +52,10 @@ export interface CustomDomain {
   ssl_status: string | null;
   is_primary: boolean;
   organization_name?: string;
+  organization_slug?: string;
+  subscription_tier?: string | null;
+  organization_email?: string;
+  in_vercel?: boolean;
 }
 
 export interface DomainCheckResult {
@@ -174,7 +178,7 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     },
   });
 
-  // Fetch custom domains from database with organization names
+  // Fetch custom domains from database with organization names and subscription info
   const customDomainsQuery = useQuery({
     queryKey: ['custom-domains-admin'],
     queryFn: async () => {
@@ -187,7 +191,7 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
           verified,
           ssl_status,
           is_primary,
-          organizations!inner(name)
+          organizations!inner(name, slug, subscription_tier, email)
         `)
         .order('domain');
 
@@ -201,6 +205,9 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
         ssl_status: d.ssl_status,
         is_primary: d.is_primary,
         organization_name: d.organizations?.name,
+        organization_slug: d.organizations?.slug,
+        subscription_tier: d.organizations?.subscription_tier,
+        organization_email: d.organizations?.email,
       })) as CustomDomain[];
     },
     retry: (failureCount, error) => {
@@ -255,9 +262,27 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     queryClient.invalidateQueries({ queryKey: ['custom-domains-admin'] });
   };
 
+  // Enrich custom domains with Vercel sync status
+  const enrichedCustomDomains = (customDomainsQuery.data || []).map(cd => ({
+    ...cd,
+    in_vercel: vercelDomainsQuery.data?.some(vd => vd.name === cd.domain) || false,
+  }));
+
+  // Create a map of Vercel domains to their linked organizations
+  const vercelToOrgMap = new Map<string, { org_name: string; org_id: string; org_slug?: string }>();
+  enrichedCustomDomains.forEach(cd => {
+    if (cd.in_vercel && cd.organization_name) {
+      vercelToOrgMap.set(cd.domain, {
+        org_name: cd.organization_name,
+        org_id: cd.organization_id,
+        org_slug: cd.organization_slug,
+      });
+    }
+  });
+
   return {
     vercelDomains: vercelDomainsQuery.data || [],
-    customDomains: customDomainsQuery.data || [],
+    customDomains: enrichedCustomDomains,
     isLoadingDomains: vercelDomainsQuery.isLoading || customDomainsQuery.isLoading,
     domainsError: vercelDomainsQuery.error || customDomainsQuery.error,
     checkResults: checkDomainsMutation.data,
@@ -265,5 +290,6 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     checkAllDomains,
     refresh,
     getAllDomains,
+    vercelToOrgMap,
   };
 }
