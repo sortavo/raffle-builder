@@ -179,42 +179,75 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     },
   });
 
-  // Fetch custom domains from database with organization names and subscription info
+  // Fetch custom domains (admin-only) via Edge Function (service role) to bypass RLS
   const customDomainsQuery = useQuery({
     queryKey: ['custom-domains-admin'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('custom_domains')
-        .select(`
-          id,
-          domain,
-          organization_id,
-          verified,
-          ssl_status,
-          is_primary,
-          organizations!inner(name, slug, subscription_tier, email)
-        `)
-        .order('domain');
+      const result = await invokeWithSession('admin-list-custom-domains');
+      const { data, error } = result;
+      const response = (result as any).response as Response | undefined;
 
-      if (error) throw error;
+      const httpStatus =
+        response?.status ||
+        (error as any)?.context?.status ||
+        (error as any)?.status;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        domain: d.domain,
-        organization_id: d.organization_id,
-        verified: d.verified,
-        ssl_status: d.ssl_status,
-        is_primary: d.is_primary,
-        organization_name: d.organizations?.name,
-        organization_slug: d.organizations?.slug,
-        subscription_tier: d.organizations?.subscription_tier,
-        organization_email: d.organizations?.email,
-      })) as CustomDomain[];
+      const errorCode = data?.code || (error as any)?.context?.code;
+
+      const isAuthError =
+        httpStatus === 401 ||
+        errorCode === 401 ||
+        error?.message?.includes('401') ||
+        data?.error?.includes?.('Authentication') ||
+        data?.error?.includes?.('authorization');
+
+      if (isAuthError) {
+        const authError = new Error('AUTH_ERROR');
+        (authError as any).status = 401;
+        throw authError;
+      }
+
+      const isForbiddenError =
+        httpStatus === 403 ||
+        errorCode === 403 ||
+        error?.message?.includes('403') ||
+        data?.error?.includes?.('Platform admin') ||
+        data?.error?.includes?.('admin');
+
+      if (isForbiddenError) {
+        const forbiddenError = new Error('FORBIDDEN');
+        (forbiddenError as any).status = 403;
+        throw forbiddenError;
+      }
+
+      if (httpStatus >= 500 || error?.message?.includes('non-2xx')) {
+        const serverError = new Error('SERVER_ERROR');
+        (serverError as any).status = httpStatus || 500;
+        (serverError as any).details = error?.message || data?.error || 'Error del servidor';
+        throw serverError;
+      }
+
+      if (error) {
+        const genericError = new Error(error.message || 'Error desconocido');
+        (genericError as any).status = httpStatus;
+        throw genericError;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Error desconocido');
+      }
+
+      return (data.domains || []) as CustomDomain[];
     },
+    enabled: options?.enabled !== false,
     retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      if (error instanceof Error && error.message === 'AUTH_ERROR') {
-        return false;
+      // Don't retry on auth/permission errors
+      if (error instanceof Error) {
+        const msg = error.message;
+        const status = (error as any).status;
+        if (msg === 'AUTH_ERROR' || msg === 'FORBIDDEN' || status === 401 || status === 403) {
+          return false;
+        }
       }
       return failureCount < 2;
     },
