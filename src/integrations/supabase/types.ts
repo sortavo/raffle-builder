@@ -415,6 +415,62 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          email: string | null
+          first_purchase_at: string | null
+          full_name: string
+          id: string
+          last_purchase_at: string | null
+          organization_id: string
+          phone: string | null
+          total_orders: number | null
+          total_spent: number | null
+          total_tickets: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_purchase_at?: string | null
+          full_name: string
+          id?: string
+          last_purchase_at?: string | null
+          organization_id: string
+          phone?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          total_tickets?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_purchase_at?: string | null
+          full_name?: string
+          id?: string
+          last_purchase_at?: string | null
+          organization_id?: string
+          phone?: string | null
+          total_orders?: number | null
+          total_spent?: number | null
+          total_tickets?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
@@ -521,6 +577,7 @@ export type Database = {
           buyer_phone: string | null
           canceled_at: string | null
           created_at: string | null
+          customer_id: string | null
           id: string
           lucky_indices: number[] | null
           order_total: number | null
@@ -546,6 +603,7 @@ export type Database = {
           buyer_phone?: string | null
           canceled_at?: string | null
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           lucky_indices?: number[] | null
           order_total?: number | null
@@ -571,6 +629,7 @@ export type Database = {
           buyer_phone?: string | null
           canceled_at?: string | null
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           lucky_indices?: number[] | null
           order_total?: number | null
@@ -587,6 +646,13 @@ export type Database = {
           ticket_ranges?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_organization_id_fkey"
             columns: ["organization_id"]

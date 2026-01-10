@@ -13,107 +13,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Users, Mail, Phone, MapPin, Loader2, DollarSign, Ticket, TrendingUp, Copy, MessageCircle } from "lucide-react";
+import { useCustomers, getCustomerWhatsAppLink, Customer } from "@/hooks/useCustomers";
+import { Search, Users, Mail, Phone, MapPin, Loader2, DollarSign, Ticket, Copy, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatCurrency } from "@/lib/currency-utils";
 import { useToast } from "@/hooks/use-toast";
-
-interface BuyerData {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  city: string | null;
-  order_count: number;
-  ticket_count: number;
-  total_spent: number;
-  last_purchase: string | null;
-}
 
 export default function Buyers() {
   const { organization } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: buyersData, isLoading } = useQuery({
-    queryKey: ["organization-buyers", organization?.id],
-    queryFn: async () => {
-      if (!organization?.id) return { buyers: [], stats: { total: 0, withEmail: 0, withPhone: 0, totalRevenue: 0, totalTickets: 0 } };
+  // Use the new customers table - data persists even after orders are archived
+  const { data, isLoading } = useCustomers(organization?.id);
+  const customers = data?.customers || [];
+  const stats = data?.stats || { total: 0, withEmail: 0, withPhone: 0, totalRevenue: 0, totalTickets: 0 };
 
-      // Get all orders with buyer info from this organization
-      const { data: orders, error } = await supabase
-        .from("orders")
-        .select("buyer_name, buyer_email, buyer_phone, buyer_city, reserved_at, status, order_total, ticket_count")
-        .eq("organization_id", organization.id)
-        .not("buyer_name", "is", null);
-
-      if (error) throw error;
-
-      // Group by email to aggregate buyer stats
-      const buyerMap = new Map<string, BuyerData>();
-      let totalRevenue = 0;
-      let totalTickets = 0;
-
-      orders?.forEach((order) => {
-        const key = order.buyer_email || order.buyer_phone || order.buyer_name;
-        if (!key) return;
-
-        const ticketCount = order.ticket_count || 0;
-        const orderTotal = order.status === 'sold' ? (order.order_total || 0) : 0;
-        
-        totalRevenue += orderTotal;
-        totalTickets += order.status === 'sold' ? ticketCount : 0;
-
-        if (buyerMap.has(key)) {
-          const existing = buyerMap.get(key)!;
-          existing.order_count += 1;
-          existing.ticket_count += ticketCount;
-          existing.total_spent += orderTotal;
-          if (order.reserved_at && (!existing.last_purchase || order.reserved_at > existing.last_purchase)) {
-            existing.last_purchase = order.reserved_at;
-          }
-        } else {
-          buyerMap.set(key, {
-            id: key,
-            full_name: order.buyer_name || "",
-            email: order.buyer_email || "",
-            phone: order.buyer_phone,
-            city: order.buyer_city,
-            order_count: 1,
-            ticket_count: ticketCount,
-            total_spent: orderTotal,
-            last_purchase: order.reserved_at,
-          });
-        }
-      });
-
-      const buyers = Array.from(buyerMap.values()).sort((a, b) => b.total_spent - a.total_spent);
-      
-      return {
-        buyers,
-        stats: {
-          total: buyers.length,
-          withEmail: buyers.filter(b => b.email).length,
-          withPhone: buyers.filter(b => b.phone).length,
-          totalRevenue,
-          totalTickets,
-        }
-      };
-    },
-    enabled: !!organization?.id,
-  });
-
-  const buyers = buyersData?.buyers || [];
-  const stats = buyersData?.stats || { total: 0, withEmail: 0, withPhone: 0, totalRevenue: 0, totalTickets: 0 };
-
-  const filteredBuyers = buyers.filter((buyer) =>
-    buyer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    buyer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    buyer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter customers client-side for quick search
+  const filteredCustomers = customers.filter((customer) =>
+    customer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getInitials = (name: string) => {
@@ -130,10 +52,10 @@ export default function Buyers() {
     toast({ title: `${label} copiado` });
   };
 
-  const handleWhatsApp = (phone: string, name: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const message = encodeURIComponent(`Hola ${name}, gracias por tu compra en ${organization?.name || 'nuestra organización'}`);
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+  const handleWhatsApp = (customer: Customer) => {
+    if (!customer.phone) return;
+    const url = getCustomerWhatsAppLink(customer.phone, customer.full_name, organization?.name);
+    window.open(url, '_blank');
   };
 
   return (
@@ -143,7 +65,7 @@ export default function Buyers() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Compradores</h1>
           <p className="text-muted-foreground">
-            Gestiona y visualiza todos los compradores de tu organización
+            Base de datos permanente de clientes de tu organización
           </p>
         </div>
 
@@ -156,7 +78,7 @@ export default function Buyers() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">compradores únicos</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">clientes únicos</p>
             </CardContent>
           </Card>
           <Card>
@@ -168,7 +90,7 @@ export default function Buyers() {
               <div className="text-xl sm:text-2xl font-bold">
                 {formatCurrency(stats.totalRevenue, organization?.currency_code || 'MXN')}
               </div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">total vendido</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">valor de vida total</p>
             </CardContent>
           </Card>
           <Card>
@@ -178,7 +100,7 @@ export default function Buyers() {
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold">{stats.totalTickets}</div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">vendidos</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">comprados</p>
             </CardContent>
           </Card>
           <Card>
@@ -206,9 +128,9 @@ export default function Buyers() {
         {/* Search and Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Compradores</CardTitle>
+            <CardTitle>Lista de Clientes</CardTitle>
             <CardDescription>
-              Compradores ordenados por total de compras
+              Clientes ordenados por valor de vida (LTV) • Datos permanentes incluso después de archivar sorteos
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -228,12 +150,12 @@ export default function Buyers() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : filteredBuyers.length === 0 ? (
+            ) : filteredCustomers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground">No hay compradores</h3>
+                <h3 className="text-lg font-medium text-foreground">No hay clientes</h3>
                 <p className="text-muted-foreground">
-                  Los compradores aparecerán aquí cuando realicen compras en tus sorteos.
+                  Los clientes aparecerán aquí cuando realicen compras en tus sorteos.
                 </p>
               </div>
             ) : (
@@ -241,31 +163,31 @@ export default function Buyers() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Comprador</TableHead>
+                      <TableHead>Cliente</TableHead>
                       <TableHead>Contacto</TableHead>
                       <TableHead className="text-center">Compras</TableHead>
                       <TableHead className="text-center">Boletos</TableHead>
-                      <TableHead className="text-right">Total Gastado</TableHead>
+                      <TableHead className="text-right">LTV</TableHead>
                       <TableHead>Última Compra</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredBuyers.map((buyer) => (
-                      <TableRow key={buyer.id}>
+                    {filteredCustomers.map((customer) => (
+                      <TableRow key={customer.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {getInitials(buyer.full_name)}
+                                {getInitials(customer.full_name)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <span className="font-medium">{buyer.full_name}</span>
-                              {buyer.city && (
+                              <span className="font-medium">{customer.full_name}</span>
+                              {customer.city && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                   <MapPin className="h-3 w-3" />
-                                  {buyer.city}
+                                  {customer.city}
                                 </div>
                               )}
                             </div>
@@ -273,28 +195,28 @@ export default function Buyers() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            {buyer.email && (
+                            {customer.email && (
                               <div className="flex items-center gap-1 text-sm">
                                 <Mail className="h-3 w-3 text-muted-foreground" />
-                                <span className="truncate max-w-[150px]">{buyer.email}</span>
+                                <span className="truncate max-w-[150px]">{customer.email}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleCopy(buyer.email, 'Email')}
+                                  onClick={() => handleCopy(customer.email!, 'Email')}
                                   className="h-5 w-5 p-0"
                                 >
                                   <Copy className="h-3 w-3" />
                                 </Button>
                               </div>
                             )}
-                            {buyer.phone && (
+                            {customer.phone && (
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                 <Phone className="h-3 w-3" />
-                                <span>{buyer.phone}</span>
+                                <span>{customer.phone}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleCopy(buyer.phone!, 'Teléfono')}
+                                  onClick={() => handleCopy(customer.phone!, 'Teléfono')}
                                   className="h-5 w-5 p-0"
                                 >
                                   <Copy className="h-3 w-3" />
@@ -304,17 +226,17 @@ export default function Buyers() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">{buyer.order_count}</Badge>
+                          <Badge variant="secondary">{customer.total_orders}</Badge>
                         </TableCell>
                         <TableCell className="text-center font-medium">
-                          {buyer.ticket_count}
+                          {customer.total_tickets}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(buyer.total_spent, organization?.currency_code || 'MXN')}
+                          {formatCurrency(customer.total_spent, organization?.currency_code || 'MXN')}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {buyer.last_purchase
-                            ? formatDistanceToNow(new Date(buyer.last_purchase), {
+                          {customer.last_purchase_at
+                            ? formatDistanceToNow(new Date(customer.last_purchase_at), {
                                 addSuffix: true,
                                 locale: es,
                               })
@@ -322,12 +244,13 @@ export default function Buyers() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
-                            {buyer.phone && (
+                            {customer.phone && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleWhatsApp(buyer.phone!, buyer.full_name)}
+                                onClick={() => handleWhatsApp(customer)}
                                 className="h-8 w-8 p-0"
+                                title="Enviar WhatsApp"
                               >
                                 <MessageCircle className="h-4 w-4" />
                               </Button>
