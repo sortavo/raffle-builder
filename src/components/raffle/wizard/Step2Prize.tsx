@@ -433,7 +433,7 @@ export const Step2Prize = ({ form, drawDate, startDate, isPublished }: Step2Prop
     const filePath = `prizes/${fileName}`;
 
     const { error } = await supabase.storage
-      .from('prize-images')
+      .from('raffle-images')
       .upload(filePath, file);
 
     if (error) {
@@ -443,7 +443,7 @@ export const Step2Prize = ({ form, drawDate, startDate, isPublished }: Step2Prop
     }
 
     const { data: { publicUrl } } = supabase.storage
-      .from('prize-images')
+      .from('raffle-images')
       .getPublicUrl(filePath);
 
     return publicUrl;
