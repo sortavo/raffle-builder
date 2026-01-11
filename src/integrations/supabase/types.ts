@@ -132,11 +132,11 @@ export type Database = {
           raffle_id: string
           sales_by_day: Json | null
           sales_by_hour: Json | null
-          tickets_reserved: number
-          tickets_sold: number
+          tickets_reserved: number | null
+          tickets_sold: number | null
           top_buyers: Json | null
-          total_revenue: number
-          unique_buyers: number
+          total_revenue: number | null
+          unique_buyers: number | null
           winners: Json | null
         }
         Insert: {
@@ -147,11 +147,11 @@ export type Database = {
           raffle_id: string
           sales_by_day?: Json | null
           sales_by_hour?: Json | null
-          tickets_reserved?: number
-          tickets_sold?: number
+          tickets_reserved?: number | null
+          tickets_sold?: number | null
           top_buyers?: Json | null
-          total_revenue?: number
-          unique_buyers?: number
+          total_revenue?: number | null
+          unique_buyers?: number | null
           winners?: Json | null
         }
         Update: {
@@ -162,11 +162,11 @@ export type Database = {
           raffle_id?: string
           sales_by_day?: Json | null
           sales_by_hour?: Json | null
-          tickets_reserved?: number
-          tickets_sold?: number
+          tickets_reserved?: number | null
+          tickets_sold?: number | null
           top_buyers?: Json | null
-          total_revenue?: number
-          unique_buyers?: number
+          total_revenue?: number | null
+          unique_buyers?: number | null
           winners?: Json | null
         }
         Relationships: [
@@ -197,7 +197,7 @@ export type Database = {
         Row: {
           action: string
           changes: Json | null
-          created_at: string
+          created_at: string | null
           id: string
           ip_address: string | null
           metadata: Json | null
@@ -213,7 +213,7 @@ export type Database = {
         Insert: {
           action: string
           changes?: Json | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           ip_address?: string | null
           metadata?: Json | null
@@ -229,7 +229,7 @@ export type Database = {
         Update: {
           action?: string
           changes?: Json | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           ip_address?: string | null
           metadata?: Json | null
@@ -250,7 +250,7 @@ export type Database = {
           discount_applied: number
           id: string
           ticket_id: string | null
-          used_at: string
+          used_at: string | null
           user_email: string | null
         }
         Insert: {
@@ -258,7 +258,7 @@ export type Database = {
           discount_applied: number
           id?: string
           ticket_id?: string | null
-          used_at?: string
+          used_at?: string | null
           user_email?: string | null
         }
         Update: {
@@ -266,7 +266,7 @@ export type Database = {
           discount_applied?: number
           id?: string
           ticket_id?: string | null
-          used_at?: string
+          used_at?: string | null
           user_email?: string | null
         }
         Relationships: [
@@ -281,10 +281,10 @@ export type Database = {
       }
       coupons: {
         Row: {
-          active: boolean
+          active: boolean | null
           code: string
-          created_at: string
-          current_uses: number
+          created_at: string | null
+          current_uses: number | null
           description: string | null
           discount_type: string
           discount_value: number
@@ -294,15 +294,15 @@ export type Database = {
           name: string
           organization_id: string
           raffle_id: string | null
-          updated_at: string
-          valid_from: string
+          updated_at: string | null
+          valid_from: string | null
           valid_until: string | null
         }
         Insert: {
-          active?: boolean
+          active?: boolean | null
           code: string
-          created_at?: string
-          current_uses?: number
+          created_at?: string | null
+          current_uses?: number | null
           description?: string | null
           discount_type?: string
           discount_value: number
@@ -312,15 +312,15 @@ export type Database = {
           name: string
           organization_id: string
           raffle_id?: string | null
-          updated_at?: string
-          valid_from?: string
+          updated_at?: string | null
+          valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
-          active?: boolean
+          active?: boolean | null
           code?: string
-          created_at?: string
-          current_uses?: number
+          created_at?: string | null
+          current_uses?: number | null
           description?: string | null
           discount_type?: string
           discount_value?: number
@@ -330,8 +330,8 @@ export type Database = {
           name?: string
           organization_id?: string
           raffle_id?: string | null
-          updated_at?: string
-          valid_from?: string
+          updated_at?: string | null
+          valid_from?: string | null
           valid_until?: string | null
         }
         Relationships: [
@@ -577,7 +577,6 @@ export type Database = {
           buyer_phone: string | null
           canceled_at: string | null
           created_at: string | null
-          customer_id: string | null
           id: string
           lucky_indices: number[] | null
           order_total: number | null
@@ -603,7 +602,6 @@ export type Database = {
           buyer_phone?: string | null
           canceled_at?: string | null
           created_at?: string | null
-          customer_id?: string | null
           id?: string
           lucky_indices?: number[] | null
           order_total?: number | null
@@ -629,7 +627,6 @@ export type Database = {
           buyer_phone?: string | null
           canceled_at?: string | null
           created_at?: string | null
-          customer_id?: string | null
           id?: string
           lucky_indices?: number[] | null
           order_total?: number | null
@@ -646,13 +643,6 @@ export type Database = {
           ticket_ranges?: Json
         }
         Relationships: [
-          {
-            foreignKeyName: "orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "orders_organization_id_fkey"
             columns: ["organization_id"]
@@ -1469,9 +1459,9 @@ export type Database = {
       team_invitations: {
         Row: {
           accepted_at: string | null
-          created_at: string
+          created_at: string | null
           email: string
-          expires_at: string
+          expires_at: string | null
           id: string
           invited_by: string
           organization_id: string
@@ -1480,9 +1470,9 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
-          created_at?: string
+          created_at?: string | null
           email: string
-          expires_at?: string
+          expires_at?: string | null
           id?: string
           invited_by: string
           organization_id: string
@@ -1491,9 +1481,9 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string
-          expires_at?: string
+          expires_at?: string | null
           id?: string
           invited_by?: string
           organization_id?: string
@@ -1862,22 +1852,12 @@ export type Database = {
         }[]
       }
       archive_old_raffles: { Args: { days_old?: number }; Returns: number }
-      archive_raffle: { Args: { p_raffle_id: string }; Returns: Json }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       check_indices_available: {
         Args: { p_indices: number[]; p_raffle_id: string }
         Returns: {
           available: boolean
           conflicting_indices: number[]
-        }[]
-      }
-      check_system_health: {
-        Args: never
-        Returns: {
-          alert_type: string
-          message: string
-          metadata: Json
-          severity: string
         }[]
       }
       cleanup_expired_orders: { Args: never; Returns: number }
@@ -1997,17 +1977,6 @@ export type Database = {
           reserved_count: number
           sold_count: number
           total_count: number
-        }[]
-      }
-      get_public_tickets: {
-        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
-        Returns: {
-          buyer_city: string
-          buyer_name: string
-          id: string
-          status: string
-          ticket_index: number
-          ticket_number: string
         }[]
       }
       get_raffle_stats_for_org: {
@@ -2161,28 +2130,8 @@ export type Database = {
           ticket_count: number
         }[]
       }
-      search_public_tickets: {
-        Args: { p_limit?: number; p_raffle_id: string; p_search: string }
-        Returns: {
-          buyer_city: string
-          buyer_name: string
-          status: string
-          ticket_index: number
-          ticket_number: string
-        }[]
-      }
-      search_virtual_tickets: {
-        Args: { p_limit?: number; p_raffle_id: string; p_search: string }
-        Returns: {
-          status: string
-          ticket_index: number
-          ticket_number: string
-        }[]
-      }
-      set_primary_domain: {
-        Args: { p_domain_id: string; p_organization_id: string }
-        Returns: boolean
-      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
