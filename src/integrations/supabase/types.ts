@@ -2130,6 +2130,20 @@ export type Database = {
           ticket_count: number
         }[]
       }
+      search_public_tickets: {
+        Args: { p_limit?: number; p_raffle_id: string; p_search: string }
+        Returns: {
+          buyer_city: string
+          buyer_name: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
+      set_primary_domain: {
+        Args: { p_domain_id: string; p_organization_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       validate_coupon_code: {
