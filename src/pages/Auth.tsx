@@ -37,11 +37,12 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Redirect if already authenticated (non-blocking check)
   useEffect(() => {
-    if (user && !isLoading) {
-      navigate("/dashboard");
+    if (user) {
+      navigate("/dashboard", { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, navigate]);
 
   const validateForm = (type: "login" | "signup" | "reset") => {
     const newErrors: Record<string, string> = {};
@@ -211,13 +212,8 @@ export default function Auth() {
     </>
   );
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ultra-dark">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-      </div>
-    );
-  }
+  // Show form immediately - don't block on auth loading state
+  // Redirect happens via useEffect when user is detected
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
