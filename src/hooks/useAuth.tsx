@@ -62,6 +62,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Safety timeout: prevent infinite loading state
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Auth timeout - forcing load complete');
+        setIsLoading(false);
+      }
+    }, 5000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -76,6 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setOrganization(null);
+          setRole(null);
+          setIsLoading(false);
         }
       }
     );
@@ -92,47 +102,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Fetch profile with organization in a single query (JOIN)
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
         .eq("id", userId)
         .maybeSingle();
 
       if (profileError) throw profileError;
       
-      setProfile(profileData);
-
-      // Set Sentry user context
-      if (profileData) {
-        Sentry.setUser({
-          id: userId,
-          email: profileData.email,
-          username: profileData.full_name || undefined,
-        });
+      if (!profileData) {
+        setProfile(null);
+        setOrganization(null);
+        setIsLoading(false);
+        return;
       }
 
-      if (profileData?.organization_id) {
-        // Fetch organization
-        const { data: orgData, error: orgError } = await supabase
-          .from("organizations")
-          .select("*")
-          .eq("id", profileData.organization_id)
-          .maybeSingle();
+      // Extract profile without the nested organization
+      const { organization: orgData, ...profileOnly } = profileData;
+      setProfile(profileOnly as Profile);
+      setOrganization(orgData as Organization | null);
 
-        if (orgError) throw orgError;
-        setOrganization(orgData);
+      // Set Sentry user context
+      Sentry.setUser({
+        id: userId,
+        email: profileOnly.email,
+        username: profileOnly.full_name || undefined,
+      });
 
-        // Fetch user role for this organization
+      // Fetch role if we have an organization
+      if (profileOnly.organization_id) {
         const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", userId)
-          .eq("organization_id", profileData.organization_id)
+          .eq("organization_id", profileOnly.organization_id)
           .maybeSingle();
 
         if (roleError) {
