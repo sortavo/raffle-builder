@@ -6,7 +6,7 @@
   "rewrites": [
     { 
       "source": "/sitemap.xml", 
-      "destination": "https://hctrnfkowqgcwnotosai.supabase.co/functions/v1/sitemap" 
+      "destination": "https://xnwqrgumstikdmsxtame.supabase.co/functions/v1/sitemap" 
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
