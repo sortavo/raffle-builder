@@ -1722,9 +1722,12 @@ export type Database = {
           livestream_url: string | null
           lottery_digits: number | null
           lottery_draw_number: string | null
+          lucky_numbers_config: Json | null
           lucky_numbers_enabled: boolean | null
           max_tickets_per_person: number | null
           max_tickets_per_purchase: number | null
+          min_tickets_per_purchase: number | null
+          numbering_config: Json | null
           organization_id: string | null
           prize_display_mode: string | null
           prize_images: string[] | null
@@ -1743,6 +1746,7 @@ export type Database = {
           total_tickets: number | null
           updated_at: string | null
           winner_announced: boolean | null
+          winner_data: Json | null
           winner_ticket_number: string | null
         }
         Insert: {
@@ -1759,9 +1763,12 @@ export type Database = {
           livestream_url?: string | null
           lottery_digits?: number | null
           lottery_draw_number?: string | null
+          lucky_numbers_config?: Json | null
           lucky_numbers_enabled?: boolean | null
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
+          min_tickets_per_purchase?: number | null
+          numbering_config?: Json | null
           organization_id?: string | null
           prize_display_mode?: string | null
           prize_images?: string[] | null
@@ -1780,6 +1787,7 @@ export type Database = {
           total_tickets?: number | null
           updated_at?: string | null
           winner_announced?: boolean | null
+          winner_data?: Json | null
           winner_ticket_number?: string | null
         }
         Update: {
@@ -1796,9 +1804,12 @@ export type Database = {
           livestream_url?: string | null
           lottery_digits?: number | null
           lottery_draw_number?: string | null
+          lucky_numbers_config?: Json | null
           lucky_numbers_enabled?: boolean | null
           max_tickets_per_person?: number | null
           max_tickets_per_purchase?: number | null
+          min_tickets_per_purchase?: number | null
+          numbering_config?: Json | null
           organization_id?: string | null
           prize_display_mode?: string | null
           prize_images?: string[] | null
@@ -1817,6 +1828,7 @@ export type Database = {
           total_tickets?: number | null
           updated_at?: string | null
           winner_announced?: boolean | null
+          winner_data?: Json | null
           winner_ticket_number?: string | null
         }
         Relationships: [

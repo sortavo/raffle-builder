@@ -44,7 +44,9 @@ Los siguientes campos contienen datos personales y **NO deben exponerse pública
 ### Vista Segura: `public_ticket_status`
 
 ```sql
--- Esta vista expone SOLO datos no sensibles
+-- Esta vista expone SOLO datos no sensibles con SECURITY INVOKER
+CREATE VIEW public_ticket_status 
+WITH (security_invoker = true) AS
 SELECT id, raffle_id, organization_id, ticket_ranges, 
        lucky_indices, ticket_count, status, reserved_until, created_at
 FROM orders
@@ -131,6 +133,37 @@ if (!webhookSecret) {
 - Todos los webhooks deben tener firma válida
 - Eventos duplicados se ignoran (idempotencia)
 
+### RLS de stripe_events
+
+La tabla `stripe_events` tiene RLS restrictivo:
+- Solo `service_role` puede INSERT (edge functions)
+- Solo `service_role` y `platform_admins` pueden SELECT (para auditoría)
+
+```sql
+CREATE POLICY "stripe_events_service_role_only" ON stripe_events
+  FOR ALL
+  USING (auth.role() = 'service_role' OR EXISTS (SELECT 1 FROM platform_admins WHERE user_id = auth.uid()))
+  WITH CHECK (auth.role() = 'service_role');
+```
+
+---
+
+## Vistas Públicas con SECURITY INVOKER
+
+Las siguientes vistas usan `SECURITY INVOKER` para respetar RLS del usuario que consulta:
+
+| Vista | Datos Expuestos | SECURITY INVOKER |
+|-------|-----------------|------------------|
+| `public_raffles` | Rifas activas/completadas | ✅ Sí |
+| `public_custom_domains` | Dominios verificados | ✅ Sí |
+| `public_ticket_status` | Estado de boletos (sin PII) | ✅ Sí |
+
+```sql
+CREATE VIEW public_raffles 
+WITH (security_invoker = true) AS
+SELECT ... FROM raffles WHERE status IN ('active', 'completed');
+```
+
 ---
 
 ## Sanitización de Scripts de Tracking
@@ -151,6 +184,40 @@ const sanitizedHtml = DOMPurify.sanitize(html, {
 
 ---
 
+## Monitoreo de Performance (Sentry)
+
+### Configuración de Performance
+
+```typescript
+Sentry.init({
+  tracesSampleRate: 0.5, // 50% de transacciones en producción
+  beforeSendTransaction(event) {
+    // Etiquetar transacciones lentas para alertas
+    if (duration > 3000) event.tags.slow_transaction = 'true';
+    if (duration > 5000) event.tags.critical_latency = 'true';
+  },
+});
+```
+
+### Web Vitals Monitoreados
+
+| Métrica | Umbral "Bueno" | Umbral "Pobre" |
+|---------|----------------|----------------|
+| LCP | ≤ 2500ms | > 4000ms |
+| FID | ≤ 100ms | > 300ms |
+| CLS | ≤ 0.1 | > 0.25 |
+| INP | ≤ 200ms | > 500ms |
+| TTFB | ≤ 800ms | > 1800ms |
+
+### Alertas Recomendadas
+
+1. **Latencia Crítica**: `slow_transaction:true` > 10/hora → Email
+2. **Error Rate Alto**: > 5% en 5 min → Email inmediato
+3. **Poor LCP**: `metric_name:LCP AND metric_rating:poor` > 5/hora → Slack
+4. **Crash Rate**: > 1% de sesiones → PagerDuty
+
+---
+
 ## Checklist de Seguridad para Desarrollo
 
 ### Al crear nuevas tablas:
@@ -158,6 +225,11 @@ const sanitizedHtml = DOMPurify.sanitize(html, {
 - [ ] Crear políticas para cada operación (SELECT, INSERT, UPDATE, DELETE)
 - [ ] Nunca usar `USING (true)` para UPDATE/DELETE
 - [ ] Documentar qué roles pueden acceder a qué datos
+
+### Al crear nuevas vistas:
+- [ ] Usar `WITH (security_invoker = true)` para respetar RLS
+- [ ] No exponer campos sensibles (email, teléfono, datos de pago)
+- [ ] Otorgar permisos explícitos con GRANT
 
 ### Al crear nuevas funciones RPC:
 - [ ] Usar `SECURITY DEFINER` solo cuando sea necesario
@@ -169,6 +241,18 @@ const sanitizedHtml = DOMPurify.sanitize(html, {
 - [ ] Nunca loguear emails, teléfonos o datos de pago
 - [ ] Usar `select('campo1, campo2')` en lugar de `select('*')`
 - [ ] Sanitizar inputs antes de queries
+
+---
+
+## Extensiones de Base de Datos
+
+| Extensión | Schema | Propósito |
+|-----------|--------|-----------|
+| `uuid-ossp` | `extensions` | Generación de UUIDs |
+| `pgcrypto` | `extensions` | Funciones criptográficas |
+| `pg_trgm` | `public`* | Búsqueda fuzzy |
+
+*`pg_trgm` debería moverse a `extensions` para mejor seguridad. Requiere paso manual.
 
 ---
 
