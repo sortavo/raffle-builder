@@ -43,8 +43,12 @@ Sentry.init({
 // Initialize Web Vitals monitoring
 if (typeof window !== 'undefined') {
   // Defer to avoid blocking initial render
-  requestIdleCallback?.(() => initPerformanceMonitoring()) 
-    ?? setTimeout(() => initPerformanceMonitoring(), 100);
+  // Note: requestIdleCallback is not available in Safari
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => initPerformanceMonitoring());
+  } else {
+    setTimeout(() => initPerformanceMonitoring(), 100);
+  }
 }
 
 // Lazy load Session Replay in production to avoid React context conflicts
