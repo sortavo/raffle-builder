@@ -1829,6 +1829,71 @@ export type Database = {
           },
         ]
       }
+      public_ticket_status: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          lucky_indices: number[] | null
+          organization_id: string | null
+          raffle_id: string | null
+          reserved_until: string | null
+          status: string | null
+          ticket_count: number | null
+          ticket_ranges: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          lucky_indices?: number[] | null
+          organization_id?: string | null
+          raffle_id?: string | null
+          reserved_until?: string | null
+          status?: string | null
+          ticket_count?: number | null
+          ticket_ranges?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          lucky_indices?: number[] | null
+          organization_id?: string | null
+          raffle_id?: string | null
+          reserved_until?: string | null
+          status?: string | null
+          ticket_count?: number | null
+          ticket_ranges?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "orders_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       raffle_stats_mv: {
         Row: {
           created_at: string | null
@@ -2017,6 +2082,28 @@ export type Database = {
           unique_buyers: number
         }[]
       }
+      get_secure_order_by_reference: {
+        Args: { p_reference_code: string }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          created_at: string
+          id: string
+          lucky_indices: number[]
+          order_total: number
+          payment_method: string
+          payment_proof_url: string
+          raffle_id: string
+          reference_code: string
+          reserved_until: string
+          sold_at: string
+          status: string
+          ticket_count: number
+          ticket_ranges: Json
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_virtual_ticket_counts: {
         Args: { p_raffle_id: string }
@@ -2044,6 +2131,16 @@ export type Database = {
           payment_reference: string
           reserved_at: string
           sold_at: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
+      get_virtual_tickets_optimized: {
+        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
+        Returns: {
+          buyer_name: string
+          order_id: string
           status: string
           ticket_index: number
           ticket_number: string
@@ -2146,7 +2243,6 @@ export type Database = {
       search_public_tickets: {
         Args: { p_limit?: number; p_raffle_id: string; p_search: string }
         Returns: {
-          buyer_city: string
           buyer_name: string
           status: string
           ticket_index: number
