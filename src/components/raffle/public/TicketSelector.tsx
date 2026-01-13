@@ -41,8 +41,35 @@ import {
   Ticket,
   Trash2,
   Heart,
-  CornerDownLeft
+  CornerDownLeft,
+  Clock
 } from "lucide-react";
+
+// Maximum number of random tickets that can be selected at once
+export const MAX_RANDOM_SELECTION = 50000;
+
+// Helper function to get batch indicator based on ticket count
+const getBatchIndicator = (count: number) => {
+  if (count >= 10000) return { 
+    label: 'Mega lote', 
+    colorClasses: 'border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30',
+    textColor: 'text-red-600 dark:text-red-400',
+    message: 'la generación puede tomar 30+ segundos'
+  };
+  if (count >= 1000) return { 
+    label: 'Lote muy grande', 
+    colorClasses: 'border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/30',
+    textColor: 'text-orange-600 dark:text-orange-400',
+    message: 'la generación puede tomar 5-15 segundos'
+  };
+  if (count >= 100) return { 
+    label: 'Lote grande', 
+    colorClasses: 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30',
+    textColor: 'text-amber-600 dark:text-amber-400',
+    message: 'la generación puede tomar unos segundos'
+  };
+  return null;
+};
 
 interface Package {
   id: string;
@@ -1425,7 +1452,8 @@ export function TicketSelector({
                             onBlur={() => {
                               // Al perder foco, parsear y aplicar límites
                               const value = parseInt(randomCountDisplay) || 1;
-                              const clamped = Math.min(10000, Math.max(1, value));
+                              const effectiveMax = Math.min(MAX_RANDOM_SELECTION, ticketsAvailable || MAX_RANDOM_SELECTION);
+                              const clamped = Math.min(effectiveMax, Math.max(1, value));
                               setRandomCount(clamped);
                               setRandomCountDisplay(String(clamped));
                             }}
@@ -1436,17 +1464,24 @@ export function TicketSelector({
                             }}
                             className={cn("h-12 text-lg border-2 text-center flex-1", colors.inputBg, colors.inputBorder, colors.inputText)}
                           />
-                          {randomCount > 100 && (
-                            <Badge variant="outline" className="h-12 px-3 flex items-center border-amber-500 text-amber-600">
-                              Lote grande
-                            </Badge>
-                          )}
+                          {(() => {
+                            const indicator = getBatchIndicator(randomCount);
+                            return indicator ? (
+                              <Badge variant="outline" className={cn("h-12 px-3 flex items-center gap-2", indicator.colorClasses)}>
+                                <Clock className="h-4 w-4" />
+                                {indicator.label}
+                              </Badge>
+                            ) : null;
+                          })()}
                         </div>
-                        {randomCount > 100 && (
-                          <p className="text-xs text-amber-600 text-center">
-                            Para {randomCount.toLocaleString()} boletos, la generación puede tomar unos segundos
-                          </p>
-                        )}
+                        {(() => {
+                          const indicator = getBatchIndicator(randomCount);
+                          return indicator ? (
+                            <p className={cn("text-xs text-center", indicator.textColor)}>
+                              Para {randomCount.toLocaleString()} boletos, {indicator.message}
+                            </p>
+                          ) : null;
+                        })()}
                       </div>
 
                       {/* Package quick select */}
