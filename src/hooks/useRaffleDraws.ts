@@ -55,7 +55,12 @@ export function useRaffleDraws(raffleId: string | undefined) {
       
       const { data, error } = await supabase
         .from('raffle_draws')
-        .select('*')
+        .select(`
+          id, raffle_id, prize_id, prize_name, prize_value, draw_type,
+          ticket_id, ticket_number, winner_name, winner_email, winner_phone, winner_city,
+          draw_method, draw_metadata, scheduled_date, drawn_at,
+          announced, announced_at, winner_notified, winner_notified_at, created_at, created_by
+        `)
         .eq('raffle_id', raffleId)
         .order('drawn_at', { ascending: false });
 

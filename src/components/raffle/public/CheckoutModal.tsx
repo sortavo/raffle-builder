@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -336,7 +336,19 @@ export function CheckoutModal({
     setCurrentStep(2);
   };
 
+  // Rate limiting ref for submit cooldown
+  const lastSubmitTimeRef = useRef<number>(0);
+  const SUBMIT_COOLDOWN_MS = 2000; // 2 second cooldown between submit attempts
+
   const handleCompleteReservation = async () => {
+    // Rate limiting check
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < SUBMIT_COOLDOWN_MS) {
+      toast.warning('Por favor espera un momento antes de intentar de nuevo');
+      return;
+    }
+    lastSubmitTimeRef.current = now;
+
     // Prevent double-click
     if (isProcessing || reserveTickets.isPending) return;
     

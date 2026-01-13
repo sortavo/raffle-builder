@@ -72,10 +72,14 @@ export function usePendingOrders(raffleIdFilter?: string) {
 
       const raffleIds = raffles.map(r => r.id);
 
-      // Get all reserved orders across all raffles from the NEW orders table
+      // Get all reserved orders across all raffles - select only needed fields
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id, raffle_id, reference_code, ticket_count, ticket_ranges, lucky_indices,
+          status, reserved_until, buyer_name, buyer_email, buyer_phone,
+          payment_proof_url, order_total, created_at
+        `)
         .in('raffle_id', raffleIds)
         .eq('status', 'reserved')
         .order('created_at', { ascending: false })

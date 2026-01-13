@@ -36,7 +36,7 @@ export function useNotifications() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from('notifications')
-        .select('*')
+        .select('id, title, message, type, read, read_at, link, metadata, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
