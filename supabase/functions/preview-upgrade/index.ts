@@ -97,18 +97,57 @@ serve(async (req) => {
     const newAmount = newPrice.unit_amount || 0;
     const isDowngrade = newAmount < currentAmount;
     
+    // Detect if user is in trial period
+    const isInTrial = subscription.status === "trialing";
+    
     logStep("Price comparison", { 
       currentPriceId,
       currentAmount,
       newPriceId: priceId,
       newAmount,
-      isDowngrade
+      isDowngrade,
+      isInTrial,
+      trialEnd: subscription.trial_end,
     });
 
     // Calculate next billing date
     const nextBillingDate = subscription.current_period_end 
       ? new Date(subscription.current_period_end * 1000).toISOString()
       : null;
+
+    // For trial upgrades: show full price of new plan (trial will end immediately)
+    if (isInTrial && !isDowngrade) {
+      logStep("Trial upgrade - returning full price preview");
+      
+      // Calculate new billing date based on plan interval (30 days for monthly, 1 year for annual)
+      const newPriceRecurring = newPrice.recurring;
+      const interval = newPriceRecurring?.interval || "month";
+      const nextBilling = new Date();
+      if (interval === "year") {
+        nextBilling.setFullYear(nextBilling.getFullYear() + 1);
+      } else {
+        nextBilling.setMonth(nextBilling.getMonth() + 1);
+      }
+
+      const response = {
+        amount_due: newPrice.unit_amount || 0, // Full price of new plan
+        currency: newPrice.currency || "usd",
+        proration_details: {
+          credit: 0,
+          debit: 0,
+          items: [],
+        },
+        effective_date: new Date().toISOString(),
+        next_billing_date: nextBilling.toISOString(),
+        new_plan_name: planName || "Nuevo Plan",
+        old_plan_name: "Basic (Prueba Gratuita)",
+        is_downgrade: false,
+        is_trial_upgrade: true,
+        trial_message: "Tu período de prueba terminará y se cobrará el precio completo del nuevo plan inmediatamente.",
+      };
+
+      return corsJsonResponse(req, response, 200);
+    }
 
     // For downgrades: no proration, change applies at next billing cycle
     if (isDowngrade) {

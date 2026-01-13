@@ -86,6 +86,15 @@ serve(async (req) => {
       throw new Error(`Subscription is not active. Current status: ${subscription.status}`);
     }
 
+    // Detect if user is in trial period
+    const isInTrial = subscription.status === "trialing";
+    logStep("Subscription details", {
+      subscriptionId: subscription.id,
+      status: subscription.status,
+      isInTrial,
+      trialEnd: subscription.trial_end,
+    });
+
     // Get the subscription item ID (assuming single item subscription)
     const subscriptionItemId = subscription.items.data[0]?.id;
     if (!subscriptionItemId) {
@@ -110,16 +119,33 @@ serve(async (req) => {
       isDowngrade
     });
 
-    // Update the subscription with the new price
-    // For upgrades: charge the difference immediately (always_invoice)
-    // For downgrades: no proration, change applies at next billing cycle (none)
-    const updatedSubscription = await stripe.subscriptions.update(org.stripe_subscription_id, {
+    // Build update params based on subscription state
+    const updateParams: Stripe.SubscriptionUpdateParams = {
       items: [{
         id: subscriptionItemId,
         price: priceId,
       }],
-      proration_behavior: isDowngrade ? "none" : "always_invoice",
-    });
+    };
+
+    // Determine proration behavior:
+    // - Trial + Upgrade: End trial immediately, charge full price (no proration since no prior payment)
+    // - Active + Upgrade: Prorate and charge difference immediately
+    // - Downgrade: No proration, change applies at next billing cycle
+    if (isInTrial && !isDowngrade) {
+      updateParams.trial_end = "now"; // End trial immediately
+      updateParams.proration_behavior = "none"; // No proration (no prior payment)
+      logStep("Trial detected - ending trial immediately, charging full new price");
+    } else if (isDowngrade) {
+      updateParams.proration_behavior = "none";
+    } else {
+      updateParams.proration_behavior = "always_invoice";
+    }
+
+    // Update the subscription with the new price
+    const updatedSubscription = await stripe.subscriptions.update(
+      org.stripe_subscription_id, 
+      updateParams
+    );
     logStep("Subscription updated successfully", { 
       newStatus: updatedSubscription.status,
       newPriceId: priceId,

@@ -33,6 +33,8 @@ interface UpgradePreview {
   new_plan_name: string;
   old_plan_name: string;
   is_downgrade?: boolean;
+  is_trial_upgrade?: boolean;
+  trial_message?: string;
   message?: string;
 }
 
@@ -124,8 +126,43 @@ export function UpgradeConfirmationModal({
 
           <Separator />
 
+          {/* Trial Upgrade Info */}
+          {preview.is_trial_upgrade && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    Tu período de prueba terminará
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {preview.trial_message || "Se cobrará el precio completo del nuevo plan inmediatamente."}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Cargo inmediato</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formatCurrency(preview.amount_due)}
+                  </span>
+                </div>
+                
+                {preview.next_billing_date && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      Próximo cobro: {format(new Date(preview.next_billing_date), "d 'de' MMMM, yyyy", { locale: es })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Downgrade Info */}
-          {isDowngrade ? (
+          {isDowngrade && !preview.is_trial_upgrade && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-3">
                 <Clock className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
@@ -148,7 +185,10 @@ export function UpgradeConfirmationModal({
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {/* Regular Upgrade Proration Details */}
+          {!isDowngrade && !preview.is_trial_upgrade && (
             <>
               {/* Proration Details - Only for upgrades */}
               <div className="space-y-3">
