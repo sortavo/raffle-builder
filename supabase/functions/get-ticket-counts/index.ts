@@ -11,13 +11,27 @@ interface RedisResponse {
   result: string | null;
 }
 
-// Simple Upstash Redis REST client
+// Simple Upstash Redis REST client (using pipeline format)
 async function redisGet(url: string, token: string, key: string): Promise<string | null> {
   try {
-    const response = await fetch(`${url}/get/${key}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(['GET', key]),
     });
-    const data: RedisResponse = await response.json();
+    
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Redis GET] Error response: ${errorText}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    
     return data.result;
   } catch (error) {
     console.error('[Redis] GET error:', error);
@@ -27,9 +41,21 @@ async function redisGet(url: string, token: string, key: string): Promise<string
 
 async function redisSetEx(url: string, token: string, key: string, ttl: number, value: string): Promise<boolean> {
   try {
-    await fetch(`${url}/setex/${key}/${ttl}/${encodeURIComponent(value)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(['SETEX', key, ttl, value]),
     });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Redis SETEX] Error response: ${errorText}`);
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error('[Redis] SETEX error:', error);
@@ -39,8 +65,13 @@ async function redisSetEx(url: string, token: string, key: string, ttl: number, 
 
 async function redisDelete(url: string, token: string, key: string): Promise<boolean> {
   try {
-    await fetch(`${url}/del/${key}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    await fetch(url, {
+      method: 'POST',
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(['DEL', key]),
     });
     return true;
   } catch (error) {
@@ -68,6 +99,7 @@ Deno.serve(async (req) => {
     const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
     const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
     const cacheKey = `counts:${raffle_id}`;
+    
 
     // Handle cache invalidation request
     if (invalidate && redisUrl && redisToken) {
@@ -81,15 +113,17 @@ Deno.serve(async (req) => {
     // Try cache first if Redis is configured
     if (redisUrl && redisToken) {
       const cached = await redisGet(redisUrl, redisToken, cacheKey);
+      
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          console.log(`[get-ticket-counts] Cache HIT for ${raffle_id}`);
+          console.log(`[get-ticket-counts] Cache HIT for ${raffle_id}, returning cached data`);
           return new Response(
             JSON.stringify({ ...parsed, cached: true }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
-        } catch {
+        } catch (parseError) {
+          console.error(`[Redis] Failed to parse cached value:`, parseError);
           // Invalid cache, continue to DB
         }
       }
