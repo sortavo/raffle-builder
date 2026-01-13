@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { supabase } from "@/integrations/supabase/client";
 import { generateAllTrackingScripts, generateGTMScript, generateGA4Script, generateMetaPixelScript, generateTikTokPixelScript, sanitizeCustomScript } from "@/lib/tracking-scripts";
 import { useCookieConsent } from "@/hooks/useCookieConsent";
+import DOMPurify from "dompurify";
 
 export interface TenantConfig {
   id: string;
@@ -275,15 +276,31 @@ function TrackingScriptInjector({ tenant }: { tenant: TenantConfig }) {
     const injectScript = (html: string) => {
       if (!html.trim()) return;
       
+      // SECURITY: Sanitize HTML before processing to prevent XSS
+      // Allow only script-related tags and safe attributes
+      const sanitizedHtml = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['script', 'noscript', 'iframe'],
+        ALLOWED_ATTR: ['src', 'async', 'defer', 'id', 'data-*', 'width', 'height', 'style', 'frameborder', 'allowfullscreen'],
+        ALLOW_DATA_ATTR: true,
+        // Don't strip unknown protocols - allow https for external scripts
+        ALLOWED_URI_REGEXP: /^(?:(?:https?|data):)/i,
+      });
+      
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizedHtml;
       
       const scripts = tempDiv.querySelectorAll("script");
       scripts.forEach((script) => {
         const newScript = document.createElement("script");
         if (script.src) {
-          newScript.src = script.src;
-          newScript.async = script.async;
+          // Validate src is HTTPS only
+          if (script.src.startsWith('https://')) {
+            newScript.src = script.src;
+            newScript.async = script.async;
+          } else {
+            console.warn('[TenantContext] Blocked non-HTTPS script:', script.src);
+            return;
+          }
         } else {
           newScript.textContent = script.textContent;
         }
