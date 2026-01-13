@@ -79,14 +79,18 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
   useEffect(() => {
     const detectTenant = async () => {
+      console.log('[TenantContext] Detecting tenant...', { hostname, subdomainSlug, isCustomDomain });
+      
       let tenantSlug: string | null = null;
       
       // Priority 1: Subdomain (cliente1.sortavo.com)
       if (subdomainSlug && !RESERVED_SUBDOMAINS.includes(subdomainSlug.toLowerCase())) {
         tenantSlug = subdomainSlug;
+        console.log('[TenantContext] Detected subdomain tenant:', tenantSlug);
       }
       // Priority 2: Custom domain (cliente1.com)
       else if (isCustomDomain) {
+        console.log('[TenantContext] Checking custom domain:', hostname);
         try {
           const { data } = await supabase.rpc("get_organization_by_domain", {
             p_domain: hostname,
@@ -94,6 +98,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
 
           if (data && data.length > 0) {
             const org = data[0];
+            console.log('[TenantContext] Found org for custom domain:', org.slug);
             
             // Fetch tracking data separately (RPC may not include new columns)
             const { data: trackingData } = await supabase
@@ -132,12 +137,14 @@ export function TenantProvider({ children }: TenantProviderProps) {
       
       // If we have a tenant slug from subdomain, load the tenant config
       if (tenantSlug) {
+        console.log('[TenantContext] Loading config for subdomain tenant:', tenantSlug);
         const config = await detectTenantFromPath(tenantSlug);
         if (config) {
           setTenant(config);
         }
       }
       
+      console.log('[TenantContext] Detection complete, setting isLoading=false');
       setIsLoading(false);
     };
 
