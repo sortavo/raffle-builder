@@ -364,6 +364,10 @@ export function CheckoutModal({
 
     try {
       // Use virtual tickets - always
+      // For large selections (5000+), use lucky_indices storage for efficiency
+      // This avoids massive JSONB ticket_ranges which cause timeouts
+      const useLuckyStorage = selectedTicketIndices.length >= 5000;
+      
       const virtualResult = await reserveTickets.mutateAsync({
         raffleId: raffle.id,
         ticketIndices: selectedTicketIndices,
@@ -375,6 +379,7 @@ export function CheckoutModal({
         },
         reservationMinutes: raffle.reservation_time_minutes || 15,
         orderTotal: total,
+        isLuckyNumbers: useLuckyStorage,
       });
 
       // Expand ticket ranges to get individual ticket numbers for display
