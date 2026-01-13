@@ -230,6 +230,8 @@ export function TicketSelector({
   const [mode, setMode] = useState<'manual' | 'random' | 'search' | 'lucky'>('manual');
   const [page, setPage] = useState(1);
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
   const [randomCount, setRandomCount] = useState(1);
   const [randomCountDisplay, setRandomCountDisplay] = useState('1');
   // Separate states for Manual tab (local filter) and Search tab (backend search)
@@ -436,10 +438,36 @@ export function TicketSelector({
     minSwipeDistance: 75
   });
 
+  // Deterministic shuffle function using seed
+  const shuffleArray = <T,>(array: T[], seed: number): T[] => {
+    const shuffled = [...array];
+    let currentIndex = shuffled.length;
+    let randomValue = seed;
+    
+    while (currentIndex !== 0) {
+      randomValue = (randomValue * 1103515245 + 12345) & 0x7fffffff;
+      const randomIndex = randomValue % currentIndex;
+      currentIndex--;
+      [shuffled[currentIndex], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[currentIndex]];
+    }
+    return shuffled;
+  };
+
   const filteredTickets = useMemo(() => {
-    if (!showOnlyAvailable) return tickets;
-    return tickets.filter(t => t.status === 'available');
-  }, [tickets, showOnlyAvailable]);
+    let result = tickets;
+    
+    // Apply available filter
+    if (showOnlyAvailable) {
+      result = result.filter(t => t.status === 'available');
+    }
+    
+    // Apply shuffle if active
+    if (isShuffled && shuffleSeed > 0) {
+      result = shuffleArray(result, shuffleSeed);
+    }
+    
+    return result;
+  }, [tickets, showOnlyAvailable, isShuffled, shuffleSeed]);
 
   // Auto-navigate to first page with available tickets when filter is active and page is empty
   useEffect(() => {
@@ -1066,12 +1094,22 @@ export function TicketSelector({
                 
                 <Button 
                   variant="outline"
-                  className={cn("h-12 bg-transparent", colors.buttonOutline)}
-                  onClick={handleRandomGenerate}
-                  disabled={randomMutation.isPending}
+                  className={cn(
+                    "h-12 bg-transparent", 
+                    colors.buttonOutline,
+                    isShuffled && "border-purple-500 text-purple-500 hover:bg-purple-500/10"
+                  )}
+                  onClick={() => {
+                    if (isShuffled) {
+                      setIsShuffled(false);
+                    } else {
+                      setShuffleSeed(Date.now());
+                      setIsShuffled(true);
+                    }
+                  }}
                 >
                   <Shuffle className="w-5 h-5 mr-2" />
-                  Aleatorio
+                  {isShuffled ? 'Ordenar' : 'Aleatorio'}
                 </Button>
               </div>
             </div>
