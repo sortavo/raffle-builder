@@ -162,7 +162,14 @@ export function useRaffleOrders(raffleId: string | undefined, status?: string) {
 
       let query = supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id, reference_code, raffle_id, organization_id,
+          ticket_ranges, lucky_indices, ticket_count, order_total,
+          status, buyer_name, buyer_email, buyer_phone, buyer_city,
+          payment_method, payment_proof_url,
+          reserved_at, reserved_until, sold_at, approved_at, canceled_at,
+          created_at, updated_at
+        `)
         .eq('raffle_id', raffleId)
         .order('created_at', { ascending: false });
 

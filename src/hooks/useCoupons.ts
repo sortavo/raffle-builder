@@ -54,7 +54,12 @@ export function useCoupons() {
       
       const { data, error } = await supabase
         .from('coupons' as any)
-        .select('*')
+        .select(`
+          id, code, name, description, discount_type, discount_value,
+          max_uses, current_uses, min_purchase, active,
+          valid_from, valid_until, raffle_id, organization_id,
+          created_at, updated_at
+        `)
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false });
       

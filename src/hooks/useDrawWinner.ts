@@ -60,7 +60,7 @@ export function useDrawWinner() {
       // ticketId in this context is the order ID
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, status, buyer_name, buyer_email, buyer_phone, buyer_city, lucky_indices, ticket_ranges')
         .eq('id', ticketId)
         .eq('status', 'sold')
         .maybeSingle();

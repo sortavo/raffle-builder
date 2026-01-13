@@ -37,7 +37,11 @@ export function useAuditLog(options: UseAuditLogOptions = {}) {
 
       let query = supabase
         .from('audit_log')
-        .select('*')
+        .select(`
+          id, action, resource_type, resource_id, resource_name,
+          user_id, user_email, user_name, changes, metadata,
+          ip_address, user_agent, organization_id, created_at
+        `)
         .eq('organization_id', organization.id)
         .order('created_at', { ascending: false })
         .limit(limit);

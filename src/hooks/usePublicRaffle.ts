@@ -105,10 +105,10 @@ export function usePublicRaffle(slug: string | undefined, orgSlug?: string) {
         );
       }
 
-      // Get packages
+      // Get packages - select only needed fields
       const { data: packages } = await supabase
         .from('raffle_packages')
-        .select('*')
+        .select('id, raffle_id, quantity, price, discount_percent, label, display_order')
         .eq('raffle_id', raffle.id)
         .order('display_order', { ascending: true });
 
@@ -519,10 +519,10 @@ export function usePreviewRaffle(slug: string | undefined, enabled: boolean = fa
       const ticketsReserved = counts?.reserved_count || 0;
       const ticketsAvailable = counts?.available_count || 0;
 
-      // Get packages
+      // Get packages - select only needed fields
       const { data: packages } = await supabase
         .from('raffle_packages')
-        .select('*')
+        .select('id, raffle_id, quantity, price, discount_percent, label, display_order')
         .eq('raffle_id', raffle.id)
         .order('display_order', { ascending: true });
 
