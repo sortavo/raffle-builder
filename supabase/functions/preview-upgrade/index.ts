@@ -133,20 +133,22 @@ serve(async (req) => {
       return corsJsonResponse(req, response, 200);
     }
 
-    // For upgrades: get proration details
-    const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+    // For upgrades: get proration details using createPreview (API 2025-08-27.basil)
+    const previewInvoice = await stripe.invoices.createPreview({
       customer: org.stripe_customer_id,
       subscription: org.stripe_subscription_id,
-      subscription_items: [{
-        id: subscriptionItemId,
-        price: priceId,
-      }],
-      subscription_proration_behavior: "always_invoice",
+      subscription_details: {
+        items: [{
+          id: subscriptionItemId,
+          price: priceId,
+        }],
+        proration_behavior: "always_invoice",
+      },
     });
-    logStep("Retrieved upcoming invoice", {
-      amountDue: upcomingInvoice.amount_due,
-      currency: upcomingInvoice.currency,
-      linesCount: upcomingInvoice.lines.data.length
+    logStep("Retrieved invoice preview", {
+      amountDue: previewInvoice.amount_due,
+      currency: previewInvoice.currency,
+      linesCount: previewInvoice.lines.data.length
     });
 
     // Parse line items to get proration details
@@ -154,7 +156,7 @@ serve(async (req) => {
     let debitAmount = 0;
     const prorationItems: { description: string; amount: number }[] = [];
 
-    for (const line of upcomingInvoice.lines.data) {
+    for (const line of previewInvoice.lines.data) {
       if (line.proration) {
         if (line.amount < 0) {
           creditAmount += Math.abs(line.amount);
@@ -169,8 +171,8 @@ serve(async (req) => {
     }
 
     const response = {
-      amount_due: upcomingInvoice.amount_due, // in cents
-      currency: upcomingInvoice.currency,
+      amount_due: previewInvoice.amount_due, // in cents
+      currency: previewInvoice.currency,
       proration_details: {
         credit: creditAmount,
         debit: debitAmount,
