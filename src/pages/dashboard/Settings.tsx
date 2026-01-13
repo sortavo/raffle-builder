@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, CreditCard, Users, Loader2, Bell, ShieldAlert, Send, Globe } from "lucide-react";
+import { Building2, CreditCard, Users, Loader2, Bell, ShieldAlert, Send, Globe, ShieldCheck } from "lucide-react";
 import { OrganizationSettings } from "@/components/settings/OrganizationSettings";
 import { PaymentMethodsSettings } from "@/components/settings/PaymentMethodsSettings";
 import { TeamSettings } from "@/components/settings/TeamSettings";
-
+import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { TelegramSettings } from "@/components/settings/TelegramSettings";
 import { CustomDomainsSettings } from "@/components/settings/CustomDomainsSettings";
@@ -18,6 +19,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isLoading } = useAuth();
+  const { isSortavoEmail } = useIsPlatformAdmin();
   
   const activeTab = searchParams.get("tab") || "organization";
 
@@ -83,6 +85,12 @@ export default function Settings() {
                 <Globe className="h-4 w-4 shrink-0" />
                 <span className="hidden xs:inline">Dominios</span>
               </TabsTrigger>
+              {isSortavoEmail && (
+                <TabsTrigger value="security" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <ShieldCheck className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Seguridad</span>
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -135,6 +143,12 @@ export default function Settings() {
               <CustomDomainsSettings />
             </ProtectedAction>
           </TabsContent>
+
+          {isSortavoEmail && (
+            <TabsContent value="security" className="animate-fade-in">
+              <SecuritySettings />
+            </TabsContent>
+          )}
 
         </Tabs>
       </div>
