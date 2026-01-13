@@ -512,11 +512,39 @@
 |---------|------------|-----------|
 | `auto-draw` | Diario 00:00 | Ejecutar sorteos automáticos |
 | `cleanup-notifications` | Diario 03:00 | Limpiar notificaciones antiguas |
+| `cleanup-expired-orders` | Cada hora | Limpiar reservaciones expiradas y órdenes abandonadas |
 | `send-payment-reminders` | Diario 10:00 | Recordar pagos pendientes |
 | `notify-pending-approvals` | Cada 4 horas | Alertar sobre aprobaciones |
 | `check-subscription` | Diario 01:00 | Verificar suscripciones |
 | `sync-domains` | Cada 6 horas | Sincronizar dominios |
 | `monitor-domains` | Cada hora | Monitorear SSL |
+| `archive-old-raffles` | Semanal | Archivar rifas completadas antiguas |
+
+---
+
+### `cleanup-expired-orders`
+**Propósito:** Limpiar reservaciones expiradas y órdenes abandonadas
+
+**Método:** POST (Cron)
+
+**Frecuencia recomendada:** Cada hora
+
+**Acciones:**
+- Cancela reservaciones donde `reserved_until < now()`
+- Elimina órdenes canceladas >7 días
+- Elimina órdenes pending sin pago >30 días
+
+**Response:**
+```json
+{
+  "success": true,
+  "expiredReservations": 5,
+  "oldCancelledOrders": 12,
+  "oldPendingOrders": 3,
+  "totalCleaned": 20,
+  "executionTimeMs": 145
+}
+```
 
 ---
 
