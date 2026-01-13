@@ -63,6 +63,7 @@ import AdminOrganizationDetail from "./pages/admin/AdminOrganizationDetail";
 import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 import AdminDomains from "./pages/admin/AdminDomains";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminDemos from "./pages/admin/AdminDemos";
 
 
 const queryClient = new QueryClient({
@@ -170,6 +171,7 @@ const App = () => (
                   <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
                   <Route path="/admin/domains" element={<AdminDomains />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/demos" element={<AdminDemos />} />
                   {/* Public Routes */}
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/pricing/compare" element={<PlanComparison />} />
