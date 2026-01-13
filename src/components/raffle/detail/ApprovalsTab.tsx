@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyPaymentApproved, notifyPaymentRejected } from '@/lib/notifications';
 import { formatCurrency } from '@/lib/currency-utils';
+import { invalidateTicketCountsCache } from '@/hooks/useVirtualTicketCountsCached';
 
 interface ApprovalsTabProps {
   raffleId: string;
@@ -219,11 +220,15 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
         raffleSlug 
       });
       
+      // Invalidate Redis cache immediately
+      invalidateTicketCountsCache(raffleId);
+      
       // Immediately invalidate all related queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] }),
         queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] }),
         queryClient.invalidateQueries({ queryKey: ['raffle-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached', raffleId] }),
         refetch(),
       ]);
       
@@ -251,11 +256,15 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     try {
       await bulkReject.mutateAsync(ticketIds);
       
+      // Invalidate Redis cache immediately
+      invalidateTicketCountsCache(raffleId);
+      
       // Immediately invalidate and refetch
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['tickets', raffleId] }),
         queryClient.invalidateQueries({ queryKey: ['ticket-stats', raffleId] }),
         queryClient.invalidateQueries({ queryKey: ['raffle-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached', raffleId] }),
         refetch(),
       ]);
       
