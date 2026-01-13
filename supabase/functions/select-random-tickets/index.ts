@@ -149,52 +149,100 @@ Deno.serve(async (req) => {
     
     console.log(`[SELECT-RANDOM] Total tickets: ${totalTickets}, Number start: ${numberStart}, Step: ${numberStep}`);
 
-    // 2. Get ALL unavailable ticket indices from orders table
-    // Fetch orders that are sold or have active reservations
-    const nowIso = new Date().toISOString();
-    const PAGE_SIZE = 1000;
+    // 2. Try to use optimized blocks first, fall back to order expansion
+    let unavailableSet = new Set<number>();
+    
+    // Check if blocks are available for this raffle
+    const { data: blocks, error: blocksError } = await supabase
+      .from('ticket_block_status')
+      .select('block_start, sold_count, reserved_count')
+      .eq('raffle_id', raffle_id);
 
-    const fetchAllOrderIndices = async (status: 'sold' | 'reserved'): Promise<number[]> => {
-      const indices: number[] = [];
-      let from = 0;
-
-      while (true) {
-        let q = supabase
-          .from('orders')
-          .select('ticket_ranges, lucky_indices, reserved_until')
-          .eq('raffle_id', raffle_id)
-          .eq('status', status)
-          .range(from, from + PAGE_SIZE - 1);
-
-        if (status === 'reserved') {
-          q = q.gt('reserved_until', nowIso);
+    if (!blocksError && blocks && blocks.length > 0) {
+      // Use blocks - much faster for mega raffles
+      console.log(`[SELECT-RANDOM] Using block-based selection (${blocks.length} blocks)`);
+      
+      // Only fetch orders from blocks that have sold/reserved tickets
+      const occupiedBlocks = blocks.filter(b => b.sold_count > 0 || b.reserved_count > 0);
+      
+      if (occupiedBlocks.length > 0) {
+        // Fetch unavailable indices only from occupied blocks
+        const nowIso = new Date().toISOString();
+        
+        for (const block of occupiedBlocks) {
+          const blockEnd = block.block_start + 1000;
+          
+          // Get orders that might have tickets in this block
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('ticket_ranges, lucky_indices, status, reserved_until')
+            .eq('raffle_id', raffle_id)
+            .in('status', ['sold', 'reserved']);
+          
+          for (const order of orders || []) {
+            if (order.status === 'reserved' && order.reserved_until && order.reserved_until < nowIso) {
+              continue; // Expired reservation
+            }
+            
+            const indices = expandOrderToIndices(order);
+            for (const idx of indices) {
+              if (idx >= block.block_start && idx < blockEnd) {
+                unavailableSet.add(idx);
+              }
+            }
+          }
         }
-
-        const { data, error } = await q;
-        if (error) throw error;
-
-        const batch = (data || []) as { ticket_ranges: { s: number; e: number }[]; lucky_indices?: number[] }[];
-        if (batch.length === 0) break;
-
-        // Expand each order's ranges to indices
-        for (const order of batch) {
-          const orderIndices = expandOrderToIndices(order);
-          indices.push(...orderIndices);
-        }
-
-        if (batch.length < PAGE_SIZE) break;
-        from += PAGE_SIZE;
       }
+      
+      console.log(`[SELECT-RANDOM] Blocks: ${blocks.length}, Unavailable from blocks: ${unavailableSet.size}`);
+    } else {
+      // Fallback: Fetch ALL unavailable ticket indices from orders table
+      console.log('[SELECT-RANDOM] Falling back to full order scan');
+      
+      const nowIso = new Date().toISOString();
+      const PAGE_SIZE = 1000;
 
-      return indices;
-    };
+      const fetchAllOrderIndices = async (status: 'sold' | 'reserved'): Promise<number[]> => {
+        const indices: number[] = [];
+        let from = 0;
 
-    const [soldIndices, reservedActiveIndices] = await Promise.all([
-      fetchAllOrderIndices('sold'),
-      fetchAllOrderIndices('reserved'),
-    ]);
+        while (true) {
+          let q = supabase
+            .from('orders')
+            .select('ticket_ranges, lucky_indices, reserved_until')
+            .eq('raffle_id', raffle_id)
+            .eq('status', status)
+            .range(from, from + PAGE_SIZE - 1);
 
-    const unavailableSet = new Set<number>([...soldIndices, ...reservedActiveIndices]);
+          if (status === 'reserved') {
+            q = q.gt('reserved_until', nowIso);
+          }
+
+          const { data, error } = await q;
+          if (error) throw error;
+
+          const batch = (data || []) as { ticket_ranges: { s: number; e: number }[]; lucky_indices?: number[] }[];
+          if (batch.length === 0) break;
+
+          for (const order of batch) {
+            const orderIndices = expandOrderToIndices(order);
+            indices.push(...orderIndices);
+          }
+
+          if (batch.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+
+        return indices;
+      };
+
+      const [soldIndices, reservedActiveIndices] = await Promise.all([
+        fetchAllOrderIndices('sold'),
+        fetchAllOrderIndices('reserved'),
+      ]);
+
+      unavailableSet = new Set<number>([...soldIndices, ...reservedActiveIndices]);
+    }
 
     // Also exclude numbers already in exclude_numbers (convert to indices)
     const excludeSet = new Set<string>(exclude_numbers);

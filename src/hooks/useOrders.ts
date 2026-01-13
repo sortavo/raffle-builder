@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOrdersRealtime } from "./useOrdersRealtime";
 
 export interface Order {
   id: string;
@@ -127,6 +128,9 @@ export function useReserveTickets() {
  * Hook to get ticket counts from orders table
  */
 export function useOrderTicketCounts(raffleId: string | undefined) {
+  // Enable real-time updates instead of polling
+  useOrdersRealtime(raffleId);
+
   return useQuery({
     queryKey: ['order-ticket-counts', raffleId],
     queryFn: async () => {
@@ -147,7 +151,8 @@ export function useOrderTicketCounts(raffleId: string | undefined) {
       };
     },
     enabled: !!raffleId,
-    refetchInterval: 10000,
+    // NO refetchInterval - Realtime handles updates
+    staleTime: 30000,
   });
 }
 
@@ -155,6 +160,9 @@ export function useOrderTicketCounts(raffleId: string | undefined) {
  * Hook to get pending orders for a raffle
  */
 export function useRaffleOrders(raffleId: string | undefined, status?: string) {
+  // Enable real-time updates instead of polling
+  useOrdersRealtime(raffleId);
+
   return useQuery({
     queryKey: ['orders', raffleId, status],
     queryFn: async () => {
@@ -183,7 +191,8 @@ export function useRaffleOrders(raffleId: string | undefined, status?: string) {
       return (data || []) as Order[];
     },
     enabled: !!raffleId,
-    refetchInterval: 30000,
+    // NO refetchInterval - Realtime handles updates
+    staleTime: 30000,
   });
 }
 

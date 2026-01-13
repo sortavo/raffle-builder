@@ -1638,6 +1638,58 @@ export type Database = {
           },
         ]
       }
+      ticket_block_status: {
+        Row: {
+          block_size: number
+          block_start: number
+          id: string
+          raffle_id: string
+          reserved_count: number | null
+          sold_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_size?: number
+          block_start: number
+          id?: string
+          raffle_id: string
+          reserved_count?: number | null
+          sold_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_size?: number
+          block_start?: number
+          id?: string
+          raffle_id?: string
+          reserved_count?: number | null
+          sold_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_block_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_block_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "ticket_block_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1969,6 +2021,13 @@ export type Database = {
         Returns: string
       }
       generate_reference_code: { Args: never; Returns: string }
+      get_available_blocks: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          block_start: number
+        }[]
+      }
       get_buyers_paginated: {
         Args: {
           p_page?: number
@@ -2116,6 +2175,15 @@ export type Database = {
           ticket_ranges: Json
         }[]
       }
+      get_ticket_counts_from_blocks: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          reserved_count: number
+          sold_count: number
+          total_count: number
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_virtual_ticket_counts: {
         Args: { p_raffle_id: string }
@@ -2184,6 +2252,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      initialize_ticket_blocks: {
+        Args: { p_raffle_id: string }
+        Returns: number
       }
       is_index_in_order: {
         Args: {
@@ -2267,6 +2339,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_raffle_blocks: { Args: { p_raffle_id: string }; Returns: undefined }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
