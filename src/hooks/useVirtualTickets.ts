@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useOrdersRealtime } from "./useOrdersRealtime";
 
 interface VirtualTicket {
   ticket_number: string;
@@ -46,6 +47,9 @@ export function useVirtualTickets(
   page: number = 1,
   pageSize: number = 100
 ) {
+  // Enable real-time updates instead of polling
+  useOrdersRealtime(raffleId);
+
   return useQuery({
     queryKey: ['virtual-tickets', raffleId, page, pageSize],
     queryFn: async () => {
@@ -76,12 +80,16 @@ export function useVirtualTickets(
       };
     },
     enabled: !!raffleId,
-    refetchInterval: 10000,
-    staleTime: 5000,
+    // NO refetchInterval - Realtime handles updates via useOrdersRealtime
+    staleTime: 30000, // Increased since Realtime keeps data fresh
+    gcTime: 60000,
   });
 }
 
 export function useVirtualTicketCounts(raffleId: string | undefined) {
+  // Enable real-time updates instead of polling
+  useOrdersRealtime(raffleId);
+
   return useQuery({
     queryKey: ['virtual-ticket-counts', raffleId],
     queryFn: async () => {
@@ -102,7 +110,8 @@ export function useVirtualTicketCounts(raffleId: string | undefined) {
       };
     },
     enabled: !!raffleId,
-    refetchInterval: 10000,
+    // NO refetchInterval - Realtime handles updates
+    staleTime: 30000,
   });
 }
 
