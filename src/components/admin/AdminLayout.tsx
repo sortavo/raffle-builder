@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsPlatformAdmin } from "@/hooks/useIsPlatformAdmin";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminSidebarContent } from "./AdminSidebarContent";
+import { MFARequired } from "./MFARequired";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Menu, ChevronLeft, Trophy } from "lucide-react";
+import { Shield, Menu, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -83,53 +84,55 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-background to-primary/5 dark:from-slate-950 dark:via-slate-900 dark:to-primary/10 flex">
-      <AdminSidebar />
-      
-      <main className="flex-1 min-w-0">
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-border/50">
-          <div className="flex items-center justify-between px-4 md:px-6 h-16">
-            <div className="flex items-center gap-3">
-              <AdminMobileNav />
-              <div className="md:hidden flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent shadow-lg shadow-primary/25">
-                  <Shield className="h-4 w-4 text-white" />
+    <MFARequired>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-background to-primary/5 dark:from-slate-950 dark:via-slate-900 dark:to-primary/10 flex">
+        <AdminSidebar />
+        
+        <main className="flex-1 min-w-0">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-border/50">
+            <div className="flex items-center justify-between px-4 md:px-6 h-16">
+              <div className="flex items-center gap-3">
+                <AdminMobileNav />
+                <div className="md:hidden flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-accent shadow-lg shadow-primary/25">
+                    <Shield className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    Super Admin
+                  </span>
                 </div>
-                <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  Super Admin
-                </span>
               </div>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                asChild 
+                className="hidden sm:flex hover:bg-primary/10 dark:hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Link to="/dashboard">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Dashboard
+                </Link>
+              </Button>
+            </div>
+          </header>
+
+          {/* Page Content */}
+          <div className="p-4 md:p-6">
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+                {title}
+              </h1>
+              {description && (
+                <p className="text-muted-foreground mt-1">{description}</p>
+              )}
             </div>
             
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              asChild 
-              className="hidden sm:flex hover:bg-primary/10 dark:hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Link to="/dashboard">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Dashboard
-              </Link>
-            </Button>
+            {children}
           </div>
-        </header>
-
-        {/* Page Content */}
-        <div className="p-4 md:p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
-              {title}
-            </h1>
-            {description && (
-              <p className="text-muted-foreground mt-1">{description}</p>
-            )}
-          </div>
-          
-          {children}
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </MFARequired>
   );
 }
