@@ -592,6 +592,7 @@ export type Database = {
           status: string
           ticket_count: number
           ticket_ranges: Json
+          updated_at: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -618,6 +619,7 @@ export type Database = {
           status?: string
           ticket_count: number
           ticket_ranges?: Json
+          updated_at?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -644,6 +646,7 @@ export type Database = {
           status?: string
           ticket_count?: number
           ticket_ranges?: Json
+          updated_at?: string | null
         }
         Relationships: [
           {

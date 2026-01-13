@@ -27,6 +27,7 @@ export interface Order {
   canceled_at: string | null;
   created_at: string;
   customer_id: string | null;
+  updated_at: string | null;
 }
 
 interface ReserveTicketsResult {
