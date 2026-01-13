@@ -7,7 +7,7 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 // Raffle configurations for each demo account
-// Each account gets 3 distinct raffles with different templates and characteristics
+// Each account gets 4 distinct raffles with different templates and characteristics
 
 interface RaffleConfig {
   title: string;
@@ -23,6 +23,7 @@ interface RaffleConfig {
   livestream_url?: string;
   currency_code: string;
   description: string;
+  prize_video_url?: string;
   prizes: Array<{
     id: string;
     name: string;
@@ -42,7 +43,15 @@ interface RaffleConfig {
   faqs: Array<{ question: string; answer: string }>;
   prize_terms: string;
   sold_percentage: number;
+  static_slug: string;
 }
+
+// Static slugs for predictable URLs
+const STATIC_SLUGS = {
+  demo1: ['mercedes-benz-2027', 'tech-gamer-festival', 'viaje-europa-2027', 'canasta-navidena'],
+  demo2: ['casa-de-playa', 'harley-davidson-2027', 'millon-en-efectivo', 'laptop-gamer-asus'],
+  demo3: ['mega-mansion-los-cabos', 'ferrari-296-gtb', 'relojes-de-lujo', 'viaje-cancun'],
+};
 
 // Demo account configurations
 const DEMO_CONFIGS = {
@@ -66,13 +75,15 @@ const DEMO_CONFIGS = {
         prize_value: 1200000,
         ticket_price: 150,
         total_tickets: 500000,
-        reservation_time_minutes: 180,
+        reservation_time_minutes: 360,
         template_id: "elegant-gold",
         draw_method: "lottery_nacional",
         lottery_digits: 5,
         lottery_draw_number: "54321",
         currency_code: "MXN",
         description: "¡El sorteo más elegante del año! Participa por un Mercedes-Benz C300 2027 completamente equipado. Con 4 pre-sorteos de premios tecnológicos de última generación.",
+        prize_video_url: "https://www.youtube.com/watch?v=DOPR6ukS0wA",
+        static_slug: "mercedes-benz-2027",
         prizes: [
           { id: "p1", name: "iPhone 16 Pro Max 1TB", value: 45000, image_url: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-15T18:00:00Z" },
           { id: "p2", name: "MacBook Pro M4 16\"", value: 65000, image_url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-01T18:00:00Z" },
@@ -113,11 +124,13 @@ const DEMO_CONFIGS = {
         prize_value: 180000,
         ticket_price: 50,
         total_tickets: 1000000,
-        reservation_time_minutes: 240,
+        reservation_time_minutes: 360,
         template_id: "modern-blue",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "El sorteo definitivo para gamers. Gana un setup gaming completo valorado en $180,000 MXN incluyendo PC, monitor 4K, silla ergonómica y todos los periféricos.",
+        prize_video_url: "https://www.youtube.com/watch?v=qPN_CB2McWw",
+        static_slug: "tech-gamer-festival",
         prizes: [
           { id: "p1", name: "PlayStation 5 Pro + 10 Juegos", value: 18000, image_url: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-01T19:00:00Z" },
           { id: "p2", name: "Xbox Series X + Game Pass Ultimate", value: 15000, image_url: "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-15T19:00:00Z" },
@@ -149,28 +162,30 @@ const DEMO_CONFIGS = {
         prize_terms: "Productos sujetos a disponibilidad. Pueden sustituirse por equivalentes de igual o mayor valor. Garantía de fabricante incluida.",
         sold_percentage: 25,
       } as RaffleConfig,
-      // Raffle 3: Ultra White - Travel (300K boletos)
+      // Raffle 3: Ultra White - Travel (5K boletos - changed from 300K)
       {
         title: "✈️ Viaje de Ensueño - Europa 2027",
         prize_name: "Viaje a Europa 21 días",
         prize_value: 250000,
-        ticket_price: 80,
-        total_tickets: 300000,
+        ticket_price: 200,
+        total_tickets: 5000,
         reservation_time_minutes: 360,
         template_id: "ultra-white",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "Vive la experiencia de tu vida. 21 días recorriendo París, Roma, Barcelona y Ámsterdam con todo incluido para 2 personas.",
+        prize_video_url: "https://www.youtube.com/watch?v=fNRxSFNZ3w0",
+        static_slug: "viaje-europa-2027",
         prizes: [
           { id: "p1", name: "Maletas de Viaje Premium", value: 8000, image_url: "https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-20T18:00:00Z" },
           { id: "p2", name: "GoPro Hero 12 Black", value: 12000, image_url: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-10T18:00:00Z" },
           { id: "p3", name: "Viaje a Europa 21 días", value: 250000, image_url: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800", quantity: 1, is_pre_draw: false },
         ],
         packages: [
-          { quantity: 1, price: 80, label: "Individual" },
-          { quantity: 5, price: 360, discount_percent: 10, label: "Dúo" },
-          { quantity: 10, price: 640, discount_percent: 20, label: "Familiar ⭐" },
-          { quantity: 20, price: 1120, discount_percent: 30, label: "Mejor Valor" },
+          { quantity: 1, price: 200, label: "Individual" },
+          { quantity: 5, price: 900, discount_percent: 10, label: "Dúo" },
+          { quantity: 10, price: 1600, discount_percent: 20, label: "Familiar ⭐" },
+          { quantity: 20, price: 2800, discount_percent: 30, label: "Mejor Valor" },
         ],
         customization: {
           show_probability: true,
@@ -191,18 +206,20 @@ const DEMO_CONFIGS = {
         prize_terms: "Viaje válido durante 2027. Fechas sujetas a disponibilidad. No incluye gastos personales ni propinas. Pasaportes y visas a cargo del ganador.",
         sold_percentage: 18,
       } as RaffleConfig,
-      // Raffle 4: Modern Orange - Small raffle (5K boletos)
+      // Raffle 4: Modern Orange - Small raffle (1K boletos - changed from 5K)
       {
         title: "🎄 Canasta Navideña Premium",
         prize_name: "Canasta Gourmet de Lujo",
         prize_value: 8000,
         ticket_price: 35,
-        total_tickets: 5000,
-        reservation_time_minutes: 180,
+        total_tickets: 1000,
+        reservation_time_minutes: 360,
         template_id: "modern-orange",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "¡Celebra la Navidad con una canasta gourmet de lujo! Ideal para empresas y grupos pequeños. Incluye productos importados y artesanales de la más alta calidad.",
+        prize_video_url: "https://www.youtube.com/watch?v=dRhhXbuVvj8",
+        static_slug: "canasta-navidena",
         prizes: [
           { id: "p1", name: "Apple AirPods Pro 2", value: 4500, image_url: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-15T18:00:00Z" },
           { id: "p2", name: "Canasta Gourmet Premium", value: 8000, image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800", quantity: 1, is_pre_draw: false },
@@ -259,11 +276,13 @@ const DEMO_CONFIGS = {
         prize_value: 4500000,
         ticket_price: 100,
         total_tickets: 3000000,
-        reservation_time_minutes: 240,
+        reservation_time_minutes: 360,
         template_id: "modern",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "¡Ayuda a la educación y gana una casa frente al mar! 100% de las ganancias destinadas a becas escolares. 10 pre-sorteos con premios increíbles.",
+        prize_video_url: "https://www.youtube.com/watch?v=uD1ti4o2ch4",
+        static_slug: "casa-de-playa",
         prizes: [
           { id: "p1", name: "Smart TV 85\" Samsung Neo QLED", value: 65000, image_url: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-09-15T18:00:00Z" },
           { id: "p2", name: "MacBook Air M3 15\"", value: 35000, image_url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-10-01T18:00:00Z" },
@@ -308,13 +327,15 @@ const DEMO_CONFIGS = {
         prize_value: 850000,
         ticket_price: 200,
         total_tickets: 500000,
-        reservation_time_minutes: 300,
+        reservation_time_minutes: 360,
         template_id: "modern-purple",
         draw_method: "lottery_nacional",
         lottery_digits: 4,
         lottery_draw_number: "8888",
         currency_code: "MXN",
         description: "Para los amantes de las dos ruedas. Gana una Harley-Davidson Street Glide 2027 completamente equipada. El rugido de la libertad puede ser tuyo.",
+        prize_video_url: "https://www.youtube.com/watch?v=WZoMANhvA8s",
+        static_slug: "harley-davidson-2027",
         prizes: [
           { id: "p1", name: "Casco Shoei Premium", value: 15000, image_url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-15T19:00:00Z" },
           { id: "p2", name: "Chamarra Harley-Davidson", value: 12000, image_url: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-01T19:00:00Z" },
@@ -353,11 +374,13 @@ const DEMO_CONFIGS = {
         prize_value: 1000000,
         ticket_price: 50,
         total_tickets: 2000000,
-        reservation_time_minutes: 180,
+        reservation_time_minutes: 360,
         template_id: "modern-orange",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "Simple y directo: UN MILLÓN DE PESOS en efectivo. Sin complicaciones, sin restricciones. El dinero es tuyo para lo que quieras.",
+        prize_video_url: "https://www.youtube.com/watch?v=TMUoSuo9QUk",
+        static_slug: "millon-en-efectivo",
         prizes: [
           { id: "p1", name: "$25,000 en Efectivo", value: 25000, image_url: "https://images.unsplash.com/photo-1554672723-d42a16e533db?w=800", quantity: 2, is_pre_draw: true, scheduled_draw_date: "2026-11-15T20:00:00Z" },
           { id: "p2", name: "$50,000 en Efectivo", value: 50000, image_url: "https://images.unsplash.com/photo-1554672723-d42a16e533db?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-01T20:00:00Z" },
@@ -396,11 +419,13 @@ const DEMO_CONFIGS = {
         prize_value: 45000,
         ticket_price: 45,
         total_tickets: 25000,
-        reservation_time_minutes: 240,
+        reservation_time_minutes: 360,
         template_id: "elegant-purple",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "Para los verdaderos gamers. Gana una laptop ASUS ROG Strix SCAR 17 con RTX 4080, el monstruo definitivo para gaming. Incluye monitor gaming como pre-sorteo.",
+        prize_video_url: "https://www.youtube.com/watch?v=pB0HiKroITA",
+        static_slug: "laptop-gamer-asus",
         prizes: [
           { id: "p1", name: "Monitor Gaming 27\" 165Hz", value: 12000, image_url: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-10T19:00:00Z" },
           { id: "p2", name: "ASUS ROG Strix SCAR 17", value: 45000, image_url: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800", quantity: 1, is_pre_draw: false },
@@ -458,7 +483,7 @@ const DEMO_CONFIGS = {
         prize_value: 25000000,
         ticket_price: 50,
         total_tickets: 10000000,
-        reservation_time_minutes: 480,
+        reservation_time_minutes: 360,
         template_id: "elegant-purple",
         draw_method: "lottery_nacional",
         lottery_digits: 7,
@@ -466,6 +491,8 @@ const DEMO_CONFIGS = {
         livestream_url: "https://youtube.com/live/megasorteo-mansion",
         currency_code: "MXN",
         description: "El sorteo más grande en la historia de México. Una mansión de lujo con vista al mar en Los Cabos valuada en $25 millones. 15 pre-sorteos con premios espectaculares.",
+        prize_video_url: "https://www.youtube.com/watch?v=4wBFSibg0lQ",
+        static_slug: "mega-mansion-los-cabos",
         prizes: [
           { id: "p1", name: "iPhone 16 Pro Max", value: 35000, image_url: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-10-05T20:00:00Z" },
           { id: "p2", name: "iPhone 16 Pro Max", value: 35000, image_url: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-10-12T20:00:00Z" },
@@ -502,8 +529,8 @@ const DEMO_CONFIGS = {
           font_heading: "Playfair Display",
         },
         faqs: [
-          { question: "¿Es el sorteo más grande de México?", answer: "Sí, con 5 millones de boletos y más de $50 millones en premios totales." },
-          { question: "¿Cómo funciona el sorteo?", answer: "Basado en los últimos 5 dígitos del premio mayor de la Lotería Nacional." },
+          { question: "¿Es el sorteo más grande de México?", answer: "Sí, con 10 millones de boletos y más de $50 millones en premios totales." },
+          { question: "¿Cómo funciona el sorteo?", answer: "Basado en los últimos 7 dígitos del premio mayor de la Lotería Nacional." },
           { question: "¿La mansión incluye todo?", answer: "Sí, incluye escrituración, mobiliario de lujo, 2 años de mantenimiento y gastos notariales." },
           { question: "¿Puedo ver el sorteo en vivo?", answer: "Sí, transmitimos en YouTube, Facebook e Instagram simultáneamente." },
           { question: "¿Hay límite de boletos?", answer: "Puedes comprar hasta 10,000 boletos por persona." },
@@ -526,6 +553,8 @@ const DEMO_CONFIGS = {
         livestream_url: "https://youtube.com/live/sorteo-ferrari",
         currency_code: "MXN",
         description: "El sueño italiano puede ser tuyo. Ferrari 296 GTB 2027, el híbrido más emocionante jamás creado. 830 caballos de pura adrenalina.",
+        prize_video_url: "https://www.youtube.com/watch?v=07qbnbx__0g",
+        static_slug: "ferrari-296-gtb",
         prizes: [
           { id: "p1", name: "Experiencia Ferrari en Pista", value: 50000, image_url: "https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-10T20:00:00Z" },
           { id: "p2", name: "Reloj TAG Heuer Monaco", value: 120000, image_url: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-24T20:00:00Z" },
@@ -565,11 +594,13 @@ const DEMO_CONFIGS = {
         prize_value: 2500000,
         ticket_price: 80,
         total_tickets: 5000000,
-        reservation_time_minutes: 240,
+        reservation_time_minutes: 360,
         template_id: "elegant",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "Para los amantes de la alta relojería. Gana una colección de 5 relojes de las marcas más prestigiosas: Rolex, Patek Philippe, Audemars Piguet, Omega y TAG Heuer.",
+        prize_video_url: "https://www.youtube.com/watch?v=mzSbE8WneW8",
+        static_slug: "relojes-de-lujo",
         prizes: [
           { id: "p1", name: "TAG Heuer Carrera", value: 80000, image_url: "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-10-20T19:00:00Z" },
           { id: "p2", name: "Omega Seamaster", value: 150000, image_url: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-11-10T19:00:00Z" },
@@ -609,11 +640,13 @@ const DEMO_CONFIGS = {
         prize_value: 35000,
         ticket_price: 60,
         total_tickets: 50000,
-        reservation_time_minutes: 300,
+        reservation_time_minutes: 360,
         template_id: "ultra-white",
         draw_method: "random_org",
         currency_code: "MXN",
         description: "Escápate al paraíso. 5 días y 4 noches en un resort todo incluido en Cancún para 2 personas. Incluye vuelos, hospedaje, alimentos y bebidas ilimitadas.",
+        prize_video_url: "https://www.youtube.com/watch?v=fUQsG7teRxI",
+        static_slug: "viaje-cancun",
         prizes: [
           { id: "p1", name: "Set de Maletas Samsonite", value: 6000, image_url: "https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-05T18:00:00Z" },
           { id: "p2", name: "Cámara GoPro Hero 12", value: 9000, image_url: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800", quantity: 1, is_pre_draw: true, scheduled_draw_date: "2026-12-18T18:00:00Z" },
@@ -801,7 +834,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 5: Create ALL raffles (3 per demo account)
+    // Step 5: Create ALL raffles (4 per demo account)
     const createdRaffles = [];
     
     for (let i = 0; i < config.raffles.length; i++) {
@@ -809,10 +842,12 @@ Deno.serve(async (req) => {
       logStep(`Creating raffle ${i + 1}/${config.raffles.length}`, { 
         title: raffleConfig.title, 
         total_tickets: raffleConfig.total_tickets,
-        template: raffleConfig.template_id
+        template: raffleConfig.template_id,
+        static_slug: raffleConfig.static_slug
       });
       
-      const slug = `${demo_key}-sorteo-${i + 1}-${Date.now()}`;
+      // Use static slug instead of dynamic timestamp
+      const slug = raffleConfig.static_slug;
       const numberingConfig = {
         mode: 'sequential',
         start_number: 1,
@@ -832,6 +867,7 @@ Deno.serve(async (req) => {
           prize_name: raffleConfig.prize_name,
           prize_value: raffleConfig.prize_value,
           prize_images: raffleConfig.prizes.map(p => p.image_url),
+          prize_video_url: raffleConfig.prize_video_url,
           ticket_price: raffleConfig.ticket_price,
           total_tickets: raffleConfig.total_tickets,
           template_id: raffleConfig.template_id,
@@ -861,7 +897,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      logStep(`Raffle ${i + 1} created`, { raffleId: raffle.id });
+      logStep(`Raffle ${i + 1} created`, { raffleId: raffle.id, slug: raffle.slug });
 
       // Create packages for this raffle
       for (let j = 0; j < raffleConfig.packages.length; j++) {
@@ -919,6 +955,7 @@ Deno.serve(async (req) => {
         template_id: raffleConfig.template_id,
         prizes_count: raffleConfig.prizes.length,
         packages_count: raffleConfig.packages.length,
+        prize_video_url: raffleConfig.prize_video_url,
       });
     }
 
