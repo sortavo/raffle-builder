@@ -51,7 +51,8 @@ serve(async (req) => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // 1. Clean up expired reservations (reserved_until < now)
-    logStep("Cleaning expired reservations");
+    // First, get the raffle IDs affected for cache invalidation
+    logStep("Getting expired reservations for cleanup");
     const { data: expiredReservations, error: expiredError } = await supabase
       .from('orders')
       .update({ 
@@ -60,7 +61,7 @@ serve(async (req) => {
       })
       .eq('status', 'reserved')
       .lt('reserved_until', now)
-      .select('id');
+      .select('id, raffle_id');
 
     if (expiredError) {
       logStep("Error cleaning expired reservations", { error: expiredError.message });
@@ -68,6 +69,32 @@ serve(async (req) => {
 
     const expiredCount = expiredReservations?.length || 0;
     logStep("Expired reservations cleaned", { count: expiredCount });
+
+    // Invalidate Redis cache for affected raffles
+    if (expiredReservations && expiredReservations.length > 0) {
+      const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
+      const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+      
+      if (redisUrl && redisToken) {
+        const uniqueRaffleIds = [...new Set(expiredReservations.map(o => o.raffle_id))];
+        logStep("Invalidating Redis cache for affected raffles", { count: uniqueRaffleIds.length });
+        
+        for (const raffleId of uniqueRaffleIds) {
+          try {
+            await fetch(redisUrl, {
+              method: 'POST',
+              headers: { 
+                Authorization: `Bearer ${redisToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(['DEL', `counts:${raffleId}`]),
+            });
+          } catch (e) {
+            logStep("Failed to invalidate cache for raffle", { raffleId, error: String(e) });
+          }
+        }
+      }
+    }
 
     // 2. Delete old cancelled orders (>7 days old)
     logStep("Deleting old cancelled orders");

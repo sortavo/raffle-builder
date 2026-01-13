@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useOrdersRealtime } from "./useOrdersRealtime";
+import { invalidateTicketCountsCache } from "./useVirtualTicketCountsCached";
 
 export interface Order {
   id: string;
@@ -102,6 +103,9 @@ export function useReserveTickets() {
       };
     },
     onSuccess: (_, variables) => {
+      // Invalidate Redis cache immediately
+      invalidateTicketCountsCache(variables.raffleId);
+      
       queryClient.invalidateQueries({ 
         queryKey: ['orders', variables.raffleId] 
       });
@@ -113,6 +117,9 @@ export function useReserveTickets() {
       });
       queryClient.invalidateQueries({ 
         queryKey: ['virtual-ticket-counts', variables.raffleId] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['virtual-ticket-counts-cached', variables.raffleId] 
       });
     },
     onError: (error: Error) => {
@@ -203,7 +210,7 @@ export function useApproveOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId }: { orderId: string }) => {
+    mutationFn: async ({ orderId, raffleId }: { orderId: string; raffleId: string }) => {
       const { data, error } = await supabase.rpc('approve_order', {
         p_order_id: orderId,
       });
@@ -216,12 +223,18 @@ export function useApproveOrder() {
         throw new Error(result?.error_message || 'Error al aprobar orden');
       }
 
-      return { ticketCount: result.ticket_count };
+      return { ticketCount: result.ticket_count, raffleId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Invalidate Redis cache immediately
+      if (result.raffleId) {
+        invalidateTicketCountsCache(result.raffleId);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] });
       queryClient.invalidateQueries({ queryKey: ['virtual-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached'] });
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
       queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
     },
@@ -235,7 +248,7 @@ export function useRejectOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId }: { orderId: string }) => {
+    mutationFn: async ({ orderId, raffleId }: { orderId: string; raffleId: string }) => {
       const { data, error } = await supabase.rpc('reject_order', {
         p_order_id: orderId,
       });
@@ -248,12 +261,18 @@ export function useRejectOrder() {
         throw new Error(result?.error_message || 'Error al rechazar orden');
       }
 
-      return { ticketCount: result.ticket_count };
+      return { ticketCount: result.ticket_count, raffleId };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Invalidate Redis cache immediately
+      if (result.raffleId) {
+        invalidateTicketCountsCache(result.raffleId);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] });
       queryClient.invalidateQueries({ queryKey: ['virtual-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached'] });
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
       queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
     },

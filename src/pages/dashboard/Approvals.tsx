@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyPaymentApproved } from '@/lib/notifications';
 import { formatCurrency } from '@/lib/currency-utils';
+import { invalidateTicketCountsCache } from '@/hooks/useVirtualTicketCountsCached';
 
 // Helper to format ticket display from ranges
 function formatTicketRanges(order: OrderGroup, maxDisplay: number = 4): string {
@@ -305,12 +306,16 @@ export default function Approvals() {
         throw new Error(result?.error_message || 'Error al aprobar');
       }
 
+      // Invalidate Redis cache immediately
+      invalidateTicketCountsCache(order.raffleId);
+
       // Invalidate queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
         queryClient.invalidateQueries({ queryKey: ['orders'] }),
         queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
+        queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached'] }),
         refetch(),
       ]);
 
@@ -367,11 +372,15 @@ export default function Approvals() {
         throw new Error(result?.error_message || 'Error al rechazar');
       }
 
+      // Invalidate Redis cache immediately
+      invalidateTicketCountsCache(order.raffleId);
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pending-orders'] }),
         queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] }),
         queryClient.invalidateQueries({ queryKey: ['orders'] }),
         queryClient.invalidateQueries({ queryKey: ['order-ticket-counts'] }),
+        queryClient.invalidateQueries({ queryKey: ['virtual-ticket-counts-cached'] }),
         refetch(),
       ]);
 
