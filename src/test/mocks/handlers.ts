@@ -166,4 +166,70 @@ export const handlers = [
   http.get(`${SUPABASE_URL}/storage/v1/object/public/*`, () => {
     return HttpResponse.json({ publicUrl: 'https://example.com/image.jpg' });
   }),
+
+  // RPC handlers for security tests
+  http.post(`${SUPABASE_URL}/rest/v1/rpc/get_secure_order_by_reference`, async ({ request }) => {
+    const body = await request.json() as { p_reference_code: string };
+    
+    if (body.p_reference_code === 'REF001') {
+      return HttpResponse.json([{
+        id: '1',
+        reference_code: 'REF001',
+        buyer_name: 'Test Buyer',
+        buyer_email: 'buyer@test.com',
+        ticket_count: 3,
+        status: 'sold',
+        ticket_ranges: [{ s: 0, e: 2 }],
+        raffle_id: '1',
+      }]);
+    }
+    
+    return HttpResponse.json([]);
+  }),
+
+  http.post(`${SUPABASE_URL}/rest/v1/rpc/reserve_tickets_v2`, async () => {
+    return HttpResponse.json({
+      success: true,
+      order_id: 'order-new-123',
+      reference_code: 'REF-NEW-123',
+      reserved_until: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    });
+  }),
+
+  http.post(`${SUPABASE_URL}/rest/v1/rpc/get_virtual_tickets_optimized`, async ({ request }) => {
+    const body = await request.json() as { p_raffle_id: string };
+    return HttpResponse.json([
+      { ticket_index: 0, status: 'sold' },
+      { ticket_index: 1, status: 'sold' },
+      { ticket_index: 2, status: 'sold' },
+      { ticket_index: 3, status: 'reserved' },
+      { ticket_index: 4, status: 'reserved' },
+    ]);
+  }),
+
+  http.post(`${SUPABASE_URL}/rest/v1/rpc/search_public_tickets`, async ({ request }) => {
+    const body = await request.json() as { p_raffle_id: string; p_search_term: string };
+    if (body.p_search_term === '001') {
+      return HttpResponse.json([
+        { ticket_index: 0, status: 'sold', display_number: '001' },
+        { ticket_index: 1, status: 'sold', display_number: '0012' },
+      ]);
+    }
+    return HttpResponse.json([]);
+  }),
+
+  // Vista public_ticket_status
+  http.get(`${SUPABASE_URL}/rest/v1/public_ticket_status`, () => {
+    return HttpResponse.json([
+      {
+        id: '1',
+        raffle_id: '1',
+        ticket_ranges: [{ s: 0, e: 2 }],
+        lucky_indices: [0, 1, 2],
+        ticket_count: 3,
+        status: 'sold',
+        created_at: new Date().toISOString(),
+      }
+    ]);
+  }),
 ];
