@@ -2225,6 +2225,20 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      get_virtual_tickets_by_range: {
+        Args: {
+          p_end_index: number
+          p_raffle_id: string
+          p_start_index: number
+        }
+        Returns: {
+          buyer_name: string
+          order_id: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
       get_virtual_tickets_optimized: {
         Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
         Returns: {
