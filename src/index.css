@@ -1014,3 +1014,73 @@
 .leading-dramatic {
   line-height: 0.9;
 }
+
+/* ============================================
+   Accessibility Enhancements (WCAG 2.1 AA)
+   ============================================ */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --muted-foreground: 0 0% 30%;
+    --border: 0 0% 40%;
+  }
+
+  .dark {
+    --muted-foreground: 0 0% 75%;
+    --border: 0 0% 55%;
+  }
+  
+  /* Ensure borders are visible */
+  .border,
+  [class*="border-"] {
+    border-width: 2px;
+  }
+}
+
+/* Comprehensive reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Disable specific animations */
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-ping,
+  .animate-float,
+  .shimmer,
+  .shimmer-badge {
+    animation: none !important;
+  }
+}
+
+/* Enhanced focus-visible for keyboard users */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen reader only utility (extend Tailwind's sr-only) */
+.sr-only-focusable:focus,
+.sr-only-focusable:focus-within {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: inherit !important;
+  margin: inherit !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+}

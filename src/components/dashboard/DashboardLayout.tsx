@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SkipLink } from "@/components/ui/skip-link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -85,6 +86,11 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
 
   return (
     <SidebarProvider>
+      {/* Skip link for keyboard navigation - WCAG 2.4.1 */}
+      <SkipLink href="#main-content">
+        Saltar al contenido principal
+      </SkipLink>
+      
       {/* Spacer for simulation banner */}
       {isSimulating && <div className="h-12" />}
       {/* Desktop Sidebar - hidden on mobile */}
@@ -203,7 +209,11 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
           </div>
         </header>
         
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0">
+        <main 
+          id="main-content" 
+          className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0"
+          tabIndex={-1}
+        >
           <TrialBanner />
           {children}
         </main>
