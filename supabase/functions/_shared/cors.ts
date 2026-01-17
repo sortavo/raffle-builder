@@ -40,10 +40,11 @@ export function getCorsHeaders(request: Request): Record<string, string> {
   else if (DEV_ORIGINS.includes(origin)) {
     allowedOrigin = origin;
   }
-  // Check custom domains (any https:// that's not blocked)
-  else if (origin.startsWith('https://') && !origin.includes('localhost')) {
-    // Allow custom domains for multi-tenant support
-    allowedOrigin = origin;
+  // For unknown HTTPS origins, use secure fallback
+  // TODO: In the future, validate against verified custom_domains in DB
+  else if (origin.startsWith('https://')) {
+    console.warn(`[CORS] Rejected unknown origin: ${origin}`);
+    allowedOrigin = ALLOWED_ORIGINS[0];
   }
   
   // If no match, use the first allowed origin as fallback

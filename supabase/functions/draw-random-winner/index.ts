@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 interface OrderData {
   id: string;
@@ -51,7 +47,7 @@ function getTicketIndexAtPosition(order: OrderData, position: number): number {
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
@@ -65,10 +61,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       console.error('[DRAW-RANDOM-WINNER] Missing or invalid Authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Authentication required' }, 401);
     }
 
     // Create client with user's JWT to verify identity
@@ -79,22 +72,23 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
       console.error('[DRAW-RANDOM-WINNER] Invalid token:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Invalid authentication token' }, 401);
     }
 
     console.log(`[DRAW-RANDOM-WINNER] Authenticated user: ${user.id} (${user.email})`);
 
-    // Parse request body
-    const { raffle_id } = await req.json();
+    // Parse request body with try-catch
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
+    }
+
+    const { raffle_id } = body;
 
     if (!raffle_id) {
-      return new Response(
-        JSON.stringify({ error: 'raffle_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'raffle_id is required' }, 400);
     }
 
     // Create service role client for database operations
@@ -113,10 +107,7 @@ Deno.serve(async (req) => {
 
     if (raffleError || !raffle) {
       console.error('[DRAW-RANDOM-WINNER] Raffle not found:', raffle_id);
-      return new Response(
-        JSON.stringify({ error: 'Raffle not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Raffle not found' }, 404);
     }
 
     // Check user's role in the organization
@@ -129,20 +120,14 @@ Deno.serve(async (req) => {
 
     if (roleError || !userRole) {
       console.error(`[DRAW-RANDOM-WINNER] User ${user.id} has no role in organization ${raffle.organization_id}`);
-      return new Response(
-        JSON.stringify({ error: 'You do not have access to this organization' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'You do not have access to this organization' }, 403);
     }
 
     // Only owners and admins can execute draws
     const allowedRoles = ['owner', 'admin'];
     if (!allowedRoles.includes(userRole.role)) {
       console.error(`[DRAW-RANDOM-WINNER] User ${user.id} has role '${userRole.role}', requires owner/admin`);
-      return new Response(
-        JSON.stringify({ error: 'Only organization owners and admins can draw winners' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Only organization owners and admins can draw winners' }, 403);
     }
 
     console.log(`[DRAW-RANDOM-WINNER] Authorized: user ${user.id} with role '${userRole.role}' for raffle ${raffle_id}`);
@@ -170,13 +155,10 @@ Deno.serve(async (req) => {
 
     if (soldCount === 0) {
       console.log('[DRAW-RANDOM-WINNER] No sold tickets found');
-      return new Response(
-        JSON.stringify({ 
-          error: 'No hay boletos vendidos para sortear',
-          sold_count: 0
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        error: 'No hay boletos vendidos para sortear',
+        sold_count: 0
+      }, 400);
     }
 
     console.log(`[DRAW-RANDOM-WINNER] Found ${soldCount} sold tickets across ${soldOrders?.length} orders`);
@@ -231,23 +213,17 @@ Deno.serve(async (req) => {
 
     console.log(`[DRAW-RANDOM-WINNER] Winner selected: #${ticketNumber} - ${winner.buyer_name} (by ${user.email})`);
 
-    return new Response(
-      JSON.stringify({
-        winner,
-        sold_count: soldCount,
-        random_offset: randomOffset,
-        method: 'secure_random_orders',
-        executed_by: user.id
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, {
+      winner,
+      sold_count: soldCount,
+      random_offset: randomOffset,
+      method: 'secure_random_orders',
+      executed_by: user.id
+    });
 
   } catch (error) {
     console.error('[DRAW-RANDOM-WINNER] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { error: errorMessage }, 500);
   }
 });

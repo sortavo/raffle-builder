@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 // ============ INLINE RATE LIMITER ============
 interface RateLimitEntry { count: number; windowStart: number; }
@@ -57,12 +53,14 @@ function formatTicketRanges(ranges: { s: number; e: number }[], luckyIndices: nu
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
-  // Rate limit: 10 requests per minute per IP (strict for payment submissions)
+  const corsHeaders = getCorsHeaders(req);
+
+  // Rate limit: 5 requests per minute per IP (strict for payment submissions)
   const clientIP = getClientIP(req);
-  const rateLimit = checkRateLimit(`payment-proof:${clientIP}`, 10, 60000);
+  const rateLimit = checkRateLimit(`payment-proof:${clientIP}`, 5, 60000);
   
   if (!rateLimit.allowed) {
     console.warn(`[RATE-LIMIT] IP ${clientIP} exceeded limit for submit-payment-proof`);
@@ -83,14 +81,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { raffleId, referenceCode, publicUrl, buyerEmail } = await req.json();
+    // Parse body with try-catch
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
+    }
+
+    const { raffleId, referenceCode, publicUrl, buyerEmail } = body;
 
     if (!raffleId || !referenceCode || !publicUrl) {
       console.error('Missing required fields:', { raffleId, referenceCode, publicUrl: !!publicUrl });
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing required fields: raffleId, referenceCode, publicUrl' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Missing required fields: raffleId, referenceCode, publicUrl' }, 400);
     }
 
     console.log(`[PAYMENT-PROOF] Processing for raffle ${raffleId}, reference ${referenceCode}, IP: ${clientIP}`);
@@ -110,29 +113,27 @@ Deno.serve(async (req) => {
 
     if (queryError) {
       console.error('Error querying order:', queryError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Error al buscar orden', details: queryError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Error al buscar orden', details: queryError.message }, 500);
     }
 
     if (!existingOrder) {
       console.warn('No reserved order found for reference:', referenceCode);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'No se encontró orden reservada con esta clave',
-          updatedCount: 0 
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        success: false, 
+        error: 'No se encontró orden reservada con esta clave',
+        updatedCount: 0 
+      });
     }
 
-    // Optional: validate buyerEmail matches if provided
+    // Validate buyerEmail matches if provided (strict check)
     if (buyerEmail) {
       const orderEmail = existingOrder.buyer_email?.toLowerCase();
       if (orderEmail && orderEmail !== buyerEmail.toLowerCase()) {
         console.warn('Email mismatch:', { provided: buyerEmail, stored: orderEmail });
+        return corsJsonResponse(req, { 
+          success: false, 
+          error: 'El email no coincide con la reservación' 
+        }, 403);
       }
     }
 
@@ -149,10 +150,7 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating order:', updateError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to update order', details: updateError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { success: false, error: 'Failed to update order', details: updateError.message }, 500);
     }
 
     const updatedCount = existingOrder.ticket_count || 1;
@@ -209,9 +207,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error', details: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: false, error: 'Internal server error', details: message }, 500);
   }
 });

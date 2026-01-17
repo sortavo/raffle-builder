@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 async function generateImage(apiKey: string, prompt: string, attempt: number = 1): Promise<{ imageUrl: string; description: string }> {
   console.log(`Attempt ${attempt}: Generating logo with prompt`);
@@ -68,10 +65,47 @@ async function generateImage(apiKey: string, prompt: string, attempt: number = 1
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
+    // ========== AUTHENTICATION ==========
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[GENERATE-LOGO] Missing or invalid Authorization header');
+      return corsJsonResponse(req, { error: 'Authorization required' }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Verify JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('[GENERATE-LOGO] Invalid token:', authError?.message);
+      return corsJsonResponse(req, { error: 'Invalid or expired token' }, 401);
+    }
+
+    // Verify user has at least one role (is a registered platform user)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (!roles || roles.length === 0) {
+      console.error(`[GENERATE-LOGO] User ${user.id} has no roles`);
+      return corsJsonResponse(req, { error: 'No tienes permiso para usar esta función' }, 403);
+    }
+
+    console.log(`[GENERATE-LOGO] Authorized: user ${user.id}`);
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
@@ -91,10 +125,7 @@ The logo should feature:
 
     const result = await generateImage(LOVABLE_API_KEY, prompt);
 
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, result);
 
   } catch (error) {
     console.error('Error generating logo:', error);
@@ -102,22 +133,13 @@ The logo should feature:
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate logo';
     
     if (errorMessage === 'RATE_LIMIT') {
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Rate limit exceeded. Please try again later.' }, 429);
     }
     
     if (errorMessage === 'PAYMENT_REQUIRED') {
-      return new Response(
-        JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Payment required. Please add credits to your workspace.' }, 402);
     }
     
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { error: errorMessage }, 500);
   }
 });

@@ -1,9 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 // Format ticket numbers from order's ticket_ranges and lucky_indices
 function formatTicketNumbers(
@@ -38,7 +34,7 @@ function formatTicketNumbers(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
@@ -46,6 +42,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -93,10 +90,7 @@ Deno.serve(async (req) => {
 
     if (!pendingOrders || pendingOrders.length === 0) {
       console.log("No pending reservations need reminders");
-      return new Response(
-        JSON.stringify({ success: true, message: "No reminders needed", sent: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return corsJsonResponse(req, { success: true, message: "No reminders needed", sent: 0 });
     }
 
     console.log(`Found ${pendingOrders.length} orders needing reminders`);
@@ -132,8 +126,8 @@ Deno.serve(async (req) => {
         : `${baseUrl}/r/${raffleSlug}`;
 
       try {
-        // Send reminder email
-        const { error: emailError } = await supabase.functions.invoke("send-email", {
+        // Prepare invoke options with internal token
+        const invokeOptions: { body: any; headers?: Record<string, string> } = {
           body: {
             to: buyerEmail,
             subject: `⏰ ¡${minutesRemaining} minutos para completar tu pago!`,
@@ -148,7 +142,15 @@ Deno.serve(async (req) => {
               reference_code: order.reference_code,
             },
           },
-        });
+        };
+
+        // Add internal token if available
+        if (internalSecret) {
+          invokeOptions.headers = { 'X-Internal-Token': internalSecret };
+        }
+
+        // Send reminder email
+        const { error: emailError } = await supabase.functions.invoke("send-email", invokeOptions);
 
         if (emailError) {
           console.error(`Error sending reminder to ${buyerEmail}:`, emailError);
@@ -165,29 +167,17 @@ Deno.serve(async (req) => {
 
     console.log(`Payment reminders completed: ${sentCount} sent, ${errors.length} failed`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Sent ${sentCount} payment reminders`,
-        sent: sentCount,
-        failed: errors.length,
-        errors: errors.length > 0 ? errors : undefined,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return corsJsonResponse(req, {
+      success: true,
+      message: `Sent ${sentCount} payment reminders`,
+      sent: sentCount,
+      failed: errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("Payment reminders job failed:", errorMessage);
     
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return corsJsonResponse(req, { success: false, error: errorMessage }, 500);
   }
 });
