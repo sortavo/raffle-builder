@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 
 // Use aggregated queries instead of loading all tickets
@@ -67,7 +65,10 @@ export async function exportFinancialReportPDF(raffleId: string, raffleName: str
   const availableTickets = totalTickets - soldTickets - (reservedCount || 0);
   const conversionRate = totalTickets > 0 ? (soldTickets / totalTickets) * 100 : 0;
 
-  // 7. Create PDF
+  // 7. Create PDF - Dynamic import to reduce initial bundle size
+  const jsPDF = (await import('jspdf')).default;
+  const autoTable = (await import('jspdf-autotable')).default;
+  
   const doc = new jsPDF();
 
   // 8. Header

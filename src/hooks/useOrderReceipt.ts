@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -83,6 +82,9 @@ export function useOrderReceipt() {
     setIsGenerating(true);
 
     try {
+      // Dynamic import to reduce initial bundle size
+      const jsPDF = (await import('jspdf')).default;
+      
       const pdf = new jsPDF('p', 'mm', 'letter');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
