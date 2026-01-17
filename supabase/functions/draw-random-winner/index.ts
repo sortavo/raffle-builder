@@ -55,6 +55,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // ========================================
+    // AUTHENTICATION: Verify JWT
+    // ========================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[DRAW-RANDOM-WINNER] Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's JWT to verify identity
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('[DRAW-RANDOM-WINNER] Invalid token:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[DRAW-RANDOM-WINNER] Authenticated user: ${user.id} (${user.email})`);
+
+    // Parse request body
     const { raffle_id } = await req.json();
 
     if (!raffle_id) {
@@ -64,10 +97,59 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Create service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // ========================================
+    // AUTHORIZATION: Verify user is owner/admin of the organization
+    // ========================================
+    
+    // Get the raffle and its organization_id
+    const { data: raffle, error: raffleError } = await supabase
+      .from('raffles')
+      .select('id, organization_id, numbering_config, total_tickets')
+      .eq('id', raffle_id)
+      .single();
+
+    if (raffleError || !raffle) {
+      console.error('[DRAW-RANDOM-WINNER] Raffle not found:', raffle_id);
+      return new Response(
+        JSON.stringify({ error: 'Raffle not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check user's role in the organization
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('organization_id', raffle.organization_id)
+      .single();
+
+    if (roleError || !userRole) {
+      console.error(`[DRAW-RANDOM-WINNER] User ${user.id} has no role in organization ${raffle.organization_id}`);
+      return new Response(
+        JSON.stringify({ error: 'You do not have access to this organization' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Only owners and admins can execute draws
+    const allowedRoles = ['owner', 'admin'];
+    if (!allowedRoles.includes(userRole.role)) {
+      console.error(`[DRAW-RANDOM-WINNER] User ${user.id} has role '${userRole.role}', requires owner/admin`);
+      return new Response(
+        JSON.stringify({ error: 'Only organization owners and admins can draw winners' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[DRAW-RANDOM-WINNER] Authorized: user ${user.id} with role '${userRole.role}' for raffle ${raffle_id}`);
+
+    // ========================================
+    // BUSINESS LOGIC: Select random winner
+    // ========================================
     console.log(`[DRAW-RANDOM-WINNER] Selecting random winner for raffle ${raffle_id}`);
 
     // Get all sold orders with their ticket counts (from orders table)
@@ -128,13 +210,6 @@ Deno.serve(async (req) => {
     // Get the actual ticket index from the order's ranges
     const winnerTicketIndex = getTicketIndexAtPosition(winnerOrder, positionInOrder);
 
-    // Get raffle config to format ticket number
-    const { data: raffle } = await supabase
-      .from('raffles')
-      .select('numbering_config, total_tickets')
-      .eq('id', raffle_id)
-      .single();
-
     // Format ticket number using the raffle's config
     const { data: formattedNumber } = await supabase.rpc('format_virtual_ticket', {
       p_index: winnerTicketIndex,
@@ -154,14 +229,15 @@ Deno.serve(async (req) => {
       buyer_city: winnerOrder.buyer_city,
     };
 
-    console.log(`[DRAW-RANDOM-WINNER] Winner selected: #${ticketNumber} - ${winner.buyer_name}`);
+    console.log(`[DRAW-RANDOM-WINNER] Winner selected: #${ticketNumber} - ${winner.buyer_name} (by ${user.email})`);
 
     return new Response(
       JSON.stringify({
         winner,
         sold_count: soldCount,
         random_offset: randomOffset,
-        method: 'secure_random_orders'
+        method: 'secure_random_orders',
+        executed_by: user.id
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
