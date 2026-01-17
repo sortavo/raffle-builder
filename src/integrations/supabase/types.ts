@@ -593,6 +593,7 @@ export type Database = {
           ticket_count: number
           ticket_ranges: Json
           updated_at: string | null
+          version: number | null
         }
         Insert: {
           approved_at?: string | null
@@ -620,6 +621,7 @@ export type Database = {
           ticket_count: number
           ticket_ranges?: Json
           updated_at?: string | null
+          version?: number | null
         }
         Update: {
           approved_at?: string | null
@@ -647,6 +649,7 @@ export type Database = {
           ticket_count?: number
           ticket_ranges?: Json
           updated_at?: string | null
+          version?: number | null
         }
         Relationships: [
           {
@@ -1994,6 +1997,30 @@ export type Database = {
         }[]
       }
       archive_old_raffles: { Args: { days_old?: number }; Returns: number }
+      atomic_reserve_tickets: {
+        Args: {
+          p_buyer_city?: string
+          p_buyer_email: string
+          p_buyer_name: string
+          p_buyer_phone?: string
+          p_is_lucky_numbers?: boolean
+          p_order_total?: number
+          p_raffle_id: string
+          p_reservation_minutes?: number
+          p_ticket_indices: number[]
+        }
+        Returns: {
+          conflict_indices: number[]
+          error_message: string
+          lucky_indices: number[]
+          order_id: string
+          reference_code: string
+          reserved_until: string
+          success: boolean
+          ticket_count: number
+          ticket_ranges: Json
+        }[]
+      }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       check_indices_available: {
         Args: { p_indices: number[]; p_raffle_id: string }
@@ -2012,7 +2039,7 @@ export type Database = {
         }[]
       }
       cleanup_expired_orders: { Args: never; Returns: number }
-      compress_ticket_indices: { Args: { indices: number[] }; Returns: Json }
+      compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }
       expand_order_to_indices: {
         Args: { p_lucky_indices: number[]; p_ticket_ranges: Json }
@@ -2363,6 +2390,21 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sync_raffle_blocks: { Args: { p_raffle_id: string }; Returns: undefined }
+      update_order_with_version: {
+        Args: {
+          p_approved_at?: string
+          p_expected_version: number
+          p_new_status?: string
+          p_order_id: string
+          p_payment_proof_url?: string
+        }
+        Returns: {
+          current_data: Json
+          error_message: string
+          new_version: number
+          success: boolean
+        }[]
+      }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
