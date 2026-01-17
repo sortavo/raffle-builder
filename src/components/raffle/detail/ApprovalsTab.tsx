@@ -39,6 +39,20 @@ import { notifyPaymentApproved, notifyPaymentRejected } from '@/lib/notification
 import { formatCurrency } from '@/lib/currency-utils';
 import { invalidateTicketCountsCache } from '@/hooks/useVirtualTicketCountsCached';
 
+/**
+ * Validate URL protocol for safe href/src usage.
+ * Prevents javascript: and other dangerous protocols.
+ */
+const isValidImageUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
+};
+
 interface ApprovalsTabProps {
   raffleId: string;
   raffleTitle?: string;
@@ -456,7 +470,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
           )}
 
           {/* Payment Proof */}
-          {showProof && order.proofUrl && (
+          {showProof && order.proofUrl && isValidImageUrl(order.proofUrl) && (
             <div className="relative">
               <a 
                 href={order.proofUrl} 

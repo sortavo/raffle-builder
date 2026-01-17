@@ -10,6 +10,19 @@ const STATUS_LABELS: Record<string, string> = {
 
 const BATCH_SIZE = 1000;
 
+/**
+ * Sanitize CSV cell to prevent formula injection attacks.
+ * Cells starting with =, +, -, @, \t, \r are prefixed with a single quote.
+ */
+function sanitizeCSVCell(value: string | null | undefined): string {
+  const str = String(value || '');
+  // Escape formula injection characters
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -137,20 +150,20 @@ Deno.serve(async (req) => {
 
       if (!buyers || buyers.length === 0) break;
 
-      // Convert each buyer to CSV row
+      // Convert each buyer to CSV row with sanitization
       for (const buyer of buyers) {
         const row = [
-          buyer.buyer_name || '',
-          buyer.buyer_email || '',
-          buyer.buyer_phone || '',
-          buyer.buyer_city || '',
-          (buyer.ticket_numbers || []).join('; '),
+          sanitizeCSVCell(buyer.buyer_name),
+          sanitizeCSVCell(buyer.buyer_email),
+          sanitizeCSVCell(buyer.buyer_phone),
+          sanitizeCSVCell(buyer.buyer_city),
+          (buyer.ticket_numbers || []).join('; '),  // Ticket numbers are numeric, safe
           String(buyer.ticket_count || 0),
           STATUS_LABELS[buyer.status] || buyer.status || '',
           buyer.first_reserved_at ? new Date(buyer.first_reserved_at).toLocaleString('es-MX') : '',
         ];
 
-        // Escape CSV values
+        // Escape CSV values (quotes)
         const escapedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`);
         csvRows.push(escapedRow.join(','));
       }
