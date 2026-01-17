@@ -42,6 +42,9 @@ interface ReserveResilientResult {
   error_message: string | null;
 }
 
+// Threshold for using range-based pagination (more efficient for large raffles)
+const RANGE_PAGINATION_THRESHOLD = 10000;
+
 export function useVirtualTickets(
   raffleId: string | undefined,
   page: number = 1,
@@ -55,21 +58,39 @@ export function useVirtualTickets(
     queryFn: async () => {
       if (!raffleId) return { tickets: [], count: 0, sold: 0, reserved: 0, available: 0 };
 
-      const [ticketsResult, countsResult] = await Promise.all([
-        supabase.rpc('get_virtual_tickets', {
+      // First get counts to determine total and decide pagination strategy
+      const countsResult = await supabase.rpc('get_virtual_ticket_counts', {
+        p_raffle_id: raffleId,
+      });
+
+      if (countsResult.error) throw countsResult.error;
+      const counts = (countsResult.data as VirtualTicketCounts[] | null)?.[0];
+      const totalTickets = counts?.total_count || 0;
+
+      // Calculate range for this page (0-indexed internally)
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize - 1, totalTickets - 1);
+
+      // Use range-based RPC for large raffles (O(log n) vs O(n) with OFFSET)
+      // For smaller raffles, the original RPC is fine
+      let ticketsResult;
+      if (totalTickets >= RANGE_PAGINATION_THRESHOLD) {
+        // Use optimized range-based pagination
+        ticketsResult = await supabase.rpc('get_virtual_tickets_by_range', {
+          p_raffle_id: raffleId,
+          p_start_index: startIndex,
+          p_end_index: endIndex,
+        });
+      } else {
+        // Use original pagination for smaller raffles
+        ticketsResult = await supabase.rpc('get_virtual_tickets', {
           p_raffle_id: raffleId,
           p_page: page,
           p_page_size: pageSize,
-        }),
-        supabase.rpc('get_virtual_ticket_counts', {
-          p_raffle_id: raffleId,
-        }),
-      ]);
+        });
+      }
 
       if (ticketsResult.error) throw ticketsResult.error;
-      if (countsResult.error) throw countsResult.error;
-
-      const counts = (countsResult.data as VirtualTicketCounts[] | null)?.[0];
 
       return {
         tickets: (ticketsResult.data || []) as VirtualTicket[],
@@ -270,21 +291,36 @@ export async function prefetchVirtualTickets(
   await queryClient.prefetchQuery({
     queryKey: ['virtual-tickets', raffleId, page, pageSize],
     queryFn: async () => {
-      const [ticketsResult, countsResult] = await Promise.all([
-        supabase.rpc('get_virtual_tickets', {
+      // Get counts first to determine strategy
+      const countsResult = await supabase.rpc('get_virtual_ticket_counts', {
+        p_raffle_id: raffleId,
+      });
+
+      if (countsResult.error) throw countsResult.error;
+      const counts = (countsResult.data as VirtualTicketCounts[] | null)?.[0];
+      const totalTickets = counts?.total_count || 0;
+
+      // Calculate range for this page
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize - 1, totalTickets - 1);
+
+      // Use range-based RPC for large raffles
+      let ticketsResult;
+      if (totalTickets >= RANGE_PAGINATION_THRESHOLD) {
+        ticketsResult = await supabase.rpc('get_virtual_tickets_by_range', {
+          p_raffle_id: raffleId,
+          p_start_index: startIndex,
+          p_end_index: endIndex,
+        });
+      } else {
+        ticketsResult = await supabase.rpc('get_virtual_tickets', {
           p_raffle_id: raffleId,
           p_page: page,
           p_page_size: pageSize,
-        }),
-        supabase.rpc('get_virtual_ticket_counts', {
-          p_raffle_id: raffleId,
-        }),
-      ]);
+        });
+      }
 
       if (ticketsResult.error) throw ticketsResult.error;
-      if (countsResult.error) throw countsResult.error;
-
-      const counts = (countsResult.data as VirtualTicketCounts[] | null)?.[0];
 
       return {
         tickets: (ticketsResult.data || []) as VirtualTicket[],
