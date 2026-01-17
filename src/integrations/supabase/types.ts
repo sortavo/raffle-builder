@@ -2039,6 +2039,15 @@ export type Database = {
         }[]
       }
       cleanup_expired_orders: { Args: never; Returns: number }
+      cleanup_expired_reservations_batch: {
+        Args: { p_batch_size?: number; p_max_batches?: number }
+        Returns: {
+          batches_processed: number
+          total_released: number
+          total_tickets_freed: number
+          unique_raffles_affected: number
+        }[]
+      }
       compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }
       expand_order_to_indices: {
@@ -2062,6 +2071,33 @@ export type Database = {
         Returns: {
           available_count: number
           block_start: number
+        }[]
+      }
+      get_buyers_cursor: {
+        Args: {
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+          p_raffle_id: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          created_at: string
+          has_more: boolean
+          id: string
+          order_total: number
+          payment_method: string
+          payment_proof_url: string
+          reference_code: string
+          reserved_at: string
+          sold_at: string
+          status: string
+          ticket_count: number
         }[]
       }
       get_buyers_paginated: {
@@ -2097,6 +2133,7 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
+      get_expired_reservations_count: { Args: never; Returns: number }
       get_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -2164,6 +2201,19 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_raffle_stats_fast: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          last_updated: string
+          pending_count: number
+          reserved_count: number
+          sold_count: number
+          total_revenue: number
+          total_tickets: number
+          unique_buyers: number
+        }[]
+      }
       get_raffle_stats_for_org: {
         Args: { p_organization_id: string }
         Returns: {
@@ -2225,6 +2275,16 @@ export type Database = {
         Args: { p_raffle_id: string }
         Returns: {
           available_count: number
+          reserved_count: number
+          sold_count: number
+          total_count: number
+        }[]
+      }
+      get_virtual_ticket_counts_v2: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          available_count: number
+          pending_count: number
           reserved_count: number
           sold_count: number
           total_count: number
@@ -2343,7 +2403,13 @@ export type Database = {
           ticket_number: string
         }[]
       }
-      refresh_raffle_stats: { Args: never; Returns: undefined }
+      refresh_raffle_stats: {
+        Args: never
+        Returns: {
+          duration_ms: number
+          refreshed_at: string
+        }[]
+      }
       reject_order: {
         Args: { p_order_id: string }
         Returns: {

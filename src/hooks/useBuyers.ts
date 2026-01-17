@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Buyer {
@@ -231,3 +232,106 @@ export const useBuyers = (raffleId: string | undefined) => {
     getMailtoLink,
   };
 };
+
+// Cursor-based pagination hook for infinite scroll (O(log n) performance)
+interface BuyersCursorResult {
+  buyers: Buyer[];
+  hasMore: boolean;
+  nextCursor: { id: string; createdAt: string } | null;
+}
+
+export function useBuyersCursor(
+  raffleId: string | undefined,
+  options?: {
+    status?: string;
+    search?: string;
+    limit?: number;
+  }
+) {
+  const [cursor, setCursor] = useState<{ id: string; createdAt: string } | null>(null);
+  const [allBuyers, setAllBuyers] = useState<Buyer[]>([]);
+
+  // Reset when filters change
+  useEffect(() => {
+    setCursor(null);
+    setAllBuyers([]);
+  }, [raffleId, options?.status, options?.search]);
+
+  const query = useQuery({
+    queryKey: ['buyers-cursor', raffleId, options?.status, options?.search, cursor?.id],
+    queryFn: async (): Promise<BuyersCursorResult> => {
+      if (!raffleId) return { buyers: [], hasMore: false, nextCursor: null };
+
+      const { data, error } = await supabase.rpc('get_buyers_cursor' as any, {
+        p_raffle_id: raffleId,
+        p_status: options?.status === 'all' ? null : options?.status || null,
+        p_search: options?.search || null,
+        p_limit: options?.limit || 50,
+        p_cursor_id: cursor?.id || null,
+        p_cursor_created_at: cursor?.createdAt || null,
+      });
+
+      if (error) throw error;
+
+      const rawData = (data || []) as any[];
+      const hasMore = rawData.length > 0 && rawData[0].has_more;
+      
+      const buyers: Buyer[] = rawData.map((row: any) => ({
+        id: row.id,
+        name: row.buyer_name || '',
+        email: row.buyer_email || '',
+        phone: row.buyer_phone || '',
+        city: row.buyer_city || '',
+        tickets: [],
+        ticketCount: Number(row.ticket_count) || 0,
+        status: row.status || 'reserved',
+        date: row.created_at || '',
+        orderTotal: row.order_total ? Number(row.order_total) : null,
+        paymentMethod: row.payment_method || null,
+        paymentReference: row.reference_code || null,
+        hasPaymentProof: !!row.payment_proof_url,
+        soldAt: row.sold_at || null,
+      }));
+
+      const lastBuyer = buyers[buyers.length - 1];
+      const nextCursor = hasMore && lastBuyer
+        ? { id: lastBuyer.id, createdAt: lastBuyer.date }
+        : null;
+
+      return { buyers, hasMore, nextCursor };
+    },
+    enabled: !!raffleId,
+  });
+
+  // Accumulate buyers for infinite scroll
+  useEffect(() => {
+    if (query.data?.buyers) {
+      if (cursor === null) {
+        setAllBuyers(query.data.buyers);
+      } else {
+        setAllBuyers(prev => [...prev, ...query.data.buyers]);
+      }
+    }
+  }, [query.data, cursor]);
+
+  const loadMore = useCallback(() => {
+    if (query.data?.nextCursor) {
+      setCursor(query.data.nextCursor);
+    }
+  }, [query.data?.nextCursor]);
+
+  const reset = useCallback(() => {
+    setCursor(null);
+    setAllBuyers([]);
+  }, []);
+
+  return {
+    buyers: allBuyers,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    hasMore: query.data?.hasMore ?? false,
+    loadMore,
+    reset,
+    refetch: query.refetch,
+  };
+}
