@@ -1,11 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const INTERNAL_FUNCTION_SECRET = Deno.env.get('INTERNAL_FUNCTION_SECRET');
 
 interface EmailRequest {
   to: string;
@@ -359,17 +357,22 @@ const templates: Record<string, (data: any) => string> = {
           <p>Hola <strong>${data.buyer_name}</strong>,</p>
           
           <div class="winner-box">
-            <p style="margin: 0;">Tu boleto ganador:</p>
-            <p class="ticket">#${(data.ticket_numbers || [])[0]}</p>
-            <p class="prize">🎁 ${data.prize_name}</p>
+            <p style="margin: 0; color: #92400e;">Tu boleto ganador:</p>
+            <div class="ticket">#${(data.ticket_numbers || [])[0] || data.ticket_number}</div>
+            <div class="prize">🎁 ${data.prize_name}</div>
           </div>
+          
+          <p><strong>Sorteo:</strong> ${data.raffle_title}</p>
+          <p><strong>Organizado por:</strong> ${data.org_name || 'El organizador'}</p>
+          ${data.draw_method ? `<p><strong>Método de sorteo:</strong> ${data.draw_method}</p>` : ''}
           
           <p>El organizador se pondrá en contacto contigo para coordinar la entrega de tu premio.</p>
           
-          <p style="font-size: 24px; text-align: center;">¡Felicidades nuevamente! 🎊</p>
+          <p style="font-size: 18px; text-align: center; margin-top: 25px;">🎊 ¡Felicidades nuevamente! 🎊</p>
         </div>
         <div class="footer">
           <p>Sortavo - Tu plataforma de sorteos</p>
+          <p style="margin-top: 5px;">Guarda este correo como comprobante de tu premio</p>
         </div>
       </div>
     </body>
@@ -384,13 +387,13 @@ const templates: Record<string, (data: any) => string> = {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+        .header { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
         .content { background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
-        .timer { font-size: 48px; font-weight: bold; color: #d97706; text-align: center; margin: 20px 0; }
-        .tickets { background: #fef3c7; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; }
-        .ticket-number { display: inline-block; background: #f59e0b; color: white; padding: 5px 12px; border-radius: 20px; margin: 3px; font-weight: 600; }
-        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0; }
-        .button { display: inline-block; background: #f59e0b; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
+        .urgent { background: #fef2f2; border: 2px solid #ef4444; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; }
+        .time { font-size: 48px; font-weight: 800; color: #dc2626; }
+        .tickets { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }
+        .ticket-number { display: inline-block; background: #fee2e2; color: #dc2626; padding: 5px 12px; border-radius: 20px; margin: 3px; font-weight: 600; }
+        .button { display: inline-block; background: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
         .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
       </style>
     </head>
@@ -402,25 +405,24 @@ const templates: Record<string, (data: any) => string> = {
         <div class="content">
           <p>Hola <strong>${data.buyer_name}</strong>,</p>
           
-          <div class="timer">
-            ${data.minutes_remaining} min
+          <div class="urgent">
+            <p style="margin: 0 0 10px 0; color: #dc2626; font-weight: 600;">Tiempo restante:</p>
+            <div class="time">${data.minutes_remaining || '?'} min</div>
           </div>
           
-          <p style="text-align: center;">restantes para completar tu pago</p>
+          <p>Tus boletos reservados en <strong>${data.raffle_title}</strong>:</p>
           
           <div class="tickets">
-            <p style="margin: 0 0 10px 0;">Tus boletos reservados:</p>
             ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${n}</span>`).join('')}
+            <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">${data.ticket_count || (data.ticket_numbers || []).length} boleto${(data.ticket_count || (data.ticket_numbers || []).length) > 1 ? 's' : ''}</p>
           </div>
           
-          <div class="warning">
-            ⚠️ <strong>Si no subes tu comprobante de pago a tiempo, tus boletos serán liberados</strong> y podrían ser comprados por otra persona.
-          </div>
+          ${data.reference_code ? `<p style="text-align: center;"><strong>Clave de reservación:</strong> <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${data.reference_code}</code></p>` : ''}
           
-          <p><strong>Sorteo:</strong> ${data.raffle_title}</p>
+          <p style="color: #dc2626; font-weight: 600;">⚠️ Si no completas el pago, tus boletos serán liberados.</p>
           
           <center>
-            <a href="${data.payment_url || '#'}" class="button">Subir Comprobante Ahora</a>
+            <a href="${data.payment_url || '#'}" class="button">Completar Pago Ahora</a>
           </center>
         </div>
         <div class="footer">
@@ -439,15 +441,12 @@ const templates: Record<string, (data: any) => string> = {
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+        .header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
         .content { background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
-        .count-box { background: #dbeafe; border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
-        .count { font-size: 48px; font-weight: bold; color: #1d4ed8; }
-        .raffle-item { background: white; padding: 12px 15px; border-radius: 8px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-        .raffle-name { font-weight: 600; }
-        .pending-badge { background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
-        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 0 8px 8px 0; }
-        .button { display: inline-block; background: #3b82f6; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
+        .summary { background: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; border: 2px solid #f59e0b; }
+        .count { font-size: 48px; font-weight: 800; color: #d97706; }
+        .raffle-item { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #f59e0b; }
+        .button { display: inline-block; background: #f59e0b; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 15px; font-weight: 600; }
         .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 30px; }
       </style>
     </head>
@@ -460,28 +459,23 @@ const templates: Record<string, (data: any) => string> = {
           <p>Hola,</p>
           <p>Tienes comprobantes de pago esperando tu aprobación en <strong>${data.org_name}</strong>:</p>
           
-          <div class="count-box">
+          <div class="summary">
             <div class="count">${data.total_pending}</div>
-            <div>comprobantes pendientes</div>
+            <p style="margin: 5px 0 0 0; color: #92400e;">comprobante${data.total_pending > 1 ? 's' : ''} pendiente${data.total_pending > 1 ? 's' : ''}</p>
+            <p style="margin: 5px 0 0 0; color: #6b7280;">(${data.total_tickets} boletos)</p>
           </div>
+          
+          ${data.waiting_hours >= 1 ? `<p style="color: #dc2626; text-align: center;">⏰ El más antiguo lleva <strong>${data.waiting_hours} hora${data.waiting_hours > 1 ? 's' : ''}</strong> esperando</p>` : ''}
           
           ${(data.raffles || []).map((r: any) => `
             <div class="raffle-item">
-              <span class="raffle-name">🎟️ ${r.title}</span>
-              <span class="pending-badge">${r.count} pendiente${r.count > 1 ? 's' : ''}</span>
+              <strong>${r.title}</strong><br>
+              <span style="color: #6b7280;">${r.count} comprobante${r.count > 1 ? 's' : ''} (${r.tickets} boletos)</span>
             </div>
           `).join('')}
           
-          ${data.waiting_hours >= 2 ? `
-            <div class="warning">
-              ⏰ El comprobante más antiguo lleva <strong>${data.waiting_hours} horas</strong> esperando aprobación.
-            </div>
-          ` : ''}
-          
-          <p>Tus compradores están esperando la confirmación de sus boletos. Una aprobación rápida mejora su experiencia.</p>
-          
           <center>
-            <a href="${data.dashboard_url || '#'}" class="button">Revisar Comprobantes</a>
+            <a href="${data.dashboard_url || '#'}" class="button">Revisar Ahora</a>
           </center>
         </div>
         <div class="footer">
@@ -495,11 +489,72 @@ const templates: Record<string, (data: any) => string> = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
-    const { to, subject, template, data }: EmailRequest = await req.json();
+    // ========== AUTHENTICATION ==========
+    const authHeader = req.headers.get('Authorization');
+    const internalToken = req.headers.get('X-Internal-Token');
+    
+    let isAuthorized = false;
+    let authMethod = '';
+    
+    // Check internal function token first (for edge function to edge function calls)
+    if (internalToken && INTERNAL_FUNCTION_SECRET && internalToken === INTERNAL_FUNCTION_SECRET) {
+      isAuthorized = true;
+      authMethod = 'internal-token';
+      console.log('[SEND-EMAIL] Authorized via internal function token');
+    }
+    // Check service role key (for cron jobs)
+    else if (authHeader?.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'NO_MATCH')) {
+      isAuthorized = true;
+      authMethod = 'service-role';
+      console.log('[SEND-EMAIL] Authorized via service role key');
+    }
+    // Check user JWT
+    else if (authHeader?.startsWith('Bearer ')) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      
+      // Verify JWT
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+      if (!authError && user) {
+        // Check if user has at least one role (is a registered platform user)
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .limit(1);
+        
+        if (roles && roles.length > 0) {
+          isAuthorized = true;
+          authMethod = 'jwt';
+          console.log(`[SEND-EMAIL] Authorized via JWT for user ${user.id}`);
+        }
+      }
+    }
+    
+    if (!isAuthorized) {
+      console.error('[SEND-EMAIL] Unauthorized request');
+      return corsJsonResponse(req, { error: 'Authorization required' }, 401);
+    }
+
+    // Parse body with try-catch
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
+    }
+
+    const { to, subject, template, data }: EmailRequest = body;
 
     if (!to || !template) {
       throw new Error('Missing required fields: to, template');
@@ -510,11 +565,8 @@ serve(async (req) => {
 
     // For demo/development: log instead of sending real emails
     if (!RESEND_API_KEY) {
-      console.log('Demo mode - Email would be sent:', { to, subject: emailSubject, template, data });
-      return new Response(
-        JSON.stringify({ success: true, id: 'demo-' + Date.now(), demo: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log('Demo mode - Email would be sent:', { to, subject: emailSubject, template, data, authMethod });
+      return corsJsonResponse(req, { success: true, id: 'demo-' + Date.now(), demo: true });
     }
 
     const response = await fetch('https://api.resend.com/emails', {
@@ -538,17 +590,11 @@ serve(async (req) => {
       throw new Error(result.message || 'Email send failed');
     }
 
-    console.log('Email sent successfully:', { to, template, id: result.id });
+    console.log('Email sent successfully:', { to, template, id: result.id, authMethod });
 
-    return new Response(
-      JSON.stringify({ success: true, id: result.id }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { success: true, id: result.id });
   } catch (error) {
     console.error('Email error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    return corsJsonResponse(req, { error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }
 });

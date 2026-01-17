@@ -1,9 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 interface OrderData {
   id: string;
@@ -59,7 +55,7 @@ function generateSecureRandomNumber(max: number): number {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
@@ -67,6 +63,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const internalSecret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -98,10 +95,7 @@ Deno.serve(async (req) => {
 
     if (!rafflesToDraw || rafflesToDraw.length === 0) {
       console.log("No raffles to draw at this time");
-      return new Response(
-        JSON.stringify({ success: true, message: "No raffles to draw", processed: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return corsJsonResponse(req, { success: true, message: "No raffles to draw", processed: 0 });
     }
 
     console.log(`Found ${rafflesToDraw.length} raffles to process`);
@@ -238,7 +232,8 @@ Deno.serve(async (req) => {
               .eq("id", raffle.organization_id)
               .single();
 
-            await supabase.functions.invoke("send-email", {
+            // Use internal token for internal function calls
+            const invokeOptions: { body: any; headers?: Record<string, string> } = {
               body: {
                 to: winnerOrder.buyer_email,
                 template: "winner",
@@ -251,7 +246,14 @@ Deno.serve(async (req) => {
                   draw_method: "Sorteo automático",
                 },
               },
-            });
+            };
+
+            // Add internal token if available
+            if (internalSecret) {
+              invokeOptions.headers = { 'X-Internal-Token': internalSecret };
+            }
+
+            await supabase.functions.invoke("send-email", invokeOptions);
             console.log(`Winner notification email sent to ${winnerOrder.buyer_email}`);
           } catch (emailError) {
             console.error("Error sending winner email:", emailError);
@@ -282,29 +284,17 @@ Deno.serve(async (req) => {
 
     console.log(`Auto-draw completed: ${successCount} successful, ${failCount} failed`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Processed ${rafflesToDraw.length} raffles`,
-        successCount,
-        failCount,
-        results,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return corsJsonResponse(req, {
+      success: true,
+      message: `Processed ${rafflesToDraw.length} raffles`,
+      successCount,
+      failCount,
+      results,
+    });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("Auto-draw job failed:", errorMessage);
     
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return corsJsonResponse(req, { success: false, error: errorMessage }, 500);
   }
 });

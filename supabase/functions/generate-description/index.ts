@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 interface GenerateDescriptionRequest {
   type?: 'title' | 'description' | 'prize_terms' | 'organization_description' | 'draw_method_description';
@@ -21,19 +18,61 @@ interface GenerateDescriptionRequest {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
   try {
-    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext, organizationName, city, prompt: directPrompt }: GenerateDescriptionRequest = await req.json();
+    // ========== AUTHENTICATION ==========
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[GENERATE-DESCRIPTION] Missing or invalid Authorization header');
+      return corsJsonResponse(req, { error: 'Authorization required' }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Verify JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('[GENERATE-DESCRIPTION] Invalid token:', authError?.message);
+      return corsJsonResponse(req, { error: 'Invalid or expired token' }, 401);
+    }
+
+    // Verify user has at least one role (is a registered platform user)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (!roles || roles.length === 0) {
+      console.error(`[GENERATE-DESCRIPTION] User ${user.id} has no roles`);
+      return corsJsonResponse(req, { error: 'No tienes permiso para usar esta función' }, 403);
+    }
+
+    console.log(`[GENERATE-DESCRIPTION] Authorized: user ${user.id}`);
+
+    // Parse body with try-catch
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
+    }
+
+    const { type = 'description', title, category, prizeName, prizeValue, currencyCode, userContext, organizationName, city, prompt: directPrompt }: GenerateDescriptionRequest = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "Error de configuración del servidor" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return corsJsonResponse(req, { error: "Error de configuración del servidor" }, 500);
     }
 
     let prompt: string;
@@ -126,10 +165,7 @@ Escribe SOLO los términos, sin explicaciones adicionales.`;
     } else if (type === 'organization_description') {
       // Generate organization description
       if (!organizationName) {
-        return new Response(
-          JSON.stringify({ error: "El nombre de la organización es requerido" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return corsJsonResponse(req, { error: "El nombre de la organización es requerido" }, 400);
       }
 
       const contextParts = [];
@@ -161,10 +197,7 @@ Escribe SOLO la descripción, sin explicaciones adicionales.`;
     } else {
       // Generate raffle description
       if (!title) {
-        return new Response(
-          JSON.stringify({ error: "El título del sorteo es requerido" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return corsJsonResponse(req, { error: "El título del sorteo es requerido" }, 400);
       }
 
       const contextParts = [];
@@ -220,23 +253,14 @@ Escribe SOLO la descripción, sin explicaciones adicionales.`;
       console.error("Lovable AI error:", response.status, errorText);
 
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Límite de solicitudes alcanzado. Intenta de nuevo en unos segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return corsJsonResponse(req, { error: "Límite de solicitudes alcanzado. Intenta de nuevo en unos segundos." }, 429);
       }
 
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos de IA agotados. Contacta al administrador." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return corsJsonResponse(req, { error: "Créditos de IA agotados. Contacta al administrador." }, 402);
       }
 
-      return new Response(
-        JSON.stringify({ error: "Error al generar la descripción" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return corsJsonResponse(req, { error: "Error al generar la descripción" }, 500);
     }
 
     const data = await response.json();
@@ -247,26 +271,17 @@ Escribe SOLO la descripción, sin explicaciones adicionales.`;
       const errorMsg = type === 'title' ? "No se pudo generar el título" : 
                        type === 'prize_terms' ? "No se pudo generar los términos" :
                        "No se pudo generar la descripción";
-      return new Response(
-        JSON.stringify({ error: errorMsg }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return corsJsonResponse(req, { error: errorMsg }, 500);
     }
 
     console.log(`Successfully generated ${type}:`, generatedContent.substring(0, 50) + "...");
 
     // Return with appropriate key based on type (use responseKey if already set, otherwise determine from type)
     const finalResponseKey = responseKey || (type === 'title' ? 'title' : type === 'prize_terms' ? 'prize_terms' : 'description');
-    return new Response(
-      JSON.stringify({ [finalResponseKey]: generatedContent }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return corsJsonResponse(req, { [finalResponseKey]: generatedContent });
 
   } catch (error) {
     console.error("Error in generate-description function:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Error desconocido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return corsJsonResponse(req, { error: error instanceof Error ? error.message : "Error desconocido" }, 500);
   }
 });

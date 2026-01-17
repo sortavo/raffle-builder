@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 // ============ INLINE RATE LIMITER ============
 interface RateLimitEntry { count: number; windowStart: number; }
@@ -79,8 +75,10 @@ function expandOrderToIndices(order: { ticket_ranges: { s: number; e: number }[]
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   // Rate limit: 30 requests per minute per IP
   const clientIP = getClientIP(req);
@@ -104,21 +102,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { raffle_id, quantity, exclude_numbers = [] } = await req.json();
+    // Parse body with try-catch
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
+    }
+
+    const { raffle_id, quantity, exclude_numbers = [] } = body;
 
     if (!raffle_id || !quantity) {
-      return new Response(
-        JSON.stringify({ error: 'raffle_id and quantity are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'raffle_id and quantity are required' }, 400);
     }
 
     const MAX_TICKETS = 100000;
     if (quantity > MAX_TICKETS) {
-      return new Response(
-        JSON.stringify({ error: `Máximo ${MAX_TICKETS.toLocaleString()} boletos por solicitud` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: `Máximo ${MAX_TICKETS.toLocaleString()} boletos por solicitud` }, 400);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -127,19 +127,22 @@ Deno.serve(async (req) => {
 
     console.log(`[SELECT-RANDOM] IP: ${clientIP}, Selecting ${quantity} random tickets for raffle ${raffle_id}`);
 
-    // 1. Get raffle config for total tickets and numbering
+    // 1. Get raffle config for total tickets and numbering - also check status
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
-      .select('total_tickets, numbering_config')
+      .select('total_tickets, numbering_config, status')
       .eq('id', raffle_id)
       .single();
 
     if (raffleError || !raffle) {
       console.error('[SELECT-RANDOM] Raffle not found:', raffleError);
-      return new Response(
-        JSON.stringify({ error: 'Rifa no encontrada' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { error: 'Rifa no encontrada' }, 404);
+    }
+
+    // Only allow for active raffles (public access)
+    if (raffle.status !== 'active') {
+      console.warn(`[SELECT-RANDOM] Raffle ${raffle_id} is not active (status: ${raffle.status})`);
+      return corsJsonResponse(req, { error: 'Esta rifa no está activa' }, 403);
     }
 
     const totalTickets = raffle.total_tickets;
@@ -254,15 +257,12 @@ Deno.serve(async (req) => {
     console.log(`[SELECT-RANDOM] Unavailable: ${unavailableCount}, Available: ${totalAvailable}`);
 
     if (totalAvailable === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'No hay boletos disponibles', 
-          selected: [],
-          requested: quantity,
-          available: 0
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return corsJsonResponse(req, { 
+        error: 'No hay boletos disponibles', 
+        selected: [],
+        requested: quantity,
+        available: 0
+      });
     }
 
     // 3. Generate random available tickets
@@ -365,9 +365,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('[SELECT-RANDOM] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return corsJsonResponse(req, { error: errorMessage }, 500);
   }
 });
