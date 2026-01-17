@@ -215,52 +215,43 @@ export function useCheckVirtualTicket() {
       raffleId: string;
       ticketNumber: string;
     }) => {
-      // Check against orders table - extract ticket index from number and search in ranges
-      // For now, use a simple query against orders with the reference
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id, status, buyer_name, ticket_ranges, lucky_indices')
-        .eq('raffle_id', raffleId)
-        .in('status', ['reserved', 'sold']);
+      // Parse ticket number to get index
+      const ticketIndex = parseInt(ticketNumber.replace(/\D/g, ''), 10);
+
+      if (isNaN(ticketIndex)) {
+        return {
+          exists: true,
+          isAvailable: false,
+          status: 'invalid',
+          buyerName: null,
+        };
+      }
+
+      // Use optimized RPC with O(log n) index lookup instead of loading all orders
+      const { data, error } = await supabase.rpc('check_ticket_availability', {
+        p_raffle_id: raffleId,
+        p_ticket_index: ticketIndex,
+      });
 
       if (error) throw error;
 
-      // Parse ticket number to get index (simplified - assumes numeric suffix)
-      const ticketIndex = parseInt(ticketNumber.replace(/\D/g, ''), 10);
+      const result = (data as { order_id: string | null; status: string; buyer_name: string | null; is_available: boolean }[] | null)?.[0];
 
-      // Check if this index exists in any order's ranges
-      for (const order of orders || []) {
-        const ranges = (order.ticket_ranges as { s: number; e: number }[]) || [];
-        const luckyIndices = (order.lucky_indices as number[]) || [];
-
-        // Check ranges
-        for (const range of ranges) {
-          if (ticketIndex >= range.s && ticketIndex <= range.e) {
-            return {
-              exists: true,
-              isAvailable: false,
-              status: order.status || 'reserved',
-              buyerName: order.buyer_name || null,
-            };
-          }
-        }
-
-        // Check lucky indices
-        if (luckyIndices.includes(ticketIndex)) {
-          return {
-            exists: true,
-            isAvailable: false,
-            status: order.status || 'reserved',
-            buyerName: order.buyer_name || null,
-          };
-        }
+      if (!result) {
+        // Fallback if no result (shouldn't happen with our RPC logic)
+        return {
+          exists: true,
+          isAvailable: true,
+          status: 'available',
+          buyerName: null,
+        };
       }
 
       return {
         exists: true,
-        isAvailable: true,
-        status: 'available',
-        buyerName: null,
+        isAvailable: result.is_available,
+        status: result.status,
+        buyerName: result.buyer_name,
       };
     },
   });
