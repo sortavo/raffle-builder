@@ -35,22 +35,28 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-query': ['@tanstack/react-query'],
-            'vendor-ui': [
-              '@radix-ui/react-dialog',
-              '@radix-ui/react-dropdown-menu',
-              '@radix-ui/react-tabs',
-              '@radix-ui/react-tooltip',
-              '@radix-ui/react-popover',
-              '@radix-ui/react-select',
-            ],
-            'vendor-date': ['date-fns'],
-            'vendor-charts': ['recharts'],
-            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-            'vendor-canvas': ['html2canvas'],
+          manualChunks(id) {
+            // Separate large vendor libraries into their own chunks
+            if (id.includes('node_modules')) {
+              if (id.includes('recharts') || id.includes('d3-') || id.includes('victory')) {
+                return 'vendor-charts';
+              }
+              if (id.includes('jspdf')) {
+                return 'vendor-pdf';
+              }
+              if (id.includes('html2canvas')) {
+                return 'vendor-canvas';
+              }
+              if (id.includes('@supabase')) {
+                return 'vendor-supabase';
+              }
+              if (id.includes('@tanstack/react-query')) {
+                return 'vendor-query';
+              }
+              if (id.includes('date-fns')) {
+                return 'vendor-date';
+              }
+            }
           },
         },
       },
