@@ -5,6 +5,64 @@ import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const INTERNAL_FUNCTION_SECRET = Deno.env.get('INTERNAL_FUNCTION_SECRET');
 
+// ========== SECURITY HELPERS ==========
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Uses constant-time XOR comparison.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') {
+    return false;
+  }
+  
+  // Always compare same length to maintain constant time
+  const aLen = a.length;
+  const bLen = b.length;
+  const maxLen = Math.max(aLen, bLen);
+  
+  // Use TextEncoder for consistent byte representation
+  const encoder = new TextEncoder();
+  const bufA = encoder.encode(a.padEnd(maxLen, '\0'));
+  const bufB = encoder.encode(b.padEnd(maxLen, '\0'));
+  
+  let result = aLen ^ bLen; // Start with length comparison
+  for (let i = 0; i < maxLen; i++) {
+    result |= bufA[i] ^ bufB[i];
+  }
+  
+  return result === 0;
+}
+
+/**
+ * Escape HTML to prevent XSS in email templates.
+ */
+function escapeHtml(unsafe: string | null | undefined): string {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Validate URL protocol for safe href/src usage.
+ */
+function sanitizeUrl(url: string | null | undefined): string {
+  if (!url) return '#';
+  try {
+    const parsed = new URL(url);
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      return url;
+    }
+    return '#';
+  } catch {
+    return '#';
+  }
+}
+
 interface EmailRequest {
   to: string;
   subject?: string;
@@ -50,30 +108,30 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">🎟️ ¡Boletos Reservados!</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
-          <p>Has reservado los siguientes boletos para <strong>${data.raffle_title}</strong>:</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
+          <p>Has reservado los siguientes boletos para <strong>${escapeHtml(data.raffle_title)}</strong>:</p>
           
           ${data.reference_code ? `
           <div style="text-align: center; margin: 20px 0;">
             <p style="margin: 0 0 5px 0; color: #6b7280; font-size: 14px;">Tu clave de reservación:</p>
-            <span class="reference-badge">${data.reference_code}</span>
+            <span class="reference-badge">${escapeHtml(data.reference_code)}</span>
           </div>
           ` : ''}
           
           <div class="tickets">
-            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${n}</span>`).join('')}
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${escapeHtml(String(n))}</span>`).join('')}
           </div>
           
-          <p>Total a pagar: <span class="total">${data.currency} ${data.amount}</span></p>
+          <p>Total a pagar: <span class="total">${escapeHtml(data.currency)} ${escapeHtml(String(data.amount))}</span></p>
           
           <div class="warning">
-            ⏰ <strong>Tu reservación expira en ${data.timer_minutes || 15} minutos.</strong><br>
+            ⏰ <strong>Tu reservación expira en ${escapeHtml(String(data.timer_minutes || 15))} minutos.</strong><br>
             Completa tu pago y sube tu comprobante para confirmar tus boletos.
-            ${data.reference_code ? `<br><br>📋 <strong>Usa la clave ${data.reference_code} como referencia en tu pago.</strong>` : ''}
+            ${data.reference_code ? `<br><br>📋 <strong>Usa la clave ${escapeHtml(data.reference_code)} como referencia en tu pago.</strong>` : ''}
           </div>
           
           <center>
-            <a href="${data.payment_url || '#'}" class="button">Subir Comprobante</a>
+            <a href="${sanitizeUrl(data.payment_url)}" class="button">Subir Comprobante</a>
           </center>
           
           <p style="margin-top: 20px;">¡Buena suerte! 🍀</p>
@@ -106,15 +164,15 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">📄 Comprobante Recibido</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
           <p>Hemos recibido tu comprobante de pago para los boletos:</p>
-          <p><strong>${(data.ticket_numbers || []).map((n: string) => `#${n}`).join(', ')}</strong></p>
+          <p><strong>${(data.ticket_numbers || []).map((n: string) => `#${escapeHtml(String(n))}`).join(', ')}</strong></p>
           
           <div class="info-box">
             📋 Estamos revisando tu pago y te confirmaremos en las próximas horas.
           </div>
           
-          <p>Gracias por participar en <strong>${data.raffle_title}</strong>!</p>
+          <p>Gracias por participar en <strong>${escapeHtml(data.raffle_title)}</strong>!</p>
         </div>
         <div class="footer">
           <p>Sortavo - Tu plataforma de sorteos</p>
@@ -146,19 +204,19 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">🎉 ¡Pago Confirmado!</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
           <p>Tu pago ha sido aprobado. Tus boletos están <strong>confirmados</strong>:</p>
           
           <div class="tickets">
-            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${n}</span>`).join('')}
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${escapeHtml(String(n))}</span>`).join('')}
           </div>
           
-          <p><strong>Sorteo:</strong> ${data.raffle_title}</p>
+          <p><strong>Sorteo:</strong> ${escapeHtml(data.raffle_title)}</p>
           
           <p>Ya estás participando oficialmente. ¡Mucha suerte! 🍀</p>
           
           <center>
-            <a href="${data.raffle_url || '#'}" class="button">Ver Sorteo</a>
+            <a href="${sanitizeUrl(data.raffle_url)}" class="button">Ver Sorteo</a>
           </center>
         </div>
         <div class="footer">
@@ -209,22 +267,22 @@ const templates: Record<string, (data: any) => string> = {
           <div class="subtitle">Tu pago ha sido verificado exitosamente</div>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
           
           <div class="summary-card">
-            <div class="count">${(data.ticket_numbers || []).length}</div>
+            <div class="count">${escapeHtml(String((data.ticket_numbers || []).length))}</div>
             <div class="label">Boletos Confirmados</div>
-            ${data.reference_code ? `<div class="reference-badge">Código: ${data.reference_code}</div>` : ''}
+            ${data.reference_code ? `<div class="reference-badge">Código: ${escapeHtml(data.reference_code)}</div>` : ''}
           </div>
           
           <p style="text-align: center; color: #6b7280; margin-bottom: 5px;">Tus números de la suerte:</p>
           
           <div class="tickets-grid">
-            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-chip"><span class="hash">#</span>${n}</span>`).join('')}
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-chip"><span class="hash">#</span>${escapeHtml(String(n))}</span>`).join('')}
           </div>
           
           <div class="raffle-info">
-            <div class="title">🎯 ${data.raffle_title}</div>
+            <div class="title">🎯 ${escapeHtml(data.raffle_title)}</div>
           </div>
           
           <div class="success-message">
@@ -233,9 +291,9 @@ const templates: Record<string, (data: any) => string> = {
           </div>
           
           <div class="buttons-container">
-            <a href="${data.my_tickets_url || data.raffle_url || '#'}" class="button">📱 Ver y Descargar Boletos</a>
+            <a href="${sanitizeUrl(data.my_tickets_url || data.raffle_url)}" class="button">📱 Ver y Descargar Boletos</a>
             <br style="display: block; margin: 10px 0;">
-            <a href="${data.raffle_url || '#'}" class="button-secondary">🎯 Ver Sorteo</a>
+            <a href="${sanitizeUrl(data.raffle_url)}" class="button-secondary">🎯 Ver Sorteo</a>
           </div>
         </div>
         <div class="footer">
@@ -268,17 +326,17 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">⚠️ Revisión de Pago</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
-          <p>Necesitamos que revises tu pago para los boletos: <strong>${(data.ticket_numbers || []).map((n: string) => `#${n}`).join(', ')}</strong></p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
+          <p>Necesitamos que revises tu pago para los boletos: <strong>${(data.ticket_numbers || []).map((n: string) => `#${escapeHtml(String(n))}`).join(', ')}</strong></p>
           
           <div class="warning">
-            <strong>Motivo:</strong> ${data.rejection_reason || 'El comprobante no coincide con el monto'}
+            <strong>Motivo:</strong> ${escapeHtml(data.rejection_reason || 'El comprobante no coincide con el monto')}
           </div>
           
           <p>Por favor, contacta al organizador o intenta de nuevo.</p>
           
           <center>
-            <a href="${data.raffle_url || '#'}" class="button">Volver al Sorteo</a>
+            <a href="${sanitizeUrl(data.raffle_url)}" class="button">Volver al Sorteo</a>
           </center>
         </div>
         <div class="footer">
@@ -310,18 +368,18 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">🎊 ¡Mañana es el Sorteo!</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
-          <p>Te recordamos que mañana es el sorteo de <strong>${data.raffle_title}</strong></p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
+          <p>Te recordamos que mañana es el sorteo de <strong>${escapeHtml(data.raffle_title)}</strong></p>
           
           <div class="tickets">
             <p>Tus boletos:</p>
-            <p style="font-size: 20px; font-weight: bold;">${(data.ticket_numbers || []).map((n: string) => `#${n}`).join(', ')}</p>
+            <p style="font-size: 20px; font-weight: bold;">${(data.ticket_numbers || []).map((n: string) => `#${escapeHtml(String(n))}`).join(', ')}</p>
           </div>
           
           <p>¡Mucha suerte! 🍀</p>
           
           <center>
-            <a href="${data.raffle_url || '#'}" class="button">Ver Sorteo</a>
+            <a href="${sanitizeUrl(data.raffle_url)}" class="button">Ver Sorteo</a>
           </center>
         </div>
         <div class="footer">
@@ -354,17 +412,17 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0; font-size: 32px;">🎉🏆 ¡FELICIDADES, GANASTE! 🏆🎉</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
           
           <div class="winner-box">
             <p style="margin: 0; color: #92400e;">Tu boleto ganador:</p>
-            <div class="ticket">#${(data.ticket_numbers || [])[0] || data.ticket_number}</div>
-            <div class="prize">🎁 ${data.prize_name}</div>
+            <div class="ticket">#${escapeHtml(String((data.ticket_numbers || [])[0] || data.ticket_number || ''))}</div>
+            <div class="prize">🎁 ${escapeHtml(data.prize_name)}</div>
           </div>
           
-          <p><strong>Sorteo:</strong> ${data.raffle_title}</p>
-          <p><strong>Organizado por:</strong> ${data.org_name || 'El organizador'}</p>
-          ${data.draw_method ? `<p><strong>Método de sorteo:</strong> ${data.draw_method}</p>` : ''}
+          <p><strong>Sorteo:</strong> ${escapeHtml(data.raffle_title)}</p>
+          <p><strong>Organizado por:</strong> ${escapeHtml(data.org_name || 'El organizador')}</p>
+          ${data.draw_method ? `<p><strong>Método de sorteo:</strong> ${escapeHtml(data.draw_method)}</p>` : ''}
           
           <p>El organizador se pondrá en contacto contigo para coordinar la entrega de tu premio.</p>
           
@@ -403,26 +461,26 @@ const templates: Record<string, (data: any) => string> = {
           <h1 style="margin:0;">⏰ ¡Tu reservación está por expirar!</h1>
         </div>
         <div class="content">
-          <p>Hola <strong>${data.buyer_name}</strong>,</p>
+          <p>Hola <strong>${escapeHtml(data.buyer_name)}</strong>,</p>
           
           <div class="urgent">
             <p style="margin: 0 0 10px 0; color: #dc2626; font-weight: 600;">Tiempo restante:</p>
-            <div class="time">${data.minutes_remaining || '?'} min</div>
+            <div class="time">${escapeHtml(String(data.minutes_remaining || '?'))} min</div>
           </div>
           
-          <p>Tus boletos reservados en <strong>${data.raffle_title}</strong>:</p>
+          <p>Tus boletos reservados en <strong>${escapeHtml(data.raffle_title)}</strong>:</p>
           
           <div class="tickets">
-            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${n}</span>`).join('')}
-            <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">${data.ticket_count || (data.ticket_numbers || []).length} boleto${(data.ticket_count || (data.ticket_numbers || []).length) > 1 ? 's' : ''}</p>
+            ${(data.ticket_numbers || []).map((n: string) => `<span class="ticket-number">#${escapeHtml(String(n))}</span>`).join('')}
+            <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">${escapeHtml(String(data.ticket_count || (data.ticket_numbers || []).length))} boleto${(data.ticket_count || (data.ticket_numbers || []).length) > 1 ? 's' : ''}</p>
           </div>
           
-          ${data.reference_code ? `<p style="text-align: center;"><strong>Clave de reservación:</strong> <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${data.reference_code}</code></p>` : ''}
+          ${data.reference_code ? `<p style="text-align: center;"><strong>Clave de reservación:</strong> <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${escapeHtml(data.reference_code)}</code></p>` : ''}
           
           <p style="color: #dc2626; font-weight: 600;">⚠️ Si no completas el pago, tus boletos serán liberados.</p>
           
           <center>
-            <a href="${data.payment_url || '#'}" class="button">Completar Pago Ahora</a>
+            <a href="${sanitizeUrl(data.payment_url)}" class="button">Completar Pago Ahora</a>
           </center>
         </div>
         <div class="footer">
@@ -457,25 +515,25 @@ const templates: Record<string, (data: any) => string> = {
         </div>
         <div class="content">
           <p>Hola,</p>
-          <p>Tienes comprobantes de pago esperando tu aprobación en <strong>${data.org_name}</strong>:</p>
+          <p>Tienes comprobantes de pago esperando tu aprobación en <strong>${escapeHtml(data.org_name)}</strong>:</p>
           
           <div class="summary">
-            <div class="count">${data.total_pending}</div>
+            <div class="count">${escapeHtml(String(data.total_pending))}</div>
             <p style="margin: 5px 0 0 0; color: #92400e;">comprobante${data.total_pending > 1 ? 's' : ''} pendiente${data.total_pending > 1 ? 's' : ''}</p>
-            <p style="margin: 5px 0 0 0; color: #6b7280;">(${data.total_tickets} boletos)</p>
+            <p style="margin: 5px 0 0 0; color: #6b7280;">(${escapeHtml(String(data.total_tickets))} boletos)</p>
           </div>
           
-          ${data.waiting_hours >= 1 ? `<p style="color: #dc2626; text-align: center;">⏰ El más antiguo lleva <strong>${data.waiting_hours} hora${data.waiting_hours > 1 ? 's' : ''}</strong> esperando</p>` : ''}
+          ${data.waiting_hours >= 1 ? `<p style="color: #dc2626; text-align: center;">⏰ El más antiguo lleva <strong>${escapeHtml(String(data.waiting_hours))} hora${data.waiting_hours > 1 ? 's' : ''}</strong> esperando</p>` : ''}
           
           ${(data.raffles || []).map((r: any) => `
             <div class="raffle-item">
-              <strong>${r.title}</strong><br>
-              <span style="color: #6b7280;">${r.count} comprobante${r.count > 1 ? 's' : ''} (${r.tickets} boletos)</span>
+              <strong>${escapeHtml(r.title)}</strong><br>
+              <span style="color: #6b7280;">${escapeHtml(String(r.count))} comprobante${r.count > 1 ? 's' : ''} (${escapeHtml(String(r.tickets))} boletos)</span>
             </div>
           `).join('')}
           
           <center>
-            <a href="${data.dashboard_url || '#'}" class="button">Revisar Ahora</a>
+            <a href="${sanitizeUrl(data.dashboard_url)}" class="button">Revisar Ahora</a>
           </center>
         </div>
         <div class="footer">
@@ -501,42 +559,48 @@ serve(async (req) => {
     let authMethod = '';
     
     // Check internal function token first (for edge function to edge function calls)
-    if (internalToken && INTERNAL_FUNCTION_SECRET && internalToken === INTERNAL_FUNCTION_SECRET) {
+    // Uses timing-safe comparison to prevent timing attacks
+    if (internalToken && INTERNAL_FUNCTION_SECRET && timingSafeEqual(internalToken, INTERNAL_FUNCTION_SECRET)) {
       isAuthorized = true;
       authMethod = 'internal-token';
       console.log('[SEND-EMAIL] Authorized via internal function token');
     }
-    // Check service role key (for cron jobs)
-    else if (authHeader?.includes(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'NO_MATCH')) {
-      isAuthorized = true;
-      authMethod = 'service-role';
-      console.log('[SEND-EMAIL] Authorized via service role key');
-    }
-    // Check user JWT
-    else if (authHeader?.startsWith('Bearer ')) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Check service role key (for cron jobs) - timing-safe comparison
+    else if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
       
-      // Verify JWT
-      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
-      });
-
-      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-      if (!authError && user) {
-        // Check if user has at least one role (is a registered platform user)
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: roles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .limit(1);
+      if (serviceKey && timingSafeEqual(token, serviceKey)) {
+        isAuthorized = true;
+        authMethod = 'service-role';
+        console.log('[SEND-EMAIL] Authorized via service role key');
+      }
+      // Check user JWT
+      else if (authHeader.startsWith('Bearer ')) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         
-        if (roles && roles.length > 0) {
-          isAuthorized = true;
-          authMethod = 'jwt';
-          console.log(`[SEND-EMAIL] Authorized via JWT for user ${user.id}`);
+        // Verify JWT
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } }
+        });
+
+        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+        if (!authError && user) {
+          // Check if user has at least one role (is a registered platform user)
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: roles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .limit(1);
+          
+          if (roles && roles.length > 0) {
+            isAuthorized = true;
+            authMethod = 'jwt';
+            console.log(`[SEND-EMAIL] Authorized via JWT for user ${user.id}`);
+          }
         }
       }
     }

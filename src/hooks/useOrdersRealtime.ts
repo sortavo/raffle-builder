@@ -67,6 +67,13 @@ export function useOrdersRealtime(
       return;
     }
 
+    // Validate UUID format to prevent filter injection
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(raffleId)) {
+      console.warn('[Realtime] Invalid raffle ID format, skipping subscription');
+      return;
+    }
+
     // Avoid duplicate subscriptions
     if (channelRef.current) {
       return;
@@ -162,6 +169,13 @@ export function useOrganizationOrdersRealtime(organizationId: string | undefined
 
   useEffect(() => {
     if (!organizationId) {
+      return;
+    }
+
+    // Validate UUID format to prevent filter injection
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(organizationId)) {
+      console.warn('[Realtime] Invalid organization ID format, skipping subscription');
       return;
     }
 

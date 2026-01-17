@@ -31,6 +31,19 @@ interface NumberingConfig {
   start_number?: number;
 }
 
+/**
+ * Sanitize CSV cell to prevent formula injection attacks.
+ * Cells starting with =, +, -, @, \t, \r are prefixed with a single quote.
+ */
+function sanitizeCSVCell(value: string | null | undefined): string {
+  const str = String(value || '');
+  // Escape formula injection characters
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
 function formatTicketNumber(index: number, config: NumberingConfig | null): string {
   const startNumber = config?.start_number ?? 1;
   const ticketNum = startNumber + index;
@@ -188,17 +201,17 @@ Deno.serve(async (req) => {
       'Fecha de Aprobación'
     ];
 
-    // Build CSV content
+    // Build CSV content with sanitization
     const csvRows: string[] = [headers.join(',')];
 
     for (const ticket of tickets) {
       const row = [
-        ticket.ticket_number,
+        ticket.ticket_number,  // Ticket numbers are formatted, generally safe
         STATUS_LABELS[ticket.status || 'available'] || ticket.status,
-        ticket.buyer_name || '-',
-        ticket.buyer_email || '-',
-        ticket.buyer_phone || '-',
-        ticket.buyer_city || '-',
+        sanitizeCSVCell(ticket.buyer_name) || '-',
+        sanitizeCSVCell(ticket.buyer_email) || '-',
+        sanitizeCSVCell(ticket.buyer_phone) || '-',
+        sanitizeCSVCell(ticket.buyer_city) || '-',
         ticket.approved_at ? new Date(ticket.approved_at).toLocaleDateString('es-MX') : '-'
       ];
       csvRows.push(row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
