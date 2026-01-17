@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Download, Ticket, Calendar, Trophy, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import html2canvas from 'html2canvas';
 import { formatCurrency } from '@/lib/currency-utils';
 
 interface DownloadableTicketProps {
@@ -37,6 +36,9 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
     if (!ticketRef.current) return;
 
     try {
+      // Dynamic import to reduce initial bundle size
+      const html2canvas = (await import('html2canvas')).default;
+      
       const canvas = await html2canvas(ticketRef.current, {
         backgroundColor: null,
         scale: 2,

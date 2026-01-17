@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -47,6 +46,9 @@ export function useBulkTicketDownload() {
     setIsGenerating(true);
 
     try {
+      // Dynamic import to reduce initial bundle size
+      const { jsPDF } = await import('jspdf');
+      
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',

@@ -33,6 +33,27 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-query': ['@tanstack/react-query'],
+            'vendor-ui': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-tooltip',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-select',
+            ],
+            'vendor-date': ['date-fns'],
+            'vendor-charts': ['recharts'],
+            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+            'vendor-canvas': ['html2canvas'],
+          },
+        },
+      },
     },
     plugins,
     resolve: {
