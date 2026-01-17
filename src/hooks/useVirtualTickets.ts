@@ -107,6 +107,14 @@ export function useVirtualTickets(
   });
 }
 
+interface VirtualTicketCountsV2 {
+  total_count: number;
+  sold_count: number;
+  reserved_count: number;
+  pending_count: number;
+  available_count: number;
+}
+
 export function useVirtualTicketCounts(raffleId: string | undefined) {
   // Enable real-time updates instead of polling
   useOrdersRealtime(raffleId);
@@ -114,25 +122,51 @@ export function useVirtualTicketCounts(raffleId: string | undefined) {
   return useQuery({
     queryKey: ['virtual-ticket-counts', raffleId],
     queryFn: async () => {
-      if (!raffleId) return { total: 0, sold: 0, reserved: 0, available: 0 };
+      if (!raffleId) return { total: 0, sold: 0, reserved: 0, pending: 0, available: 0 };
 
-      const { data, error } = await supabase.rpc('get_virtual_ticket_counts', {
+      // Try optimized v2 RPC first, fallback to v1
+      const { data, error } = await supabase.rpc('get_virtual_ticket_counts_v2', {
         p_raffle_id: raffleId,
       });
 
+      // Fallback to original RPC if v2 doesn't exist yet
+      if (error?.code === '42883') {
+        const fallback = await supabase.rpc('get_virtual_ticket_counts', {
+          p_raffle_id: raffleId,
+        });
+        if (fallback.error) throw fallback.error;
+        const counts = (fallback.data as VirtualTicketCounts[] | null)?.[0];
+        return {
+          total: counts?.total_count || 0,
+          sold: counts?.sold_count || 0,
+          reserved: counts?.reserved_count || 0,
+          pending: 0,
+          available: counts?.available_count || 0,
+        };
+      }
+
       if (error) throw error;
 
-      const counts = (data as VirtualTicketCounts[] | null)?.[0];
+      const counts = (data as VirtualTicketCountsV2[] | null)?.[0];
       return {
         total: counts?.total_count || 0,
-        sold: counts?.sold_count || 0,
-        reserved: counts?.reserved_count || 0,
-        available: counts?.available_count || 0,
+        sold: Number(counts?.sold_count) || 0,
+        reserved: Number(counts?.reserved_count) || 0,
+        pending: Number(counts?.pending_count) || 0,
+        available: Number(counts?.available_count) || 0,
       };
     },
     enabled: !!raffleId,
     // NO refetchInterval - Realtime handles updates
     staleTime: 30000,
+    // Only re-render when these specific values change
+    select: (data) => ({
+      total: data.total,
+      sold: data.sold,
+      reserved: data.reserved,
+      pending: data.pending,
+      available: data.available,
+    }),
   });
 }
 
