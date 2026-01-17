@@ -38,6 +38,8 @@ export function useCookieConsent() {
       }
     } catch (error) {
       console.error('Error loading cookie consent:', error);
+      // Clear corrupted data so user can start fresh
+      localStorage.removeItem(CONSENT_STORAGE_KEY);
     }
     setIsLoaded(true);
   }, []);
