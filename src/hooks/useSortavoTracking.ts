@@ -194,15 +194,4 @@ export function useSortavoTracking() {
     canTrackMarketing: canLoadMarketing,
   };
 }
-
-// Type declarations for global tracking objects
-declare global {
-  interface Window {
-    dataLayer: Record<string, unknown>[];
-    fbq: (action: string, event: string, data?: Record<string, unknown>) => void;
-    ttq: {
-      track: (event: string, data?: Record<string, unknown>) => void;
-      page: () => void;
-    };
-  }
-}
+// Global tracking types are declared in src/types/tracking.d.ts
