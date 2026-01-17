@@ -136,7 +136,8 @@ export function useVirtualTicketCounts(raffleId: string | undefined) {
   });
 }
 
-interface ReserveTicketsV2Result {
+// Result type for atomic_reserve_tickets RPC
+interface AtomicReserveResult {
   success: boolean;
   order_id: string | null;
   reference_code: string | null;
@@ -144,8 +145,13 @@ interface ReserveTicketsV2Result {
   ticket_count: number;
   ticket_ranges: { s: number; e: number }[] | null;
   lucky_indices: number[] | null;
+  conflict_indices: number[] | null;
   error_message: string | null;
 }
+
+// Retry configuration for lock contention
+const RESERVE_RETRY_ATTEMPTS = 3;
+const RESERVE_RETRY_DELAY_MS = 100;
 
 export function useReserveVirtualTickets() {
   const queryClient = useQueryClient();
@@ -171,41 +177,64 @@ export function useReserveVirtualTickets() {
       orderTotal?: number;
       isLuckyNumbers?: boolean;
     }) => {
-      // Use the new compressed orders architecture
-      const { data, error } = await supabase.rpc('reserve_tickets_v2', {
-        p_raffle_id: raffleId,
-        p_ticket_indices: ticketIndices,
-        p_buyer_name: buyerData.name,
-        p_buyer_email: buyerData.email,
-        p_buyer_phone: buyerData.phone,
-        p_buyer_city: buyerData.city || null,
-        p_reservation_minutes: reservationMinutes,
-        p_order_total: orderTotal || null,
-        p_is_lucky_numbers: isLuckyNumbers,
-      });
+      let lastError: Error | null = null;
+      
+      // Retry with exponential backoff for lock contention
+      for (let attempt = 0; attempt < RESERVE_RETRY_ATTEMPTS; attempt++) {
+        // Use the new atomic RPC with advisory locking
+        const { data, error } = await supabase.rpc('atomic_reserve_tickets', {
+          p_raffle_id: raffleId,
+          p_ticket_indices: ticketIndices,
+          p_buyer_name: buyerData.name,
+          p_buyer_email: buyerData.email,
+          p_buyer_phone: buyerData.phone,
+          p_buyer_city: buyerData.city || null,
+          p_reservation_minutes: reservationMinutes,
+          p_order_total: orderTotal || null,
+          p_is_lucky_numbers: isLuckyNumbers,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const raw = (data as ReserveTicketsV2Result[] | null)?.[0];
+        // Cast the response properly
+        const raw = (data as AtomicReserveResult[] | null)?.[0];
 
-      // Validate response format
-      if (!raw || typeof raw.success !== 'boolean') {
-        console.error('[useReserveVirtualTickets] Unexpected response format:', data);
-        throw new Error('La reserva devolvió un formato inesperado. Intenta de nuevo.');
+        // Validate response format
+        if (!raw || typeof raw.success !== 'boolean') {
+          console.error('[useReserveVirtualTickets] Unexpected response format:', data);
+          throw new Error('La reserva devolvió un formato inesperado. Intenta de nuevo.');
+        }
+
+        // Check if lock contention - retry with backoff
+        if (!raw.success && raw.error_message === 'Raffle is busy, please retry') {
+          lastError = new Error(raw.error_message);
+          console.log(`[RESERVE] Lock contention, attempt ${attempt + 1}/${RESERVE_RETRY_ATTEMPTS}`);
+          const delay = RESERVE_RETRY_DELAY_MS * Math.pow(2, attempt) + Math.random() * 50;
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+
+        // Check for ticket conflicts - provide detailed error
+        if (!raw.success) {
+          const conflictMsg = raw.conflict_indices?.length 
+            ? `Boletos no disponibles: ${raw.conflict_indices.slice(0, 5).join(', ')}${raw.conflict_indices.length > 5 ? '...' : ''}`
+            : raw.error_message || 'Error al reservar boletos';
+          throw new Error(conflictMsg);
+        }
+
+        // Success - return order info
+        return {
+          referenceCode: raw.reference_code!,
+          reservedUntil: raw.reserved_until!,
+          count: raw.ticket_count,
+          orderId: raw.order_id,
+          ticketRanges: raw.ticket_ranges,
+          luckyIndices: raw.lucky_indices,
+        };
       }
 
-      if (!raw.success) {
-        throw new Error(raw.error_message || 'Error al reservar boletos');
-      }
-
-      return {
-        referenceCode: raw.reference_code!,
-        reservedUntil: raw.reserved_until!,
-        count: raw.ticket_count,
-        orderId: raw.order_id,
-        ticketRanges: raw.ticket_ranges,
-        luckyIndices: raw.lucky_indices,
-      };
+      // All retries exhausted
+      throw lastError || new Error('No se pudo completar la reserva después de varios intentos');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ 
