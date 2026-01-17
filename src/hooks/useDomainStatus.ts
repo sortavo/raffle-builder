@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createAppError, isAppError } from "@/types/errors";
 
 // Helper to invoke edge functions with explicit Authorization header
 async function invokeWithSession(functionName: string, options?: { body?: unknown }) {
@@ -12,10 +13,7 @@ async function invokeWithSession(functionName: string, options?: { body?: unknow
   
   if (!accessToken) {
     console.warn(`[invokeWithSession] ${functionName} - No access token available`);
-    const authError = new Error('AUTH_ERROR');
-    (authError as any).status = 401;
-    (authError as any).reason = 'no_token';
-    throw authError;
+    throw createAppError('AUTH_ERROR', { status: 401, reason: 'no_token' });
   }
   
   // Invoke with explicit Authorization header
@@ -26,15 +24,18 @@ async function invokeWithSession(functionName: string, options?: { body?: unknow
     },
   });
   
+  // Safely extract response status
+  const response = 'response' in result ? (result.response as Response | undefined) : undefined;
+  
   console.log(`[invokeWithSession] ${functionName} - Response:`, {
     hasData: !!result.data,
     hasError: !!result.error,
     errorMessage: result.error?.message,
-    responseStatus: (result as any).response?.status,
+    responseStatus: response?.status,
     dataCode: result.data?.code,
   });
   
-  return result;
+  return { ...result, response };
 }
 
 export interface VercelDomain {
@@ -79,6 +80,60 @@ export interface DomainCheckResponse {
   checkedAt: string;
 }
 
+// Helper to extract HTTP status from various error shapes
+function extractHttpStatus(
+  response: Response | undefined,
+  error: { message?: string; context?: { status?: number; code?: number }; status?: number } | null,
+  data: { code?: number } | null
+): number | undefined {
+  return (
+    response?.status ||
+    error?.context?.status ||
+    error?.status ||
+    data?.code ||
+    error?.context?.code
+  );
+}
+
+// Helper to check for auth errors
+function isAuthError(
+  httpStatus: number | undefined,
+  error: { message?: string } | null,
+  data: { message?: string; error?: string } | null
+): boolean {
+  return (
+    httpStatus === 401 ||
+    error?.message?.includes('401') ||
+    error?.message?.includes('Unauthorized') ||
+    error?.message?.includes('Authentication required') ||
+    error?.message?.includes('Missing authorization') ||
+    data?.message?.includes?.('Missing authorization') ||
+    data?.message?.includes?.('Authentication required') ||
+    data?.error?.includes?.('Authentication') ||
+    data?.error?.includes?.('401') ||
+    data?.error?.includes?.('authorization') ||
+    false
+  );
+}
+
+// Helper to check for forbidden errors
+function isForbiddenError(
+  httpStatus: number | undefined,
+  error: { message?: string } | null,
+  data: { message?: string; error?: string } | null
+): boolean {
+  return (
+    httpStatus === 403 ||
+    error?.message?.includes('403') ||
+    error?.message?.includes('Forbidden') ||
+    error?.message?.includes('platform admin') ||
+    data?.message?.includes?.('platform admin') ||
+    data?.error?.includes?.('Platform admin') ||
+    data?.error?.includes?.('admin') ||
+    false
+  );
+}
+
 export function useDomainStatus(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
 
@@ -86,80 +141,39 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
   const vercelDomainsQuery = useQuery({
     queryKey: ['vercel-domains'],
     queryFn: async () => {
-      // Use explicit session injection to ensure Authorization header is sent
-      const result = await invokeWithSession('list-vercel-domains');
-      const { data, error } = result;
-      const response = (result as any).response as Response | undefined;
+      const { data, error, response } = await invokeWithSession('list-vercel-domains');
       
-      // Extract HTTP status from multiple possible locations:
-      // 1. response?.status - from the Response object returned by invoke
-      // 2. error?.context?.status - FunctionsHttpError stores Response in context
-      // 3. error?.status - fallback
-      const httpStatus = 
-        response?.status || 
-        (error as any)?.context?.status || 
-        (error as any)?.status;
+      const httpStatus = extractHttpStatus(response, error, data);
       
-      // Also check error body for status code
-      const errorCode = data?.code || (error as any)?.context?.code;
-      
-      // Detect auth errors by status OR message patterns
-      const isAuthError = 
-        httpStatus === 401 ||
-        errorCode === 401 ||
-        error?.message?.includes('401') ||
-        error?.message?.includes('Unauthorized') ||
-        error?.message?.includes('Authentication required') ||
-        error?.message?.includes('Missing authorization') ||
-        data?.message?.includes?.('Missing authorization') ||
-        data?.message?.includes?.('Authentication required');
-      
-      if (isAuthError) {
-        const authError = new Error('AUTH_ERROR');
-        (authError as any).status = 401;
-        throw authError;
+      // Check for auth errors
+      if (isAuthError(httpStatus, error, data)) {
+        throw createAppError('AUTH_ERROR', { status: 401 });
       }
       
-      // Detect forbidden errors
-      const isForbiddenError =
-        httpStatus === 403 ||
-        errorCode === 403 ||
-        error?.message?.includes('403') ||
-        error?.message?.includes('Forbidden') ||
-        error?.message?.includes('platform admin') ||
-        data?.message?.includes?.('platform admin');
-      
-      if (isForbiddenError) {
-        const forbiddenError = new Error('FORBIDDEN');
-        (forbiddenError as any).status = 403;
-        throw forbiddenError;
+      // Check for forbidden errors
+      if (isForbiddenError(httpStatus, error, data)) {
+        throw createAppError('FORBIDDEN', { status: 403 });
       }
       
-      // Detect server errors
-      if (httpStatus >= 500 || error?.message?.includes('non-2xx')) {
-        const serverError = new Error('SERVER_ERROR');
-        (serverError as any).status = httpStatus || 500;
-        (serverError as any).details = error?.message || data?.message || 'Error del servidor';
-        throw serverError;
+      // Check for server errors
+      if (httpStatus && httpStatus >= 500 || error?.message?.includes('non-2xx')) {
+        throw createAppError('SERVER_ERROR', {
+          status: httpStatus || 500,
+          details: error?.message || data?.message || 'Error del servidor',
+        });
       }
       
       if (error) {
-        const genericError = new Error(error.message || 'Error desconocido');
-        (genericError as any).status = httpStatus;
-        throw genericError;
+        throw createAppError(error.message || 'Error desconocido', { status: httpStatus });
       }
       
       if (!data?.success) {
         // Check response body for auth errors
         if (data?.error?.includes?.('Authentication') || data?.error?.includes?.('401') || data?.error?.includes?.('Missing authorization')) {
-          const authError = new Error('AUTH_ERROR');
-          (authError as any).status = 401;
-          throw authError;
+          throw createAppError('AUTH_ERROR', { status: 401 });
         }
         if (data?.error?.includes?.('platform admin') || data?.error?.includes?.('403')) {
-          const forbiddenError = new Error('FORBIDDEN');
-          (forbiddenError as any).status = 403;
-          throw forbiddenError;
+          throw createAppError('FORBIDDEN', { status: 403 });
         }
         throw new Error(data?.error || 'Error desconocido');
       }
@@ -168,10 +182,9 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     enabled: options?.enabled !== false,
     retry: (failureCount, error) => {
       // Don't retry on auth/permission errors
-      if (error instanceof Error) {
-        const msg = error.message;
-        const status = (error as any).status;
-        if (msg === 'AUTH_ERROR' || msg === 'FORBIDDEN' || status === 401 || status === 403) {
+      if (isAppError(error)) {
+        const { message, status } = error;
+        if (message === 'AUTH_ERROR' || message === 'FORBIDDEN' || status === 401 || status === 403) {
           return false;
         }
       }
@@ -183,54 +196,30 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
   const customDomainsQuery = useQuery({
     queryKey: ['custom-domains-admin'],
     queryFn: async () => {
-      const result = await invokeWithSession('admin-list-custom-domains');
-      const { data, error } = result;
-      const response = (result as any).response as Response | undefined;
+      const { data, error, response } = await invokeWithSession('admin-list-custom-domains');
 
-      const httpStatus =
-        response?.status ||
-        (error as any)?.context?.status ||
-        (error as any)?.status;
+      const httpStatus = extractHttpStatus(response, error, data);
 
-      const errorCode = data?.code || (error as any)?.context?.code;
-
-      const isAuthError =
-        httpStatus === 401 ||
-        errorCode === 401 ||
-        error?.message?.includes('401') ||
-        data?.error?.includes?.('Authentication') ||
-        data?.error?.includes?.('authorization');
-
-      if (isAuthError) {
-        const authError = new Error('AUTH_ERROR');
-        (authError as any).status = 401;
-        throw authError;
+      // Check for auth errors
+      if (isAuthError(httpStatus, error, data)) {
+        throw createAppError('AUTH_ERROR', { status: 401 });
       }
 
-      const isForbiddenError =
-        httpStatus === 403 ||
-        errorCode === 403 ||
-        error?.message?.includes('403') ||
-        data?.error?.includes?.('Platform admin') ||
-        data?.error?.includes?.('admin');
-
-      if (isForbiddenError) {
-        const forbiddenError = new Error('FORBIDDEN');
-        (forbiddenError as any).status = 403;
-        throw forbiddenError;
+      // Check for forbidden errors
+      if (isForbiddenError(httpStatus, error, data)) {
+        throw createAppError('FORBIDDEN', { status: 403 });
       }
 
-      if (httpStatus >= 500 || error?.message?.includes('non-2xx')) {
-        const serverError = new Error('SERVER_ERROR');
-        (serverError as any).status = httpStatus || 500;
-        (serverError as any).details = error?.message || data?.error || 'Error del servidor';
-        throw serverError;
+      // Check for server errors
+      if (httpStatus && httpStatus >= 500 || error?.message?.includes('non-2xx')) {
+        throw createAppError('SERVER_ERROR', {
+          status: httpStatus || 500,
+          details: error?.message || data?.error || 'Error del servidor',
+        });
       }
 
       if (error) {
-        const genericError = new Error(error.message || 'Error desconocido');
-        (genericError as any).status = httpStatus;
-        throw genericError;
+        throw createAppError(error.message || 'Error desconocido', { status: httpStatus });
       }
 
       if (!data?.success) {
@@ -242,10 +231,9 @@ export function useDomainStatus(options?: { enabled?: boolean }) {
     enabled: options?.enabled !== false,
     retry: (failureCount, error) => {
       // Don't retry on auth/permission errors
-      if (error instanceof Error) {
-        const msg = error.message;
-        const status = (error as any).status;
-        if (msg === 'AUTH_ERROR' || msg === 'FORBIDDEN' || status === 401 || status === 403) {
+      if (isAppError(error)) {
+        const { message, status } = error;
+        if (message === 'AUTH_ERROR' || message === 'FORBIDDEN' || status === 401 || status === 403) {
           return false;
         }
       }

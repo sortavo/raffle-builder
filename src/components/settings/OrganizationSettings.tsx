@@ -17,6 +17,7 @@ import { MultiContactInput } from "./MultiContactInput";
 import { PhoneInputWithCountry } from "./PhoneInputWithCountry";
 import { CoverMediaUploader, CoverMediaItem } from "./CoverMediaUploader";
 import { useQueryClient } from "@tanstack/react-query";
+import type { OrganizationExtended } from "@/types/organization";
 
 // TikTok icon component
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -90,11 +91,11 @@ export function OrganizationSettings() {
   // Sync contact arrays, cover media, and experience fields with organization data
   useEffect(() => {
     if (organization) {
-      const org = organization as any;
+      const org = organization as OrganizationExtended;
       // Use the new array fields, falling back to legacy single values
-      setEmails(org.emails?.length > 0 ? org.emails : (org.email ? [org.email] : []));
-      setPhones(org.phones?.length > 0 ? org.phones : (org.phone ? [org.phone] : []));
-      setWhatsappNumbers(org.whatsapp_numbers?.length > 0 ? org.whatsapp_numbers : (org.whatsapp_number ? [org.whatsapp_number] : []));
+      setEmails(org.emails?.length ? org.emails : (org.email ? [org.email] : []));
+      setPhones(org.phones?.length ? org.phones : (org.phone ? [org.phone] : []));
+      setWhatsappNumbers(org.whatsapp_numbers?.length ? org.whatsapp_numbers : (org.whatsapp_number ? [org.whatsapp_number] : []));
       
       // Sync cover media, with fallback to legacy cover_image_url
       if (org.cover_media && Array.isArray(org.cover_media) && org.cover_media.length > 0) {
@@ -112,41 +113,44 @@ export function OrganizationSettings() {
     }
   }, [organization]);
 
+  // Type-safe organization reference
+  const org = organization as OrganizationExtended | null;
+
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
-      name: organization?.name || "",
-      country_code: organization?.country_code || "MX",
-      currency_code: organization?.currency_code || "MXN",
-      timezone: organization?.timezone || "America/Mexico_City",
-      brand_color: organization?.brand_color || "#2563EB",
-      description: (organization as any)?.description || "",
-      city: (organization as any)?.city || "",
-      website_url: (organization as any)?.website_url || "",
-      facebook_url: (organization as any)?.facebook_url || "",
-      instagram_url: (organization as any)?.instagram_url || "",
-      tiktok_url: (organization as any)?.tiktok_url || "",
+      name: org?.name || "",
+      country_code: org?.country_code || "MX",
+      currency_code: org?.currency_code || "MXN",
+      timezone: org?.timezone || "America/Mexico_City",
+      brand_color: org?.brand_color || "#2563EB",
+      description: org?.description || "",
+      city: org?.city || "",
+      website_url: org?.website_url || "",
+      facebook_url: org?.facebook_url || "",
+      instagram_url: org?.instagram_url || "",
+      tiktok_url: org?.tiktok_url || "",
     },
   });
 
   // Update form when organization data loads
   useEffect(() => {
-    if (organization) {
+    if (org) {
       form.reset({
-        name: organization.name || "",
-        country_code: organization.country_code || "MX",
-        currency_code: organization.currency_code || "MXN",
-        timezone: organization.timezone || "America/Mexico_City",
-        brand_color: organization.brand_color || "#2563EB",
-        description: (organization as any)?.description || "",
-        city: (organization as any)?.city || "",
-        website_url: (organization as any)?.website_url || "",
-        facebook_url: (organization as any)?.facebook_url || "",
-        instagram_url: (organization as any)?.instagram_url || "",
-        tiktok_url: (organization as any)?.tiktok_url || "",
+        name: org.name || "",
+        country_code: org.country_code || "MX",
+        currency_code: org.currency_code || "MXN",
+        timezone: org.timezone || "America/Mexico_City",
+        brand_color: org.brand_color || "#2563EB",
+        description: org.description || "",
+        city: org.city || "",
+        website_url: org.website_url || "",
+        facebook_url: org.facebook_url || "",
+        instagram_url: org.instagram_url || "",
+        tiktok_url: org.tiktok_url || "",
       });
     }
-  }, [organization]);
+  }, [org]);
 
   const onSubmit = async (data: OrganizationFormData) => {
     if (!organization?.id) return;
