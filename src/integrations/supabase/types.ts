@@ -2002,6 +2002,15 @@ export type Database = {
           conflicting_indices: number[]
         }[]
       }
+      check_ticket_availability: {
+        Args: { p_raffle_id: string; p_ticket_index: number }
+        Returns: {
+          buyer_name: string
+          is_available: boolean
+          order_id: string
+          status: string
+        }[]
+      }
       cleanup_expired_orders: { Args: never; Returns: number }
       compress_ticket_indices: { Args: { indices: number[] }; Returns: Json }
       count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }
