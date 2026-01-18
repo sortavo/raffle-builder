@@ -35,6 +35,10 @@ serve(async (req) => {
     return handleCorsPrelight(req);
   }
 
+  // Get Redis credentials for circuit breaker
+  const UPSTASH_REDIS_URL = Deno.env.get('UPSTASH_REDIS_REST_URL');
+  const UPSTASH_REDIS_TOKEN = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+
   try {
     // ==========================================
     // DEBUG: Log Authorization header presence
@@ -67,9 +71,9 @@ serve(async (req) => {
     }
 
     // ==========================================
-    // Phase 7: Circuit Breaker Check
+    // Phase 7: Circuit Breaker Check (with Redis)
     // ==========================================
-    if (isCircuitOpen(CIRCUIT_NAME)) {
+    if (await isCircuitOpen(UPSTASH_REDIS_URL, UPSTASH_REDIS_TOKEN, CIRCUIT_NAME)) {
       console.warn('[list-vercel-domains] Circuit breaker OPEN - returning cached/error response');
       return corsJsonResponse(req, { 
         success: false, 
@@ -114,7 +118,7 @@ serve(async (req) => {
       if (!response.ok) {
         console.error('[list-vercel-domains] Vercel API error:', data)
         // Record failure for circuit breaker
-        recordFailure(CIRCUIT_NAME);
+        await recordFailure(UPSTASH_REDIS_URL, UPSTASH_REDIS_TOKEN, CIRCUIT_NAME);
         return corsJsonResponse(req, { 
           success: false, 
           error: (data as any).error?.message || 'Error fetching domains from Vercel',
@@ -123,7 +127,7 @@ serve(async (req) => {
       }
 
       // Record success for circuit breaker
-      recordSuccess(CIRCUIT_NAME);
+      await recordSuccess(UPSTASH_REDIS_URL, UPSTASH_REDIS_TOKEN, CIRCUIT_NAME);
 
       console.log(`[list-vercel-domains] Found ${data.domains?.length || 0} domains:`, data.domains?.map(d => d.name))
 
@@ -140,7 +144,7 @@ serve(async (req) => {
       console.error('[list-vercel-domains] Fetch error:', isTimeout ? 'Request timeout' : fetchError);
       
       // Record failure for circuit breaker
-      recordFailure(CIRCUIT_NAME);
+      await recordFailure(UPSTASH_REDIS_URL, UPSTASH_REDIS_TOKEN, CIRCUIT_NAME);
       
       return corsJsonResponse(req, { 
         success: false, 
