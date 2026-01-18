@@ -131,3 +131,9 @@ verify_jwt = false
 
 [functions.refresh-stats]
 verify_jwt = false
+
+[functions.reserve-tickets-v2]
+verify_jwt = false
+
+[functions.get-ticket-counts]
+verify_jwt = false

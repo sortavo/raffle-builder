@@ -1,8 +1,10 @@
+// ============================================================================
 // Cleanup Expired Orders Edge Function
+// ============================================================================
 // Removes expired reservations and old abandoned orders
-// Recommended schedule: Every hour via cron job
+// Now uses optimized batch cleanup with SKIP LOCKED for non-blocking operation
+// Recommended schedule: Every 5-15 minutes via cron job
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -11,7 +13,9 @@ const corsHeaders = {
 };
 
 interface CleanupResult {
-  expiredReservations: number;
+  expiredTicketsReleased: number;
+  batchesProcessed: number;
+  affectedRaffles: number;
   oldCancelledOrders: number;
   oldPendingOrders: number;
   totalCleaned: number;
@@ -23,7 +27,35 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CLEANUP-EXPIRED-ORDERS] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
+/**
+ * Invalidate Redis cache for multiple raffles
+ */
+async function invalidateCachesForRaffles(
+  redisUrl: string,
+  redisToken: string,
+  raffleIds: string[]
+): Promise<void> {
+  if (!raffleIds || raffleIds.length === 0) return;
+
+  logStep('Invalidating Redis cache for affected raffles', { count: raffleIds.length });
+
+  for (const raffleId of raffleIds) {
+    try {
+      await fetch(redisUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['DEL', `counts:${raffleId}`]),
+      });
+    } catch (e) {
+      logStep('Failed to invalidate cache for raffle', { raffleId, error: String(e) });
+    }
+  }
+}
+
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -46,57 +78,66 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
+    const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
+    const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+
     const now = new Date().toISOString();
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // 1. Clean up expired reservations (reserved_until < now)
-    // First, get the raffle IDs affected for cache invalidation
-    logStep("Getting expired reservations for cleanup");
-    const { data: expiredReservations, error: expiredError } = await supabase
-      .from('orders')
-      .update({ 
-        status: 'cancelled',
-        canceled_at: now,
-      })
-      .eq('status', 'reserved')
-      .lt('reserved_until', now)
-      .select('id, raffle_id');
+    // =========================================================================
+    // 1. Clean up expired ticket reservations using optimized batch function
+    // =========================================================================
+    logStep("Cleaning expired ticket reservations (batch mode)");
 
-    if (expiredError) {
-      logStep("Error cleaning expired reservations", { error: expiredError.message });
+    const { data: ticketCleanupData, error: ticketCleanupError } = await supabase.rpc(
+      'cleanup_expired_tickets_batch',
+      { p_batch_size: 500, p_max_batches: 20 }
+    );
+
+    let expiredTicketsReleased = 0;
+    let batchesProcessed = 0;
+    let affectedRaffleIds: string[] = [];
+
+    if (ticketCleanupError) {
+      logStep("Error in batch ticket cleanup", { error: ticketCleanupError.message });
+      
+      // Fallback to direct order update for expired reservations
+      const { data: expiredReservations, error: expiredError } = await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          canceled_at: now,
+        })
+        .eq('status', 'reserved')
+        .lt('reserved_until', now)
+        .select('id, raffle_id');
+
+      if (!expiredError && expiredReservations) {
+        expiredTicketsReleased = expiredReservations.length;
+        affectedRaffleIds = [...new Set(expiredReservations.map(o => o.raffle_id))];
+      }
+    } else {
+      const result = ticketCleanupData?.[0];
+      expiredTicketsReleased = result?.total_released || 0;
+      batchesProcessed = result?.batches_processed || 0;
+      affectedRaffleIds = result?.affected_raffles || [];
+      
+      logStep("Expired ticket reservations cleaned", {
+        released: expiredTicketsReleased,
+        batches: batchesProcessed,
+        raffles: affectedRaffleIds.length,
+      });
     }
-
-    const expiredCount = expiredReservations?.length || 0;
-    logStep("Expired reservations cleaned", { count: expiredCount });
 
     // Invalidate Redis cache for affected raffles
-    if (expiredReservations && expiredReservations.length > 0) {
-      const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
-      const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
-      
-      if (redisUrl && redisToken) {
-        const uniqueRaffleIds = [...new Set(expiredReservations.map(o => o.raffle_id))];
-        logStep("Invalidating Redis cache for affected raffles", { count: uniqueRaffleIds.length });
-        
-        for (const raffleId of uniqueRaffleIds) {
-          try {
-            await fetch(redisUrl, {
-              method: 'POST',
-              headers: { 
-                Authorization: `Bearer ${redisToken}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(['DEL', `counts:${raffleId}`]),
-            });
-          } catch (e) {
-            logStep("Failed to invalidate cache for raffle", { raffleId, error: String(e) });
-          }
-        }
-      }
+    if (affectedRaffleIds.length > 0 && redisUrl && redisToken) {
+      await invalidateCachesForRaffles(redisUrl, redisToken, affectedRaffleIds);
     }
 
+    // =========================================================================
     // 2. Delete old cancelled orders (>7 days old)
+    // =========================================================================
     logStep("Deleting old cancelled orders");
     const { data: oldCancelled, error: cancelledError } = await supabase
       .from('orders')
@@ -112,8 +153,9 @@ serve(async (req) => {
     const oldCancelledCount = oldCancelled?.length || 0;
     logStep("Old cancelled orders deleted", { count: oldCancelledCount });
 
+    // =========================================================================
     // 3. Delete very old pending orders that were never completed (>30 days)
-    // These are likely abandoned checkouts that never got payment proof
+    // =========================================================================
     logStep("Deleting old abandoned pending orders");
     const { data: oldPending, error: pendingError } = await supabase
       .from('orders')
@@ -130,11 +172,16 @@ serve(async (req) => {
     const oldPendingCount = oldPending?.length || 0;
     logStep("Old pending orders deleted", { count: oldPendingCount });
 
+    // =========================================================================
+    // Summary
+    // =========================================================================
     const executionTimeMs = Date.now() - startTime;
-    const totalCleaned = expiredCount + oldCancelledCount + oldPendingCount;
+    const totalCleaned = expiredTicketsReleased + oldCancelledCount + oldPendingCount;
 
-    logStep("Cleanup completed", { 
-      expiredReservations: expiredCount,
+    logStep("Cleanup completed", {
+      expiredTicketsReleased,
+      batchesProcessed,
+      affectedRaffles: affectedRaffleIds.length,
       oldCancelledOrders: oldCancelledCount,
       oldPendingOrders: oldPendingCount,
       totalCleaned,
@@ -142,7 +189,9 @@ serve(async (req) => {
     });
 
     const result: CleanupResult = {
-      expiredReservations: expiredCount,
+      expiredTicketsReleased,
+      batchesProcessed,
+      affectedRaffles: affectedRaffleIds.length,
       oldCancelledOrders: oldCancelledCount,
       oldPendingOrders: oldPendingCount,
       totalCleaned,
