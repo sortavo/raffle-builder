@@ -3,9 +3,11 @@
 // ============================================================================
 // Removes expired reservations and old abandoned orders
 // Now uses optimized batch cleanup with SKIP LOCKED for non-blocking operation
+// Phase 7: Uses Redis pipeline for efficient batch cache invalidation
 // Recommended schedule: Every 5-15 minutes via cron job
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { redisPipeline } from "../_shared/redis-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +30,8 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 /**
- * Invalidate Redis cache for multiple raffles
+ * Phase 7: Invalidate Redis cache for multiple raffles using pipeline
+ * Much more efficient than individual DEL commands
  */
 async function invalidateCachesForRaffles(
   redisUrl: string,
@@ -37,21 +40,19 @@ async function invalidateCachesForRaffles(
 ): Promise<void> {
   if (!raffleIds || raffleIds.length === 0) return;
 
-  logStep('Invalidating Redis cache for affected raffles', { count: raffleIds.length });
+  logStep('Invalidating Redis cache for affected raffles (pipeline)', { count: raffleIds.length });
 
-  for (const raffleId of raffleIds) {
-    try {
-      await fetch(redisUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${redisToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(['DEL', `counts:${raffleId}`]),
-      });
-    } catch (e) {
-      logStep('Failed to invalidate cache for raffle', { raffleId, error: String(e) });
-    }
+  // Use pipeline for batch deletion
+  const commands = raffleIds.map(id => ['DEL', `counts:${id}`]);
+  const result = await redisPipeline(redisUrl, redisToken, commands);
+
+  if (result.error) {
+    logStep('Pipeline cache invalidation failed', { error: result.error });
+  } else {
+    logStep('Pipeline cache invalidation complete', { 
+      raffleCount: raffleIds.length,
+      results: result.results?.length || 0 
+    });
   }
 }
 
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Invalidate Redis cache for affected raffles
+    // Phase 7: Use pipeline for efficient batch cache invalidation
     if (affectedRaffleIds.length > 0 && redisUrl && redisToken) {
       await invalidateCachesForRaffles(redisUrl, redisToken, affectedRaffleIds);
     }

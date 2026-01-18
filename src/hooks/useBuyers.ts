@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface Buyer {
   id: string;
@@ -36,6 +37,10 @@ export interface BuyersSummaryStats {
   confirmedCount: number;
   avgPerBuyer: number;
 }
+
+// Phase 7: Memory safeguards for exports
+const MAX_EXPORT_PAGES = 100; // Safety: 100 × 1000 = 100k max records
+const MAX_MEMORY_BYTES = 50 * 1024 * 1024; // 50MB limit
 
 export const useBuyers = (raffleId: string | undefined) => {
   // Get summary stats (global, not paginated)
@@ -137,7 +142,7 @@ export const useBuyers = (raffleId: string | undefined) => {
     });
   };
 
-  // Export buyers to CSV - uses server-side pagination for large datasets
+  // Export buyers to CSV - uses server-side pagination with memory safeguards
   const exportBuyers = async () => {
     if (!raffleId) return '';
 
@@ -146,8 +151,10 @@ export const useBuyers = (raffleId: string | undefined) => {
     let page = 1;
     const pageSize = 1000;
     let hasMore = true;
+    let memoryLimitReached = false;
+    let pageLimitReached = false;
 
-    while (hasMore) {
+    while (hasMore && page <= MAX_EXPORT_PAGES) {
       const { data, error } = await supabase.rpc('get_buyers_paginated', {
         p_raffle_id: raffleId,
         p_status: null,
@@ -159,7 +166,10 @@ export const useBuyers = (raffleId: string | undefined) => {
         p_page_size: pageSize,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[exportBuyers] Error fetching page:', page, error);
+        break;
+      }
 
       if (!data || data.length === 0) {
         hasMore = false;
@@ -183,12 +193,30 @@ export const useBuyers = (raffleId: string | undefined) => {
 
         allBuyers.push(...buyers);
         
-        if (data.length < pageSize) {
+        // Memory check - estimate size of accumulated data
+        const estimatedSize = JSON.stringify(allBuyers).length;
+        if (estimatedSize > MAX_MEMORY_BYTES) {
+          console.warn(`[exportBuyers] Export truncated at ${allBuyers.length} records (memory limit: ${MAX_MEMORY_BYTES} bytes)`);
+          memoryLimitReached = true;
+          hasMore = false;
+        } else if (data.length < pageSize) {
           hasMore = false;
         } else {
           page++;
         }
       }
+    }
+
+    // Check if we hit the page limit
+    if (page > MAX_EXPORT_PAGES) {
+      pageLimitReached = true;
+    }
+
+    // Show warnings for truncated exports
+    if (memoryLimitReached) {
+      toast.warning(`Export parcial: límite de memoria alcanzado (${allBuyers.length} registros)`);
+    } else if (pageLimitReached) {
+      toast.warning(`Export limitado a ${MAX_EXPORT_PAGES * pageSize} registros`);
     }
 
     const headers = ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Boletos', 'Cantidad', 'Estado', 'Fecha'];

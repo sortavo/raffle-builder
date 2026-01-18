@@ -80,65 +80,69 @@ export interface AdminUserStats {
   }>;
 }
 
+// ============================================================================
+// Phase 7: Consolidated Admin Overview Stats (replaces 10+ queries with 1)
+// ============================================================================
 export function useAdminOverviewStats(dateRange: DateRange | undefined) {
   return useQuery({
     queryKey: ["admin-overview-stats", dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async (): Promise<AdminOverviewStats> => {
-      const fromDate = dateRange?.from?.toISOString() || new Date(0).toISOString();
-      const toDate = dateRange?.to?.toISOString() || new Date().toISOString();
+      const fromDate = dateRange?.from ? dateRange.from.toISOString().split('T')[0] : null;
+      const toDate = dateRange?.to ? dateRange.to.toISOString().split('T')[0] : null;
 
-      // Query orders table for ticket counts
-      const [
-        { count: totalOrgs },
-        { count: totalUsers },
-        { count: totalRaffles },
-        { count: activeRaffles },
-        { data: soldOrdersData },
-        { count: newOrgsInPeriod },
-        { count: newUsersInPeriod },
-        { count: newRafflesInPeriod },
-        { data: soldInPeriodData },
-        { data: subscriptionData },
-      ] = await Promise.all([
-        supabase.from("organizations").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("raffles").select("*", { count: "exact", head: true }),
-        supabase.from("raffles").select("*", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("orders").select("ticket_count").eq("status", "sold"),
-        supabase.from("organizations").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
-        supabase.from("raffles").select("*", { count: "exact", head: true }).gte("created_at", fromDate).lte("created_at", toDate),
-        supabase.from("orders").select("ticket_count").eq("status", "sold").gte("sold_at", fromDate).lte("sold_at", toDate),
-        supabase.from("organizations").select("subscription_tier, subscription_status"),
-      ]);
-
-      // Sum ticket_count from orders
-      const totalTicketsSold = soldOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
-      const ticketsSoldInPeriod = soldInPeriodData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
-
-      const subscriptionStats = { basic: 0, pro: 0, premium: 0, trial: 0, active: 0 };
-      subscriptionData?.forEach((org) => {
-        if (org.subscription_tier) {
-          subscriptionStats[org.subscription_tier as keyof typeof subscriptionStats]++;
-        }
-        if (org.subscription_status === "trial") {
-          subscriptionStats.trial++;
-        } else if (org.subscription_status === "active") {
-          subscriptionStats.active++;
-        }
+      // Single RPC call replaces 10+ individual queries
+      const { data, error } = await supabase.rpc('get_admin_overview_stats', {
+        p_from_date: fromDate,
+        p_to_date: toDate,
       });
 
+      if (error) {
+        console.error('[useAdminOverviewStats] RPC error:', error);
+        throw error;
+      }
+
+      // Parse JSONB result
+      const stats = data as {
+        total_organizations: number;
+        active_organizations: number;
+        total_users: number;
+        total_raffles: number;
+        active_raffles: number;
+        completed_raffles: number;
+        new_orgs_in_period: number;
+        new_users_in_period: number;
+        new_raffles_in_period: number;
+        total_tickets_sold: number;
+        tickets_sold_in_period: number;
+        total_revenue: number;
+        subscriptions: {
+          basic: number;
+          pro: number;
+          premium: number;
+          enterprise: number;
+          free: number;
+          trial: number;
+          active: number;
+        };
+      };
+
       return {
-        totalOrgs: totalOrgs || 0,
-        totalUsers: totalUsers || 0,
-        totalRaffles: totalRaffles || 0,
-        activeRaffles: activeRaffles || 0,
-        totalTicketsSold: totalTicketsSold || 0,
-        newOrgsInPeriod: newOrgsInPeriod || 0,
-        newUsersInPeriod: newUsersInPeriod || 0,
-        newRafflesInPeriod: newRafflesInPeriod || 0,
-        ticketsSoldInPeriod: ticketsSoldInPeriod || 0,
-        subscriptionStats,
+        totalOrgs: stats.total_organizations || 0,
+        totalUsers: stats.total_users || 0,
+        totalRaffles: stats.total_raffles || 0,
+        activeRaffles: stats.active_raffles || 0,
+        totalTicketsSold: stats.total_tickets_sold || 0,
+        newOrgsInPeriod: stats.new_orgs_in_period || 0,
+        newUsersInPeriod: stats.new_users_in_period || 0,
+        newRafflesInPeriod: stats.new_raffles_in_period || 0,
+        ticketsSoldInPeriod: stats.tickets_sold_in_period || 0,
+        subscriptionStats: {
+          basic: stats.subscriptions?.basic || 0,
+          pro: stats.subscriptions?.pro || 0,
+          premium: stats.subscriptions?.premium || 0,
+          trial: stats.subscriptions?.trial || 0,
+          active: stats.subscriptions?.active || 0,
+        },
       };
     },
   });
@@ -154,7 +158,6 @@ export function useAdminFinancialStats(dateRange: DateRange | undefined) {
 
       const activeSubscriptions = orgs?.filter(o => o.subscription_status === "active").length || 0;
       const canceledSubscriptions = orgs?.filter(o => o.subscription_status === "canceled").length || 0;
-      const trialOrgs = orgs?.filter(o => o.subscription_status === "trial").length || 0;
 
       // Estimate MRR based on subscription tiers
       const tierPrices = { basic: 29, pro: 79, premium: 199 };
@@ -220,23 +223,31 @@ export function useAdminActivityStats(dateRange: DateRange | undefined) {
       const ticketsReserved = reservedOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
       const pendingApprovals = pendingOrdersData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
 
-      // Get ticket counts for each raffle from orders
+      // Get ticket counts for each raffle from orders (batched query)
       const topRaffles: AdminActivityStats["topRaffles"] = [];
-      if (rafflesData) {
+      if (rafflesData && rafflesData.length > 0) {
+        const raffleIds = rafflesData.map(r => r.id);
+        
+        // Batch query for all raffle sold counts
+        const { data: allSoldData } = await supabase
+          .from("orders")
+          .select("raffle_id, ticket_count")
+          .in("raffle_id", raffleIds)
+          .eq("status", "sold");
+
+        // Group by raffle_id
+        const soldByRaffle = new Map<string, number>();
+        allSoldData?.forEach(order => {
+          const current = soldByRaffle.get(order.raffle_id) || 0;
+          soldByRaffle.set(order.raffle_id, current + (order.ticket_count || 0));
+        });
+
         for (const raffle of rafflesData) {
-          const { data: raffleSoldData } = await supabase
-            .from("orders")
-            .select("ticket_count")
-            .eq("raffle_id", raffle.id)
-            .eq("status", "sold");
-
-          const soldCount = raffleSoldData?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
-
           topRaffles.push({
             id: raffle.id,
             title: raffle.title,
             organization_name: (raffle.organizations as any)?.name || "Sin organización",
-            tickets_sold: soldCount,
+            tickets_sold: soldByRaffle.get(raffle.id) || 0,
             total_tickets: raffle.total_tickets,
           });
         }
