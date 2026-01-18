@@ -1693,6 +1693,69 @@ export type Database = {
           },
         ]
       }
+      ticket_reservation_status: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_reservation_status_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reservation_status_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "public_ticket_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2021,7 +2084,34 @@ export type Database = {
           ticket_ranges: Json
         }[]
       }
+      atomic_reserve_tickets_v2: {
+        Args: {
+          p_buyer_city?: string
+          p_buyer_email: string
+          p_buyer_name: string
+          p_buyer_phone?: string
+          p_is_lucky_numbers?: boolean
+          p_order_total?: number
+          p_raffle_id: string
+          p_reservation_minutes?: number
+          p_ticket_indices: number[]
+        }
+        Returns: {
+          conflict_indices: number[]
+          error_message: string
+          order_id: string
+          reference_code: string
+          reserved_indices: number[]
+          reserved_until: string
+          success: boolean
+          ticket_count: number
+        }[]
+      }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
+      cancel_order_and_release_v2: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       check_indices_available: {
         Args: { p_indices: number[]; p_raffle_id: string }
         Returns: {
@@ -2038,6 +2128,13 @@ export type Database = {
           status: string
         }[]
       }
+      check_tickets_available_v2: {
+        Args: { p_raffle_id: string; p_ticket_indices: number[] }
+        Returns: {
+          available: boolean
+          unavailable_indices: number[]
+        }[]
+      }
       cleanup_expired_orders: { Args: never; Returns: number }
       cleanup_expired_reservations_batch: {
         Args: { p_batch_size?: number; p_max_batches?: number }
@@ -2048,7 +2145,16 @@ export type Database = {
           unique_raffles_affected: number
         }[]
       }
+      cleanup_expired_tickets_batch: {
+        Args: { p_batch_size?: number; p_max_batches?: number }
+        Returns: {
+          affected_raffles: string[]
+          batches_processed: number
+          total_released: number
+        }[]
+      }
       compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
+      confirm_order_sale_v2: { Args: { p_order_id: string }; Returns: boolean }
       count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }
       expand_order_to_indices: {
         Args: { p_lucky_indices: number[]; p_ticket_ranges: Json }
