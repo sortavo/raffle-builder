@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DateRange } from "react-day-picker";
+import { logger } from "@/lib/logger";
 
 export interface AdminOverviewStats {
   totalOrgs: number;
@@ -330,5 +331,120 @@ export function useAdminUserStats(dateRange: DateRange | undefined) {
         })),
       };
     },
+  });
+}
+
+// ============================================================================
+// Phase 10: Materialized View Hooks (Ultra-fast pre-computed stats)
+// ============================================================================
+
+interface MVAdminStats {
+  total_organizations: number;
+  active_subscriptions: number;
+  trial_subscriptions: number;
+  canceled_subscriptions: number;
+  total_users: number;
+  total_raffles: number;
+  active_raffles: number;
+  completed_raffles: number;
+  total_tickets_sold: number;
+  total_revenue: number;
+  tier_basic: number;
+  tier_pro: number;
+  tier_premium: number;
+  tier_enterprise: number;
+  tier_none: number;
+  refreshed_at: string;
+}
+
+interface MVDailyStat {
+  stat_date: string;
+  orders_count: number;
+  tickets_sold: number;
+  revenue: number;
+}
+
+interface MVTopRaffle {
+  raffle_id: string;
+  title: string;
+  organization_id: string;
+  organization_name: string;
+  total_tickets: number;
+  status: string;
+  tickets_sold: number;
+  revenue: number;
+  created_at: string;
+}
+
+/**
+ * Ultra-fast admin stats from materialized view
+ * Refreshed every 5 minutes via scheduled function
+ */
+export function useAdminStatsMV() {
+  return useQuery({
+    queryKey: ["admin-stats-mv"],
+    queryFn: async (): Promise<MVAdminStats | null> => {
+      const { data, error } = await supabase
+        .from('mv_admin_stats')
+        .select('*')
+        .single();
+
+      if (error) {
+        logger.error('[useAdminStatsMV] Error fetching MV:', error);
+        throw error;
+      }
+
+      return data as MVAdminStats;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min - matches MV refresh rate
+  });
+}
+
+/**
+ * Daily stats from materialized view for trend charts
+ */
+export function useDailyStatsMV(days: number = 30) {
+  return useQuery({
+    queryKey: ["daily-stats-mv", days],
+    queryFn: async (): Promise<MVDailyStat[]> => {
+      const cutoffDate = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('mv_daily_stats')
+        .select('*')
+        .gte('stat_date', cutoffDate)
+        .order('stat_date', { ascending: true });
+
+      if (error) {
+        logger.error('[useDailyStatsMV] Error fetching MV:', error);
+        throw error;
+      }
+
+      return (data || []) as MVDailyStat[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Top raffles from materialized view
+ */
+export function useTopRafflesMV(limit: number = 10) {
+  return useQuery({
+    queryKey: ["top-raffles-mv", limit],
+    queryFn: async (): Promise<MVTopRaffle[]> => {
+      const { data, error } = await supabase
+        .from('mv_top_raffles')
+        .select('*')
+        .limit(limit);
+
+      if (error) {
+        logger.error('[useTopRafflesMV] Error fetching MV:', error);
+        throw error;
+      }
+
+      return (data || []) as MVTopRaffle[];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }

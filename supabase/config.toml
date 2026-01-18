@@ -137,3 +137,9 @@ verify_jwt = false
 
 [functions.get-ticket-counts]
 verify_jwt = false
+
+[functions.process-job-queue]
+verify_jwt = false
+
+[functions.refresh-materialized-views]
+verify_jwt = false
