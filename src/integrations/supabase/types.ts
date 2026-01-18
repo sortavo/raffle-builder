@@ -2787,6 +2787,36 @@ export type Database = {
       }
     }
     Views: {
+      cron_job_status: {
+        Row: {
+          active: boolean | null
+          job_type: string | null
+          jobid: number | null
+          jobname: string | null
+          last_run: string | null
+          last_status: string | null
+          schedule: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          job_type?: never
+          jobid?: number | null
+          jobname?: string | null
+          last_run?: never
+          last_status?: never
+          schedule?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          job_type?: never
+          jobid?: number | null
+          jobname?: string | null
+          last_run?: never
+          last_status?: never
+          schedule?: string | null
+        }
+        Relationships: []
+      }
       mv_admin_stats: {
         Row: {
           active_raffles: number | null
@@ -3531,6 +3561,10 @@ export type Database = {
       }
       initialize_ticket_blocks: {
         Args: { p_raffle_id: string }
+        Returns: number
+      }
+      invoke_edge_function: {
+        Args: { function_name: string; payload?: Json }
         Returns: number
       }
       is_index_in_order: {
