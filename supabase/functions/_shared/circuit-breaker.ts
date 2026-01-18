@@ -1,123 +1,285 @@
-// ============================================================================
-// Circuit Breaker Pattern for External API Resilience
-// ============================================================================
-// Prevents cascade failures when external APIs (Vercel, Stripe) are down
-// States: closed (normal) → open (failing) → half-open (testing recovery)
+/**
+ * Persistent Circuit Breaker using Redis
+ * State survives cold starts and is shared across all Edge Function isolates
+ *
+ * States:
+ * - closed: Normal operation, all requests pass through
+ * - open: Service is failing, requests are rejected immediately
+ * - half-open: Testing if service has recovered, limited requests allowed
+ */
 
-interface CircuitState {
+export type CircuitState = 'closed' | 'open' | 'half-open';
+
+export interface CircuitStatus {
+  state: CircuitState;
   failures: number;
   lastFailure: number;
-  state: 'closed' | 'open' | 'half-open';
+  lastSuccess: number;
+  openedAt: number | null;
+  halfOpenSuccesses: number;
 }
 
-// In-memory circuit state (per isolate, resets on cold start)
-const circuits = new Map<string, CircuitState>();
+export interface CircuitConfig {
+  failureThreshold: number;    // Failures before opening circuit
+  successThreshold: number;    // Successes in half-open before closing
+  timeout: number;             // Ms before trying half-open
+  resetTimeout: number;        // Ms of success before resetting failure count
+}
 
-// Configuration
-const FAILURE_THRESHOLD = 3;      // Failures before opening circuit
-const RESET_TIMEOUT_MS = 60000;   // Time before trying half-open (1 minute)
+// Default configuration
+const DEFAULT_CONFIG: CircuitConfig = {
+  failureThreshold: 3,
+  successThreshold: 2,
+  timeout: 30000,        // 30 seconds before half-open
+  resetTimeout: 60000,   // 1 minute of success to reset
+};
+
+const CIRCUIT_PREFIX = 'circuit:';
+const CIRCUIT_TTL_SECONDS = 3600; // 1 hour TTL for circuit state
+
+// In-memory fallback when Redis is unavailable
+const memoryCircuits = new Map<string, CircuitStatus>();
 
 /**
- * Check if circuit is open (should not make requests)
+ * Get circuit status from Redis, with in-memory fallback.
  */
-export function isCircuitOpen(service: string): boolean {
-  const circuit = circuits.get(service);
-  
-  if (!circuit) {
-    return false; // No circuit = closed (allow requests)
+export async function getCircuitStatus(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string
+): Promise<CircuitStatus> {
+  const defaultStatus: CircuitStatus = {
+    state: 'closed',
+    failures: 0,
+    lastFailure: 0,
+    lastSuccess: Date.now(),
+    openedAt: null,
+    halfOpenSuccesses: 0,
+  };
+
+  // If no Redis, use memory fallback
+  if (!redisUrl || !redisToken) {
+    return memoryCircuits.get(serviceName) || defaultStatus;
   }
 
-  if (circuit.state === 'open') {
-    // Check if enough time has passed to try half-open
-    if (Date.now() - circuit.lastFailure > RESET_TIMEOUT_MS) {
-      circuit.state = 'half-open';
-      console.log(`[CircuitBreaker] ${service}: open → half-open (testing recovery)`);
+  try {
+    const response = await fetch(redisUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(['GET', `${CIRCUIT_PREFIX}${serviceName}`]),
+    });
+
+    if (!response.ok) {
+      return memoryCircuits.get(serviceName) || defaultStatus;
+    }
+
+    const data = await response.json();
+    if (data.result) {
+      const status = JSON.parse(data.result as string) as CircuitStatus;
+      // Also cache in memory for faster subsequent reads
+      memoryCircuits.set(serviceName, status);
+      return status;
+    }
+  } catch (e) {
+    console.warn(`[CIRCUIT-BREAKER] Redis get failed for ${serviceName}:`, e);
+  }
+
+  return memoryCircuits.get(serviceName) || defaultStatus;
+}
+
+/**
+ * Save circuit status to Redis, with in-memory fallback.
+ */
+async function setCircuitStatus(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string,
+  status: CircuitStatus
+): Promise<void> {
+  // Always update memory cache
+  memoryCircuits.set(serviceName, status);
+
+  // If no Redis, we're done
+  if (!redisUrl || !redisToken) {
+    return;
+  }
+
+  try {
+    await fetch(redisUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${redisToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        'SET',
+        `${CIRCUIT_PREFIX}${serviceName}`,
+        JSON.stringify(status),
+        'EX', CIRCUIT_TTL_SECONDS.toString()
+      ]),
+    });
+  } catch (e) {
+    console.warn(`[CIRCUIT-BREAKER] Redis set failed for ${serviceName}:`, e);
+  }
+}
+
+/**
+ * Check if circuit is open (should block requests).
+ */
+export async function isCircuitOpen(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string,
+  config: CircuitConfig = DEFAULT_CONFIG
+): Promise<boolean> {
+  const status = await getCircuitStatus(redisUrl, redisToken, serviceName);
+  const now = Date.now();
+
+  if (status.state === 'open') {
+    // Check if timeout has passed to move to half-open
+    if (status.openedAt && now - status.openedAt >= config.timeout) {
+      // Move to half-open
+      status.state = 'half-open';
+      status.halfOpenSuccesses = 0;
+      await setCircuitStatus(redisUrl, redisToken, serviceName, status);
+      console.log(`[CIRCUIT-BREAKER] ${serviceName}: open -> half-open (testing recovery)`);
       return false; // Allow test request
     }
-    return true; // Still open, reject request
+    return true; // Still open, block request
   }
 
-  return false; // closed or half-open = allow requests
+  return false; // closed or half-open = allow request
 }
 
 /**
- * Record a successful request (closes circuit)
+ * Record a successful request (may close circuit from half-open).
  */
-export function recordSuccess(service: string): void {
-  const circuit = circuits.get(service);
-  
-  if (circuit && circuit.state === 'half-open') {
-    console.log(`[CircuitBreaker] ${service}: half-open → closed (recovered)`);
-  }
-  
-  circuits.set(service, {
-    failures: 0,
-    lastFailure: 0,
-    state: 'closed',
-  });
-}
+export async function recordSuccess(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string,
+  config: CircuitConfig = DEFAULT_CONFIG
+): Promise<void> {
+  const status = await getCircuitStatus(redisUrl, redisToken, serviceName);
+  const now = Date.now();
 
-/**
- * Record a failed request (may open circuit)
- */
-export function recordFailure(service: string): void {
-  const circuit = circuits.get(service) || {
-    failures: 0,
-    lastFailure: 0,
-    state: 'closed' as const,
-  };
+  status.lastSuccess = now;
 
-  circuit.failures++;
-  circuit.lastFailure = Date.now();
-
-  if (circuit.failures >= FAILURE_THRESHOLD) {
-    if (circuit.state !== 'open') {
-      console.log(`[CircuitBreaker] ${service}: ${circuit.state} → open (${circuit.failures} failures)`);
+  if (status.state === 'half-open') {
+    status.halfOpenSuccesses++;
+    
+    if (status.halfOpenSuccesses >= config.successThreshold) {
+      status.state = 'closed';
+      status.failures = 0;
+      status.openedAt = null;
+      status.halfOpenSuccesses = 0;
+      console.log(`[CIRCUIT-BREAKER] ${serviceName}: half-open -> closed (recovered after ${config.successThreshold} successes)`);
     }
-    circuit.state = 'open';
+  } else if (status.state === 'closed') {
+    // Reset failures after sustained success
+    if (now - status.lastFailure > config.resetTimeout) {
+      status.failures = 0;
+    }
   }
 
-  circuits.set(service, circuit);
+  await setCircuitStatus(redisUrl, redisToken, serviceName, status);
 }
 
 /**
- * Get circuit status for monitoring
+ * Record a failed request (may open circuit).
  */
-export function getCircuitStatus(service: string): {
-  state: 'closed' | 'open' | 'half-open';
-  failures: number;
-  lastFailureAgo: number | null;
-} {
-  const circuit = circuits.get(service);
-  
-  if (!circuit) {
-    return { state: 'closed', failures: 0, lastFailureAgo: null };
+export async function recordFailure(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string,
+  config: CircuitConfig = DEFAULT_CONFIG
+): Promise<void> {
+  const status = await getCircuitStatus(redisUrl, redisToken, serviceName);
+  const now = Date.now();
+
+  status.failures++;
+  status.lastFailure = now;
+
+  if (status.state === 'half-open') {
+    // Any failure in half-open immediately opens the circuit
+    status.state = 'open';
+    status.openedAt = now;
+    status.halfOpenSuccesses = 0;
+    console.log(`[CIRCUIT-BREAKER] ${serviceName}: half-open -> open (failed during recovery test)`);
+  } else if (status.state === 'closed' && status.failures >= config.failureThreshold) {
+    status.state = 'open';
+    status.openedAt = now;
+    console.log(`[CIRCUIT-BREAKER] ${serviceName}: closed -> open (${status.failures} failures >= threshold ${config.failureThreshold})`);
   }
 
-  return {
-    state: circuit.state,
-    failures: circuit.failures,
-    lastFailureAgo: circuit.lastFailure ? Date.now() - circuit.lastFailure : null,
-  };
+  await setCircuitStatus(redisUrl, redisToken, serviceName, status);
 }
 
 /**
- * Reset circuit (for testing or manual recovery)
+ * Wrapper function to execute an operation with circuit breaker protection.
+ * Throws an error if circuit is open.
  */
-export function resetCircuit(service: string): void {
-  circuits.delete(service);
-  console.log(`[CircuitBreaker] ${service}: manually reset`);
+export async function withCircuitBreaker<T>(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string,
+  operation: () => Promise<T>,
+  config: CircuitConfig = DEFAULT_CONFIG
+): Promise<T> {
+  if (await isCircuitOpen(redisUrl, redisToken, serviceName, config)) {
+    throw new Error(`Circuit breaker open for ${serviceName}`);
+  }
+
+  try {
+    const result = await operation();
+    await recordSuccess(redisUrl, redisToken, serviceName, config);
+    return result;
+  } catch (error) {
+    await recordFailure(redisUrl, redisToken, serviceName, config);
+    throw error;
+  }
 }
 
 /**
- * Get all circuit statuses
+ * Get all circuit statuses for monitoring.
  */
-export function getAllCircuitStatuses(): Record<string, ReturnType<typeof getCircuitStatus>> {
-  const statuses: Record<string, ReturnType<typeof getCircuitStatus>> = {};
+export function getAllCircuitStatuses(): Record<string, CircuitStatus> {
+  const statuses: Record<string, CircuitStatus> = {};
   
-  for (const [service] of circuits) {
-    statuses[service] = getCircuitStatus(service);
+  for (const [service, status] of memoryCircuits) {
+    statuses[service] = status;
   }
   
   return statuses;
+}
+
+/**
+ * Reset a circuit manually (for testing or recovery).
+ */
+export async function resetCircuit(
+  redisUrl: string | undefined,
+  redisToken: string | undefined,
+  serviceName: string
+): Promise<void> {
+  memoryCircuits.delete(serviceName);
+
+  if (redisUrl && redisToken) {
+    try {
+      await fetch(redisUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['DEL', `${CIRCUIT_PREFIX}${serviceName}`]),
+      });
+    } catch (e) {
+      console.warn(`[CIRCUIT-BREAKER] Redis reset failed for ${serviceName}:`, e);
+    }
+  }
+
+  console.log(`[CIRCUIT-BREAKER] ${serviceName}: manually reset`);
 }

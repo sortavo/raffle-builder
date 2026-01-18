@@ -1,14 +1,23 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// ============================================================================
+// Export Buyers CSV - True Streaming Implementation
+// ============================================================================
+// Uses TransformStream to stream CSV data directly to response
+// Prevents OOM errors for exports of 100K+ rows
+// Processes in batches without accumulating in memory
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from '../_shared/cors.ts';
 
 const STATUS_LABELS: Record<string, string> = {
   available: 'Disponible',
   reserved: 'Reservado',
   sold: 'Vendido',
+  pending: 'Pendiente',
   canceled: 'Cancelado',
 };
 
 const BATCH_SIZE = 1000;
+const MAX_ROWS = 500000; // 500K max to prevent runaway exports
 
 /**
  * Sanitize CSV cell to prevent formula injection attacks.
@@ -16,11 +25,21 @@ const BATCH_SIZE = 1000;
  */
 function sanitizeCSVCell(value: string | null | undefined): string {
   const str = String(value || '');
-  // Escape formula injection characters
   if (/^[=+\-@\t\r]/.test(str)) {
     return "'" + str;
   }
   return str;
+}
+
+/**
+ * Escape a value for CSV (handle quotes and commas)
+ */
+function escapeCSV(value: string): string {
+  if (!value) return '';
+  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
 Deno.serve(async (req) => {
@@ -54,11 +73,11 @@ Deno.serve(async (req) => {
       return corsJsonResponse(req, { error: 'Invalid or expired token' }, 401);
     }
 
-    // Parse body with try-catch
+    // Parse body
     let body;
     try {
       body = await req.json();
-    } catch (e) {
+    } catch {
       return corsJsonResponse(req, { error: 'Invalid JSON body' }, 400);
     }
 
@@ -69,10 +88,11 @@ Deno.serve(async (req) => {
     }
 
     // Service client for DB operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
 
     // ========== AUTHORIZATION ==========
-    // Get raffle and verify organization access
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
       .select('title, organization_id')
@@ -97,108 +117,124 @@ Deno.serve(async (req) => {
       return corsJsonResponse(req, { error: 'No tienes permiso para exportar datos de esta rifa' }, 403);
     }
 
-    console.log(`[EXPORT-BUYERS] Authorized: user ${user.id} with role '${userRole.role}' exporting buyers for raffle ${raffle_id}`);
+    console.log(`[EXPORT-BUYERS] Authorized: user ${user.id} with role '${userRole.role}' exporting for raffle ${raffle_id}`);
 
-    // ========== BUSINESS LOGIC ==========
+    // ========== STREAMING EXPORT ==========
     const raffleName = raffle?.title || raffle_id.slice(0, 8);
-
-    // Get total count first
-    const { data: firstPage } = await supabase.rpc('get_buyers_paginated', {
-      p_raffle_id: raffle_id,
-      p_status: status_filter || null,
-      p_city: null,
-      p_search: null,
-      p_start_date: null,
-      p_end_date: null,
-      p_page: 1,
-      p_page_size: 1,
-    });
-
-    const totalCount = firstPage && firstPage.length > 0 ? Number(firstPage[0].total_count) : 0;
-    console.log(`Total buyers to export: ${totalCount}`);
-
-    if (totalCount === 0) {
-      return corsJsonResponse(req, { error: 'No buyers found' }, 404);
-    }
-
-    // CSV headers
-    const headers = ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Boletos', 'Cantidad', 'Estado', 'Fecha'];
-    const csvRows: string[] = [headers.join(',')];
-
-    // Fetch and process in batches
-    let page = 1;
-    let processedCount = 0;
-
-    while (processedCount < totalCount) {
-      console.log(`Fetching batch ${page}, processed: ${processedCount}/${totalCount}`);
-
-      const { data: buyers, error } = await supabase.rpc('get_buyers_paginated', {
-        p_raffle_id: raffle_id,
-        p_status: status_filter || null,
-        p_city: null,
-        p_search: null,
-        p_start_date: null,
-        p_end_date: null,
-        p_page: page,
-        p_page_size: BATCH_SIZE,
-      });
-
-      if (error) {
-        console.error('Error fetching buyers:', error);
-        throw error;
-      }
-
-      if (!buyers || buyers.length === 0) break;
-
-      // Convert each buyer to CSV row with sanitization
-      for (const buyer of buyers) {
-        const row = [
-          sanitizeCSVCell(buyer.buyer_name),
-          sanitizeCSVCell(buyer.buyer_email),
-          sanitizeCSVCell(buyer.buyer_phone),
-          sanitizeCSVCell(buyer.buyer_city),
-          (buyer.ticket_numbers || []).join('; '),  // Ticket numbers are numeric, safe
-          String(buyer.ticket_count || 0),
-          STATUS_LABELS[buyer.status] || buyer.status || '',
-          buyer.first_reserved_at ? new Date(buyer.first_reserved_at).toLocaleString('es-MX') : '',
-        ];
-
-        // Escape CSV values (quotes)
-        const escapedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`);
-        csvRows.push(escapedRow.join(','));
-      }
-
-      processedCount += buyers.length;
-      page++;
-
-      // Safety check to prevent infinite loops
-      if (page > 10000) {
-        console.warn('Reached maximum page limit');
-        break;
-      }
-    }
-
-    console.log(`Export complete: ${processedCount} buyers`);
-
-    // Add BOM for UTF-8 Excel compatibility
-    const BOM = '\uFEFF';
-    const csvContent = BOM + csvRows.join('\n');
-
-    // Generate filename
-    const sanitizedName = raffleName.replace(/[^a-zA-Z0-9]/g, '-');
+    const sanitizedName = raffleName.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 50);
     const fileName = `compradores-${sanitizedName}-${Date.now()}.csv`;
 
-    return new Response(csvContent, {
+    // Create a TransformStream for true streaming
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    // Start the response immediately with streaming headers
+    const response = new Response(readable, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${fileName}"`,
-        'X-Total-Count': String(processedCount),
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
       },
     });
 
+    // Process in background (non-blocking)
+    (async () => {
+      let totalWritten = 0;
+
+      try {
+        // Write BOM for Excel UTF-8 compatibility
+        await writer.write(encoder.encode('\ufeff'));
+
+        // Write CSV headers
+        const headers = ['Nombre', 'Email', 'Teléfono', 'Ciudad', 'Boletos', 'Cantidad', 'Estado', 'Fecha'];
+        await writer.write(encoder.encode(headers.join(',') + '\n'));
+
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore && totalWritten < MAX_ROWS) {
+          // Fetch batch using paginated RPC
+          const { data: buyers, error } = await supabase.rpc('get_buyers_paginated', {
+            p_raffle_id: raffle_id,
+            p_status: status_filter || null,
+            p_city: null,
+            p_search: null,
+            p_start_date: null,
+            p_end_date: null,
+            p_page: page,
+            p_page_size: BATCH_SIZE,
+          });
+
+          if (error) {
+            console.error('[EXPORT-BUYERS] Batch fetch error:', error);
+            throw error;
+          }
+
+          if (!buyers || buyers.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          // Stream each row immediately
+          for (const buyer of buyers) {
+            if (totalWritten >= MAX_ROWS) break;
+
+            const ticketNumbers = (buyer.ticket_numbers || []).join('; ');
+            const status = STATUS_LABELS[buyer.status] || buyer.status || '';
+            const date = buyer.first_reserved_at 
+              ? new Date(buyer.first_reserved_at).toLocaleString('es-MX')
+              : '';
+
+            const row = [
+              escapeCSV(sanitizeCSVCell(buyer.buyer_name)),
+              escapeCSV(sanitizeCSVCell(buyer.buyer_email)),
+              escapeCSV(sanitizeCSVCell(buyer.buyer_phone)),
+              escapeCSV(sanitizeCSVCell(buyer.buyer_city)),
+              escapeCSV(ticketNumbers),
+              String(buyer.ticket_count || 0),
+              escapeCSV(status),
+              escapeCSV(date),
+            ];
+
+            await writer.write(encoder.encode(row.join(',') + '\n'));
+            totalWritten++;
+          }
+
+          page++;
+          hasMore = buyers.length === BATCH_SIZE;
+
+          // Small delay between batches to prevent overwhelming the database
+          if (hasMore) {
+            await new Promise(r => setTimeout(r, 10));
+          }
+
+          // Log progress for monitoring
+          if (page % 10 === 0) {
+            console.log(`[EXPORT-BUYERS] Progress: ${totalWritten} rows exported`);
+          }
+        }
+
+        console.log(`[EXPORT-BUYERS] Complete: ${totalWritten} rows exported for raffle ${raffle_id}`);
+        await writer.close();
+      } catch (error) {
+        console.error('[EXPORT-BUYERS] Streaming error:', error);
+        // Try to write error message before aborting
+        try {
+          await writer.write(encoder.encode(`\n\nError during export: ${error instanceof Error ? error.message : String(error)}\n`));
+        } catch {
+          // Ignore write error on abort
+        }
+        await writer.abort(error instanceof Error ? error : new Error(String(error)));
+      }
+    })();
+
+    return response;
+
   } catch (error) {
-    console.error('Export error:', error);
+    console.error('[EXPORT-BUYERS] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return corsJsonResponse(req, { error: message }, 500);
   }

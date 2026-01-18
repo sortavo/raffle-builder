@@ -2,8 +2,7 @@
 // Cleanup Expired Orders Edge Function
 // ============================================================================
 // Removes expired reservations and old abandoned orders
-// Now uses optimized batch cleanup with SKIP LOCKED for non-blocking operation
-// Phase 7: Uses Redis pipeline for efficient batch cache invalidation
+// Uses optimized batch cleanup with auto-scaling and SKIP LOCKED
 // Recommended schedule: Every 5-15 minutes via cron job
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -22,6 +21,7 @@ interface CleanupResult {
   oldPendingOrders: number;
   totalCleaned: number;
   executionTimeMs: number;
+  autoScaled: boolean;
 }
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
@@ -30,7 +30,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 /**
- * Phase 7: Invalidate Redis cache for multiple raffles using pipeline
+ * Invalidate Redis cache for multiple raffles using pipeline
  * Much more efficient than individual DEL commands
  */
 async function invalidateCachesForRaffles(
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    logStep("Starting cleanup process");
+    logStep("Starting cleanup process with auto-scaling");
 
     // Initialize Supabase client with service role for admin operations
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -88,17 +88,23 @@ Deno.serve(async (req) => {
 
     // =========================================================================
     // 1. Clean up expired ticket reservations using optimized batch function
+    //    WITH AUTO-SCALING based on queue depth
     // =========================================================================
-    logStep("Cleaning expired ticket reservations (batch mode)");
+    logStep("Cleaning expired ticket reservations (auto-scale mode)");
 
     const { data: ticketCleanupData, error: ticketCleanupError } = await supabase.rpc(
       'cleanup_expired_tickets_batch',
-      { p_batch_size: 500, p_max_batches: 20 }
+      { 
+        p_batch_size: 500, 
+        p_max_batches: 20,
+        p_auto_scale: true  // Enable auto-scaling
+      }
     );
 
     let expiredTicketsReleased = 0;
     let batchesProcessed = 0;
     let affectedRaffleIds: string[] = [];
+    let autoScaled = false;
 
     if (ticketCleanupError) {
       logStep("Error in batch ticket cleanup", { error: ticketCleanupError.message });
@@ -124,14 +130,18 @@ Deno.serve(async (req) => {
       batchesProcessed = result?.batches_processed || 0;
       affectedRaffleIds = result?.affected_raffles || [];
       
+      // Check if auto-scaling was triggered (batch size > default 500)
+      autoScaled = batchesProcessed > 20 || expiredTicketsReleased > 10000;
+      
       logStep("Expired ticket reservations cleaned", {
         released: expiredTicketsReleased,
         batches: batchesProcessed,
         raffles: affectedRaffleIds.length,
+        autoScaled,
       });
     }
 
-    // Phase 7: Use pipeline for efficient batch cache invalidation
+    // Invalidate Redis cache for affected raffles using pipeline
     if (affectedRaffleIds.length > 0 && redisUrl && redisToken) {
       await invalidateCachesForRaffles(redisUrl, redisToken, affectedRaffleIds);
     }
@@ -187,6 +197,7 @@ Deno.serve(async (req) => {
       oldPendingOrders: oldPendingCount,
       totalCleaned,
       executionTimeMs,
+      autoScaled,
     });
 
     const result: CleanupResult = {
@@ -197,6 +208,7 @@ Deno.serve(async (req) => {
       oldPendingOrders: oldPendingCount,
       totalCleaned,
       executionTimeMs,
+      autoScaled,
     };
 
     return new Response(JSON.stringify({
