@@ -258,6 +258,75 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_type: string
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          organization_id: string | null
+          request_id: string | null
+          resource_id: string | null
+          resource_type: string
+          stripe_event_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          organization_id?: string | null
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type: string
+          stripe_event_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          organization_id?: string | null
+          request_id?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          stripe_event_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_usage: {
         Row: {
           coupon_id: string
@@ -302,14 +371,20 @@ export type Database = {
           description: string | null
           discount_type: string
           discount_value: number
+          duration: string | null
+          duration_in_months: number | null
+          first_time_only: boolean | null
           id: string
           max_uses: number | null
           min_purchase: number | null
           name: string
           organization_id: string
           raffle_id: string | null
+          stripe_coupon_id: string | null
+          stripe_promotion_code_id: string | null
           updated_at: string | null
           valid_from: string | null
+          valid_tiers: string[] | null
           valid_until: string | null
         }
         Insert: {
@@ -320,14 +395,20 @@ export type Database = {
           description?: string | null
           discount_type?: string
           discount_value: number
+          duration?: string | null
+          duration_in_months?: number | null
+          first_time_only?: boolean | null
           id?: string
           max_uses?: number | null
           min_purchase?: number | null
           name: string
           organization_id: string
           raffle_id?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promotion_code_id?: string | null
           updated_at?: string | null
           valid_from?: string | null
+          valid_tiers?: string[] | null
           valid_until?: string | null
         }
         Update: {
@@ -338,14 +419,20 @@ export type Database = {
           description?: string | null
           discount_type?: string
           discount_value?: number
+          duration?: string | null
+          duration_in_months?: number | null
+          first_time_only?: boolean | null
           id?: string
           max_uses?: number | null
           min_purchase?: number | null
           name?: string
           organization_id?: string
           raffle_id?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promotion_code_id?: string | null
           updated_at?: string | null
           valid_from?: string | null
+          valid_tiers?: string[] | null
           valid_until?: string | null
         }
         Relationships: [
@@ -488,6 +575,87 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dunning_config: {
+        Row: {
+          cancellation_after_days: number | null
+          created_at: string | null
+          email_schedule: Json | null
+          grace_period_days: number | null
+          id: string
+          retry_schedule: Json | null
+          subscription_tier: string
+          suspension_after_days: number | null
+        }
+        Insert: {
+          cancellation_after_days?: number | null
+          created_at?: string | null
+          email_schedule?: Json | null
+          grace_period_days?: number | null
+          id?: string
+          retry_schedule?: Json | null
+          subscription_tier: string
+          suspension_after_days?: number | null
+        }
+        Update: {
+          cancellation_after_days?: number | null
+          created_at?: string | null
+          email_schedule?: Json | null
+          grace_period_days?: number | null
+          id?: string
+          retry_schedule?: Json | null
+          subscription_tier?: string
+          suspension_after_days?: number | null
+        }
+        Relationships: []
+      }
+      dunning_emails: {
+        Row: {
+          clicked_at: string | null
+          email_type: string
+          id: string
+          opened_at: string | null
+          organization_id: string | null
+          payment_failure_id: string | null
+          sent_at: string | null
+          sent_to: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          email_type: string
+          id?: string
+          opened_at?: string | null
+          organization_id?: string | null
+          payment_failure_id?: string | null
+          sent_at?: string | null
+          sent_to: string
+        }
+        Update: {
+          clicked_at?: string | null
+          email_type?: string
+          id?: string
+          opened_at?: string | null
+          organization_id?: string | null
+          payment_failure_id?: string | null
+          sent_at?: string | null
+          sent_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dunning_emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dunning_emails_payment_failure_id_fkey"
+            columns: ["payment_failure_id"]
+            isOneToOne: false
+            referencedRelation: "payment_failures"
             referencedColumns: ["id"]
           },
         ]
@@ -720,6 +888,8 @@ export type Database = {
       organizations: {
         Row: {
           address: string | null
+          billing_address: Json | null
+          billing_currency: string | null
           brand_color: string | null
           cancel_at_period_end: boolean | null
           city: string | null
@@ -760,6 +930,9 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_tier"]
             | null
           suspended: boolean | null
+          tax_exempt: boolean | null
+          tax_id: string | null
+          tax_id_type: string | null
           templates_available: number | null
           tiktok_url: string | null
           timezone: string | null
@@ -781,6 +954,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          billing_address?: Json | null
+          billing_currency?: string | null
           brand_color?: string | null
           cancel_at_period_end?: boolean | null
           city?: string | null
@@ -821,6 +996,9 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_tier"]
             | null
           suspended?: boolean | null
+          tax_exempt?: boolean | null
+          tax_id?: string | null
+          tax_id_type?: string | null
           templates_available?: number | null
           tiktok_url?: string | null
           timezone?: string | null
@@ -842,6 +1020,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          billing_address?: Json | null
+          billing_currency?: string | null
           brand_color?: string | null
           cancel_at_period_end?: boolean | null
           city?: string | null
@@ -882,6 +1062,9 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_tier"]
             | null
           suspended?: boolean | null
+          tax_exempt?: boolean | null
+          tax_id?: string | null
+          tax_id_type?: string | null
           templates_available?: number | null
           tiktok_url?: string | null
           timezone?: string | null
@@ -902,6 +1085,68 @@ export type Database = {
           years_experience?: number | null
         }
         Relationships: []
+      }
+      payment_failures: {
+        Row: {
+          amount_cents: number
+          attempt_count: number | null
+          created_at: string | null
+          currency: string | null
+          failure_code: string | null
+          failure_message: string | null
+          id: string
+          next_retry_at: string | null
+          organization_id: string
+          resolution: string | null
+          resolved_at: string | null
+          stripe_invoice_id: string
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempt_count?: number | null
+          created_at?: string | null
+          currency?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          next_retry_at?: string | null
+          organization_id: string
+          resolution?: string | null
+          resolved_at?: string | null
+          stripe_invoice_id: string
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempt_count?: number | null
+          created_at?: string | null
+          currency?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          next_retry_at?: string | null
+          organization_id?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          stripe_invoice_id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_failures_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_methods: {
         Row: {
@@ -1449,6 +1694,137 @@ export type Database = {
           },
         ]
       }
+      refund_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          refund_request_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          refund_request_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          refund_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_audit_log_refund_request_id_fkey"
+            columns: ["refund_request_id"]
+            isOneToOne: false
+            referencedRelation: "refund_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refund_requests: {
+        Row: {
+          amount_cents: number
+          approved_by: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          organization_id: string
+          processed_at: string | null
+          reason: string
+          reason_details: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          requested_by: string | null
+          status: string | null
+          stripe_charge_id: string
+          stripe_payment_intent_id: string | null
+          stripe_refund_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_cents: number
+          approved_by?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          organization_id: string
+          processed_at?: string | null
+          reason: string
+          reason_details?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: string | null
+          stripe_charge_id: string
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          approved_by?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          organization_id?: string
+          processed_at?: string | null
+          reason?: string
+          reason_details?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: string | null
+          stripe_charge_id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_refund_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stripe_events: {
         Row: {
           created_at: string | null
@@ -1472,6 +1848,50 @@ export type Database = {
           processed_at?: string | null
         }
         Relationships: []
+      }
+      subscription_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          from_tier: string | null
+          id: string
+          metadata: Json | null
+          mrr_change_cents: number | null
+          organization_id: string | null
+          stripe_event_id: string | null
+          to_tier: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          from_tier?: string | null
+          id?: string
+          metadata?: Json | null
+          mrr_change_cents?: number | null
+          organization_id?: string | null
+          stripe_event_id?: string | null
+          to_tier?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          from_tier?: string | null
+          id?: string
+          metadata?: Json | null
+          mrr_change_cents?: number | null
+          organization_id?: string | null
+          stripe_event_id?: string | null
+          to_tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_alerts: {
         Row: {
@@ -3191,6 +3611,23 @@ export type Database = {
           reserved_until: string
           success: boolean
           ticket_count: number
+        }[]
+      }
+      calculate_churn_rate: {
+        Args: { p_month?: string }
+        Returns: {
+          churn_rate: number
+          churned_subscribers: number
+          month: string
+          starting_subscribers: number
+        }[]
+      }
+      calculate_mrr: {
+        Args: never
+        Returns: {
+          mrr_cents: number
+          subscriber_count: number
+          tier: string
         }[]
       }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
