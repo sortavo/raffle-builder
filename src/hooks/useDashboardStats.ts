@@ -34,28 +34,42 @@ export function useDashboardStats() {
   const { organization } = useAuth();
   const queryClient = useQueryClient();
 
-  // Real-time subscription for tickets table
+  // Phase 7: Optimized real-time subscription - only relevant events
   useEffect(() => {
     if (!organization?.id) return;
 
     const channel = supabase
       .channel('dashboard-stats-changes')
+      // Only listen to UPDATE events when status becomes 'sold'
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'orders'
+          table: 'orders',
+          filter: 'status=eq.sold'
         },
         () => {
-          // Invalidate and refetch dashboard stats when orders change
+          // Invalidate dashboard stats when orders are marked as sold
+          queryClient.invalidateQueries({ queryKey: ["dashboard-stats", organization.id] });
+        }
+      )
+      // Listen for new raffles or status changes
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'raffles'
+        },
+        () => {
           queryClient.invalidateQueries({ queryKey: ["dashboard-stats", organization.id] });
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'raffles'
         },

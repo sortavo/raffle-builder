@@ -1,6 +1,12 @@
+// ============================================================================
+// List Vercel Domains Edge Function
+// ============================================================================
+// Phase 7: Added circuit breaker for Vercel API resilience
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { verifyPlatformAdmin, isCronRequest } from "../_shared/admin-auth.ts";
+import { isCircuitOpen, recordSuccess, recordFailure } from "../_shared/circuit-breaker.ts";
 
 interface VercelDomain {
   name: string
@@ -21,6 +27,8 @@ interface VercelDomainsResponse {
     prev: number | null
   }
 }
+
+const CIRCUIT_NAME = 'vercel-api';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -58,6 +66,19 @@ serve(async (req) => {
       console.log('[list-vercel-domains] Cron job invocation');
     }
 
+    // ==========================================
+    // Phase 7: Circuit Breaker Check
+    // ==========================================
+    if (isCircuitOpen(CIRCUIT_NAME)) {
+      console.warn('[list-vercel-domains] Circuit breaker OPEN - returning cached/error response');
+      return corsJsonResponse(req, { 
+        success: false, 
+        error: 'Servicio de dominios temporalmente no disponible. Intenta de nuevo en unos minutos.',
+        circuitOpen: true,
+        retryAfter: 60
+      }, 503);
+    }
+
     const VERCEL_API_TOKEN = Deno.env.get('VERCEL_API_TOKEN')
     const VERCEL_PROJECT_ID = Deno.env.get('VERCEL_PROJECT_ID')
     const VERCEL_TEAM_ID = Deno.env.get('VERCEL_TEAM_ID')
@@ -70,35 +91,62 @@ serve(async (req) => {
     const teamQuery = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : ''
     console.log(`[list-vercel-domains] Fetching domains for project: ${VERCEL_PROJECT_ID}${VERCEL_TEAM_ID ? ` (team: ${VERCEL_TEAM_ID})` : ''}`)
 
-    const response = await fetch(
-      `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains${teamQuery}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${VERCEL_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
+    // Add timeout to Vercel API call
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+      const response = await fetch(
+        `https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/domains${teamQuery}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${VERCEL_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        }
+      )
+
+      clearTimeout(timeout);
+      const data: VercelDomainsResponse = await response.json()
+
+      if (!response.ok) {
+        console.error('[list-vercel-domains] Vercel API error:', data)
+        // Record failure for circuit breaker
+        recordFailure(CIRCUIT_NAME);
+        return corsJsonResponse(req, { 
+          success: false, 
+          error: (data as any).error?.message || 'Error fetching domains from Vercel',
+          statusCode: response.status
+        }, 400);
       }
-    )
 
-    const data: VercelDomainsResponse = await response.json()
+      // Record success for circuit breaker
+      recordSuccess(CIRCUIT_NAME);
 
-    if (!response.ok) {
-      console.error('[list-vercel-domains] Vercel API error:', data)
+      console.log(`[list-vercel-domains] Found ${data.domains?.length || 0} domains:`, data.domains?.map(d => d.name))
+
+      return corsJsonResponse(req, { 
+        success: true, 
+        domains: data.domains || [],
+        count: data.domains?.length || 0
+      });
+
+    } catch (fetchError) {
+      clearTimeout(timeout);
+      
+      const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
+      console.error('[list-vercel-domains] Fetch error:', isTimeout ? 'Request timeout' : fetchError);
+      
+      // Record failure for circuit breaker
+      recordFailure(CIRCUIT_NAME);
+      
       return corsJsonResponse(req, { 
         success: false, 
-        error: (data as any).error?.message || 'Error fetching domains from Vercel',
-        statusCode: response.status
-      }, 400);
+        error: isTimeout ? 'Tiempo de espera agotado al conectar con Vercel' : 'Error de conexión con Vercel'
+      }, 504);
     }
-
-    console.log(`[list-vercel-domains] Found ${data.domains?.length || 0} domains:`, data.domains?.map(d => d.name))
-
-    return corsJsonResponse(req, { 
-      success: true, 
-      domains: data.domains || [],
-      count: data.domains?.length || 0
-    });
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'

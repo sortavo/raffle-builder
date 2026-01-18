@@ -49,12 +49,13 @@ export function useNotifications() {
     // Realtime subscription handles cache updates - no polling needed
   });
 
-  // Subscribe to real-time notifications
+  // Phase 7: Optimized real-time subscription - handle all event types
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
       .channel(`notifications-${user.id}`)
+      // Handle new notifications
       .on(
         'postgres_changes',
         {
@@ -85,6 +86,46 @@ export function useNotifications() {
               tag: newNotification.id
             });
           }
+        }
+      )
+      // Handle notification updates (e.g., marked as read)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const updatedNotification = payload.new as Notification;
+          
+          // Update cache with updated notification
+          queryClient.setQueryData<Notification[]>(
+            ['notifications', user.id],
+            (old = []) => old.map(n => 
+              n.id === updatedNotification.id ? updatedNotification : n
+            )
+          );
+        }
+      )
+      // Handle notification deletions
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const deletedNotification = payload.old as { id: string };
+          
+          // Remove from cache
+          queryClient.setQueryData<Notification[]>(
+            ['notifications', user.id],
+            (old = []) => old.filter(n => n.id !== deletedNotification.id)
+          );
         }
       )
       .subscribe();

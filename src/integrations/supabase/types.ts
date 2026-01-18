@@ -2172,6 +2172,10 @@ export type Database = {
         Returns: string
       }
       generate_reference_code: { Args: never; Returns: string }
+      get_admin_overview_stats: {
+        Args: { p_from_date?: string; p_to_date?: string }
+        Returns: Json
+      }
       get_available_blocks: {
         Args: { p_raffle_id: string }
         Returns: {

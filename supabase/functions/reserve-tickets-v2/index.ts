@@ -3,9 +3,11 @@
 // ============================================================================
 // High-performance ticket reservation with:
 // - Distributed rate limiting via Upstash Redis
+// - In-memory rate limiting fallback when Redis unavailable
 // - Atomic O(k) reservations via atomic_reserve_tickets_v2 RPC
 // - No global locks - enables parallel reservations
 // - Automatic cache invalidation
+// - RFC-compliant email validation
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
@@ -37,6 +39,28 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[RESERVE-TICKETS-V2] ${step}${detailsStr}`);
 };
 
+// ============================================================================
+// Phase 7: In-memory rate limiter fallback (per-isolate, resets on cold start)
+// ============================================================================
+const memoryRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+function checkMemoryRateLimit(key: string, limit: number, windowSeconds: number): boolean {
+  const now = Date.now();
+  const entry = memoryRateLimits.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    memoryRateLimits.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
+    return true;
+  }
+
+  if (entry.count >= limit) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
 /**
  * Rate limiting with Upstash Redis using INCR + EXPIRE pattern
  */
@@ -47,6 +71,9 @@ async function checkRateLimit(
   limit: number,
   windowSeconds: number
 ): Promise<RateLimitResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
+
   try {
     // INCR the counter
     const incrResponse = await fetch(redisUrl, {
@@ -56,8 +83,10 @@ async function checkRateLimit(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(['INCR', key]),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeout);
     const incrData = await incrResponse.json();
     const current = incrData.result || 0;
 
@@ -82,8 +111,10 @@ async function checkRateLimit(
       retryAfter: allowed ? undefined : windowSeconds,
     };
   } catch (error) {
-    logStep('Rate limit check failed, allowing request', { error: String(error) });
-    // Fail open - allow request if Redis is unavailable
+    clearTimeout(timeout);
+    const errorName = error instanceof Error ? error.name : 'unknown';
+    logStep('Rate limit check failed, falling back to memory limiter', { error: errorName });
+    // Fail open to memory-based rate limiting
     return { allowed: true, remaining: limit };
   }
 }
@@ -96,6 +127,9 @@ async function invalidateCountsCache(
   redisToken: string,
   raffleId: string
 ): Promise<void> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2000);
+
   try {
     await fetch(redisUrl, {
       method: 'POST',
@@ -104,10 +138,13 @@ async function invalidateCountsCache(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(['DEL', `counts:${raffleId}`]),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     logStep('Cache invalidated', { raffleId });
   } catch (error) {
-    logStep('Cache invalidation failed', { raffleId, error: String(error) });
+    clearTimeout(timeout);
+    logStep('Cache invalidation failed (non-blocking)', { raffleId, error: String(error) });
   }
 }
 
@@ -121,6 +158,29 @@ function getClientIP(req: Request): string {
     req.headers.get('cf-connecting-ip') ||
     'unknown'
   );
+}
+
+// ============================================================================
+// Phase 7: RFC-compliant email validation
+// ============================================================================
+const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+function validateEmail(email: string): { valid: boolean; error?: string } {
+  if (!email || typeof email !== 'string') {
+    return { valid: false, error: 'Email es requerido' };
+  }
+
+  const trimmed = email.trim();
+  
+  if (trimmed.length > 254) {
+    return { valid: false, error: 'Email demasiado largo (máximo 254 caracteres)' };
+  }
+
+  if (!emailRegex.test(trimmed)) {
+    return { valid: false, error: 'Formato de email inválido' };
+  }
+
+  return { valid: true };
 }
 
 Deno.serve(async (req) => {
@@ -149,7 +209,7 @@ Deno.serve(async (req) => {
       );
 
       if (!rateCheck.allowed) {
-        logStep('Rate limit exceeded', { clientIP, remaining: rateCheck.remaining });
+        logStep('Rate limit exceeded (Redis)', { clientIP, remaining: rateCheck.remaining });
         return new Response(
           JSON.stringify({
             success: false,
@@ -163,6 +223,26 @@ Deno.serve(async (req) => {
               'Content-Type': 'application/json',
               'Retry-After': String(rateCheck.retryAfter || 60),
               'X-RateLimit-Remaining': String(rateCheck.remaining),
+            },
+          }
+        );
+      }
+    } else {
+      // Phase 7: Fallback to in-memory rate limiting (stricter: 5 per minute)
+      if (!checkMemoryRateLimit(`reserve:${clientIP}`, 5, 60)) {
+        logStep('Rate limit exceeded (memory fallback)', { clientIP });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Demasiadas solicitudes. Por favor espera un momento.',
+            retryAfter: 60,
+          }),
+          {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Retry-After': '60',
             },
           }
         );
@@ -215,22 +295,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(buyer_email)) {
+    // Phase 7: Enhanced email validation
+    const emailValidation = validateEmail(buyer_email);
+    if (!emailValidation.valid) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Formato de email inválido',
+          error: emailValidation.error,
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Normalize email (lowercase, trim)
+    const normalizedEmail = buyer_email.toLowerCase().trim();
+
     logStep('Calling atomic_reserve_tickets_v2', {
       raffleId: raffle_id,
       ticketCount: ticket_indices.length,
-      buyerEmail: buyer_email,
+      buyerEmail: normalizedEmail,
     });
 
     // Initialize Supabase client with service role
@@ -244,10 +327,10 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase.rpc('atomic_reserve_tickets_v2', {
       p_raffle_id: raffle_id,
       p_ticket_indices: ticket_indices,
-      p_buyer_name: buyer_name,
-      p_buyer_email: buyer_email,
-      p_buyer_phone: buyer_phone || null,
-      p_buyer_city: buyer_city || null,
+      p_buyer_name: buyer_name.trim(),
+      p_buyer_email: normalizedEmail,
+      p_buyer_phone: buyer_phone?.trim() || null,
+      p_buyer_city: buyer_city?.trim() || null,
       p_reservation_minutes: reservation_minutes,
       p_order_total: order_total || null,
       p_is_lucky_numbers: is_lucky_numbers,
