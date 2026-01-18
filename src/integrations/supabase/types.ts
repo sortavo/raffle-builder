@@ -104,6 +104,13 @@ export type Database = {
             foreignKeyName: "analytics_events_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
           },
@@ -170,6 +177,13 @@ export type Database = {
           winners?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
           {
             foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
             columns: ["raffle_id"]
@@ -341,6 +355,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "coupons_raffle_id_fkey"
@@ -665,6 +686,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "orders_raffle_id_fkey"
@@ -1074,6 +1102,13 @@ export type Database = {
             foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
           },
@@ -1171,6 +1206,13 @@ export type Database = {
             foreignKeyName: "raffle_draws_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "raffle_draws_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
           },
@@ -1222,6 +1264,13 @@ export type Database = {
           raffle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "raffle_packages_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
           {
             foreignKeyName: "raffle_packages_raffle_id_fkey"
             columns: ["raffle_id"]
@@ -1674,6 +1723,13 @@ export type Database = {
             foreignKeyName: "ticket_block_status_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "ticket_block_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
           },
@@ -1720,6 +1776,76 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_trs_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trs_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "public_ticket_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trs_raffle"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "fk_trs_raffle"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trs_raffle"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffle_stats_mv"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "fk_trs_raffle"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_reservation_status_old: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: [
+          {
             foreignKeyName: "ticket_reservation_status_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -1732,6 +1858,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_ticket_status"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
@@ -1755,6 +1888,870 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ticket_reservation_status_p0: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p1: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p10: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p11: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p12: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p13: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p14: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p15: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p16: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p17: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p18: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p19: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p2: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p20: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p21: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p22: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p23: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p24: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p25: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p26: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p27: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p28: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p29: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p3: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p30: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p31: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p4: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p5: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p6: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p7: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p8: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
+      }
+      ticket_reservation_status_p9: {
+        Row: {
+          created_at: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until: string | null
+          status: string
+          ticket_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          order_id: string
+          raffle_id: string
+          reserved_until?: string | null
+          status: string
+          ticket_index: number
+        }
+        Update: {
+          created_at?: string | null
+          order_id?: string
+          raffle_id?: string
+          reserved_until?: string | null
+          status?: string
+          ticket_index?: number
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1790,6 +2787,58 @@ export type Database = {
       }
     }
     Views: {
+      mv_admin_stats: {
+        Row: {
+          active_raffles: number | null
+          active_subscriptions: number | null
+          canceled_subscriptions: number | null
+          completed_raffles: number | null
+          refreshed_at: string | null
+          tier_basic: number | null
+          tier_enterprise: number | null
+          tier_none: number | null
+          tier_premium: number | null
+          tier_pro: number | null
+          total_organizations: number | null
+          total_raffles: number | null
+          total_revenue: number | null
+          total_tickets_sold: number | null
+          total_users: number | null
+          trial_subscriptions: number | null
+        }
+        Relationships: []
+      }
+      mv_daily_stats: {
+        Row: {
+          orders_count: number | null
+          revenue: number | null
+          stat_date: string | null
+          tickets_sold: number | null
+        }
+        Relationships: []
+      }
+      mv_top_raffles: {
+        Row: {
+          created_at: string | null
+          organization_id: string | null
+          organization_name: string | null
+          raffle_id: string | null
+          revenue: number | null
+          status: string | null
+          tickets_sold: number | null
+          title: string | null
+          total_tickets: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raffles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_custom_domains: {
         Row: {
           created_at: string | null
@@ -2000,6 +3049,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: false
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "orders_raffle_id_fkey"
@@ -2511,6 +3567,14 @@ export type Database = {
         Returns: {
           ticket_index: number
           ticket_number: string
+        }[]
+      }
+      refresh_all_materialized_views: {
+        Args: never
+        Returns: {
+          error_message: string
+          success: boolean
+          view_name: string
         }[]
       }
       refresh_raffle_stats: {
