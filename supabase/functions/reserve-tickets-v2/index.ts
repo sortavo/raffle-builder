@@ -2,25 +2,21 @@
 // Reserve Tickets V2 - Enterprise Scalability
 // ============================================================================
 // High-performance ticket reservation with:
-// - Distributed rate limiting via Upstash Redis
-// - In-memory rate limiting fallback when Redis unavailable
+// - Persistent distributed rate limiting via Redis (survives cold starts)
+// - Database fallback when Redis unavailable
 // - Atomic O(k) reservations via atomic_reserve_tickets_v2 RPC
 // - No global locks - enables parallel reservations
 // - Automatic cache invalidation
 // - RFC-compliant email validation
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { checkRateLimit, RATE_LIMIT_CONFIGS, getRateLimitHeaders } from '../_shared/persistent-rate-limiter.ts';
+import { redisCommand } from '../_shared/redis-client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  retryAfter?: number;
-}
 
 interface ReservationRequest {
   raffle_id: string;
@@ -39,115 +35,6 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[RESERVE-TICKETS-V2] ${step}${detailsStr}`);
 };
 
-// ============================================================================
-// Phase 7: In-memory rate limiter fallback (per-isolate, resets on cold start)
-// ============================================================================
-const memoryRateLimits = new Map<string, { count: number; resetAt: number }>();
-
-function checkMemoryRateLimit(key: string, limit: number, windowSeconds: number): boolean {
-  const now = Date.now();
-  const entry = memoryRateLimits.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    memoryRateLimits.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
-    return true;
-  }
-
-  if (entry.count >= limit) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
-
-/**
- * Rate limiting with Upstash Redis using INCR + EXPIRE pattern
- */
-async function checkRateLimit(
-  redisUrl: string,
-  redisToken: string,
-  key: string,
-  limit: number,
-  windowSeconds: number
-): Promise<RateLimitResult> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
-
-  try {
-    // INCR the counter
-    const incrResponse = await fetch(redisUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${redisToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(['INCR', key]),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-    const incrData = await incrResponse.json();
-    const current = incrData.result || 0;
-
-    if (current === 1) {
-      // First request in window, set TTL
-      await fetch(redisUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${redisToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(['EXPIRE', key, windowSeconds]),
-      });
-    }
-
-    const allowed = current <= limit;
-    const remaining = Math.max(0, limit - current);
-
-    return {
-      allowed,
-      remaining,
-      retryAfter: allowed ? undefined : windowSeconds,
-    };
-  } catch (error) {
-    clearTimeout(timeout);
-    const errorName = error instanceof Error ? error.name : 'unknown';
-    logStep('Rate limit check failed, falling back to memory limiter', { error: errorName });
-    // Fail open to memory-based rate limiting
-    return { allowed: true, remaining: limit };
-  }
-}
-
-/**
- * Invalidate ticket counts cache for a raffle
- */
-async function invalidateCountsCache(
-  redisUrl: string,
-  redisToken: string,
-  raffleId: string
-): Promise<void> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 2000);
-
-  try {
-    await fetch(redisUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${redisToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(['DEL', `counts:${raffleId}`]),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    logStep('Cache invalidated', { raffleId });
-  } catch (error) {
-    clearTimeout(timeout);
-    logStep('Cache invalidation failed (non-blocking)', { raffleId, error: String(error) });
-  }
-}
-
 /**
  * Get client IP from request headers
  */
@@ -160,8 +47,25 @@ function getClientIP(req: Request): string {
   );
 }
 
+/**
+ * Invalidate ticket counts cache for a raffle
+ */
+async function invalidateCountsCache(
+  redisUrl: string,
+  redisToken: string,
+  raffleId: string
+): Promise<void> {
+  const result = await redisCommand(redisUrl, redisToken, ['DEL', `counts:${raffleId}`]);
+  
+  if (result.error) {
+    logStep('Cache invalidation failed (non-blocking)', { raffleId, error: result.error });
+  } else {
+    logStep('Cache invalidated', { raffleId });
+  }
+}
+
 // ============================================================================
-// Phase 7: RFC-compliant email validation
+// RFC-compliant email validation
 // ============================================================================
 const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
@@ -198,18 +102,19 @@ Deno.serve(async (req) => {
 
     logStep('Reservation request received', { clientIP });
 
-    // Rate limiting: 10 reservations per IP per minute
+    // ========================================================================
+    // Persistent Rate Limiting (Redis + DB fallback)
+    // ========================================================================
     if (redisUrl && redisToken) {
       const rateCheck = await checkRateLimit(
         redisUrl,
         redisToken,
-        `ratelimit:reserve:${clientIP}`,
-        10,  // 10 requests
-        60   // per 60 seconds
+        clientIP,
+        RATE_LIMIT_CONFIGS.TICKET_RESERVE
       );
 
       if (!rateCheck.allowed) {
-        logStep('Rate limit exceeded (Redis)', { clientIP, remaining: rateCheck.remaining });
+        logStep('Rate limit exceeded', { clientIP, remaining: rateCheck.remaining });
         return new Response(
           JSON.stringify({
             success: false,
@@ -220,29 +125,43 @@ Deno.serve(async (req) => {
             status: 429,
             headers: {
               ...corsHeaders,
+              ...getRateLimitHeaders(rateCheck),
               'Content-Type': 'application/json',
-              'Retry-After': String(rateCheck.retryAfter || 60),
-              'X-RateLimit-Remaining': String(rateCheck.remaining),
             },
           }
         );
       }
     } else {
-      // Phase 7: Fallback to in-memory rate limiting (stricter: 5 per minute)
-      if (!checkMemoryRateLimit(`reserve:${clientIP}`, 5, 60)) {
-        logStep('Rate limit exceeded (memory fallback)', { clientIP });
+      // Fallback: Use database-based rate limiting
+      logStep('Redis not configured, using database rate limiting fallback');
+      
+      const supabaseForRateLimit = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        { auth: { persistSession: false } }
+      );
+
+      const { data: rateLimitData, error: rateLimitError } = await supabaseForRateLimit.rpc('check_rate_limit', {
+        p_identifier: clientIP,
+        p_key_prefix: 'rl:reserve',
+        p_window_ms: 60000,
+        p_max_requests: 10,
+      });
+
+      if (!rateLimitError && rateLimitData && !rateLimitData.allowed) {
+        logStep('Rate limit exceeded (database)', { clientIP });
         return new Response(
           JSON.stringify({
             success: false,
             error: 'Demasiadas solicitudes. Por favor espera un momento.',
-            retryAfter: 60,
+            retryAfter: rateLimitData.retryAfter || 60,
           }),
           {
             status: 429,
             headers: {
               ...corsHeaders,
+              'Retry-After': String(rateLimitData.retryAfter || 60),
               'Content-Type': 'application/json',
-              'Retry-After': '60',
             },
           }
         );
@@ -295,7 +214,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Phase 7: Enhanced email validation
+    // Enhanced email validation
     const emailValidation = validateEmail(buyer_email);
     if (!emailValidation.valid) {
       return new Response(

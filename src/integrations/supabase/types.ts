@@ -1694,6 +1694,27 @@ export type Database = {
           },
         ]
       }
+      rate_limit_entries: {
+        Row: {
+          id: string
+          identifier: string
+          key_prefix: string
+          timestamp: string | null
+        }
+        Insert: {
+          id?: string
+          identifier: string
+          key_prefix: string
+          timestamp?: string | null
+        }
+        Update: {
+          id?: string
+          identifier?: string
+          key_prefix?: string
+          timestamp?: string | null
+        }
+        Relationships: []
+      }
       refund_audit_log: {
         Row: {
           action: string
@@ -3642,6 +3663,15 @@ export type Database = {
           conflicting_indices: number[]
         }[]
       }
+      check_rate_limit: {
+        Args: {
+          p_identifier: string
+          p_key_prefix: string
+          p_max_requests: number
+          p_window_ms: number
+        }
+        Returns: Json
+      }
       check_ticket_availability: {
         Args: { p_raffle_id: string; p_ticket_index: number }
         Returns: {
@@ -3669,13 +3699,19 @@ export type Database = {
         }[]
       }
       cleanup_expired_tickets_batch: {
-        Args: { p_batch_size?: number; p_max_batches?: number }
+        Args: {
+          p_auto_scale?: boolean
+          p_batch_size?: number
+          p_max_batches?: number
+        }
         Returns: {
           affected_raffles: string[]
           batches_processed: number
+          execution_time_ms: number
           total_released: number
         }[]
       }
+      cleanup_rate_limit_entries: { Args: never; Returns: undefined }
       compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       confirm_order_sale_v2: { Args: { p_order_id: string }; Returns: boolean }
       count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }

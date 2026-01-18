@@ -1,3 +1,9 @@
+// ============================================================================
+// Health Check with Caching and Rate Limiting
+// ============================================================================
+// Caches results for 30 seconds to reduce API load
+// Rate limits to 60 requests per minute per IP
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 
@@ -28,6 +34,59 @@ interface SystemMetrics {
   };
 }
 
+interface CachedResult {
+  data: {
+    status: string;
+    services: ServiceHealth[];
+    checkedAt: string;
+    version: string;
+    metrics?: SystemMetrics;
+  };
+  timestamp: number;
+}
+
+// Module-level cache (persists across warm requests within same isolate)
+let cachedResult: CachedResult | null = null;
+const CACHE_TTL_MS = 30000; // 30 seconds
+
+// Simple in-memory rate limiting
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX = 60; // 60 requests per minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimits.get(ip);
+
+  // Cleanup old entries periodically
+  if (rateLimits.size > 1000) {
+    for (const [key, val] of rateLimits) {
+      if (now > val.resetAt) rateLimits.delete(key);
+    }
+  }
+
+  if (!entry || now > entry.resetAt) {
+    rateLimits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('cf-connecting-ip') ||
+    'unknown'
+  );
+}
+
 const measureTime = async <T>(fn: () => Promise<T>): Promise<{ result: T; duration: number }> => {
   const start = performance.now();
   const result = await fn();
@@ -40,16 +99,56 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const services: ServiceHealth[] = [];
-  const now = new Date().toISOString();
-  const dbLatencies: number[] = [];
-  let metrics: SystemMetrics | null = null;
+  const clientIP = getClientIP(req);
 
-  // Parse query params for detailed mode
+  // Rate limiting
+  if (!checkRateLimit(clientIP)) {
+    console.log(`[HEALTH-CHECK] Rate limit exceeded for ${clientIP}`);
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded', retryAfter: 60 }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': '60',
+        },
+      }
+    );
+  }
+
+  // Parse query params
   const url = new URL(req.url);
   const detailed = url.searchParams.get('detailed') === 'true';
+  const noCache = url.searchParams.get('no-cache') === 'true';
+  const now = Date.now();
 
-  console.log(`[HEALTH-CHECK] Starting health check, detailed=${detailed}`);
+  // Check cache (unless no-cache requested)
+  if (!noCache && cachedResult && (now - cachedResult.timestamp) < CACHE_TTL_MS) {
+    const cacheAge = Math.round((now - cachedResult.timestamp) / 1000);
+    console.log(`[HEALTH-CHECK] Returning cached result (${cacheAge}s old)`);
+    
+    return new Response(
+      JSON.stringify({ ...cachedResult.data, cached: true, cacheAge }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': `public, max-age=${Math.ceil(CACHE_TTL_MS / 1000)}`,
+          'X-Cache': 'HIT',
+          'X-Cache-Age': cacheAge.toString(),
+        },
+        status: 200,
+      }
+    );
+  }
+
+  console.log(`[HEALTH-CHECK] Running fresh health check, detailed=${detailed}`);
+
+  const services: ServiceHealth[] = [];
+  const checkedAt = new Date().toISOString();
+  const dbLatencies: number[] = [];
+  let metrics: SystemMetrics | null = null;
 
   // 1. Check Database with metrics
   try {
@@ -75,7 +174,6 @@ Deno.serve(async (req) => {
         supabase.from('raffles').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       ]);
 
-      // Sum ticket_count from orders for total tickets sold
       const ticketCount = (orderResult.data || []).reduce((sum, o) => sum + (o.ticket_count || 0), 0);
 
       metrics = {
@@ -97,7 +195,7 @@ Deno.serve(async (req) => {
       name: "Base de Datos",
       status: duration < 500 ? "operational" : duration < 2000 ? "degraded" : "outage",
       responseTime: duration,
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   } catch (error) {
     console.error("[HEALTH-CHECK] Database error:", error);
@@ -106,7 +204,7 @@ Deno.serve(async (req) => {
       status: "outage",
       responseTime: 0,
       message: error instanceof Error ? error.message : "Error de conexión",
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   }
 
@@ -119,7 +217,7 @@ Deno.serve(async (req) => {
         status: "outage",
         responseTime: 0,
         message: "API key no configurada",
-        lastChecked: now,
+        lastChecked: checkedAt,
       });
     } else {
       const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -133,7 +231,7 @@ Deno.serve(async (req) => {
         name: "Pagos (Stripe)",
         status: duration < 1000 ? "operational" : duration < 3000 ? "degraded" : "outage",
         responseTime: duration,
-        lastChecked: now,
+        lastChecked: checkedAt,
       });
     }
   } catch (error) {
@@ -143,16 +241,16 @@ Deno.serve(async (req) => {
       status: "outage",
       responseTime: 0,
       message: error instanceof Error ? error.message : "Error de conexión",
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   }
 
-  // 3. Check Edge Functions
+  // 3. Check Edge Functions (self-check)
   services.push({
     name: "API / Edge Functions",
     status: "operational",
     responseTime: 1,
-    lastChecked: now,
+    lastChecked: checkedAt,
   });
 
   // 4. Check Auth Service
@@ -175,7 +273,7 @@ Deno.serve(async (req) => {
       name: "Autenticación",
       status: duration < 500 ? "operational" : duration < 2000 ? "degraded" : "outage",
       responseTime: duration,
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   } catch (error) {
     console.error("[HEALTH-CHECK] Auth error:", error);
@@ -184,7 +282,7 @@ Deno.serve(async (req) => {
       status: "outage",
       responseTime: 0,
       message: error instanceof Error ? error.message : "Error de conexión",
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   }
 
@@ -197,7 +295,7 @@ Deno.serve(async (req) => {
         status: "degraded",
         responseTime: 0,
         message: "API key no configurada",
-        lastChecked: now,
+        lastChecked: checkedAt,
       });
     } else {
       const { duration } = await measureTime(async () => {
@@ -218,7 +316,7 @@ Deno.serve(async (req) => {
         name: "Email",
         status: duration < 1000 ? "operational" : duration < 3000 ? "degraded" : "outage",
         responseTime: duration,
-        lastChecked: now,
+        lastChecked: checkedAt,
       });
     }
   } catch (error) {
@@ -228,7 +326,7 @@ Deno.serve(async (req) => {
       status: "outage",
       responseTime: 0,
       message: error instanceof Error ? error.message : "Error de conexión",
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   }
 
@@ -252,7 +350,7 @@ Deno.serve(async (req) => {
       name: "Almacenamiento",
       status: duration < 500 ? "operational" : duration < 2000 ? "degraded" : "outage",
       responseTime: duration,
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   } catch (error) {
     console.error("[HEALTH-CHECK] Storage error:", error);
@@ -261,7 +359,7 @@ Deno.serve(async (req) => {
       status: "outage",
       responseTime: 0,
       message: error instanceof Error ? error.message : "Error de conexión",
-      lastChecked: now,
+      lastChecked: checkedAt,
     });
   }
 
@@ -279,30 +377,38 @@ Deno.serve(async (req) => {
     metrics.performance.avgStorageLatency = storageLatency;
   }
 
-  const response: {
+  const responseData: {
     status: string;
     services: ServiceHealth[];
     checkedAt: string;
     version: string;
     metrics?: SystemMetrics;
+    cached?: boolean;
   } = {
     status: overallStatus,
     services,
-    checkedAt: now,
-    version: "1.2.0",
+    checkedAt,
+    version: "1.3.0",
   };
 
   if (detailed && metrics) {
-    response.metrics = metrics;
+    responseData.metrics = metrics;
   }
+
+  // Cache the result
+  cachedResult = {
+    data: responseData,
+    timestamp: Date.now(),
+  };
 
   console.log(`[HEALTH-CHECK] Complete. Status: ${overallStatus}, Services: ${services.length}`);
 
-  return new Response(JSON.stringify(response), {
+  return new Response(JSON.stringify({ ...responseData, cached: false }), {
     headers: { 
       ...corsHeaders, 
       "Content-Type": "application/json",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Cache-Control": `public, max-age=${Math.ceil(CACHE_TTL_MS / 1000)}`,
+      "X-Cache": "MISS",
     },
     status: 200,
   });
