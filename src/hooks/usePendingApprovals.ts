@@ -43,7 +43,7 @@ export function usePendingApprovals() {
     },
     enabled: !!organization?.id,
     staleTime: 30000,
-    refetchInterval: 60000,
+    // Realtime subscription handles invalidation - no polling needed
   });
 
   // Realtime subscription for orders table

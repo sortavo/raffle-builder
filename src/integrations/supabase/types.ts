@@ -2555,6 +2555,20 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      search_public_tickets_paginated: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_raffle_id: string
+          p_search: string
+        }
+        Returns: {
+          buyer_name: string
+          status: string
+          ticket_index: number
+          ticket_number: string
+        }[]
+      }
       set_primary_domain: {
         Args: { p_domain_id: string; p_organization_id: string }
         Returns: undefined

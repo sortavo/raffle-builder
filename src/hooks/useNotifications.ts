@@ -45,7 +45,8 @@ export function useNotifications() {
       return (data || []) as Notification[];
     },
     enabled: !!user?.id,
-    refetchInterval: 30000 // Refetch every 30 seconds
+    staleTime: 30000,
+    // Realtime subscription handles cache updates - no polling needed
   });
 
   // Subscribe to real-time notifications
