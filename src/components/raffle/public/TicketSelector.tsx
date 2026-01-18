@@ -362,7 +362,7 @@ export function TicketSelector({
     performManualSearch();
   }, [debouncedManual, raffleId, mode]);
 
-  // Load more manual results
+  // Load more manual results - using paginated RPC (O(n) instead of O(n²))
   const handleLoadMoreManual = useCallback(async () => {
     if (isLoadingMoreManual || !hasMoreManual || !debouncedManual.trim()) return;
     
@@ -370,20 +370,19 @@ export function TicketSelector({
     const newOffset = manualOffset + 100;
     
     try {
-      // Note: For simplicity, we fetch from beginning with higher limit
-      // The RPC function doesn't support offset directly
-      const { data, error } = await supabase.rpc('search_public_tickets', {
+      // Use paginated RPC - only fetches the next batch, not everything again
+      const { data, error } = await supabase.rpc('search_public_tickets_paginated', {
         p_raffle_id: raffleId,
         p_search: debouncedManual.trim(),
-        p_limit: newOffset + 100,
+        p_offset: newOffset,
+        p_limit: 100,
       });
 
       if (!error && data) {
-        // Only add tickets we haven't seen before
-        const newTickets = data.slice(manualOffset);
-        setManualResults(prev => [...prev, ...newTickets]);
+        // Append new tickets to existing results
+        setManualResults(prev => [...prev, ...data]);
         setManualOffset(newOffset);
-        setHasMoreManual(newTickets.length === 100);
+        setHasMoreManual(data.length === 100);
       }
     } catch {
       // Error handled silently

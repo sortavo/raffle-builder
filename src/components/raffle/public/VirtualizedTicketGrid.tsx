@@ -120,7 +120,11 @@ export function VirtualizedTicketGrid({
   width,
   isLightTemplate = false,
 }: VirtualizedTicketGridProps) {
-  const rowCount = Math.ceil(tickets.length / columnCount);
+  // Memoize row count calculation to avoid recalculation on every render
+  const rowCount = useMemo(
+    () => Math.ceil(tickets.length / columnCount),
+    [tickets.length, columnCount]
+  );
   
   const cellProps = useMemo(() => ({
     tickets,
