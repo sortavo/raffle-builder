@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { enqueueJob } from '../_shared/job-queue.ts';
+import { PRODUCT_TO_TIER, TIER_LIMITS } from "../_shared/stripe-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,34 +49,6 @@ function safeTimestampToISO(timestamp: number | null | undefined): string | null
   }
 }
 
-// Map Stripe product IDs to subscription tiers
-// Includes both PRODUCTION and TEST mode product IDs
-const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium" | "enterprise"> = {
-  // Production IDs
-  "prod_Tf5pTKxFYtPfd4": "basic",
-  "prod_Tf5tsw8mmJQneA": "pro",
-  "prod_Tf5uiAAHV2WZNF": "premium",
-  "prod_ThHMyhLAztHnsu": "enterprise",
-  "prod_ThHMbFCP3wSrq8": "enterprise",
-  // Test IDs
-  "prod_ThK1EiE0AtKCIM": "basic",
-  "prod_ThK1JlY6NKTIFS": "basic",  // Annual
-  "prod_ThK1LTy6UcPdrl": "pro",
-  "prod_ThK1C9kzAMf4h9": "pro",     // Annual
-  "prod_ThK1L4ZhLIMS0C": "premium",
-  "prod_ThK1pF8uFNd4yB": "premium", // Annual
-  "prod_ThK18K9yms0nxs": "enterprise",
-  "prod_ThK1X1RtiwN326": "enterprise", // Annual
-};
-
-// Subscription limits by tier - SYNCED with _shared/stripe-config.ts
-const TIER_LIMITS = {
-  basic: { maxActiveRaffles: 2, maxTicketsPerRaffle: 2000, templatesAvailable: 3 },
-  pro: { maxActiveRaffles: 7, maxTicketsPerRaffle: 30000, templatesAvailable: 6 },
-  premium: { maxActiveRaffles: 15, maxTicketsPerRaffle: 100000, templatesAvailable: 9 },
-  enterprise: { maxActiveRaffles: 999, maxTicketsPerRaffle: 10000000, templatesAvailable: 9 },
-};
-
 // Events that should be processed asynchronously to avoid Stripe timeout
 const ASYNC_EVENTS = [
   'customer.subscription.created',
@@ -84,6 +57,7 @@ const ASYNC_EVENTS = [
   'invoice.payment_succeeded',
   'invoice.payment_failed',
 ];
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
