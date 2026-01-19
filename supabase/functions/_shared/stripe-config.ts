@@ -4,16 +4,16 @@
 // Map Stripe product IDs to subscription tiers
 // Includes both PRODUCTION and TEST mode product IDs
 export const PRODUCT_TO_TIER: Record<string, "basic" | "pro" | "premium" | "enterprise"> = {
-  // Production IDs - Monthly
-  "prod_Tf5pTKxFYtPfd4": "basic",
-  "prod_Tf5pa9W3qgWVFB": "basic", // Annual
-  "prod_Tf5tsw8mmJQneA": "pro",
-  "prod_Tf5tT8tG04qFOn": "pro", // Annual
-  "prod_Tf5uiAAHV2WZNF": "premium",
-  "prod_Tf5uRIGm04Ihh3": "premium", // Annual
-  "prod_ThHMyhLAztHnsu": "enterprise",
-  "prod_ThHMbFCP3wSrq8": "enterprise", // Annual
-  // Test IDs
+  // Production IDs (USD) - NEW
+  "prod_TonJe2av2nOJS7": "basic",
+  "prod_TonKTHjbrkLuRT": "basic", // Annual
+  "prod_TonJoJd4FUAn1e": "pro",
+  "prod_TonK5qhj3EbmjP": "pro", // Annual
+  "prod_TonJ2Y3B8MlzGE": "premium",
+  "prod_TonKyHdkN3Mr0k": "premium", // Annual
+  "prod_TonJ8L27dLZL5P": "enterprise",
+  "prod_TonKDi280pPPx6": "enterprise", // Annual
+  // Test IDs (keep for testing)
   "prod_ThK1EiE0AtKCIM": "basic",
   "prod_ThK1JlY6NKTIFS": "basic", // Annual
   "prod_ThK1LTy6UcPdrl": "pro",
@@ -53,9 +53,9 @@ export const BASIC_PRICE_IDS = [
   // Test mode
   "price_1SjvNEDPAURVR9VYo48CuIdo", // test monthly
   "price_1SjvNKDPAURVR9VYTaWlJiqR", // test annual
-  // Live mode
-  "price_1ShldQRk7xhLUSttlw5O8LPm", // live monthly
-  "price_1ShldlRk7xhLUSttMCfocNpN", // live annual
+  // Live mode (USD) - NEW
+  "price_1Sr9iWANwomfV97eI7ojW9KR", // live monthly
+  "price_1Sr9jsANwomfV97efJQopwlu", // live annual
 ];
 
 // Helper function to get tier from product ID

@@ -34,24 +34,24 @@ const TEST_PLANS = {
 // ============= LIVE MODE IDs =============
 const LIVE_PLANS = {
   basic: {
-    monthlyPriceId: "price_1ShldQRk7xhLUSttlw5O8LPm",
-    annualPriceId: "price_1ShldlRk7xhLUSttMCfocNpN",
-    productId: "prod_Tf5pTKxFYtPfd4",
+    monthlyPriceId: "price_1Sr9iWANwomfV97eI7ojW9KR",
+    annualPriceId: "price_1Sr9jsANwomfV97efJQopwlu",
+    productId: "prod_TonJe2av2nOJS7",
   },
   pro: {
-    monthlyPriceId: "price_1ShleyRk7xhLUSttu62RpPSz",
-    annualPriceId: "price_1ShlfdRk7xhLUSttwg0xGlKm",
-    productId: "prod_Tf5tsw8mmJQneA",
+    monthlyPriceId: "price_1Sr9iYANwomfV97eTKTKJ4nA",
+    annualPriceId: "price_1Sr9jtANwomfV97eMAVPLDMq",
+    productId: "prod_TonJoJd4FUAn1e",
   },
   premium: {
-    monthlyPriceId: "price_1ShlgGRk7xhLUSttGHQyXlEo",
-    annualPriceId: "price_1ShlglRk7xhLUSttFQxlJm5d",
-    productId: "prod_Tf5uiAAHV2WZNF",
+    monthlyPriceId: "price_1Sr9iaANwomfV97eKjea9Y3w",
+    annualPriceId: "price_1Sr9jvANwomfV97eQLYGvWDB",
+    productId: "prod_TonJ2Y3B8MlzGE",
   },
   enterprise: {
-    monthlyPriceId: "price_1Sjr3nRk7xhLUSttFD1TdVTf",
-    annualPriceId: "price_1Sjr45Rk7xhLUSttjCfRfM3l",
-    productId: "prod_ThHMyhLAztHnsu",
+    monthlyPriceId: "price_1Sr9ibANwomfV97eZafLddgu",
+    annualPriceId: "price_1Sr9jxANwomfV97eUbwB9owr",
+    productId: "prod_TonJ8L27dLZL5P",
   },
 } as const;
 
