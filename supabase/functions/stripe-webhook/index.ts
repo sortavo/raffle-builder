@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { enqueueJob } from '../_shared/job-queue.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +75,15 @@ const TIER_LIMITS = {
   premium: { maxActiveRaffles: 15, maxTicketsPerRaffle: 100000, templatesAvailable: 9 },
   enterprise: { maxActiveRaffles: 999, maxTicketsPerRaffle: 10000000, templatesAvailable: 9 },
 };
+
+// Events that should be processed asynchronously to avoid Stripe timeout
+const ASYNC_EVENTS = [
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -194,7 +204,55 @@ serve(async (req) => {
       logStep("Failed to record event", { eventId: event.id, error: insertError.message }, "WARN");
     }
 
-    // Handle different event types
+    // Phase 9: Async processing for heavy events to avoid Stripe timeout
+    const UPSTASH_REDIS_URL = Deno.env.get('UPSTASH_REDIS_REST_URL');
+    const UPSTASH_REDIS_TOKEN = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+
+    if (ASYNC_EVENTS.includes(event.type) && UPSTASH_REDIS_URL && UPSTASH_REDIS_TOKEN) {
+      try {
+        const { jobId, success, error } = await enqueueJob(
+          UPSTASH_REDIS_URL,
+          UPSTASH_REDIS_TOKEN,
+          'stripe-webhook-process',
+          {
+            eventId: event.id,
+            eventType: event.type,
+            eventData: event.data.object,
+            livemode: event.livemode,
+            receivedAt: Date.now(),
+          },
+          { priority: 'high', maxAttempts: 5 }
+        );
+
+        if (success) {
+          logStep("Event queued for async processing", { 
+            eventId: event.id, 
+            eventType: event.type,
+            jobId 
+          });
+          
+          // Respond immediately to Stripe (within 100ms)
+          return new Response(
+            JSON.stringify({ received: true, queued: true, jobId }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          logStep("Failed to queue event, falling back to sync", { 
+            eventId: event.id, 
+            error 
+          }, "WARN");
+          // Fall through to synchronous processing
+        }
+      } catch (queueError) {
+        logStep("Queue error, falling back to sync", { 
+          eventId: event.id, 
+          error: String(queueError) 
+        }, "WARN");
+        // Fall through to synchronous processing
+      }
+    }
+
+    // Handle different event types (sync fallback or non-async events)
     const startTime = Date.now();
     logStep("Processing event", { eventId: event.id, eventType: event.type });
     
