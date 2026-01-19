@@ -2,21 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { BASIC_PRICE_IDS } from "../_shared/stripe-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
-
-// All Basic plan price IDs (both test and live) - only these get 7 day trial
-const BASIC_PRICE_IDS = [
-  // Test mode
-  "price_1SjvNEDPAURVR9VYo48CuIdo", // test monthly
-  "price_1SjvNKDPAURVR9VYTaWlJiqR", // test annual
-  // Live mode
-  "price_1ShldQRk7xhLUSttlw5O8LPm", // live monthly
-  "price_1ShldlRk7xhLUSttMCfocNpN", // live annual
-];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
