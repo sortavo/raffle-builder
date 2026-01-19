@@ -243,7 +243,9 @@ export function useReserveVirtualTickets() {
         if (!raw.success && raw.error_message === 'Raffle is busy, please retry') {
           lastError = new Error(raw.error_message);
           console.log(`[RESERVE] Lock contention, attempt ${attempt + 1}/${RESERVE_RETRY_ATTEMPTS}`);
-          const delay = RESERVE_RETRY_DELAY_MS * Math.pow(2, attempt) + Math.random() * 50;
+          // Proportional jitter: 50-150% of base delay to reduce collision risk
+          const baseDelay = RESERVE_RETRY_DELAY_MS * Math.pow(2, attempt);
+          const delay = baseDelay * (0.5 + Math.random());
           await new Promise(r => setTimeout(r, delay));
           continue;
         }
