@@ -48,34 +48,52 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
-// Helper to format ticket ranges into display numbers
+// Helper to format ticket ranges or lucky_indices into display numbers
 function formatTicketNumbers(
-  ranges: { s: number; e: number }[],
+  ranges: { s: number; e: number }[] | null,
+  luckyIndices: number[] | null,
   numberStart: number = 1,
   totalTickets: number = 1000
 ): string {
-  if (!ranges || ranges.length === 0) return 'Sin boletos';
-  
   const padding = String(totalTickets + numberStart - 1).length;
-  const tickets: string[] = [];
-  let count = 0;
   const maxShow = 6;
-  
-  for (const range of ranges) {
-    for (let i = range.s; i <= range.e && count < maxShow; i++) {
-      const ticketNum = numberStart + i;
-      tickets.push(String(ticketNum).padStart(padding, '0'));
-      count++;
+
+  // If we have lucky_indices, use them directly
+  if (luckyIndices && luckyIndices.length > 0) {
+    const sortedSample = [...luckyIndices].slice(0, maxShow).sort((a, b) => a - b);
+    const tickets = sortedSample.map(idx => 
+      String(numberStart + idx).padStart(padding, '0')
+    );
+    
+    if (luckyIndices.length > maxShow) {
+      return `#${tickets.join(', #')} y ${luckyIndices.length - maxShow} más`;
     }
-    if (count >= maxShow) break;
+    return `#${tickets.join(', #')}`;
+  }
+
+  // If we have ticket_ranges, use existing logic
+  if (ranges && ranges.length > 0) {
+    const tickets: string[] = [];
+    let count = 0;
+    
+    for (const range of ranges) {
+      for (let i = range.s; i <= range.e && count < maxShow; i++) {
+        const ticketNum = numberStart + i;
+        tickets.push(String(ticketNum).padStart(padding, '0'));
+        count++;
+      }
+      if (count >= maxShow) break;
+    }
+    
+    const totalCount = ranges.reduce((sum, r) => sum + (r.e - r.s + 1), 0);
+    if (totalCount > maxShow) {
+      return `#${tickets.join(', #')} y ${totalCount - maxShow} más`;
+    }
+    
+    return `#${tickets.join(', #')}`;
   }
   
-  const totalCount = ranges.reduce((sum, r) => sum + (r.e - r.s + 1), 0);
-  if (totalCount > maxShow) {
-    return `#${tickets.join(', #')} y ${totalCount - maxShow} más`;
-  }
-  
-  return `#${tickets.join(', #')}`;
+  return 'Sin boletos';
 }
 
 function OrderResultCard({ 
@@ -193,7 +211,7 @@ function OrderResultCard({
           "text-sm font-mono",
           isLightTemplate ? "text-gray-900" : "text-white"
         )}>
-          {formatTicketNumbers(order.ticket_ranges, numberStart, totalTickets)}
+          {formatTicketNumbers(order.ticket_ranges, order.lucky_indices, numberStart, totalTickets)}
         </p>
       </div>
 
