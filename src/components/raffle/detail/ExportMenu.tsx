@@ -118,7 +118,7 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
           ) : (
             <Download className="h-4 w-4" />
           )}
-          <span className="hidden lg:inline">Exportar</span>
+          <span className="hidden xl:inline">Exportar</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
