@@ -438,55 +438,55 @@ export function BuyersTab({
             ))}
           </div>
 
-          {/* Desktop: Table */}
+          {/* Desktop: Table - compact padding to prevent overflow */}
           <div className="hidden md:block rounded-md border overflow-x-auto">
-            <Table className="min-w-[900px]">
+            <Table className="min-w-[700px] lg:min-w-[850px] text-xs lg:text-sm [&_th]:px-2 [&_td]:px-2 lg:[&_th]:px-3 lg:[&_td]:px-3">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[100px]">Nombre</TableHead>
-                  <TableHead className="min-w-[80px]">Ciudad</TableHead>
-                  <TableHead className="min-w-[140px]">Contacto</TableHead>
-                  <TableHead className="text-center w-[50px]">Cant.</TableHead>
-                  <TableHead className="min-w-[160px]">Boletos</TableHead>
-                  <TableHead className="min-w-[80px]">Total</TableHead>
-                  <TableHead className="min-w-[80px] hidden lg:table-cell">Método</TableHead>
-                  <TableHead className="min-w-[90px] hidden lg:table-cell">Referencia</TableHead>
-                  <TableHead className="min-w-[80px]">Estado</TableHead>
-                  <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                  <TableHead className="min-w-[90px] lg:min-w-[110px]">Nombre</TableHead>
+                  <TableHead className="min-w-[60px] hidden xl:table-cell">Ciudad</TableHead>
+                  <TableHead className="min-w-[100px] lg:min-w-[130px]">Contacto</TableHead>
+                  <TableHead className="text-center w-[40px] lg:w-[50px]">Cant.</TableHead>
+                  <TableHead className="min-w-[100px] lg:min-w-[140px]">Boletos</TableHead>
+                  <TableHead className="min-w-[60px] lg:min-w-[80px]">Total</TableHead>
+                  <TableHead className="min-w-[70px] hidden xl:table-cell">Método</TableHead>
+                  <TableHead className="min-w-[70px] hidden xl:table-cell">Referencia</TableHead>
+                  <TableHead className="min-w-[70px] lg:min-w-[80px]">Estado</TableHead>
+                  <TableHead className="text-right w-[70px] lg:w-[90px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {buyers.map((buyer) => (
                   <TableRow key={buyer.id}>
-                    <TableCell className="font-medium">{buyer.name}</TableCell>
-                    <TableCell>{buyer.city || '-'}</TableCell>
+                    <TableCell className="font-medium truncate max-w-[100px] lg:max-w-[130px]">{buyer.name}</TableCell>
+                    <TableCell className="hidden xl:table-cell truncate max-w-[70px]">{buyer.city || '-'}</TableCell>
                     <TableCell>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {buyer.email && (
-                          <div className="flex items-center gap-1 text-xs">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate max-w-[150px]">{buyer.email}</span>
+                          <div className="flex items-center gap-1 text-[10px] lg:text-xs">
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate max-w-[80px] lg:max-w-[110px]">{buyer.email}</span>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleCopyEmail(buyer.email!)}
-                              className="h-6 w-6 p-0"
+                              className="h-5 w-5 p-0"
                             >
-                              <Copy className="h-3 w-3" />
+                              <Copy className="h-2.5 w-2.5" />
                             </Button>
                           </div>
                         )}
                         {buyer.phone && (
-                          <div className="flex items-center gap-1 text-xs">
-                            <Phone className="h-3 w-3" />
-                            <span>{buyer.phone}</span>
+                          <div className="flex items-center gap-1 text-[10px] lg:text-xs">
+                            <Phone className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate max-w-[80px]">{buyer.phone}</span>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleCopyPhone(buyer.phone!)}
-                              className="h-6 w-6 p-0"
+                              className="h-5 w-5 p-0"
                             >
-                              <Copy className="h-3 w-3" />
+                              <Copy className="h-2.5 w-2.5" />
                             </Button>
                           </div>
                         )}
@@ -496,27 +496,27 @@ export function BuyersTab({
                       {buyer.ticketCount}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      <div className="flex flex-wrap gap-0.5 lg:gap-1 max-w-[120px] lg:max-w-[160px]">
                         {buyer.tickets.length > 0 ? (
                           <>
-                            {buyer.tickets.slice(0, 5).map((ticket, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
+                            {buyer.tickets.slice(0, 3).map((ticket, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-[10px] lg:text-xs px-1 lg:px-1.5">
                                 {ticket}
                               </Badge>
                             ))}
-                            {buyer.tickets.length > 5 && (
+                            {buyer.tickets.length > 3 && (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <span>
-                                      <Badge variant="outline" className="text-xs cursor-help">
-                                        +{buyer.tickets.length - 5}
+                                      <Badge variant="outline" className="text-[10px] lg:text-xs px-1 cursor-help">
+                                        +{buyer.tickets.length - 3}
                                       </Badge>
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <div className="grid grid-cols-5 gap-1 max-w-xs">
-                                      {buyer.tickets.slice(5).map((ticket, idx) => (
+                                      {buyer.tickets.slice(3).map((ticket, idx) => (
                                         <span key={idx} className="text-xs">{ticket}</span>
                                       ))}
                                     </div>
@@ -526,40 +526,44 @@ export function BuyersTab({
                             )}
                           </>
                         ) : (
-                          <span className="text-muted-foreground text-xs">{buyer.ticketCount} boletos</span>
+                          <span className="text-muted-foreground text-[10px] lg:text-xs">{buyer.ticketCount} boletos</span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold">
+                    <TableCell className="font-semibold text-[11px] lg:text-sm">
                       {formatCurrency(buyer.orderTotal || 0, currencyCode)}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">{getPaymentMethodLabel(buyer.paymentMethod)}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="hidden xl:table-cell text-muted-foreground truncate max-w-[70px]">
+                      {getPaymentMethodLabel(buyer.paymentMethod)}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       {buyer.paymentReference ? (
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[80px] block">
+                        <code className="text-[10px] lg:text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[60px] lg:max-w-[70px] block">
                           {buyer.paymentReference}
                         </code>
                       ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
+                        <span className="text-muted-foreground text-[10px] lg:text-xs">-</span>
                       )}
                     </TableCell>
                     <TableCell>{getStatusBadge(buyer.status)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setSelectedBuyer(buyer)}
+                          className="h-7 w-7 p-0"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                         </Button>
                         {buyer.phone && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleWhatsApp(buyer.phone!, buyer.name)}
+                            className="h-7 w-7 p-0"
                           >
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         {buyer.email && (
@@ -567,8 +571,9 @@ export function BuyersTab({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEmail(buyer.email!, buyer.name)}
+                            className="h-7 w-7 p-0"
                           >
-                            <Mail className="h-4 w-4" />
+                            <Mail className="h-3.5 w-3.5" />
                           </Button>
                         )}
                       </div>
