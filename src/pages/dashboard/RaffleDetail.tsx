@@ -113,26 +113,26 @@ export default function RaffleDetail() {
             </div>
             
             {/* Desktop actions */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1 lg:gap-2 flex-wrap justify-end flex-shrink-0">
               <ExportMenu raffleId={raffle.id} raffleName={raffle.title} />
               {canDraw && (
                 <Button
                   size="sm"
-                  className="h-8 gap-1.5"
+                  className="h-8 gap-1.5 flex-shrink-0"
                   onClick={() => navigate(`/dashboard/raffles/${id}/draw`)}
                 >
                   <Trophy className="h-4 w-4" />
-                  Sortear
+                  <span className="hidden lg:inline">Sortear</span>
                 </Button>
               )}
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5"
+                className="h-8 gap-1.5 flex-shrink-0"
                 onClick={() => navigate(`/dashboard/raffles/${id}/edit`)}
               >
                 <Pencil className="h-4 w-4" />
-                Editar
+                <span className="hidden lg:inline">Editar</span>
               </Button>
             </div>
 
@@ -173,15 +173,15 @@ export default function RaffleDetail() {
 
         {/* Tabs - grid on mobile, inline on desktop */}
         <Tabs defaultValue="overview" className="space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-          <TabsList className="grid grid-cols-5 w-full h-auto gap-0.5 p-1">
+          <TabsList className="grid grid-cols-5 w-full h-auto gap-0.5 p-1 overflow-hidden">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 px-1 md:px-2.5 py-2 text-[10px] md:text-sm min-w-0 overflow-hidden"
+                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1 px-0.5 md:px-2 py-2 text-[9px] sm:text-[10px] md:text-xs lg:text-sm min-w-0"
               >
-                <tab.icon className="h-4 w-4 shrink-0" />
-                <span className="truncate max-w-full block">{tab.label}</span>
+                <tab.icon className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+                <span className="truncate text-center leading-tight max-w-full">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
