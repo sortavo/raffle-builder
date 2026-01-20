@@ -17,6 +17,7 @@ export interface VerificationResult {
   buyer_phone: string | null;
   ticket_count: number;
   ticket_ranges: TicketRange[];
+  lucky_indices: number[] | null;
   reserved_at: string | null;
   sold_at: string | null;
   created_at: string | null;
@@ -45,6 +46,7 @@ export function useRaffleTicketVerification(
           buyer_phone,
           ticket_count,
           ticket_ranges,
+          lucky_indices,
           reserved_at,
           sold_at,
           created_at
@@ -79,6 +81,7 @@ export function useRaffleTicketVerification(
         ticket_ranges: Array.isArray(order.ticket_ranges) 
           ? (order.ticket_ranges as unknown as TicketRange[])
           : [],
+        lucky_indices: order.lucky_indices ?? null,
       }));
     },
     enabled: !!raffleId && !!searchValue.trim() && searchValue.trim().length >= 3,
