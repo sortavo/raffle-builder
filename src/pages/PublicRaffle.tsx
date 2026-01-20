@@ -38,6 +38,7 @@ import { ContactSection } from "@/components/raffle/public/ContactSection";
 import { PreviewBanner } from "@/components/raffle/public/PreviewBanner";
 import { UpcomingPreDraws } from "@/components/raffle/public/UpcomingPreDraws";
 import { AnnouncedWinners } from "@/components/raffle/public/AnnouncedWinners";
+import { TicketVerificationSection } from "@/components/raffle/public/TicketVerificationSection";
 import { PricingSection } from "@/components/raffle/public/sections/PricingSection";
 import { parsePrizes } from "@/types/prize";
 import { StructuredData, createEventSchema, createBreadcrumbSchema } from "@/components/seo/StructuredData";
@@ -737,6 +738,17 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
           livestreamUrl={(raffle as any).livestream_url}
           isLightTemplate={isLightTemplate}
           primaryColor={primaryColor}
+        />
+
+        {/* Ticket Verification Section */}
+        <TicketVerificationSection
+          raffleId={raffle.id}
+          raffleSlug={raffle.slug}
+          organizationSlug={effectiveOrgSlug}
+          isLightTemplate={isLightTemplate}
+          primaryColor={primaryColor}
+          numberStart={((raffle as any).numbering_config as any)?.start_number ?? 1}
+          totalTickets={raffle.total_tickets}
         />
 
         {/* How It Works - Desktop only (mobile uses compact version above) */}
