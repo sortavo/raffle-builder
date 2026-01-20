@@ -440,19 +440,19 @@ export function BuyersTab({
 
           {/* Desktop: Table */}
           <div className="hidden md:block rounded-md border overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Ciudad</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead className="text-center">Cant.</TableHead>
-                  <TableHead>Boletos</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Referencia</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="min-w-[100px]">Nombre</TableHead>
+                  <TableHead className="min-w-[80px]">Ciudad</TableHead>
+                  <TableHead className="min-w-[140px]">Contacto</TableHead>
+                  <TableHead className="text-center w-[50px]">Cant.</TableHead>
+                  <TableHead className="min-w-[160px]">Boletos</TableHead>
+                  <TableHead className="min-w-[80px]">Total</TableHead>
+                  <TableHead className="min-w-[80px] hidden lg:table-cell">Método</TableHead>
+                  <TableHead className="min-w-[90px] hidden lg:table-cell">Referencia</TableHead>
+                  <TableHead className="min-w-[80px]">Estado</TableHead>
+                  <TableHead className="text-right w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -507,10 +507,12 @@ export function BuyersTab({
                             {buyer.tickets.length > 5 && (
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge variant="outline" className="text-xs cursor-help">
-                                      +{buyer.tickets.length - 5}
-                                    </Badge>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Badge variant="outline" className="text-xs cursor-help">
+                                        +{buyer.tickets.length - 5}
+                                      </Badge>
+                                    </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <div className="grid grid-cols-5 gap-1 max-w-xs">
@@ -531,10 +533,10 @@ export function BuyersTab({
                     <TableCell className="font-semibold">
                       {formatCurrency(buyer.orderTotal || 0, currencyCode)}
                     </TableCell>
-                    <TableCell>{getPaymentMethodLabel(buyer.paymentMethod)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">{getPaymentMethodLabel(buyer.paymentMethod)}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       {buyer.paymentReference ? (
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        <code className="text-xs bg-muted px-1 py-0.5 rounded truncate max-w-[80px] block">
                           {buyer.paymentReference}
                         </code>
                       ) : (
