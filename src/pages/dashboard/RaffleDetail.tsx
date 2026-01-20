@@ -171,20 +171,22 @@ export default function RaffleDetail() {
           />
         )}
 
-        {/* Tabs - grid on mobile, inline on desktop */}
-        <Tabs defaultValue="overview" className="space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-          <TabsList className="grid grid-cols-5 w-full h-auto gap-0.5 p-1 overflow-hidden">
-            {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1 px-0.5 md:px-2 py-2 text-[9px] sm:text-[10px] md:text-xs lg:text-sm min-w-0"
-              >
-                <tab.icon className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
-                <span className="truncate text-center leading-tight max-w-full">{tab.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* Tabs - scrollable on all screen sizes */}
+        <Tabs defaultValue="overview" className="space-y-4 w-full">
+          <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
+            <TabsList className="inline-flex w-auto min-w-full h-auto gap-1 p-1">
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center gap-1.5 px-2 md:px-3 py-2 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
+                >
+                  <tab.icon className="h-4 w-4 shrink-0" />
+                  <span>{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <OverviewTab 
