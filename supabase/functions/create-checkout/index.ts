@@ -9,6 +9,29 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Bug #4: Origin validation whitelist
+const ALLOWED_ORIGINS = [
+  "https://sortavo.com",
+  "https://www.sortavo.com",
+  "https://app.sortavo.com",
+  "https://sortavo-hub.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  
+  // Check exact match
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  
+  // Check dynamic subdomains
+  if (origin.endsWith('.lovableproject.com')) return true;
+  if (origin.endsWith('.lovable.app')) return true;
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
@@ -21,6 +44,16 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Bug #4: Validate and sanitize origin
+    const rawOrigin = req.headers.get("origin");
+    const safeOrigin = isAllowedOrigin(rawOrigin) ? rawOrigin : "https://sortavo.com";
+    
+    logStep("Origin validated", { 
+      rawOrigin, 
+      safeOrigin, 
+      isAllowed: isAllowedOrigin(rawOrigin) 
+    });
 
     // Detect Stripe mode from secret key
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
@@ -100,8 +133,6 @@ serve(async (req) => {
       logStep("No existing subscription found, proceeding with checkout");
     }
 
-    const origin = req.headers.get("origin") || "https://sortavo.com";
-    
     // Check if this is a Basic plan (gets 7 day trial)
     const isBasicPlan = BASIC_PRICE_IDS.includes(priceId);
     logStep("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0, stripeMode });
@@ -116,8 +147,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/onboarding?step=3&canceled=true`,
+      success_url: `${safeOrigin}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${safeOrigin}/onboarding?step=3&canceled=true`,
       metadata: {
         user_id: user.id,
         organization_id: organizationId,
@@ -132,7 +163,7 @@ serve(async (req) => {
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url, stripeMode });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url, stripeMode, origin: safeOrigin });
 
     return corsJsonResponse(req, { url: session.url }, 200);
   } catch (error) {

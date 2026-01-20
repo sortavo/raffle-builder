@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { enqueueJob } from '../_shared/job-queue.ts';
 import { PRODUCT_TO_TIER, TIER_LIMITS } from "../_shared/stripe-config.ts";
 
@@ -39,7 +39,6 @@ function safeTimestampToISO(timestamp: number | null | undefined): string | null
   }
   try {
     const date = new Date(timestamp * 1000);
-    // Verify the date is valid before converting
     if (isNaN(date.getTime())) {
       return null;
     }
@@ -58,13 +57,85 @@ const ASYNC_EVENTS = [
   'invoice.payment_failed',
 ];
 
+// Bug #6: Typed helper for organization lookup with standardized cascaded search
+interface OrganizationResult {
+  id: string;
+  subscription_tier?: string | null;
+  subscription_status?: string | null;
+}
+
+async function findOrganizationByPaymentContext(
+  supabase: SupabaseClient,
+  customerId: string,
+  customerEmail: string,
+  subscriptionMetadata: { organization_id?: string } | undefined,
+  eventId: string,
+  handlerName: string
+): Promise<OrganizationResult | null> {
+  // 1. Try by metadata organization_id (most reliable for new subscriptions)
+  const orgIdFromMeta = subscriptionMetadata?.organization_id;
+  if (orgIdFromMeta) {
+    const { data: orgByMeta } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier, subscription_status")
+      .eq("id", orgIdFromMeta)
+      .single();
+    if (orgByMeta) {
+      logStep(`${handlerName}: Org found by metadata`, { orgId: orgByMeta.id, eventId }, "DEBUG");
+      return orgByMeta;
+    }
+  }
+
+  // 2. Try by stripe_customer_id (reliable for renewals)
+  const { data: orgByCustomer } = await supabase
+    .from("organizations")
+    .select("id, subscription_tier, subscription_status")
+    .eq("stripe_customer_id", customerId)
+    .single();
+  if (orgByCustomer) {
+    logStep(`${handlerName}: Org found by stripe_customer_id`, { orgId: orgByCustomer.id, eventId }, "DEBUG");
+    return orgByCustomer;
+  }
+
+  // 3. Try by organization email
+  const { data: orgByEmail } = await supabase
+    .from("organizations")
+    .select("id, subscription_tier, subscription_status")
+    .eq("email", customerEmail)
+    .single();
+  if (orgByEmail) {
+    logStep(`${handlerName}: Org found by org email`, { orgId: orgByEmail.id, eventId }, "DEBUG");
+    return orgByEmail;
+  }
+
+  // 4. Try by profile email -> organization_id
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("email", customerEmail)
+    .single();
+  
+  if (profileData?.organization_id) {
+    const { data: orgByProfile } = await supabase
+      .from("organizations")
+      .select("id, subscription_tier, subscription_status")
+      .eq("id", profileData.organization_id)
+      .single();
+    if (orgByProfile) {
+      logStep(`${handlerName}: Org found via profile`, { orgId: orgByProfile.id, eventId }, "DEBUG");
+      return orgByProfile;
+    }
+  }
+
+  logStep(`${handlerName}: Org not found`, { customerEmail, customerId, orgIdFromMeta, eventId }, "WARN");
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -85,7 +156,7 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     const isProduction = Deno.env.get("ENVIRONMENT") === "production" || 
-                         !Deno.env.get("ENVIRONMENT"); // Default to production-like behavior
+                         !Deno.env.get("ENVIRONMENT");
     
     logStep("Environment check", { 
       requestId,
@@ -101,7 +172,6 @@ serve(async (req) => {
     }
     
     // CRITICAL: Webhook secret is ALWAYS required - no exceptions
-    // This prevents fake event injection in ANY environment
     if (!webhookSecret) {
       logStep("STRIPE_WEBHOOK_SECRET not configured - REJECTING for security", { 
         isProduction,
@@ -122,7 +192,7 @@ serve(async (req) => {
 
     let event: Stripe.Event;
 
-    // CRITICAL: Always verify webhook signature - webhookSecret is guaranteed to exist here
+    // CRITICAL: Always verify webhook signature
     if (!signature) {
       logStep("Missing stripe-signature header", {}, "ERROR");
       return new Response(JSON.stringify({ error: "Missing signature" }), {
@@ -150,33 +220,33 @@ serve(async (req) => {
       });
     }
 
-    // Check for duplicate events
-    const { data: existingEvent, error: dupeCheckError } = await supabaseAdmin
-      .from("stripe_events")
-      .select("id")
-      .eq("event_id", event.id)
-      .single();
-
-    if (dupeCheckError && dupeCheckError.code !== "PGRST116") {
-      logStep("Error checking for duplicate event", { error: dupeCheckError.message }, "WARN");
-    }
-
-    if (existingEvent) {
-      logStep("Duplicate event, skipping", { eventId: event.id, eventType: event.type }, "DEBUG");
-      return new Response(JSON.stringify({ received: true, duplicate: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Record the event
+    // Bug #1: Atomic insert - handle unique constraint violation (23505) as duplicate
     const { error: insertError } = await supabaseAdmin.from("stripe_events").insert({
       event_id: event.id,
       event_type: event.type,
+      created_at: new Date().toISOString()
     });
-    
+
+    // PostgreSQL error code 23505 = unique_violation
     if (insertError) {
-      logStep("Failed to record event", { eventId: event.id, error: insertError.message }, "WARN");
+      if (insertError.code === "23505") {
+        logStep("Duplicate event detected via constraint", { 
+          eventId: event.id, 
+          eventType: event.type 
+        }, "DEBUG");
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Other insert errors should not block processing but log them
+      logStep("Failed to record event", { 
+        eventId: event.id, 
+        error: insertError.message,
+        code: insertError.code 
+      }, "WARN");
     }
+
+    logStep("Event recorded", { eventId: event.id, eventType: event.type });
 
     // Phase 9: Async processing for heavy events to avoid Stripe timeout
     const UPSTASH_REDIS_URL = Deno.env.get('UPSTASH_REDIS_REST_URL');
@@ -205,7 +275,6 @@ serve(async (req) => {
             jobId 
           });
           
-          // Respond immediately to Stripe (within 100ms)
           return new Response(
             JSON.stringify({ received: true, queued: true, jobId }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -215,14 +284,12 @@ serve(async (req) => {
             eventId: event.id, 
             error 
           }, "WARN");
-          // Fall through to synchronous processing
         }
       } catch (queueError) {
         logStep("Queue error, falling back to sync", { 
           eventId: event.id, 
           error: String(queueError) 
         }, "WARN");
-        // Fall through to synchronous processing
       }
     }
 
@@ -314,9 +381,8 @@ serve(async (req) => {
   }
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSubscriptionChange(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   subscription: Stripe.Subscription,
   eventId: string
@@ -352,75 +418,21 @@ async function handleSubscriptionChange(
 
   logStep("Customer retrieved", { customerId, email, eventId }, "DEBUG");
 
-  // Find organization using cascaded search for reliability
-  let org = null;
-
-  // 1. First try by organization_id from subscription metadata (most reliable for new subscriptions)
-  const orgIdFromMeta = subscription.metadata?.organization_id;
-  if (orgIdFromMeta) {
-    const { data: orgByMeta } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier, subscription_status")
-      .eq("id", orgIdFromMeta)
-      .single();
-    if (orgByMeta) {
-      org = orgByMeta;
-      logStep("Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 2. If not found, try by stripe_customer_id (reliable for renewals)
-  if (!org) {
-    const { data: orgByCustomer } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier, subscription_status")
-      .eq("stripe_customer_id", customerId)
-      .single();
-    if (orgByCustomer) {
-      org = orgByCustomer;
-      logStep("Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 3. If not found, try by organization email
-  if (!org) {
-    const { data: orgByEmail } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier, subscription_status")
-      .eq("email", email)
-      .single();
-    if (orgByEmail) {
-      org = orgByEmail;
-      logStep("Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 4. If still not found, try by profile email -> get organization_id
-  if (!org) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("email", email)
-      .single();
-    
-    if (profileData?.organization_id) {
-      const { data: orgByProfile } = await supabase
-        .from("organizations")
-        .select("id, subscription_tier, subscription_status")
-        .eq("id", profileData.organization_id)
-        .single();
-      if (orgByProfile) {
-        org = orgByProfile;
-        logStep("Organization found via profile email", { orgId: org.id, profileEmail: email, eventId }, "DEBUG");
-      }
-    }
-  }
+  // Use standardized helper for organization lookup
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    email,
+    subscription.metadata as { organization_id?: string },
+    eventId,
+    "handleSubscriptionChange"
+  );
 
   if (!org) {
     logStep("Organization not found by any method", { 
       email, 
       customerId,
-      orgIdFromMeta,
+      orgIdFromMeta: subscription.metadata?.organization_id,
       eventId,
     }, "WARN");
     return;
@@ -453,14 +465,21 @@ async function handleSubscriptionChange(
   const priceInterval = priceItem?.price?.recurring?.interval;
   const subscriptionPeriod = priceInterval === "year" ? "annual" : "monthly";
 
-  // Map Stripe status to our status
-  let subscriptionStatus: "active" | "canceled" | "past_due" | "trial" = "active";
+  // Bug #3: Map Stripe status to our status (including incomplete)
+  let subscriptionStatus: "active" | "canceled" | "past_due" | "trial" | "incomplete" = "active";
   if (subscription.status === "canceled") {
     subscriptionStatus = "canceled";
   } else if (subscription.status === "past_due") {
     subscriptionStatus = "past_due";
   } else if (subscription.status === "trialing") {
     subscriptionStatus = "trial";
+  } else if (subscription.status === "incomplete" || subscription.status === "incomplete_expired") {
+    subscriptionStatus = "incomplete";
+    logStep("Subscription incomplete - payment required", {
+      subscriptionId: subscription.id,
+      stripeStatus: subscription.status,
+      eventId
+    }, "WARN");
   }
 
   logStep("Subscription status mapped", { 
@@ -490,6 +509,7 @@ async function handleSubscriptionChange(
     .update(updatePayload)
     .eq("id", org.id);
 
+  // Bug #2: Throw error on DB failure to trigger Stripe retry
   if (updateError) {
     logStep("Failed to update organization", { 
       orgId: org.id,
@@ -497,17 +517,18 @@ async function handleSubscriptionChange(
       errorCode: updateError.code,
       eventId,
     }, "ERROR");
-  } else {
-    logStep("Organization updated successfully", {
-      eventId,
-      orgId: org.id,
-      previousTier: org.subscription_tier,
-      newTier: tier,
-      previousStatus: org.subscription_status,
-      newStatus: subscriptionStatus,
-      period: subscriptionPeriod,
-    });
+    throw new Error(`Critical DB error: Failed to update organization ${org.id} - ${updateError.message}`);
   }
+  
+  logStep("Organization updated successfully", {
+    eventId,
+    orgId: org.id,
+    previousTier: org.subscription_tier,
+    newTier: tier,
+    previousStatus: org.subscription_status,
+    newStatus: subscriptionStatus,
+    period: subscriptionPeriod,
+  });
 
   // Create notification for the user
   const { data: profile } = await supabase
@@ -533,9 +554,8 @@ async function handleSubscriptionChange(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSubscriptionCanceled(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   subscription: Stripe.Subscription,
   eventId: string
@@ -557,69 +577,15 @@ async function handleSubscriptionCanceled(
 
   const email = customer.email;
 
-  // Find organization using cascaded search
-  let org = null;
-
-  // 1. First try by organization_id from subscription metadata
-  const orgIdFromMeta = subscription.metadata?.organization_id;
-  if (orgIdFromMeta) {
-    const { data: orgByMeta } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("id", orgIdFromMeta)
-      .single();
-    if (orgByMeta) {
-      org = orgByMeta;
-      logStep("Canceled: Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 2. If not found, try by stripe_customer_id
-  if (!org) {
-    const { data: orgByCustomer } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("stripe_customer_id", customerId)
-      .single();
-    if (orgByCustomer) {
-      org = orgByCustomer;
-      logStep("Canceled: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 3. If not found, try by organization email
-  if (!org) {
-    const { data: orgByEmail } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("email", email)
-      .single();
-    if (orgByEmail) {
-      org = orgByEmail;
-      logStep("Canceled: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 4. If still not found, try by profile email
-  if (!org) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("email", email)
-      .single();
-    
-    if (profileData?.organization_id) {
-      const { data: orgByProfile } = await supabase
-        .from("organizations")
-        .select("id, subscription_tier")
-        .eq("id", profileData.organization_id)
-        .single();
-      if (orgByProfile) {
-        org = orgByProfile;
-        logStep("Canceled: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
-      }
-    }
-  }
+  // Use standardized helper for organization lookup
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    email,
+    subscription.metadata as { organization_id?: string },
+    eventId,
+    "handleSubscriptionCanceled"
+  );
 
   if (!org) {
     logStep("Canceled: Organization not found by any method", { email, customerId, eventId }, "WARN");
@@ -641,19 +607,21 @@ async function handleSubscriptionCanceled(
     })
     .eq("id", org.id);
 
+  // Bug #2: Throw error on DB failure to trigger Stripe retry
   if (updateError) {
     logStep("Failed to update org on cancellation", { 
       orgId: org.id, 
       error: updateError.message,
       eventId,
     }, "ERROR");
-  } else {
-    logStep("Subscription canceled, reverted to basic", { 
-      orgId: org.id,
-      previousTier: org.subscription_tier,
-      eventId,
-    });
+    throw new Error(`Critical DB error: Failed to cancel subscription for org ${org.id} - ${updateError.message}`);
   }
+  
+  logStep("Subscription canceled, reverted to basic", { 
+    orgId: org.id,
+    previousTier: org.subscription_tier,
+    eventId,
+  });
 
   // Create cancellation notification
   const { data: profile } = await supabase
@@ -679,9 +647,8 @@ async function handleSubscriptionCanceled(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handlePaymentSucceeded(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   invoice: Stripe.Invoice,
   eventId: string
@@ -712,59 +679,19 @@ async function handlePaymentSucceeded(
     return;
   }
 
-  const email = customer.email;
-
-  // Find organization using cascaded search
-  let org = null;
-
-  // 1. First try by stripe_customer_id (most reliable for payments)
-  const { data: orgByCustomer } = await supabase
-    .from("organizations")
-    .select("id, subscription_tier")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (orgByCustomer) {
-    org = orgByCustomer;
-    logStep("PaymentSuccess: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
-  }
-
-  // 2. If not found, try by organization email
-  if (!org) {
-    const { data: orgByEmail } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("email", email)
-      .single();
-    if (orgByEmail) {
-      org = orgByEmail;
-      logStep("PaymentSuccess: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 3. If still not found, try by profile email
-  if (!org) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("email", email)
-      .single();
-    
-    if (profileData?.organization_id) {
-      const { data: orgByProfile } = await supabase
-        .from("organizations")
-        .select("id, subscription_tier")
-        .eq("id", profileData.organization_id)
-        .single();
-      if (orgByProfile) {
-        org = orgByProfile;
-        logStep("PaymentSuccess: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
-      }
-    }
-  }
+  // Use standardized helper for organization lookup
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    customer.email,
+    undefined, // No subscription metadata on invoice
+    eventId,
+    "handlePaymentSucceeded"
+  );
 
   if (!org) {
     logStep("PaymentSuccess: Organization not found by any method", { 
-      email, 
+      email: customer.email, 
       customerId,
       eventId,
     }, "WARN");
@@ -772,18 +699,21 @@ async function handlePaymentSucceeded(
   }
 
   // Update status to active if it was past_due
-  await supabase
+  const { error: updateError } = await supabase
     .from("organizations")
     .update({ subscription_status: "active" })
     .eq("id", org.id)
     .eq("subscription_status", "past_due");
 
-  logStep("Payment recorded", { orgId: org.id });
+  if (updateError) {
+    logStep("Failed to update org status on payment success", { error: updateError.message, eventId }, "WARN");
+  }
+
+  logStep("Payment recorded", { orgId: org.id, eventId });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handlePaymentFailed(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   invoice: Stripe.Invoice,
   eventId: string
@@ -817,58 +747,18 @@ async function handlePaymentFailed(
     return;
   }
 
-  const email = customer.email;
-
-  // Find organization using cascaded search
-  let org = null;
-
-  // 1. First try by stripe_customer_id
-  const { data: orgByCustomer } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (orgByCustomer) {
-    org = orgByCustomer;
-    logStep("PaymentFailed: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
-  }
-
-  // 2. If not found, try by organization email
-  if (!org) {
-    const { data: orgByEmail } = await supabase
-      .from("organizations")
-      .select("id")
-      .eq("email", email)
-      .single();
-    if (orgByEmail) {
-      org = orgByEmail;
-      logStep("PaymentFailed: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 3. If still not found, try by profile email
-  if (!org) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("email", email)
-      .single();
-    
-    if (profileData?.organization_id) {
-      const { data: orgByProfile } = await supabase
-        .from("organizations")
-        .select("id")
-        .eq("id", profileData.organization_id)
-        .single();
-      if (orgByProfile) {
-        org = orgByProfile;
-        logStep("PaymentFailed: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
-      }
-    }
-  }
+  // Use standardized helper for organization lookup
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    customer.email,
+    undefined, // No subscription metadata on invoice
+    eventId,
+    "handlePaymentFailed"
+  );
 
   if (!org) {
-    logStep("PaymentFailed: Organization not found by any method", { email, customerId, eventId }, "WARN");
+    logStep("PaymentFailed: Organization not found by any method", { email: customer.email, customerId, eventId }, "WARN");
     return;
   }
 
@@ -878,11 +768,13 @@ async function handlePaymentFailed(
     .update({ subscription_status: "past_due" })
     .eq("id", org.id);
 
+  // Bug #2: Throw error on DB failure to trigger Stripe retry
   if (updateError) {
     logStep("Failed to mark org as past_due", { error: updateError.message, eventId }, "ERROR");
-  } else {
-    logStep("Organization marked as past_due", { orgId: org.id, eventId });
+    throw new Error(`Critical DB error: Failed to mark org ${org.id} as past_due - ${updateError.message}`);
   }
+  
+  logStep("Organization marked as past_due", { orgId: org.id, eventId });
 
   // Create notification
   const { data: profile } = await supabase
@@ -908,9 +800,8 @@ async function handlePaymentFailed(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleCustomerUpdated(
-  supabase: any,
+  supabase: SupabaseClient,
   customer: Stripe.Customer,
   eventId: string
 ) {
@@ -947,6 +838,8 @@ function getSubscriptionNotificationTitle(status: string, tier: string): string 
       return `Prueba de ${tierName} iniciada`;
     case "past_due":
       return "Pago pendiente";
+    case "incomplete":
+      return "Pago requerido";
     default:
       return "Actualización de suscripción";
   }
@@ -962,15 +855,16 @@ function getSubscriptionNotificationMessage(status: string, tier: string): strin
       return `Tu período de prueba del plan ${tierName} ha comenzado.`;
     case "past_due":
       return "Tu pago está pendiente. Por favor, actualiza tu método de pago.";
+    case "incomplete":
+      return "Tu suscripción requiere un pago para activarse. Por favor, completa el pago.";
     default:
       return "Tu suscripción ha sido actualizada.";
   }
 }
 
 // Handler for trial ending soon (3 days before trial ends)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleTrialWillEnd(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   subscription: Stripe.Subscription,
   eventId: string
@@ -994,74 +888,18 @@ async function handleTrialWillEnd(
     return;
   }
 
-  const email = customer.email;
-
-  // Find organization using cascaded search
-  let org = null;
-
-  // 1. First try by organization_id from subscription metadata
-  const orgIdFromMeta = subscription.metadata?.organization_id;
-  if (orgIdFromMeta) {
-    const { data: orgByMeta } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("id", orgIdFromMeta)
-      .single();
-    if (orgByMeta) {
-      org = orgByMeta;
-      logStep("TrialWillEnd: Organization found by metadata", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 2. If not found, try by stripe_customer_id
-  if (!org) {
-    const { data: orgByCustomer } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("stripe_customer_id", customerId)
-      .single();
-    if (orgByCustomer) {
-      org = orgByCustomer;
-      logStep("TrialWillEnd: Organization found by stripe_customer_id", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 3. If not found, try by organization email
-  if (!org) {
-    const { data: orgByEmail } = await supabase
-      .from("organizations")
-      .select("id, subscription_tier")
-      .eq("email", email)
-      .single();
-    if (orgByEmail) {
-      org = orgByEmail;
-      logStep("TrialWillEnd: Organization found by org email", { orgId: org.id, eventId }, "DEBUG");
-    }
-  }
-
-  // 4. If still not found, try by profile email
-  if (!org) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("organization_id")
-      .eq("email", email)
-      .single();
-    
-    if (profileData?.organization_id) {
-      const { data: orgByProfile } = await supabase
-        .from("organizations")
-        .select("id, subscription_tier")
-        .eq("id", profileData.organization_id)
-        .single();
-      if (orgByProfile) {
-        org = orgByProfile;
-        logStep("TrialWillEnd: Organization found via profile email", { orgId: org.id, eventId }, "DEBUG");
-      }
-    }
-  }
+  // Use standardized helper for organization lookup
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    customer.email,
+    subscription.metadata as { organization_id?: string },
+    eventId,
+    "handleTrialWillEnd"
+  );
 
   if (!org) {
-    logStep("TrialWillEnd: Organization not found by any method", { email, customerId, eventId }, "WARN");
+    logStep("TrialWillEnd: Organization not found by any method", { email: customer.email, customerId, eventId }, "WARN");
     return;
   }
 
@@ -1074,7 +912,7 @@ async function handleTrialWillEnd(
   const tierName = (org.subscription_tier || "Basic").charAt(0).toUpperCase() + 
                    (org.subscription_tier || "basic").slice(1);
 
-  // Create notification for the user
+  // Create notification
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
@@ -1086,10 +924,10 @@ async function handleTrialWillEnd(
     const { error: notifError } = await supabase.from("notifications").insert({
       user_id: profile.id,
       organization_id: org.id,
-      type: "subscription",
-      title: "Tu prueba termina pronto",
-      message: `Quedan ${daysRemaining} días de tu prueba del plan ${tierName}. Actualiza tu método de pago para continuar sin interrupciones.`,
-      link: "/dashboard/subscription",
+      type: "trial_ending",
+      title: `Tu prueba de ${tierName} termina pronto`,
+      message: `Tu período de prueba termina en ${daysRemaining} días. Agrega un método de pago para continuar disfrutando del plan ${tierName}.`,
+      link: "/dashboard/settings",
     });
     
     if (notifError) {
@@ -1098,7 +936,6 @@ async function handleTrialWillEnd(
       logStep("Trial ending notification created", { 
         orgId: org.id, 
         daysRemaining,
-        tier: tierName,
         eventId,
       });
     }

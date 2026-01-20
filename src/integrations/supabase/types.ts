@@ -4182,7 +4182,12 @@ export type Database = {
       draw_method: "lottery_nacional" | "manual" | "random_org"
       raffle_status: "draft" | "active" | "paused" | "completed" | "canceled"
       subscription_period: "monthly" | "annual"
-      subscription_status: "active" | "canceled" | "past_due" | "trial"
+      subscription_status:
+        | "active"
+        | "canceled"
+        | "past_due"
+        | "trial"
+        | "incomplete"
       subscription_tier: "basic" | "pro" | "premium" | "enterprise"
       ticket_number_format: "sequential" | "prefixed" | "random"
       ticket_status: "available" | "reserved" | "sold" | "canceled"
@@ -4317,7 +4322,13 @@ export const Constants = {
       draw_method: ["lottery_nacional", "manual", "random_org"],
       raffle_status: ["draft", "active", "paused", "completed", "canceled"],
       subscription_period: ["monthly", "annual"],
-      subscription_status: ["active", "canceled", "past_due", "trial"],
+      subscription_status: [
+        "active",
+        "canceled",
+        "past_due",
+        "trial",
+        "incomplete",
+      ],
       subscription_tier: ["basic", "pro", "premium", "enterprise"],
       ticket_number_format: ["sequential", "prefixed", "random"],
       ticket_status: ["available", "reserved", "sold", "canceled"],
