@@ -79,7 +79,7 @@ export function TicketsTab({
   const [showProofImage, setShowProofImage] = useState(false);
   const ticketRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const { useTicketsList, useTicketStats, approveTicket, rejectTicket, extendReservation } = useTickets(raffleId);
+  const { useVirtualTicketsList, useTicketStats, approveTicket, rejectTicket, extendReservation } = useTickets(raffleId);
   
   // Debounce search input
   useEffect(() => {
@@ -98,8 +98,8 @@ export function TicketsTab({
     setCurrentPage(1);
   }, [statusFilter]);
 
-  // Pass search to backend query for global search
-  const { data: ticketsData, isLoading, isFetching } = useTicketsList({
+  // Use virtual tickets for the grid display
+  const { data: ticketsData, isLoading, isFetching } = useVirtualTicketsList({
     status: statusFilter !== 'all' ? statusFilter : undefined,
     search: debouncedSearch || undefined,
     page: currentPage,
@@ -109,9 +109,10 @@ export function TicketsTab({
   const { data: stats } = useTicketStats();
 
   const tickets = ticketsData?.tickets || [];
-  // Use count from query result for accurate pagination with filters
+  // Use totalTickets for correct pagination (total virtual tickets, not filtered count)
+  const totalTickets = ticketsData?.totalTickets || ticketsData?.count || 0;
   const totalFilteredCount = ticketsData?.count || 0;
-  const totalPages = Math.ceil(totalFilteredCount / TICKETS_PER_PAGE);
+  const totalPages = Math.ceil(totalTickets / TICKETS_PER_PAGE);
 
   // Highlight effect for found tickets
   useEffect(() => {

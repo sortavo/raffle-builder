@@ -21,7 +21,83 @@ export const useTickets = (raffleId: string | undefined) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get tickets with pagination and filters - uses orders table
+  // Get virtual tickets with pagination for display grid
+  const useVirtualTicketsList = (filters?: TicketFilters) => {
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 100;
+
+    return useQuery({
+      queryKey: ['virtual-tickets', raffleId, filters],
+      queryFn: async () => {
+        if (!raffleId) return { tickets: [], count: 0, totalTickets: 0 };
+
+        // First get raffle total_tickets for correct pagination
+        const { data: raffle } = await supabase
+          .from('raffles')
+          .select('total_tickets, numbering_config')
+          .eq('id', raffleId)
+          .single();
+
+        const totalTickets = raffle?.total_tickets || 0;
+        const numberStart = (raffle?.numbering_config as any)?.start ?? 1;
+        const padding = String(totalTickets + numberStart - 1).length;
+
+        // Calculate range for current page
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize - 1, totalTickets - 1);
+
+        // Use virtual tickets RPC
+        const { data: virtualTickets, error } = await supabase.rpc('get_virtual_tickets_by_range', {
+          p_raffle_id: raffleId,
+          p_start_index: startIndex,
+          p_end_index: endIndex,
+        });
+
+        if (error) throw error;
+
+        // Map virtual tickets to display format
+        let tickets = (virtualTickets || []).map((t: any) => ({
+          id: t.order_id || `virtual-${t.ticket_index}`,
+          ticket_number: String(numberStart + t.ticket_index).padStart(padding, '0'),
+          ticket_index: t.ticket_index,
+          status: t.status || 'available',
+          buyer_name: t.buyer_name,
+          buyer_email: t.buyer_email,
+          buyer_phone: t.buyer_phone,
+          buyer_city: t.buyer_city,
+          order_id: t.order_id,
+          reference_code: t.reference_code,
+          reserved_until: t.reserved_until,
+          payment_proof_url: t.payment_proof_url,
+          sold_at: t.sold_at,
+          created_at: t.created_at,
+        }));
+
+        // Apply status filter client-side (RPC returns all statuses)
+        if (filters?.status && filters.status !== 'all') {
+          tickets = tickets.filter((t: any) => t.status === filters.status);
+        }
+
+        // Apply search filter for ticket number
+        if (filters?.search) {
+          const searchNum = filters.search.replace(/^0+/, ''); // Remove leading zeros
+          tickets = tickets.filter((t: any) => 
+            t.ticket_number.includes(filters.search!) || 
+            t.ticket_number.replace(/^0+/, '') === searchNum
+          );
+        }
+
+        return { 
+          tickets, 
+          count: filters?.status || filters?.search ? tickets.length : totalTickets,
+          totalTickets 
+        };
+      },
+      enabled: !!raffleId,
+    });
+  };
+
+  // Get orders with pagination and filters - for approvals tab
   const useTicketsList = (filters?: TicketFilters) => {
     const page = filters?.page || 1;
     const pageSize = filters?.pageSize || 100;
@@ -31,7 +107,7 @@ export const useTickets = (raffleId: string | undefined) => {
       queryFn: async () => {
         if (!raffleId) return { tickets: [], count: 0 };
 
-        // Query orders
+        // Query orders table directly
         let query = supabase
           .from('orders')
           .select('*', { count: 'exact' })
@@ -384,6 +460,7 @@ export const useTickets = (raffleId: string | undefined) => {
 
   return {
     useTicketsList,
+    useVirtualTicketsList,
     useTicketStats,
     approveTicket,
     rejectTicket,
