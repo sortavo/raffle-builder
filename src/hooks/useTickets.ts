@@ -55,10 +55,10 @@ export const useTickets = (raffleId: string | undefined) => {
 
         if (error) throw error;
 
-        // Map virtual tickets to display format
+        // Map virtual tickets to display format - use ticket_number from RPC (already formatted with padding)
         let tickets = (virtualTickets || []).map((t: any) => ({
           id: t.order_id || `virtual-${t.ticket_index}`,
-          ticket_number: String(numberStart + t.ticket_index).padStart(padding, '0'),
+          ticket_number: t.ticket_number, // RPC now returns correctly formatted number
           ticket_index: t.ticket_index,
           status: t.status || 'available',
           buyer_name: t.buyer_name,
@@ -69,8 +69,6 @@ export const useTickets = (raffleId: string | undefined) => {
           reference_code: t.reference_code,
           reserved_until: t.reserved_until,
           payment_proof_url: t.payment_proof_url,
-          sold_at: t.sold_at,
-          created_at: t.created_at,
         }));
 
         // Apply status filter client-side (RPC returns all statuses)

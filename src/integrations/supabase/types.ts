@@ -3988,8 +3988,14 @@ export type Database = {
           p_start_index: number
         }
         Returns: {
+          buyer_city: string
+          buyer_email: string
           buyer_name: string
+          buyer_phone: string
           order_id: string
+          payment_proof_url: string
+          reference_code: string
+          reserved_until: string
           status: string
           ticket_index: number
           ticket_number: string
