@@ -112,13 +112,13 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="h-8 gap-1.5">
           {loading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4" />
           )}
-          Exportar
+          <span className="hidden lg:inline">Exportar</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
