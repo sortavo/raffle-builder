@@ -54,15 +54,27 @@ export function SubscriptionSettings() {
     setIsLoadingPortal(true);
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
-      
+
       if (error) throw error;
-      
+
+      // L9: Handle circuit breaker open response
+      if (data?.circuitOpen) {
+        console.warn("[SubscriptionSettings] Stripe circuit breaker open");
+        toast.error(data.error || "El portal de pagos está temporalmente no disponible. Intenta en unos minutos.");
+        return;
+      }
+
       if (data?.url) {
         window.open(data.url, "_blank");
       } else {
         throw new Error("No se pudo obtener el enlace del portal");
       }
     } catch (error: any) {
+      // L9: Enhanced error logging with context
+      console.error("[SubscriptionSettings] Portal error:", {
+        message: error?.message,
+        orgId: organization?.id,
+      });
       // E7: Use user-friendly error message from API if available
       const errorMessage = error?.message?.includes("Error")
         ? error.message
@@ -100,8 +112,11 @@ export function SubscriptionSettings() {
           maxTickets: limits.maxTicketsPerRaffle,
         }));
       } catch (error) {
-        // E7: Log and show non-blocking warning for usage fetch
-        console.error("Error fetching usage:", error);
+        // L9: Enhanced error logging with context
+        console.error("[SubscriptionSettings] Usage fetch error:", {
+          error: error instanceof Error ? error.message : String(error),
+          orgId: organization?.id,
+        });
         // Non-critical - don't toast, just log
       }
     };

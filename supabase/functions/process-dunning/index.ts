@@ -4,10 +4,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { logBillingAction, logSubscriptionEvent } from "../_shared/audit-logger.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
+import { createRequestContext, createLogger, Logger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
+// L4: Legacy logStep wrapper for gradual migration - uses structured logging internally
+let globalLog: Logger | null = null;
 const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[PROCESS-DUNNING] ${step}${detailsStr}`);
+  if (globalLog) {
+    globalLog.info(step, details);
+  } else {
+    const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+    console.log(`[PROCESS-DUNNING] ${step}${detailsStr}`);
+  }
 };
 
 // Dunning email types in order of escalation
@@ -45,6 +53,10 @@ async function sendEmailWithRetry(
 }
 
 serve(async (req) => {
+  // L4: Initialize structured logger with correlation ID
+  const ctx = createRequestContext(req, 'process-dunning');
+  globalLog = createLogger(ctx);
+
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
@@ -52,12 +64,12 @@ serve(async (req) => {
   // CRITICAL: Verify this is called from cron (service role) or admin
   const authHeader = req.headers.get("Authorization");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  
+
   if (!authHeader || !serviceRoleKey) {
     logStep("Missing authorization", { hasAuth: !!authHeader });
     return corsJsonResponse(req, { error: "Unauthorized" }, 401);
   }
-  
+
   const token = authHeader.replace("Bearer ", "");
   if (token !== serviceRoleKey) {
     logStep("Invalid authorization token");
@@ -72,7 +84,7 @@ serve(async (req) => {
 
   try {
     logStep("Dunning processor started");
-    const requestId = crypto.randomUUID().slice(0, 8);
+    const requestId = ctx.correlationId;
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -376,8 +388,20 @@ serve(async (req) => {
     }, 200);
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    // L5: Capture exception to Sentry for monitoring
+    await captureException(err, {
+      functionName: 'process-dunning',
+      correlationId: ctx.correlationId,
+    });
+
+    if (globalLog) {
+      globalLog.error("Dunning processor failed", err);
+    } else {
+      console.error(`[PROCESS-DUNNING] ERROR - ${err.message}`);
+    }
+
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });

@@ -6,6 +6,7 @@ import { createRequestContext, enrichContext, createLogger } from "../_shared/co
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
 import { mapStripeError } from "../_shared/error-mapper.ts";
+import { logBillingAction } from "../_shared/audit-logger.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -148,6 +149,18 @@ serve(async (req) => {
         }
       }
     }
+
+    // L2: Audit log for payment method access (compliance)
+    await logBillingAction(supabaseClient, {
+      organizationId: profile.organization_id,
+      actorId: user.id,
+      actorType: 'user',
+      action: 'payment_method_viewed',
+      resourceType: 'payment_method',
+      resourceId: paymentMethod?.id || 'none',
+      metadata: { hasPaymentMethod: !!paymentMethod },
+      requestId: ctx.correlationId,
+    });
 
     finalLog.info("Request completed", { hasPaymentMethod: !!paymentMethod, durationMs: log.duration() });
 

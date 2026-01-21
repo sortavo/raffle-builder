@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
-import { stripeOperation } from "../_shared/stripe-client.ts";
+import { stripeOperation, isStripeCircuitOpen } from "../_shared/stripe-client.ts";
 
 // Issue M15: Origin validation whitelist
 const ALLOWED_ORIGINS = [
@@ -63,6 +63,15 @@ serve(async (req) => {
     const enrichedCtx = enrichContext(ctx, { userId: user.id });
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated", { email: user.email });
+
+    // L10: Check circuit breaker before making Stripe calls
+    if (await isStripeCircuitOpen()) {
+      enrichedLog.warn("Stripe circuit open - portal unavailable");
+      return corsJsonResponse(req, {
+        error: "El portal de pagos está temporalmente no disponible. Intenta de nuevo en unos minutos.",
+        circuitOpen: true,
+      }, 503);
+    }
 
     // R1: Use stripeOperation with circuit breaker - Find customer
     const customers = await stripeOperation<Stripe.ApiList<Stripe.Customer>>(

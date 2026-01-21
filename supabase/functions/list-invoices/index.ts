@@ -6,6 +6,7 @@ import { createRequestContext, enrichContext, createLogger } from "../_shared/co
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
 import { mapStripeError } from "../_shared/error-mapper.ts";
+import { logBillingAction } from "../_shared/audit-logger.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -111,9 +112,21 @@ serve(async (req) => {
       description: inv.lines.data[0]?.description || "Suscripción",
     }));
 
+    // L3: Audit log for invoice access (compliance)
+    await logBillingAction(supabaseClient, {
+      organizationId: profile.organization_id,
+      actorId: user.id,
+      actorType: 'user',
+      action: 'invoice_list_viewed',
+      resourceType: 'invoice',
+      resourceId: 'list',
+      metadata: { count: formattedInvoices.length, hasMore: invoices.has_more },
+      requestId: ctx.correlationId,
+    });
+
     finalLog.info("Request completed", { durationMs: log.duration() });
 
-    return corsJsonResponse(req, { 
+    return corsJsonResponse(req, {
       invoices: formattedInvoices,
       has_more: invoices.has_more,
       next_cursor: invoices.data.length > 0 ? invoices.data[invoices.data.length - 1].id : null,

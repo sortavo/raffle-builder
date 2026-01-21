@@ -6,6 +6,7 @@ import { PRODUCT_TO_TIER, TIER_LIMITS, STRIPE_API_VERSION } from "../_shared/str
 import { logBillingAction } from "../_shared/audit-logger.ts";
 import { sanitizeLogData } from "../_shared/correlation.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -172,7 +173,8 @@ async function findOrganizationByPaymentContext(
   }
 
   if (candidates.length === 0) {
-    logStep(`${handlerName}: Org not found`, { customerEmail, customerId, orgIdFromMeta, eventId }, "WARN");
+    // L7: Changed to ERROR - org not found is critical for billing operations
+    logStep(`${handlerName}: Org not found`, { customerEmail, customerId, orgIdFromMeta, eventId }, "ERROR");
     return null;
   }
 
@@ -500,13 +502,22 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    logStep("Unhandled error in stripe-webhook", { 
-      message: errorMessage,
-      stack: errorStack?.slice(0, 500),
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    // L1: Capture exception to Sentry for monitoring
+    await captureException(err, {
+      functionName: 'stripe-webhook',
+      extra: {
+        errorStack: err.stack?.slice(0, 500),
+      },
+    });
+
+    logStep("Unhandled error in stripe-webhook", {
+      message: err.message,
+      stack: err.stack?.slice(0, 500),
     }, "ERROR");
-    return new Response(JSON.stringify({ error: errorMessage }), {
+
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -584,7 +595,8 @@ async function handleSubscriptionChange(
   const subscriptionItems = subscription.items.data;
 
   if (subscriptionItems.length === 0) {
-    logStep("Subscription has no items", { subscriptionId: subscription.id, eventId }, "WARN");
+    // L7: Changed to ERROR - subscription without items breaks processing
+    logStep("Subscription has no items", { subscriptionId: subscription.id, eventId }, "ERROR");
     return;
   }
 
@@ -759,7 +771,8 @@ async function handleSubscriptionCanceled(
   );
 
   if (!org) {
-    logStep("Canceled: Organization not found by any method", { email, customerId, eventId }, "WARN");
+    // L7: Changed to ERROR - org not found is critical
+    logStep("Canceled: Organization not found by any method", { email, customerId, eventId }, "ERROR");
     return;
   }
 
@@ -950,7 +963,8 @@ async function handlePaymentFailed(
   );
 
   if (!org) {
-    logStep("PaymentFailed: Organization not found by any method", { email: customer.email, customerId, eventId }, "WARN");
+    // L7: Changed to ERROR - org not found is critical
+    logStep("PaymentFailed: Organization not found by any method", { email: customer.email, customerId, eventId }, "ERROR");
     return;
   }
 
@@ -1255,7 +1269,8 @@ async function handleTrialWillEnd(
   );
 
   if (!org) {
-    logStep("TrialWillEnd: Organization not found by any method", { email: customer.email, customerId, eventId }, "WARN");
+    // L7: Changed to ERROR - org not found is critical
+    logStep("TrialWillEnd: Organization not found by any method", { email: customer.email, customerId, eventId }, "ERROR");
     return;
   }
 

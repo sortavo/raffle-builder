@@ -128,7 +128,12 @@ export default function Subscription() {
         });
         setShowConfirmModal(true);
       } catch (error) {
-        console.error("Preview error:", error);
+        // L9: Enhanced error logging with context
+        console.error("[Subscription] Preview error:", {
+          message: error instanceof Error ? error.message : String(error),
+          priceId,
+          orgId: organization?.id,
+        });
         toast.error("Error al obtener preview. Intenta de nuevo.");
       } finally {
         setIsPreviewLoading(false);
@@ -149,7 +154,12 @@ export default function Subscription() {
         window.location.href = data.url;
       }
     } catch (error) {
-      console.error("Checkout error:", error);
+      // L9: Enhanced error logging with context
+      console.error("[Subscription] Checkout error:", {
+        message: error instanceof Error ? error.message : String(error),
+        priceId,
+        orgId: organization?.id,
+      });
       toast.error("Error al procesar. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
@@ -192,7 +202,13 @@ export default function Subscription() {
         setTimeout(() => window.location.reload(), 2000);
       }
     } catch (error) {
-      console.error("Upgrade error:", error);
+      // L9: Enhanced error logging with context
+      console.error("[Subscription] Upgrade error:", {
+        message: error instanceof Error ? error.message : String(error),
+        priceId: upgradePreview?.priceId,
+        targetPlan: upgradePreview?.targetPlan,
+        orgId: organization?.id,
+      });
       toast.error("Error al procesar el cambio. Intenta de nuevo.");
     } finally {
       setIsLoading(false);
@@ -206,11 +222,22 @@ export default function Subscription() {
 
       if (error) throw error;
 
+      // L9: Handle circuit breaker open response
+      if (data?.circuitOpen) {
+        console.warn("[Subscription] Stripe circuit breaker open");
+        toast.error(data.error || "El portal de pagos está temporalmente no disponible. Intenta en unos minutos.");
+        return;
+      }
+
       if (data?.url) {
         window.open(data.url, "_blank");
       }
     } catch (error) {
-      console.error("Portal error:", error);
+      // L9: Enhanced error logging with context
+      console.error("[Subscription] Portal error:", {
+        message: error instanceof Error ? error.message : String(error),
+        orgId: organization?.id,
+      });
       toast.error("Error al abrir el portal. Intenta de nuevo.");
     } finally {
       setIsPortalLoading(false);
@@ -237,7 +264,12 @@ export default function Subscription() {
         setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
-      console.error("Cancel error:", error);
+      // L9: Enhanced error logging with context
+      console.error("[Subscription] Cancel error:", {
+        message: error instanceof Error ? error.message : String(error),
+        immediate,
+        orgId: organization?.id,
+      });
       toast.error("Error al cancelar. Intenta de nuevo.");
     } finally {
       setIsCancelLoading(false);
@@ -256,7 +288,11 @@ export default function Subscription() {
         setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
-      console.error("Reactivate error:", error);
+      // L9: Enhanced error logging with context
+      console.error("[Subscription] Reactivate error:", {
+        message: error instanceof Error ? error.message : String(error),
+        orgId: organization?.id,
+      });
       toast.error("Error al reactivar. Intenta de nuevo.");
     } finally {
       setIsReactivateLoading(false);
