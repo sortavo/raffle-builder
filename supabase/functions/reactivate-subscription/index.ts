@@ -65,7 +65,7 @@ serve(async (req) => {
     finalLog.info("Found subscription pending cancellation", { subscriptionId: org.stripe_subscription_id });
 
     // R1: Use stripeOperation with circuit breaker - Verify subscription exists
-    const subscription = await stripeOperation(
+    const subscription = await stripeOperation<Stripe.Subscription>(
       (stripe) => stripe.subscriptions.retrieve(org.stripe_subscription_id!),
       'subscriptions.retrieve'
     );
@@ -82,7 +82,7 @@ serve(async (req) => {
     const idempotencyKey = `reactivate_${profile.organization_id}_${Date.now()}`;
 
     // R1: Use stripeOperation with circuit breaker - Reactivate subscription
-    const reactivatedSub = await stripeOperation(
+    const reactivatedSub = await stripeOperation<Stripe.Subscription>(
       (stripe) => stripe.subscriptions.update(
         org.stripe_subscription_id!, 
         { cancel_at_period_end: false },

@@ -76,7 +76,7 @@ serve(async (req) => {
     }
 
     // R1: Use stripeOperation with circuit breaker - Retrieve current subscription
-    const subscription = await stripeOperation(
+    const subscription = await stripeOperation<Stripe.Subscription>(
       (stripe) => stripe.subscriptions.retrieve(org.stripe_subscription_id!),
       'subscriptions.retrieve'
     );
@@ -111,8 +111,8 @@ serve(async (req) => {
     
     // R1: Use stripeOperation for price retrieval
     const [currentPrice, newPrice] = await Promise.all([
-      stripeOperation((stripe) => stripe.prices.retrieve(currentPriceId), 'prices.retrieve.current'),
-      stripeOperation((stripe) => stripe.prices.retrieve(priceId), 'prices.retrieve.new'),
+      stripeOperation<Stripe.Price>((stripe) => stripe.prices.retrieve(currentPriceId), 'prices.retrieve.current'),
+      stripeOperation<Stripe.Price>((stripe) => stripe.prices.retrieve(priceId), 'prices.retrieve.new'),
     ]);
     
     const currentAmount = currentPrice.unit_amount || 0;
@@ -153,7 +153,7 @@ serve(async (req) => {
     const idempotencyKey = `upgrade_${profile.organization_id}_${priceId}_${Date.now()}`;
 
     // R1: Use stripeOperation with circuit breaker - Update the subscription
-    const updatedSubscription = await stripeOperation(
+    const updatedSubscription = await stripeOperation<Stripe.Subscription>(
       (stripe) => stripe.subscriptions.update(
         org.stripe_subscription_id!, 
         updateParams,
@@ -173,7 +173,7 @@ serve(async (req) => {
     let currency = "usd";
     
     if (!isDowngrade) {
-      const latestInvoice = await stripeOperation(
+      const latestInvoice = await stripeOperation<Stripe.ApiList<Stripe.Invoice>>(
         (stripe) => stripe.invoices.list({ subscription: org.stripe_subscription_id!, limit: 1 }),
         'invoices.list'
       );

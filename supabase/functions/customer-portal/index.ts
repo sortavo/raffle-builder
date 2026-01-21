@@ -65,7 +65,7 @@ serve(async (req) => {
     enrichedLog.info("User authenticated", { email: user.email });
 
     // R1: Use stripeOperation with circuit breaker - Find customer
-    const customers = await stripeOperation(
+    const customers = await stripeOperation<Stripe.ApiList<Stripe.Customer>>(
       (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
       'customers.list'
     );
@@ -85,9 +85,9 @@ serve(async (req) => {
     
     // L5: Specific error handling for portal session creation
     // R1: Use stripeOperation with circuit breaker
-    let portalSession;
+    let portalSession: Stripe.BillingPortal.Session;
     try {
-      portalSession = await stripeOperation(
+      portalSession = await stripeOperation<Stripe.BillingPortal.Session>(
         (stripe) => stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: returnUrl,

@@ -80,7 +80,7 @@ serve(async (req) => {
     }
 
     // R1: Use stripeOperation with circuit breaker
-    const customers = await stripeOperation(
+    const customers = await stripeOperation<Stripe.ApiList<Stripe.Customer>>(
       (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
       'customers.list'
     );
@@ -98,14 +98,14 @@ serve(async (req) => {
     enrichedLog.info("Found Stripe customer", { customerId });
 
     // Check for active, trialing, AND past_due subscriptions
-    const subscriptions = await stripeOperation(
+    const subscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
       (stripe) => stripe.subscriptions.list({ customer: customerId, limit: 10 }),
       'subscriptions.list'
     );
 
     // Find the most relevant subscription (active > trialing > past_due)
     const validStatuses = ["active", "trialing", "past_due"];
-    const validSubscription = subscriptions.data.find((sub) => 
+    const validSubscription = subscriptions.data.find((sub: Stripe.Subscription) => 
       validStatuses.includes(sub.status)
     );
 

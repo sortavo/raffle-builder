@@ -70,19 +70,19 @@ serve(async (req) => {
     // O2: Add idempotency key for Stripe operations
     const idempotencyKey = `cancel_${profile.organization_id}_${immediate ? 'immediate' : 'period_end'}_${Date.now()}`;
 
-    let subscription;
+    let subscription: Stripe.Subscription;
     let cancelAt: Date | null = null;
 
     if (immediate) {
       // R1: Use stripeOperation with circuit breaker - Cancel immediately
-      subscription = await stripeOperation(
+      subscription = await stripeOperation<Stripe.Subscription>(
         (stripe) => stripe.subscriptions.cancel(org.stripe_subscription_id!, { idempotencyKey }),
         'subscriptions.cancel'
       );
       finalLog.info("Subscription canceled immediately", { status: subscription.status, idempotencyKey });
     } else {
       // R1: Use stripeOperation with circuit breaker - Cancel at period end
-      subscription = await stripeOperation(
+      subscription = await stripeOperation<Stripe.Subscription>(
         (stripe) => stripe.subscriptions.update(
           org.stripe_subscription_id!, 
           { cancel_at_period_end: true },
