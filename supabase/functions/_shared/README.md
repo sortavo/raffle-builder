@@ -24,6 +24,12 @@ This directory contains shared utilities and configuration files used across all
 | `UPSTASH_REDIS_REST_TOKEN` | Token de autenticación de Upstash | Procesamiento async de webhooks |
 | `INTERNAL_FUNCTION_SECRET` | Secreto para llamadas entre funciones | Autenticación interna |
 
+### Demo Account Security (Opcional)
+| Variable | Descripción | Uso |
+|----------|-------------|-----|
+| `DEMO_ACCOUNT_PASSWORD` | Contraseña para cuentas demo (si no se configura, se genera una aleatoria segura) | Creación de cuentas demo |
+| `DEMO_CREATION_SECRET` | Secreto para autenticar llamadas internas de creación de demos | Autenticación de API interna |
+
 ## Archivos Compartidos
 
 | Archivo | Descripción |
