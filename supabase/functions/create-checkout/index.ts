@@ -118,7 +118,7 @@ serve(async (req) => {
     enrichedLog.info("Organization ID retrieved", { organizationId });
 
     // R1: Use stripeOperation with circuit breaker - Check for existing customer
-    const customers = await stripeOperation(
+    const customers = await stripeOperation<Stripe.ApiList<Stripe.Customer>>(
       (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
       'customers.list'
     );
@@ -129,7 +129,7 @@ serve(async (req) => {
       enrichedLog.info("Found existing customer", { customerId });
       
       // CRITICAL: Check for existing active subscriptions to prevent duplicates
-      const activeSubscriptions = await stripeOperation(
+      const activeSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
         (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "active", limit: 1 }),
         'subscriptions.list.active'
       );
@@ -144,7 +144,7 @@ serve(async (req) => {
       }
       
       // Also check for trialing subscriptions
-      const trialingSubscriptions = await stripeOperation(
+      const trialingSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
         (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "trialing", limit: 1 }),
         'subscriptions.list.trialing'
       );
@@ -159,7 +159,7 @@ serve(async (req) => {
       }
       
       // Issue 2: Also check for past_due subscriptions (still have access)
-      const pastDueSubscriptions = await stripeOperation(
+      const pastDueSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
         (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "past_due", limit: 1 }),
         'subscriptions.list.past_due'
       );
@@ -174,7 +174,7 @@ serve(async (req) => {
       }
 
       // Check for incomplete subscriptions (payment required)
-      const incompleteSubscriptions = await stripeOperation(
+      const incompleteSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
         (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "incomplete", limit: 1 }),
         'subscriptions.list.incomplete'
       );
@@ -199,7 +199,7 @@ serve(async (req) => {
     const idempotencyKey = `checkout_${organizationId || user.id}_${priceId}_${Date.now()}`;
 
     // R1: Use stripeOperation with circuit breaker - Create checkout session
-    const session = await stripeOperation(
+    const session = await stripeOperation<Stripe.Checkout.Session>(
       (stripe) => stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,

@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     // R1: Use stripeOperation with circuit breaker
-    const invoices = await stripeOperation(
+    const invoices = await stripeOperation<Stripe.ApiList<Stripe.Invoice>>(
       (stripe) => stripe.invoices.list(invoicesParams),
       'invoices.list'
     );

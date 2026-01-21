@@ -133,7 +133,7 @@ serve(async (req) => {
     try {
       // Issue 5: Check for existing refund (idempotency)
       // R1: Use stripeOperation with circuit breaker
-      const existingRefunds = await stripeOperation(
+      const existingRefunds = await stripeOperation<Stripe.ApiList<Stripe.Refund>>(
         (stripe) => stripe.refunds.list({ charge: refundRequest.stripe_charge_id, limit: 10 }),
         'refunds.list'
       );
@@ -169,7 +169,7 @@ serve(async (req) => {
       const idempotencyKey = `refund_${refundRequestId}_${Date.now()}`;
 
       // R1: Use stripeOperation with circuit breaker - Create the refund
-      const refund = await stripeOperation(
+      const refund = await stripeOperation<Stripe.Refund>(
         (stripe) => stripe.refunds.create({
           charge: refundRequest.stripe_charge_id,
           amount: refundRequest.amount_cents,

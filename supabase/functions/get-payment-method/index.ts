@@ -61,20 +61,22 @@ serve(async (req) => {
     finalLog.info("Found Stripe customer", { customerId: org.stripe_customer_id });
 
     // R1: Use stripeOperation with circuit breaker - Get customer's default payment method
-    const customer = await stripeOperation(
+    const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
       (stripe) => stripe.customers.retrieve(org.stripe_customer_id!),
       'customers.retrieve'
-    ) as Stripe.Customer;
+    );
     
-    if (customer.deleted) {
+    if ((customer as Stripe.DeletedCustomer).deleted) {
       return corsJsonResponse(req, { payment_method: null }, 200);
     }
+    
+    const activeCustomer = customer as Stripe.Customer;
 
     let paymentMethod = null;
-    const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method;
+    const defaultPaymentMethodId = activeCustomer.invoice_settings?.default_payment_method;
 
     if (defaultPaymentMethodId) {
-      const pm = await stripeOperation(
+      const pm = await stripeOperation<Stripe.PaymentMethod>(
         (stripe) => stripe.paymentMethods.retrieve(defaultPaymentMethodId as string),
         'paymentMethods.retrieve'
       );
@@ -100,7 +102,7 @@ serve(async (req) => {
       finalLog.info("Found payment method", { brand: card.brand, hasCard: true });
     } else {
       // Try to get from subscriptions (active or trialing)
-      const subscriptions = await stripeOperation(
+      const subscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
         (stripe) => stripe.subscriptions.list({ customer: org.stripe_customer_id!, limit: 5 }),
         'subscriptions.list'
       );
@@ -114,7 +116,7 @@ serve(async (req) => {
         const pmId = validSub.default_payment_method;
         
         if (pmId) {
-          const pm = await stripeOperation(
+          const pm = await stripeOperation<Stripe.PaymentMethod>(
             (stripe) => stripe.paymentMethods.retrieve(pmId as string),
             'paymentMethods.retrieve.fromSub'
           );
