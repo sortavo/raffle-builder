@@ -2,9 +2,10 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { BASIC_PRICE_IDS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
+import { BASIC_PRICE_IDS } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 // Bug #4: Origin validation whitelist
 const ALLOWED_ORIGINS = [
@@ -106,10 +107,6 @@ serve(async (req) => {
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated", { email: user.email });
 
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: STRIPE_API_VERSION,
-    });
-
     // Get user's organization_id from profile
     const { data: userProfile } = await supabaseClient
       .from("profiles")
@@ -120,19 +117,22 @@ serve(async (req) => {
     const organizationId = userProfile?.organization_id;
     enrichedLog.info("Organization ID retrieved", { organizationId });
 
-    // Check for existing customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // R1: Use stripeOperation with circuit breaker - Check for existing customer
+    const customers = await stripeOperation(
+      (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
+      'customers.list'
+    );
+    
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       enrichedLog.info("Found existing customer", { customerId });
       
       // CRITICAL: Check for existing active subscriptions to prevent duplicates
-      const activeSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 1,
-      });
+      const activeSubscriptions = await stripeOperation(
+        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "active", limit: 1 }),
+        'subscriptions.list.active'
+      );
       
       if (activeSubscriptions.data.length > 0) {
         enrichedLog.warn("BLOCKED: User already has active subscription", {
@@ -144,11 +144,10 @@ serve(async (req) => {
       }
       
       // Also check for trialing subscriptions
-      const trialingSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "trialing",
-        limit: 1,
-      });
+      const trialingSubscriptions = await stripeOperation(
+        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "trialing", limit: 1 }),
+        'subscriptions.list.trialing'
+      );
       
       if (trialingSubscriptions.data.length > 0) {
         enrichedLog.warn("BLOCKED: User has trialing subscription", {
@@ -160,11 +159,10 @@ serve(async (req) => {
       }
       
       // Issue 2: Also check for past_due subscriptions (still have access)
-      const pastDueSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "past_due",
-        limit: 1,
-      });
+      const pastDueSubscriptions = await stripeOperation(
+        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "past_due", limit: 1 }),
+        'subscriptions.list.past_due'
+      );
 
       if (pastDueSubscriptions.data.length > 0) {
         enrichedLog.warn("BLOCKED: User has past_due subscription", {
@@ -176,11 +174,10 @@ serve(async (req) => {
       }
 
       // Check for incomplete subscriptions (payment required)
-      const incompleteSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "incomplete",
-        limit: 1,
-      });
+      const incompleteSubscriptions = await stripeOperation(
+        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "incomplete", limit: 1 }),
+        'subscriptions.list.incomplete'
+      );
 
       if (incompleteSubscriptions.data.length > 0) {
         enrichedLog.warn("BLOCKED: User has incomplete subscription", {
@@ -201,31 +198,35 @@ serve(async (req) => {
     // O2: Add idempotency key for Stripe operations
     const idempotencyKey = `checkout_${organizationId || user.id}_${priceId}_${Date.now()}`;
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${safeOrigin}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${safeOrigin}/onboarding?step=3&canceled=true`,
-      metadata: {
-        user_id: user.id,
-        organization_id: organizationId,
-        stripe_mode: stripeMode,
-      },
-      subscription_data: {
+    // R1: Use stripeOperation with circuit breaker - Create checkout session
+    const session = await stripeOperation(
+      (stripe) => stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${safeOrigin}/onboarding?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${safeOrigin}/onboarding?step=3&canceled=true`,
         metadata: {
           user_id: user.id,
           organization_id: organizationId,
+          stripe_mode: stripeMode,
         },
-        ...(isBasicPlan && { trial_period_days: 7 }),
-      },
-    }, { idempotencyKey });
+        subscription_data: {
+          metadata: {
+            user_id: user.id,
+            organization_id: organizationId,
+          },
+          ...(isBasicPlan && { trial_period_days: 7 }),
+        },
+      }, { idempotencyKey }),
+      'checkout.sessions.create'
+    );
 
     enrichedLog.info("Checkout session created", { 
       sessionId: session.id, 

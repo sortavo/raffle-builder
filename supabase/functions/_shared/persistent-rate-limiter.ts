@@ -143,12 +143,31 @@ async function checkRateLimitDatabase(
     });
 
     if (error) {
-      // If even database fails, log and allow (fail open) to prevent blocking legitimate users
+      // R10: Fail-closed with grace period instead of fail-open
       console.error('[RATE-LIMITER] Database fallback failed:', error);
-      return { 
-        allowed: true, 
-        remaining: 1, 
-        resetAt: Date.now() + config.windowMs 
+
+      // Track consecutive failures in memory per identifier
+      const failKey = `rate_limit_fail_${identifier}`;
+      const globalContext = globalThis as unknown as Record<string, number>;
+      const failures = globalContext[failKey] || 0;
+      globalContext[failKey] = failures + 1;
+
+      // Allow first 3 requests during outage (grace period), then block
+      if (failures < 3) {
+        console.warn(`[RATE-LIMITER] Grace request ${failures + 1}/3 during outage for ${identifier}`);
+        return {
+          allowed: true,
+          remaining: 3 - failures - 1,
+          resetAt: Date.now() + config.windowMs
+        };
+      }
+
+      // After 3 grace requests, fail closed to prevent abuse
+      console.warn(`[RATE-LIMITER] Failing closed after grace period for ${identifier}`);
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: Date.now() + config.windowMs,
       };
     }
 

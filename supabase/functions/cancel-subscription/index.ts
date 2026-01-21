@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,9 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -70,27 +67,28 @@ serve(async (req) => {
     }
     finalLog.info("Found subscription", { subscriptionId: org.stripe_subscription_id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
-    let subscription: Stripe.Subscription;
-    let cancelAt: Date | null = null;
-
     // O2: Add idempotency key for Stripe operations
     const idempotencyKey = `cancel_${profile.organization_id}_${immediate ? 'immediate' : 'period_end'}_${Date.now()}`;
 
+    let subscription;
+    let cancelAt: Date | null = null;
+
     if (immediate) {
-      // Cancel immediately
-      subscription = await stripe.subscriptions.cancel(
-        org.stripe_subscription_id,
-        { idempotencyKey }
+      // R1: Use stripeOperation with circuit breaker - Cancel immediately
+      subscription = await stripeOperation(
+        (stripe) => stripe.subscriptions.cancel(org.stripe_subscription_id!, { idempotencyKey }),
+        'subscriptions.cancel'
       );
       finalLog.info("Subscription canceled immediately", { status: subscription.status, idempotencyKey });
     } else {
-      // Cancel at period end
-      subscription = await stripe.subscriptions.update(
-        org.stripe_subscription_id, 
-        { cancel_at_period_end: true },
-        { idempotencyKey }
+      // R1: Use stripeOperation with circuit breaker - Cancel at period end
+      subscription = await stripeOperation(
+        (stripe) => stripe.subscriptions.update(
+          org.stripe_subscription_id!, 
+          { cancel_at_period_end: true },
+          { idempotencyKey }
+        ),
+        'subscriptions.update'
       );
       cancelAt = new Date(subscription.current_period_end * 1000);
       finalLog.info("Subscription set to cancel at period end", { 

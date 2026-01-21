@@ -35,8 +35,10 @@ async function sendEmailWithRetry(
       logStep(`Email send attempt ${attempt} threw`, { error: String(err) });
     }
     if (attempt < maxRetries) {
-      // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      // R6: Exponential backoff with jitter
+      const baseDelay = 1000 * attempt;
+      const jitter = Math.random() * 500; // 0-500ms jitter
+      await new Promise(resolve => setTimeout(resolve, baseDelay + jitter));
     }
   }
   return false;
@@ -180,7 +182,9 @@ serve(async (req) => {
 
           if (invoices.data.length > 0) {
             const invoice = invoices.data[0];
-            await stripe.invoices.pay(invoice.id);
+            // R4: Add idempotency key for payment retry
+            const idempotencyKey = `dunning_pay_${invoice.id}_${Date.now()}`;
+            await stripe.invoices.pay(invoice.id, {}, { idempotencyKey });
             
             // Mark as resolved if payment succeeds
             await supabaseAdmin
