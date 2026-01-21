@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -18,11 +19,21 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+// L4: Stricter CORS patterns for lovable.app subdomains
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.endsWith('.lovableproject.com')) return true;
-  if (origin.endsWith('.lovable.app')) return true;
+  
+  // Only allow specific lovable.app patterns
+  const lovablePreviewPattern = /^https:\/\/[a-z0-9]+-preview--[a-z0-9-]+\.lovable\.app$/;
+  if (lovablePreviewPattern.test(origin)) return true;
+
+  const lovablePublishedPattern = /^https:\/\/[a-z0-9-]+\.lovable\.app$/;
+  if (lovablePublishedPattern.test(origin)) return true;
+
+  const lovableProjectPattern = /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/;
+  if (lovableProjectPattern.test(origin)) return true;
+  
   return false;
 }
 
@@ -53,7 +64,7 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
@@ -68,11 +79,27 @@ serve(async (req) => {
     const returnUrl = isAllowedOrigin(rawOrigin)
       ? `${rawOrigin}/dashboard/subscription`
       : "https://sortavo.com/dashboard/subscription";
-      
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: returnUrl,
-    });
+    
+    // L5: Specific error handling for portal session creation
+    let portalSession;
+    try {
+      portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl,
+      });
+    } catch (stripeError: unknown) {
+      const error = stripeError as { message?: string; code?: string };
+      logStep("Failed to create portal session", {
+        error: error.message,
+        code: error.code
+      });
+
+      if (error.code === 'resource_missing') {
+        throw new Error("No se encontró tu cuenta de facturación. Contacta soporte.");
+      }
+      throw new Error("Error al abrir el portal de facturación. Intenta de nuevo.");
+    }
+    
     logStep("Portal session created", { sessionId: portalSession.id });
 
     return corsJsonResponse(req, { url: portalSession.url }, 200);

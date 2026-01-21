@@ -81,6 +81,15 @@ export function CancelSubscriptionModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* L10: Quick summary of options */}
+          <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
+            <p className="font-medium">Tienes dos opciones:</p>
+            <ul className="text-muted-foreground space-y-1 pl-4">
+              <li>• <strong>Al final del período:</strong> Mantén acceso hasta que termine tu facturación</li>
+              <li>• <strong>Inmediata:</strong> Pierde acceso ahora, sin reembolso</li>
+            </ul>
+          </div>
+
           {/* Benefits you'll lose */}
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
             <p className="text-sm font-medium text-destructive mb-2">

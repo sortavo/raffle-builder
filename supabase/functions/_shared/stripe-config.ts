@@ -43,7 +43,7 @@ export const TIER_LIMITS = {
   },
   enterprise: { 
     maxActiveRaffles: 999, 
-    maxTicketsPerRaffle: 10000000, 
+    maxTicketsPerRaffle: 10000000,
     templatesAvailable: 9 
   },
 } as const;
@@ -70,3 +70,20 @@ export function getLimitsForTier(tier: "basic" | "pro" | "premium" | "enterprise
 
 // Standardized API version for Stripe
 export const STRIPE_API_VERSION = "2025-08-27.basil";
+
+// MRR (Monthly Recurring Revenue) values in cents per tier
+// Used for analytics and audit logging - SINGLE SOURCE OF TRUTH
+export const TIER_MRR_CENTS = {
+  monthly: {
+    basic: 4900,      // $49/month
+    pro: 14900,       // $149/month
+    premium: 29900,   // $299/month
+    enterprise: 49900, // $499/month
+  },
+  annual: {
+    basic: 4083,      // $490/year = $40.83/month
+    pro: 12417,       // $1490/year = $124.17/month
+    premium: 24917,   // $2990/year = $249.17/month
+    enterprise: 41583, // $4990/year = $415.83/month
+  },
+} as const;

@@ -139,6 +139,7 @@ export function InvoiceHistory() {
     );
   }
 
+  // L11: Improved empty state with more helpful message
   if (invoices.length === 0) {
     return (
       <Card>
@@ -149,9 +150,13 @@ export function InvoiceHistory() {
           </CardTitle>
           <CardDescription>Tus facturas de suscripción</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No hay facturas disponibles aún.
+        <CardContent className="text-center py-8">
+          <FileText className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+          <p className="font-medium text-muted-foreground">
+            Sin facturas aún
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Las facturas aparecerán aquí después de tu primer pago.
           </p>
         </CardContent>
       </Card>
