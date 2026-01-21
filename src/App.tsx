@@ -1,5 +1,5 @@
-// Updated for production - 2026-01-17 - Added React.lazy code splitting
-import { lazy, Suspense } from "react";
+// Updated for production - 2026-01-21 - Added lazyWithRetry for Mobile Safari resilience
+import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { SentryErrorBoundary } from "@/components/errors/SentryErrorBoundary";
 import { SortavoTrackingProvider } from "@/components/tracking/SortavoTrackingProvider";
 import { CookieNotice } from "@/components/CookieNotice";
+import { lazyWithRetry } from "@/utils/lazyWithRetry";
 
 // Critical pages - loaded immediately (first paint)
 import Index from "./pages/Index";
@@ -25,60 +26,60 @@ import NotFound from "./pages/NotFound";
 // Tenant-aware routing components
 import { TenantAwareOrgOrRaffle, TenantHome, TenantAwarePayment } from "@/components/routing/TenantAwareRouter";
 
-// Lazy loaded pages - Dashboard (heavy)
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const RafflesList = lazy(() => import("./pages/dashboard/RafflesList"));
-const RaffleWizard = lazy(() => import("./pages/dashboard/RaffleWizard"));
-const RaffleDetail = lazy(() => import("./pages/dashboard/RaffleDetail"));
-const DrawWinner = lazy(() => import("./pages/dashboard/DrawWinner"));
-const Settings = lazy(() => import("./pages/dashboard/Settings"));
-const Approvals = lazy(() => import("./pages/dashboard/Approvals"));
-const Buyers = lazy(() => import("./pages/dashboard/Buyers"));
-const Analytics = lazy(() => import("./pages/dashboard/Analytics"));
-const Subscription = lazy(() => import("./pages/dashboard/Subscription"));
-const AuditLog = lazy(() => import("./pages/dashboard/AuditLog"));
-const Coupons = lazy(() => import("./pages/dashboard/Coupons"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
+// Lazy loaded pages with retry - Dashboard (heavy)
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const RafflesList = lazyWithRetry(() => import("./pages/dashboard/RafflesList"));
+const RaffleWizard = lazyWithRetry(() => import("./pages/dashboard/RaffleWizard"));
+const RaffleDetail = lazyWithRetry(() => import("./pages/dashboard/RaffleDetail"));
+const DrawWinner = lazyWithRetry(() => import("./pages/dashboard/DrawWinner"));
+const Settings = lazyWithRetry(() => import("./pages/dashboard/Settings"));
+const Approvals = lazyWithRetry(() => import("./pages/dashboard/Approvals"));
+const Buyers = lazyWithRetry(() => import("./pages/dashboard/Buyers"));
+const Analytics = lazyWithRetry(() => import("./pages/dashboard/Analytics"));
+const Subscription = lazyWithRetry(() => import("./pages/dashboard/Subscription"));
+const AuditLog = lazyWithRetry(() => import("./pages/dashboard/AuditLog"));
+const Coupons = lazyWithRetry(() => import("./pages/dashboard/Coupons"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 
-// Lazy loaded pages - Admin (heavy, rarely accessed)
-const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
-const AdminFinancial = lazy(() => import("./pages/admin/AdminFinancial"));
-const AdminActivity = lazy(() => import("./pages/admin/AdminActivity"));
-const AdminUsersDashboard = lazy(() => import("./pages/admin/AdminUsersDashboard"));
-const AdminOrganizations = lazy(() => import("./pages/admin/AdminOrganizations"));
-const AdminOrganizationDetail = lazy(() => import("./pages/admin/AdminOrganizationDetail"));
-const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
-const AdminDomains = lazy(() => import("./pages/admin/AdminDomains"));
-const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const AdminDemos = lazy(() => import("./pages/admin/AdminDemos"));
+// Lazy loaded pages with retry - Admin (heavy, rarely accessed)
+const AdminOverview = lazyWithRetry(() => import("./pages/admin/AdminOverview"));
+const AdminFinancial = lazyWithRetry(() => import("./pages/admin/AdminFinancial"));
+const AdminActivity = lazyWithRetry(() => import("./pages/admin/AdminActivity"));
+const AdminUsersDashboard = lazyWithRetry(() => import("./pages/admin/AdminUsersDashboard"));
+const AdminOrganizations = lazyWithRetry(() => import("./pages/admin/AdminOrganizations"));
+const AdminOrganizationDetail = lazyWithRetry(() => import("./pages/admin/AdminOrganizationDetail"));
+const AdminSubscriptions = lazyWithRetry(() => import("./pages/admin/AdminSubscriptions"));
+const AdminDomains = lazyWithRetry(() => import("./pages/admin/AdminDomains"));
+const AdminUsers = lazyWithRetry(() => import("./pages/admin/AdminUsers"));
+const AdminDemos = lazyWithRetry(() => import("./pages/admin/AdminDemos"));
 
-// Lazy loaded pages - Public (can be deferred)
-const PublicRaffle = lazy(() => import("./pages/PublicRaffle"));
-const PaymentInstructions = lazy(() => import("./pages/PaymentInstructions"));
-const MyTickets = lazy(() => import("./pages/MyTickets"));
-const TicketVerification = lazy(() => import("./pages/TicketVerification"));
-const OrderVerification = lazy(() => import("./pages/OrderVerification"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const PlanComparison = lazy(() => import("./pages/PlanComparison"));
-const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
-const HelpCenter = lazy(() => import("./pages/HelpCenter"));
-const OrganizationHome = lazy(() => import("./pages/OrganizationHome"));
-const Contact = lazy(() => import("./pages/Contact"));
-const SystemStatus = lazy(() => import("./pages/SystemStatus"));
-const Features = lazy(() => import("./pages/Features"));
+// Lazy loaded pages with retry - Public (can be deferred)
+const PublicRaffle = lazyWithRetry(() => import("./pages/PublicRaffle"));
+const PaymentInstructions = lazyWithRetry(() => import("./pages/PaymentInstructions"));
+const MyTickets = lazyWithRetry(() => import("./pages/MyTickets"));
+const TicketVerification = lazyWithRetry(() => import("./pages/TicketVerification"));
+const OrderVerification = lazyWithRetry(() => import("./pages/OrderVerification"));
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
+const PlanComparison = lazyWithRetry(() => import("./pages/PlanComparison"));
+const AcceptInvite = lazyWithRetry(() => import("./pages/AcceptInvite"));
+const HelpCenter = lazyWithRetry(() => import("./pages/HelpCenter"));
+const OrganizationHome = lazyWithRetry(() => import("./pages/OrganizationHome"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const SystemStatus = lazyWithRetry(() => import("./pages/SystemStatus"));
+const Features = lazyWithRetry(() => import("./pages/Features"));
 
-// Lazy loaded pages - Legal & misc
-const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
-const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
-const LogoPreview = lazy(() => import("./pages/LogoPreview"));
-const ColorPalette = lazy(() => import("./components/design-system/ColorPalette"));
-const SentryTest = lazy(() => import("./pages/SentryTest"));
+// Lazy loaded pages with retry - Legal & misc
+const TermsOfService = lazyWithRetry(() => import("./pages/legal/TermsOfService"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/legal/PrivacyPolicy"));
+const LogoPreview = lazyWithRetry(() => import("./pages/LogoPreview"));
+const ColorPalette = lazyWithRetry(() => import("./components/design-system/ColorPalette"));
+const SentryTest = lazyWithRetry(() => import("./pages/SentryTest"));
 
-// Lazy loaded pages - SEO Guides
-const GuidesIndex = lazy(() => import("./pages/guides/GuidesIndex"));
-const ComoOrganizarRifaLegal = lazy(() => import("./pages/guides/ComoOrganizarRifaLegal"));
-const MejoresPremiosRifas = lazy(() => import("./pages/guides/MejoresPremiosRifas"));
-const ComoVenderBoletosOnline = lazy(() => import("./pages/guides/ComoVenderBoletosOnline"));
+// Lazy loaded pages with retry - SEO Guides
+const GuidesIndex = lazyWithRetry(() => import("./pages/guides/GuidesIndex"));
+const ComoOrganizarRifaLegal = lazyWithRetry(() => import("./pages/guides/ComoOrganizarRifaLegal"));
+const MejoresPremiosRifas = lazyWithRetry(() => import("./pages/guides/MejoresPremiosRifas"));
+const ComoVenderBoletosOnline = lazyWithRetry(() => import("./pages/guides/ComoVenderBoletosOnline"));
 
 // Page loading fallback component
 const PageLoader = () => (
