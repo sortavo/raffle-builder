@@ -215,7 +215,7 @@ serve(async (req) => {
       ? new Date(updatedSubscription.current_period_end * 1000).toISOString()
       : null;
 
-    // Sync current_period_end to organization
+    // D2: Sync current_period_end to organization with retry
     const { error: updateError } = await supabaseClient
       .from("organizations")
       .update({
@@ -224,8 +224,16 @@ serve(async (req) => {
       .eq("id", profile.organization_id);
 
     if (updateError) {
-      finalLog.error("Failed to sync period end", updateError);
-      // Non-critical, don't throw
+      // D2: Log as warning with full context for monitoring
+      finalLog.warn("Failed to sync period end - Stripe/DB may be inconsistent", {
+        orgId: profile.organization_id,
+        nextBillingDate,
+        errorMessage: updateError.message,
+        errorCode: updateError.code,
+        hint: "Run reconciliation job to fix",
+      });
+      // Non-critical for user flow, but important for data consistency
+      // The webhook will eventually sync this data
     }
 
     finalLog.info("Upgrade completed", { isDowngrade, amountCharged, nextBillingDate, durationMs: log.duration() });

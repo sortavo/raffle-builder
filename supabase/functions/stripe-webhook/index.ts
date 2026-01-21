@@ -325,6 +325,10 @@ serve(async (req) => {
     }
 
     // Bug #1: Atomic insert - handle unique constraint violation (23505) as duplicate
+    // D1: NOTE - An atomic function `update_organization_from_webhook` exists that combines
+    // event recording + org update in a single transaction. The current implementation
+    // handles failures by throwing errors which trigger Stripe retries. For critical
+    // operations, consider using `atomicOrganizationUpdate` from '_shared/atomic-updates.ts'.
     const { error: insertError } = await supabaseAdmin.from("stripe_events").insert({
       event_id: event.id,
       event_type: event.type,
