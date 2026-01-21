@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,10 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    log.info("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -80,10 +76,11 @@ serve(async (req) => {
       throw new Error("No active subscription found");
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
     // Retrieve current subscription to get subscription item ID and current price
-    const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+    const subscription = await stripeOperation<Stripe.Subscription>(
+      (stripe) => stripe.subscriptions.retrieve(org.stripe_subscription_id),
+      'subscriptions.retrieve'
+    );
     finalLog.info("Retrieved subscription", { 
       subscriptionId: subscription.id,
       status: subscription.status,
@@ -97,8 +94,14 @@ serve(async (req) => {
 
     // Get current and new prices to determine if it's an upgrade or downgrade
     const currentPriceId = subscription.items.data[0]?.price.id;
-    const currentPrice = await stripe.prices.retrieve(currentPriceId);
-    const newPrice = await stripe.prices.retrieve(priceId);
+    const currentPrice = await stripeOperation<Stripe.Price>(
+      (stripe) => stripe.prices.retrieve(currentPriceId),
+      'prices.retrieve.current'
+    );
+    const newPrice = await stripeOperation<Stripe.Price>(
+      (stripe) => stripe.prices.retrieve(priceId),
+      'prices.retrieve.new'
+    );
     
     const currentAmount = currentPrice.unit_amount || 0;
     const newAmount = newPrice.unit_amount || 0;
@@ -182,17 +185,20 @@ serve(async (req) => {
     }
 
     // For upgrades: get proration details using createPreview (API 2025-08-27.basil)
-    const previewInvoice = await stripe.invoices.createPreview({
-      customer: org.stripe_customer_id,
-      subscription: org.stripe_subscription_id,
-      subscription_details: {
-        items: [{
-          id: subscriptionItemId,
-          price: priceId,
-        }],
-        proration_behavior: "always_invoice",
-      },
-    });
+    const previewInvoice = await stripeOperation<Stripe.Invoice>(
+      (stripe) => stripe.invoices.createPreview({
+        customer: org.stripe_customer_id,
+        subscription: org.stripe_subscription_id,
+        subscription_details: {
+          items: [{
+            id: subscriptionItemId,
+            price: priceId,
+          }],
+          proration_behavior: "always_invoice",
+        },
+      }),
+      'invoices.createPreview'
+    );
     finalLog.info("Retrieved invoice preview", {
       amountDue: previewInvoice.amount_due,
       currency: previewInvoice.currency,

@@ -4172,6 +4172,15 @@ export type Database = {
           success: boolean
         }[]
       }
+      update_organization_from_webhook: {
+        Args: {
+          p_event_id: string
+          p_event_type: string
+          p_org_id: string
+          p_update_payload: Json
+        }
+        Returns: Json
+      }
       validate_coupon_code: {
         Args: { p_code: string; p_raffle_id?: string; p_total?: number }
         Returns: Json
