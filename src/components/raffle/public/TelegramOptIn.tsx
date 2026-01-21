@@ -19,7 +19,7 @@ export function TelegramOptIn({ buyerEmail, organizationTier, raffleName }: Tele
   }
 
   const emailBase64 = btoa(buyerEmail);
-  const telegramLink = `https://t.me/SortavoBot?start=buyer_${emailBase64}`;
+  const telegramLink = `https://t.me/Sortavo_bot?start=buyer_${emailBase64}`;
 
   const handleClick = () => {
     // Track lead event when user opts in to Telegram notifications
