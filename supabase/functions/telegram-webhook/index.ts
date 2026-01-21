@@ -70,6 +70,57 @@ async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: o
   return response.ok;
 }
 
+// Edit an existing message (to update text and remove buttons)
+async function editTelegramMessage(chatId: string, messageId: number, text: string, replyMarkup?: object | null) {
+  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  if (!token) return false;
+
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+  };
+
+  // Set reply_markup to remove buttons (empty object removes keyboard)
+  if (replyMarkup === null) {
+    body.reply_markup = { inline_keyboard: [] };
+  } else if (replyMarkup) {
+    body.reply_markup = replyMarkup;
+  }
+
+  const response = await fetch(`${TELEGRAM_API}${token}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    logStep("Error editing message", { error });
+  }
+  return response.ok;
+}
+
+// Answer callback query (stops loading indicator on button)
+async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  if (!token) return false;
+
+  const body: Record<string, unknown> = {
+    callback_query_id: callbackQueryId,
+  };
+  if (text) body.text = text;
+
+  const response = await fetch(`${TELEGRAM_API}${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  return response.ok;
+}
+
 function generateLinkCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -145,22 +196,28 @@ serve(async (req) => {
     // Handle callback queries (inline button presses)
     if (callbackQuery) {
       const data = callbackQuery.data;
-      logStep("Callback query", { data });
+      const messageId = callbackQuery.message?.message_id;
+      const callbackChatId = callbackQuery.message?.chat?.id?.toString() || chatId;
+      const actionUsername = callbackQuery.from?.username || callbackQuery.from?.first_name || "Usuario";
+      logStep("Callback query", { data, messageId });
 
       // Handle approve/reject order buttons
       if (data.startsWith("approve_order_") || data.startsWith("reject_order_")) {
         const isApprove = data.startsWith("approve_order_");
         const orderId = data.replace(isApprove ? "approve_order_" : "reject_order_", "");
 
+        // Answer callback immediately to stop loading indicator
+        await answerCallbackQuery(callbackQuery.id, isApprove ? "Procesando aprobación..." : "Procesando rechazo...");
+
         // Verify the user is authorized (is an organizer with this chat linked)
         const { data: conn } = await supabase
           .from("telegram_connections")
           .select("organization_id")
-          .eq("telegram_chat_id", chatId)
+          .eq("telegram_chat_id", callbackChatId)
           .single();
 
         if (!conn) {
-          await sendTelegramMessage(chatId, "❌ No tienes permisos para esta acción.");
+          await sendTelegramMessage(callbackChatId, "❌ No tienes permisos para esta acción.");
           return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -174,7 +231,15 @@ serve(async (req) => {
           .single();
 
         if (orderError || !order) {
-          await sendTelegramMessage(chatId, "❌ Orden no encontrada.");
+          // Edit message to show order not found
+          if (messageId) {
+            await editTelegramMessage(
+              callbackChatId,
+              messageId,
+              `❌ <b>Orden no encontrada</b>\n\nEsta orden ya no existe en el sistema.`,
+              null
+            );
+          }
           return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -183,7 +248,7 @@ serve(async (req) => {
         // Verify the order belongs to this organization
         const raffle = order.raffles as { title: string; organization_id: string };
         if (raffle.organization_id !== conn.organization_id) {
-          await sendTelegramMessage(chatId, "❌ Esta orden no pertenece a tu organización.");
+          await sendTelegramMessage(callbackChatId, "❌ Esta orden no pertenece a tu organización.");
           return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -191,8 +256,20 @@ serve(async (req) => {
 
         // Check if order is still in a state that can be approved/rejected
         if (order.status !== "reserved") {
-          const statusMsg = order.status === "sold" ? "ya fue aprobada" : "ya fue procesada";
-          await sendTelegramMessage(chatId, `⚠️ Esta orden ${statusMsg}.`);
+          const statusEmoji = order.status === "sold" ? "✅" : "⚠️";
+          const statusMsg = order.status === "sold" ? "APROBADA" : "PROCESADA";
+          // Edit the message to show it's already processed
+          if (messageId) {
+            await editTelegramMessage(
+              callbackChatId,
+              messageId,
+              `${statusEmoji} <b>Orden ya ${statusMsg}</b>\n\n` +
+              `Sorteo: ${raffle.title}\n` +
+              `Comprador: ${order.buyer_name}\n` +
+              `Boletos: ${order.ticket_count}`,
+              null
+            );
+          }
           return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -211,16 +288,20 @@ serve(async (req) => {
 
           if (updateError) {
             logStep("Error approving order", { error: updateError.message });
-            await sendTelegramMessage(chatId, "❌ Error al aprobar la orden.");
+            await sendTelegramMessage(callbackChatId, "❌ Error al aprobar la orden.");
           } else {
-            // Send success message to organizer
-            await sendTelegramMessage(
-              chatId,
-              `✅ <b>Orden Aprobada</b>\n\n` +
-              `Comprador: ${order.buyer_name}\n` +
-              `Boletos: ${order.ticket_count}\n` +
-              `Sorteo: ${raffle.title}`
-            );
+            // Edit the original message to show approval (removes buttons)
+            if (messageId) {
+              await editTelegramMessage(
+                callbackChatId,
+                messageId,
+                `✅ <b>APROBADA</b> por @${actionUsername}\n\n` +
+                `Sorteo: ${raffle.title}\n` +
+                `Comprador: ${order.buyer_name}\n` +
+                `Boletos: ${order.ticket_count}`,
+                null
+              );
+            }
 
             // Notify the buyer if they have Telegram linked
             if (order.buyer_email) {
@@ -242,7 +323,7 @@ serve(async (req) => {
               }
             }
 
-            logStep("Order approved via Telegram", { orderId, approvedBy: chatId });
+            logStep("Order approved via Telegram", { orderId, approvedBy: actionUsername });
           }
         } else {
           // Reject the order (delete it so tickets become available again)
@@ -253,16 +334,20 @@ serve(async (req) => {
 
           if (deleteError) {
             logStep("Error rejecting order", { error: deleteError.message });
-            await sendTelegramMessage(chatId, "❌ Error al rechazar la orden.");
+            await sendTelegramMessage(callbackChatId, "❌ Error al rechazar la orden.");
           } else {
-            // Send success message to organizer
-            await sendTelegramMessage(
-              chatId,
-              `🗑️ <b>Orden Rechazada</b>\n\n` +
-              `Comprador: ${order.buyer_name}\n` +
-              `Boletos liberados: ${order.ticket_count}\n` +
-              `Sorteo: ${raffle.title}`
-            );
+            // Edit the original message to show rejection (removes buttons)
+            if (messageId) {
+              await editTelegramMessage(
+                callbackChatId,
+                messageId,
+                `❌ <b>RECHAZADA</b> por @${actionUsername}\n\n` +
+                `Sorteo: ${raffle.title}\n` +
+                `Comprador: ${order.buyer_name}\n` +
+                `Boletos liberados: ${order.ticket_count}`,
+                null
+              );
+            }
 
             // Notify the buyer if they have Telegram linked
             if (order.buyer_email) {
@@ -282,7 +367,7 @@ serve(async (req) => {
               }
             }
 
-            logStep("Order rejected via Telegram", { orderId, rejectedBy: chatId });
+            logStep("Order rejected via Telegram", { orderId, rejectedBy: actionUsername });
           }
         }
 
@@ -383,7 +468,7 @@ serve(async (req) => {
     // Handle /vincular command (for organizers)
     else if (text.startsWith("/vincular")) {
       const code = text.split(" ")[1]?.toUpperCase();
-      
+
       if (!code) {
         await sendTelegramMessage(chatId, "⚠️ Uso: /vincular CÓDIGO\n\nObtén tu código en Dashboard → Configuración → Telegram");
         return new Response(JSON.stringify({ ok: true }), {
@@ -391,7 +476,7 @@ serve(async (req) => {
         });
       }
 
-      // Find connection with this code
+      // Find pending connection with this code
       const { data: conn } = await supabase
         .from("telegram_connections")
         .select("*, organizations!inner(subscription_tier, name)")
@@ -419,17 +504,49 @@ serve(async (req) => {
         });
       }
 
-      // Update connection
+      // Check if this chat is already linked to this organization (multi-user support)
+      const { data: existingLink } = await supabase
+        .from("telegram_connections")
+        .select("id")
+        .eq("organization_id", conn.organization_id)
+        .eq("telegram_chat_id", chatId)
+        .not("id", "eq", conn.id)
+        .maybeSingle();
+
+      if (existingLink) {
+        // Delete the pending connection since user is already linked
+        await supabase.from("telegram_connections").delete().eq("id", conn.id);
+        await sendTelegramMessage(
+          chatId,
+          `⚠️ Ya estás vinculado a <b>${conn.organizations?.name}</b>.\n\n` +
+          `No necesitas vincularte de nuevo. Usa /config para ver tus preferencias.`
+        );
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update connection with chat details
       await supabase
         .from("telegram_connections")
         .update({
           telegram_chat_id: chatId,
           telegram_username: username,
+          display_name: username,
           link_code: null,
           link_code_expires_at: null,
           verified_at: new Date().toISOString(),
         })
         .eq("id", conn.id);
+
+      // Count how many users are now linked to this org
+      const { count } = await supabase
+        .from("telegram_connections")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", conn.organization_id)
+        .not("telegram_chat_id", "is", null);
+
+      const userCountMsg = count && count > 1 ? `\n\n👥 ${count} usuarios vinculados a esta organización.` : "";
 
       await sendTelegramMessage(
         chatId,
@@ -439,8 +556,14 @@ serve(async (req) => {
         `• Nuevas reservas de boletos\n` +
         `• Comprobantes de pago\n` +
         `• Recordatorios de sorteos\n\n` +
-        `Usa /config para personalizar tus notificaciones.`
+        `Usa /config para personalizar tus notificaciones.${userCountMsg}`
       );
+
+      logStep("User linked to organization", {
+        organizationId: conn.organization_id,
+        chatId,
+        totalUsers: count
+      });
     }
 
     // Handle /config command (organizer preferences)
@@ -621,6 +744,91 @@ serve(async (req) => {
         `/desvincular - Desvincular cuenta\n\n` +
         `/ayuda - Ver esta ayuda`
       );
+    }
+
+    // Handle plain text that looks like a linking code (6 alphanumeric chars)
+    // This improves UX when user sends code after /vincular without combining them
+    else if (/^[A-Z0-9]{6}$/i.test(text.trim())) {
+      const code = text.trim().toUpperCase();
+      logStep("Detected potential link code", { code });
+
+      // Check if it's a valid organizer link code
+      const { data: conn } = await supabase
+        .from("telegram_connections")
+        .select("*, organizations!inner(subscription_tier, name)")
+        .eq("link_code", code)
+        .gt("link_code_expires_at", new Date().toISOString())
+        .single();
+
+      if (conn) {
+        // Check subscription tier
+        const tier = conn.organizations?.subscription_tier;
+        if (!["premium", "enterprise"].includes(tier)) {
+          await sendTelegramMessage(
+            chatId,
+            "⚠️ El Bot de Telegram está disponible solo para planes Premium y Enterprise.\n\n" +
+            "Actualiza tu plan en Dashboard → Configuración → Suscripción"
+          );
+        } else {
+          // Check if this chat is already linked to this organization
+          const { data: existingLink } = await supabase
+            .from("telegram_connections")
+            .select("id")
+            .eq("organization_id", conn.organization_id)
+            .eq("telegram_chat_id", chatId)
+            .not("id", "eq", conn.id)
+            .maybeSingle();
+
+          if (existingLink) {
+            await supabase.from("telegram_connections").delete().eq("id", conn.id);
+            await sendTelegramMessage(
+              chatId,
+              `⚠️ Ya estás vinculado a <b>${conn.organizations?.name}</b>.\n\n` +
+              `No necesitas vincularte de nuevo. Usa /config para ver tus preferencias.`
+            );
+          } else {
+            // Update connection
+            await supabase
+              .from("telegram_connections")
+              .update({
+                telegram_chat_id: chatId,
+                telegram_username: username,
+                display_name: username,
+                link_code: null,
+                link_code_expires_at: null,
+                verified_at: new Date().toISOString(),
+              })
+              .eq("id", conn.id);
+
+            const { count } = await supabase
+              .from("telegram_connections")
+              .select("*", { count: "exact", head: true })
+              .eq("organization_id", conn.organization_id)
+              .not("telegram_chat_id", "is", null);
+
+            const userCountMsg = count && count > 1 ? `\n\n👥 ${count} usuarios vinculados.` : "";
+
+            await sendTelegramMessage(
+              chatId,
+              `✅ <b>¡Cuenta vinculada exitosamente!</b>\n\n` +
+              `Organización: <b>${conn.organizations?.name}</b>\n\n` +
+              `Ahora recibirás notificaciones de:\n` +
+              `• Nuevas reservas de boletos\n` +
+              `• Comprobantes de pago\n` +
+              `• Recordatorios de sorteos\n\n` +
+              `Usa /config para personalizar tus notificaciones.${userCountMsg}`
+            );
+            logStep("Organizer linked via plain code", { organizationId: conn.organization_id, totalUsers: count });
+          }
+        }
+      } else {
+        // Code not found - could be expired or invalid
+        await sendTelegramMessage(
+          chatId,
+          `❌ El código <code>${code}</code> es inválido o ha expirado.\n\n` +
+          `Genera uno nuevo en Dashboard → Configuración → Telegram.`
+        );
+      }
     }
 
     return new Response(JSON.stringify({ ok: true }), {

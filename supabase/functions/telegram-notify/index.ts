@@ -97,21 +97,24 @@ serve(async (req) => {
 
     let sent = false;
 
-    // Handle organizer notifications
+    // Handle organizer notifications (multi-user support: send to ALL connected users)
     if (organizerNotifications.includes(type) && organizationId) {
       const prefField = `notify_${type.replace("_uploaded", "_proof")}` as const;
-      
-      const { data: conn } = await supabase
+
+      // Fetch ALL connections for this organization (multi-user support)
+      const { data: connections } = await supabase
         .from("telegram_connections")
         .select("*")
         .eq("organization_id", organizationId)
-        .maybeSingle();
+        .not("telegram_chat_id", "is", null);
 
-      // Type guard for connection
-      const connection = conn as { telegram_chat_id?: string; [key: string]: unknown } | null;
-      if (connection?.telegram_chat_id && connection[prefField]) {
+      const validConnections = (connections || []).filter(
+        (c) => c.telegram_chat_id && c[prefField as keyof typeof c]
+      );
+
+      if (validConnections.length > 0) {
         let message = "";
-        
+
         // Variable to hold optional inline keyboard
         let replyMarkup: InlineKeyboard | undefined;
 
@@ -168,8 +171,20 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        sent = await sendTelegramMessage(connection.telegram_chat_id, message, replyMarkup);
-        logStep("Organizer notification sent", { type, sent, hasButtons: !!replyMarkup });
+        // Send to ALL connected users
+        const results = await Promise.all(
+          validConnections.map((conn) =>
+            sendTelegramMessage(conn.telegram_chat_id!, message, replyMarkup)
+          )
+        );
+
+        sent = results.some((r) => r === true);
+        logStep("Organizer notification sent", {
+          type,
+          recipients: validConnections.length,
+          successCount: results.filter(Boolean).length,
+          hasButtons: !!replyMarkup,
+        });
       }
     }
 
