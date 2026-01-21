@@ -797,9 +797,9 @@ export function OrganizationSettings() {
                 <div className="space-y-1.5 sm:space-y-2">
                   <Label className="text-xs sm:text-sm">Tipo de ID Fiscal</Label>
                   <Select
-                    value={taxIdType}
+                    value={taxIdType || "none"}
                     onValueChange={(value) => {
-                      setTaxIdType(value);
+                      setTaxIdType(value === "none" ? "" : value);
                       setTaxId(''); // Clear tax ID when type changes
                     }}
                   >
@@ -807,7 +807,7 @@ export function OrganizationSettings() {
                       <SelectValue placeholder="Sin especificar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin especificar</SelectItem>
+                      <SelectItem value="none">Sin especificar</SelectItem>
                       <SelectItem value="mx_rfc">🇲🇽 RFC (México)</SelectItem>
                       <SelectItem value="co_nit">🇨🇴 NIT (Colombia)</SelectItem>
                       <SelectItem value="ar_cuit">🇦🇷 CUIT (Argentina)</SelectItem>
