@@ -1,25 +1,25 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[UPGRADE-SUBSCRIPTION] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'upgrade-subscription');
+  const log = createLogger(ctx);
+
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    log.info("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -36,12 +36,15 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated", { email: user.email });
 
     // Get request body
     const { priceId } = await req.json();
     if (!priceId) throw new Error("priceId is required");
-    logStep("Request parsed", { priceId });
+    enrichedLog.info("Request parsed", { priceId });
 
     // Get user's organization with subscription info
     const { data: profile, error: profileError } = await supabaseClient
@@ -53,7 +56,10 @@ serve(async (req) => {
     if (profileError || !profile?.organization_id) {
       throw new Error("Could not find user's organization");
     }
-    logStep("Found profile", { organizationId: profile.organization_id });
+    
+    const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
+    const finalLog = createLogger(finalCtx);
+    finalLog.info("Found profile");
 
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
@@ -64,7 +70,7 @@ serve(async (req) => {
     if (orgError || !org) {
       throw new Error("Could not find organization");
     }
-    logStep("Found organization", { 
+    finalLog.info("Found organization", { 
       subscriptionId: org.stripe_subscription_id,
       customerId: org.stripe_customer_id 
     });
@@ -77,7 +83,7 @@ serve(async (req) => {
 
     // Retrieve current subscription
     const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
-    logStep("Retrieved subscription", { 
+    finalLog.info("Retrieved subscription", { 
       subscriptionId: subscription.id,
       status: subscription.status,
       itemsCount: subscription.items.data.length
@@ -89,7 +95,7 @@ serve(async (req) => {
 
     // Detect if user is in trial period
     const isInTrial = subscription.status === "trialing";
-    logStep("Subscription details", {
+    finalLog.info("Subscription details", {
       subscriptionId: subscription.id,
       status: subscription.status,
       isInTrial,
@@ -101,7 +107,7 @@ serve(async (req) => {
     if (!subscriptionItemId) {
       throw new Error("No subscription item found");
     }
-    logStep("Found subscription item", { subscriptionItemId });
+    finalLog.info("Found subscription item", { subscriptionItemId });
 
     // Get current and new prices to determine if it's an upgrade or downgrade
     const currentPriceId = subscription.items.data[0]?.price.id;
@@ -112,7 +118,7 @@ serve(async (req) => {
     const newAmount = newPrice.unit_amount || 0;
     const isDowngrade = newAmount < currentAmount;
     
-    logStep("Price comparison", { 
+    finalLog.info("Price comparison", { 
       currentPriceId,
       currentAmount,
       newPriceId: priceId,
@@ -135,22 +141,27 @@ serve(async (req) => {
     if (isInTrial && !isDowngrade) {
       updateParams.trial_end = "now"; // End trial immediately
       updateParams.proration_behavior = "none"; // No proration (no prior payment)
-      logStep("Trial detected - ending trial immediately, charging full new price");
+      finalLog.info("Trial detected - ending trial immediately, charging full new price");
     } else if (isDowngrade) {
       updateParams.proration_behavior = "none";
     } else {
       updateParams.proration_behavior = "always_invoice";
     }
 
+    // O2: Add idempotency key for Stripe operations
+    const idempotencyKey = `upgrade_${profile.organization_id}_${priceId}_${Date.now()}`;
+
     // Update the subscription with the new price
     const updatedSubscription = await stripe.subscriptions.update(
       org.stripe_subscription_id, 
-      updateParams
+      updateParams,
+      { idempotencyKey }
     );
-    logStep("Subscription updated successfully", { 
+    finalLog.info("Subscription updated successfully", { 
       newStatus: updatedSubscription.status,
       newPriceId: priceId,
-      prorationBehavior: isDowngrade ? "none" : "always_invoice"
+      prorationBehavior: isDowngrade ? "none" : "always_invoice",
+      idempotencyKey
     });
 
     // Get the latest invoice to show what was charged (only relevant for upgrades)
@@ -165,7 +176,7 @@ serve(async (req) => {
       
       amountCharged = latestInvoice.data[0]?.amount_paid || 0;
       currency = latestInvoice.data[0]?.currency || "usd";
-      logStep("Fetched invoice details", { amountCharged, currency });
+      finalLog.info("Fetched invoice details", { amountCharged, currency });
     }
 
     const nextBillingDate = updatedSubscription.current_period_end 
@@ -173,14 +184,19 @@ serve(async (req) => {
       : null;
 
     // Sync current_period_end to organization
-    await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from("organizations")
       .update({
         current_period_end: nextBillingDate,
       })
       .eq("id", profile.organization_id);
 
-    logStep("Upgrade completed", { isDowngrade, amountCharged, nextBillingDate });
+    if (updateError) {
+      finalLog.error("Failed to sync period end", updateError);
+      // Non-critical, don't throw
+    }
+
+    finalLog.info("Upgrade completed", { isDowngrade, amountCharged, nextBillingDate, durationMs: log.duration() });
 
     return corsJsonResponse(req, { 
       success: true,
@@ -194,8 +210,14 @@ serve(async (req) => {
       next_billing_date: nextBillingDate,
     }, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'upgrade-subscription',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });

@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 // Issue M15: Origin validation whitelist
 const ALLOWED_ORIGINS = [
@@ -42,8 +39,11 @@ serve(async (req) => {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'customer-portal');
+  const log = createLogger(ctx);
+
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -62,7 +62,10 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated", { email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -72,7 +75,7 @@ serve(async (req) => {
     }
     
     const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    enrichedLog.info("Found Stripe customer", { customerId });
 
     // Issue M15: Validate origin before using in return_url
     const rawOrigin = req.headers.get("origin");
@@ -89,7 +92,7 @@ serve(async (req) => {
       });
     } catch (stripeError: unknown) {
       const error = stripeError as { message?: string; code?: string };
-      logStep("Failed to create portal session", {
+      enrichedLog.error("Failed to create portal session", null, {
         error: error.message,
         code: error.code
       });
@@ -100,12 +103,18 @@ serve(async (req) => {
       throw new Error("Error al abrir el portal de facturación. Intenta de nuevo.");
     }
     
-    logStep("Portal session created", { sessionId: portalSession.id });
+    enrichedLog.info("Portal session created", { sessionId: portalSession.id, durationMs: log.duration() });
 
     return corsJsonResponse(req, { url: portalSession.url }, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'customer-portal',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });

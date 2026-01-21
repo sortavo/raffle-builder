@@ -1,25 +1,25 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[PREVIEW-UPGRADE] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'preview-upgrade');
+  const log = createLogger(ctx);
+
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    log.info("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -36,12 +36,15 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated", { email: user.email });
 
     // Get request body
     const { priceId, planName, currentPlanName } = await req.json();
     if (!priceId) throw new Error("priceId is required");
-    logStep("Request parsed", { priceId, planName, currentPlanName });
+    enrichedLog.info("Request parsed", { priceId, planName, currentPlanName });
 
     // Get user's organization with subscription info
     const { data: profile, error: profileError } = await supabaseClient
@@ -53,7 +56,10 @@ serve(async (req) => {
     if (profileError || !profile?.organization_id) {
       throw new Error("Could not find user's organization");
     }
-    logStep("Found profile", { organizationId: profile.organization_id });
+    
+    const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
+    const finalLog = createLogger(finalCtx);
+    finalLog.info("Found profile");
 
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
@@ -64,7 +70,7 @@ serve(async (req) => {
     if (orgError || !org) {
       throw new Error("Could not find organization");
     }
-    logStep("Found organization", { 
+    finalLog.info("Found organization", { 
       subscriptionId: org.stripe_subscription_id,
       customerId: org.stripe_customer_id,
       currentTier: org.subscription_tier
@@ -78,7 +84,7 @@ serve(async (req) => {
 
     // Retrieve current subscription to get subscription item ID and current price
     const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
-    logStep("Retrieved subscription", { 
+    finalLog.info("Retrieved subscription", { 
       subscriptionId: subscription.id,
       status: subscription.status,
       currentPriceId: subscription.items.data[0]?.price.id
@@ -101,7 +107,7 @@ serve(async (req) => {
     // Detect if user is in trial period
     const isInTrial = subscription.status === "trialing";
     
-    logStep("Price comparison", { 
+    finalLog.info("Price comparison", { 
       currentPriceId,
       currentAmount,
       newPriceId: priceId,
@@ -118,7 +124,7 @@ serve(async (req) => {
 
     // For trial upgrades: show full price of new plan (trial will end immediately)
     if (isInTrial && !isDowngrade) {
-      logStep("Trial upgrade - returning full price preview");
+      finalLog.info("Trial upgrade - returning full price preview");
       
       // Calculate new billing date based on plan interval (30 days for monthly, 1 year for annual)
       const newPriceRecurring = newPrice.recurring;
@@ -147,12 +153,13 @@ serve(async (req) => {
         trial_message: "Tu período de prueba terminará y se cobrará el precio completo del nuevo plan inmediatamente.",
       };
 
+      finalLog.info("Request completed", { durationMs: log.duration() });
       return corsJsonResponse(req, response, 200);
     }
 
     // For downgrades: no proration, change applies at next billing cycle
     if (isDowngrade) {
-      logStep("Downgrade detected - returning simplified preview");
+      finalLog.info("Downgrade detected - returning simplified preview");
       
       const response = {
         amount_due: 0,
@@ -170,6 +177,7 @@ serve(async (req) => {
         message: "El cambio se aplicará al final de tu período actual. No hay cargos ni devoluciones.",
       };
 
+      finalLog.info("Request completed", { durationMs: log.duration() });
       return corsJsonResponse(req, response, 200);
     }
 
@@ -185,7 +193,7 @@ serve(async (req) => {
         proration_behavior: "always_invoice",
       },
     });
-    logStep("Retrieved invoice preview", {
+    finalLog.info("Retrieved invoice preview", {
       amountDue: previewInvoice.amount_due,
       currency: previewInvoice.currency,
       linesCount: previewInvoice.lines.data.length
@@ -225,17 +233,24 @@ serve(async (req) => {
       is_downgrade: false,
     };
 
-    logStep("Preview calculated successfully", {
+    finalLog.info("Preview calculated successfully", {
       amountDue: response.amount_due,
       credit: creditAmount,
       debit: debitAmount,
-      isDowngrade: false
+      isDowngrade: false,
+      durationMs: log.duration()
     });
 
     return corsJsonResponse(req, response, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'preview-upgrade',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });

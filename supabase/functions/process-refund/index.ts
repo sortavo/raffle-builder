@@ -1,19 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { logBillingAction, logSubscriptionEvent } from "../_shared/audit-logger.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[PROCESS-REFUND] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
+
+  const ctx = createRequestContext(req, 'process-refund');
+  const log = createLogger(ctx);
 
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -22,8 +22,7 @@ serve(async (req) => {
   );
 
   try {
-    logStep("Function started");
-    const requestId = crypto.randomUUID().slice(0, 8);
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -37,6 +36,9 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user) throw new Error("User not authenticated");
+
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
 
     // Check if user is platform admin
     const { data: isAdmin } = await supabaseAdmin
@@ -52,7 +54,7 @@ serve(async (req) => {
       throw new Error("action must be 'approve' or 'reject'");
     }
 
-    logStep("Processing refund action", { refundRequestId, action, userId: user.id, isAdmin: !!isAdmin });
+    enrichedLog.info("Processing refund action", { refundRequestId, action, isAdmin: !!isAdmin });
 
     // Get the refund request
     const { data: refundRequest, error: fetchError } = await supabaseAdmin
@@ -64,6 +66,9 @@ serve(async (req) => {
     if (fetchError || !refundRequest) {
       throw new Error("Refund request not found");
     }
+
+    const finalCtx = enrichContext(enrichedCtx, { orgId: refundRequest.organization_id });
+    const finalLog = createLogger(finalCtx);
 
     // Authorization check - only platform admins or org members can process
     if (!isAdmin) {
@@ -113,10 +118,10 @@ serve(async (req) => {
         action: 'refund_rejected',
         resourceType: 'refund',
         resourceId: refundRequestId,
-        requestId,
+        requestId: ctx.correlationId,
       });
 
-      logStep("Refund rejected", { refundRequestId });
+      finalLog.info("Refund rejected", { durationMs: log.duration() });
       return corsJsonResponse(req, { success: true, status: 'rejected' }, 200);
     }
 
@@ -142,7 +147,7 @@ serve(async (req) => {
       );
 
       if (pendingOrSucceeded) {
-        logStep("Refund already exists (idempotency)", {
+        finalLog.info("Refund already exists (idempotency)", {
           existingRefundId: pendingOrSucceeded.id,
           chargeId: refundRequest.stripe_charge_id
         });
@@ -164,6 +169,9 @@ serve(async (req) => {
         }, 200);
       }
 
+      // O2: Add idempotency key for Stripe operations
+      const idempotencyKey = `refund_${refundRequestId}_${Date.now()}`;
+
       // Create the refund in Stripe
       const refund = await stripe.refunds.create({
         charge: refundRequest.stripe_charge_id,
@@ -175,9 +183,9 @@ serve(async (req) => {
           refund_request_id: refundRequestId,
           organization_id: refundRequest.organization_id,
         },
-      });
+      }, { idempotencyKey });
 
-      logStep("Stripe refund created", { refundId: refund.id, status: refund.status });
+      finalLog.info("Stripe refund created", { refundId: refund.id, status: refund.status, idempotencyKey });
 
       // Update refund request with Stripe refund ID
       const { error: completeError } = await supabaseAdmin
@@ -190,7 +198,7 @@ serve(async (req) => {
         .eq("id", refundRequestId);
 
       if (completeError) {
-        logStep("Warning: Failed to update refund status", { error: completeError.message });
+        finalLog.warn("Failed to update refund status", { error: completeError.message });
       }
 
       // Log to refund audit
@@ -218,7 +226,7 @@ serve(async (req) => {
           amount_cents: refundRequest.amount_cents,
           currency: refundRequest.currency,
         },
-        requestId,
+        requestId: ctx.correlationId,
       });
 
       // Log subscription event for analytics
@@ -229,7 +237,7 @@ serve(async (req) => {
         metadata: { refund_id: refund.id, reason: refundRequest.reason },
       });
 
-      logStep("Refund completed", { refundRequestId, stripeRefundId: refund.id });
+      finalLog.info("Refund completed", { stripeRefundId: refund.id, durationMs: log.duration() });
 
       return corsJsonResponse(req, {
         success: true,
@@ -241,8 +249,8 @@ serve(async (req) => {
 
     } catch (stripeError) {
       // Stripe refund failed
-      const errorMessage = stripeError instanceof Error ? stripeError.message : String(stripeError);
-      logStep("Stripe refund failed", { error: errorMessage });
+      const err = stripeError instanceof Error ? stripeError : new Error(String(stripeError));
+      finalLog.error("Stripe refund failed", err);
 
       await supabaseAdmin
         .from("refund_requests")
@@ -256,7 +264,7 @@ serve(async (req) => {
         refund_request_id: refundRequestId,
         action: 'failed',
         actor_id: user.id,
-        details: { error: errorMessage },
+        details: { error: err.message },
       });
 
       await logBillingAction(supabaseAdmin, {
@@ -266,16 +274,22 @@ serve(async (req) => {
         action: 'refund_failed',
         resourceType: 'refund',
         resourceId: refundRequestId,
-        metadata: { error: errorMessage },
-        requestId,
+        metadata: { error: err.message },
+        requestId: ctx.correlationId,
       });
 
-      throw new Error(`Stripe refund failed: ${errorMessage}`);
+      throw new Error(`Stripe refund failed: ${err.message}`);
     }
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'process-refund',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });
