@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { BASIC_PRICE_IDS } from "../_shared/stripe-config.ts";
+import { BASIC_PRICE_IDS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -19,15 +19,25 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+// L4: Stricter CORS patterns for lovable.app subdomains
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   
   // Check exact match
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   
-  // Check dynamic subdomains
-  if (origin.endsWith('.lovableproject.com')) return true;
-  if (origin.endsWith('.lovable.app')) return true;
+  // Only allow specific lovable.app patterns (preview deployments)
+  // Format: https://{project-id}-preview--{uuid}.lovable.app
+  const lovablePreviewPattern = /^https:\/\/[a-z0-9]+-preview--[a-z0-9-]+\.lovable\.app$/;
+  if (lovablePreviewPattern.test(origin)) return true;
+
+  // Published apps: https://{project-slug}.lovable.app
+  const lovablePublishedPattern = /^https:\/\/[a-z0-9-]+\.lovable\.app$/;
+  if (lovablePublishedPattern.test(origin)) return true;
+
+  // Lovableproject.com for development
+  const lovableProjectPattern = /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/;
+  if (lovableProjectPattern.test(origin)) return true;
   
   return false;
 }

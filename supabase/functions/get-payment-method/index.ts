@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -57,7 +58,7 @@ serve(async (req) => {
 
     logStep("Found Stripe customer", { customerId: org.stripe_customer_id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
 
     // Get customer's default payment method
     const customer = await stripe.customers.retrieve(org.stripe_customer_id) as Stripe.Customer;
@@ -72,16 +73,24 @@ serve(async (req) => {
     if (defaultPaymentMethodId) {
       const pm = await stripe.paymentMethods.retrieve(defaultPaymentMethodId as string);
       
-      if (pm.card) {
-        paymentMethod = {
-          id: pm.id,
-          brand: pm.card.brand,
-          last4: pm.card.last4,
-          exp_month: pm.card.exp_month,
-          exp_year: pm.card.exp_year,
-        };
-        logStep("Found payment method", { brand: pm.card.brand, last4: pm.card.last4 });
+      // L2: Validate payment method type before accessing card properties
+      if (pm.type !== 'card') {
+        logStep("Payment method is not a card", { type: pm.type });
+        return corsJsonResponse(req, { 
+          payment_method: null,
+          message: "El método de pago no es una tarjeta"
+        }, 200);
       }
+      
+      const card = pm.card!;
+      paymentMethod = {
+        id: pm.id,
+        brand: card.brand,
+        last4: card.last4,
+        exp_month: card.exp_month,
+        exp_year: card.exp_year,
+      };
+      logStep("Found payment method", { brand: card.brand, last4: card.last4 });
     } else {
       // Try to get from subscriptions (active or trialing)
       const subscriptions = await stripe.subscriptions.list({
@@ -99,15 +108,17 @@ serve(async (req) => {
         
         if (pmId) {
           const pm = await stripe.paymentMethods.retrieve(pmId as string);
-          if (pm.card) {
+          // L2: Validate payment method type before accessing card properties
+          if (pm.type === 'card' && pm.card) {
+            const card = pm.card;
             paymentMethod = {
               id: pm.id,
-              brand: pm.card.brand,
-              last4: pm.card.last4,
-              exp_month: pm.card.exp_month,
-              exp_year: pm.card.exp_year,
+              brand: card.brand,
+              last4: card.last4,
+              exp_month: card.exp_month,
+              exp_year: card.exp_year,
             };
-            logStep("Found payment method from subscription", { brand: pm.card.brand, last4: pm.card.last4 });
+            logStep("Found payment method from subscription", { brand: card.brand, last4: card.last4 });
           }
         }
       }

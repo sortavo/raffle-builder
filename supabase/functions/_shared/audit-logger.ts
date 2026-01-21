@@ -177,28 +177,16 @@ export async function logSubscriptionEvent(
 
 /**
  * Calculate MRR change based on tier transition
+ * Uses centralized TIER_MRR_CENTS from stripe-config.ts
  */
+import { TIER_MRR_CENTS } from "./stripe-config.ts";
+
 export function calculateMrrChange(
   fromTier: string | null,
   toTier: string | null,
   period: 'monthly' | 'annual' = 'monthly'
 ): number {
-  const tierPrices = {
-    monthly: {
-      basic: 4900,
-      pro: 14900,
-      premium: 29900,
-      enterprise: 49900,
-    },
-    annual: {
-      basic: 4083,
-      pro: 12417,
-      premium: 24917,
-      enterprise: 41583,
-    },
-  };
-
-  const prices = tierPrices[period];
+  const prices = TIER_MRR_CENTS[period];
   const fromPrice = fromTier ? (prices[fromTier as keyof typeof prices] || 0) : 0;
   const toPrice = toTier ? (prices[toTier as keyof typeof prices] || 0) : 0;
 

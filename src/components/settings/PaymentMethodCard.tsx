@@ -64,6 +64,8 @@ export function PaymentMethodCard() {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) throw error;
       if (data?.url) {
+        // L9: Visual confirmation toast before redirect
+        toast.success("Abriendo portal de pagos...");
         window.open(data.url, "_blank");
       }
     } catch (error) {

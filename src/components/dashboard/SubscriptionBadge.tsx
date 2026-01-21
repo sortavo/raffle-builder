@@ -14,26 +14,27 @@ interface SubscriptionBadgeProps {
   className?: string;
 }
 
+// L6: Standardized badge colors using design tokens
 const tierConfig = {
   basic: {
     label: "Basic",
     icon: Sparkles,
-    className: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600",
+    className: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   },
   pro: {
     label: "Pro",
     icon: Zap,
-    className: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700",
+    className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
   },
   premium: {
     label: "Premium",
     icon: Crown,
-    className: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-300 dark:from-amber-900/30 dark:to-yellow-900/30 dark:text-amber-400 dark:border-amber-700",
+    className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
   },
   enterprise: {
     label: "Enterprise",
     icon: Diamond,
-    className: "bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border-purple-300 dark:from-purple-900/30 dark:to-indigo-900/30 dark:text-purple-400 dark:border-purple-700",
+    className: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800",
   },
 };
 
