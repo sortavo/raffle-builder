@@ -63,7 +63,11 @@ export function SubscriptionSettings() {
         throw new Error("No se pudo obtener el enlace del portal");
       }
     } catch (error: any) {
-      toast.error("Error: " + error.message);
+      // E7: Use user-friendly error message from API if available
+      const errorMessage = error?.message?.includes("Error")
+        ? error.message
+        : "No se pudo abrir el portal. Intenta de nuevo.";
+      toast.error(errorMessage);
     } finally {
       setIsLoadingPortal(false);
     }
@@ -96,7 +100,9 @@ export function SubscriptionSettings() {
           maxTickets: limits.maxTicketsPerRaffle,
         }));
       } catch (error) {
+        // E7: Log and show non-blocking warning for usage fetch
         console.error("Error fetching usage:", error);
+        // Non-critical - don't toast, just log
       }
     };
 

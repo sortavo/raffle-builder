@@ -5,6 +5,7 @@ import { enqueueJob } from '../_shared/job-queue.ts';
 import { PRODUCT_TO_TIER, TIER_LIMITS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { logBillingAction } from "../_shared/audit-logger.ts";
 import { sanitizeLogData } from "../_shared/correlation.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,8 +94,8 @@ async function findOrganizationByPaymentContext(
   const candidates: Array<{ org: OrganizationResult; source: string; priority: number }> = [];
   const orgIdFromMeta = subscriptionMetadata?.organization_id;
 
-  // P5: Run all lookups in parallel for better performance
-  const [metaResult, customerResult, emailResult, profileResult] = await Promise.all([
+  // P5, E2: Run all lookups in parallel with Promise.allSettled for graceful error handling
+  const results = await Promise.allSettled([
     // 1. By metadata organization_id
     orgIdFromMeta
       ? supabase
@@ -102,7 +103,7 @@ async function findOrganizationByPaymentContext(
           .select("id, subscription_tier, subscription_status, stripe_customer_id")
           .eq("id", orgIdFromMeta)
           .single()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
 
     // 2. By stripe_customer_id
     supabase
@@ -125,6 +126,23 @@ async function findOrganizationByPaymentContext(
       .eq("email", customerEmail)
       .single(),
   ]);
+
+  // E2: Extract results safely, handling both fulfilled and rejected promises
+  const metaResult = results[0].status === 'fulfilled' ? results[0].value : { data: null };
+  const customerResult = results[1].status === 'fulfilled' ? results[1].value : { data: null };
+  const emailResult = results[2].status === 'fulfilled' ? results[2].value : { data: null };
+  const profileResult = results[3].status === 'fulfilled' ? results[3].value : { data: null };
+
+  // Log any rejected promises for debugging
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const sources = ['metadata', 'stripe_customer_id', 'org_email', 'profile_email'];
+      logStep(`${handlerName}: Lookup ${sources[index]} failed`, {
+        error: String(result.reason),
+        eventId
+      }, "WARN");
+    }
+  });
 
   // Process results
   if (metaResult.data) {
@@ -517,8 +535,11 @@ async function handleSubscriptionChange(
     itemsCount: subscription.items.data.length,
   });
 
-  // Get customer email
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Get customer email with circuit breaker
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted) {
     logStep("Customer was deleted, skipping", { customerId, eventId }, "WARN");
     return;
@@ -718,7 +739,11 @@ async function handleSubscriptionCanceled(
     canceledAt: safeTimestampToISO(subscription.canceled_at),
   });
 
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Circuit breaker for Stripe API call
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted || !customer.email) return;
 
   const email = customer.email;
@@ -831,7 +856,11 @@ async function handlePaymentSucceeded(
 
   if (!customerId) return;
 
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Circuit breaker for Stripe API call
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted || !customer.email) {
     logStep("Customer deleted or no email", { customerId, eventId }, "WARN");
     return;
@@ -900,7 +929,11 @@ async function handlePaymentFailed(
     return;
   }
 
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Circuit breaker for Stripe API call
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted || !customer.email) {
     logStep("Customer deleted or no email for failed payment", { customerId, eventId }, "WARN");
     return;
@@ -1000,7 +1033,11 @@ async function handlePaymentActionRequired(
 
   if (!customerId) return;
 
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Circuit breaker for Stripe API call
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted || !customer.email) return;
 
   const org = await findOrganizationByPaymentContext(
@@ -1197,8 +1234,11 @@ async function handleTrialWillEnd(
     status: subscription.status,
   });
 
-  // Get customer email
-  const customer = await stripe.customers.retrieve(customerId);
+  // E1: Get customer email with circuit breaker
+  const customer = await stripeOperation<Stripe.Customer | Stripe.DeletedCustomer>(
+    (s) => s.customers.retrieve(customerId),
+    'customers.retrieve'
+  );
   if (customer.deleted || !customer.email) {
     logStep("TrialWillEnd: Customer deleted or no email", { customerId, eventId }, "WARN");
     return;

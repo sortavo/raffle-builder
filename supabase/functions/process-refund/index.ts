@@ -6,6 +6,7 @@ import { logBillingAction, logSubscriptionEvent } from "../_shared/audit-logger.
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
+import { mapStripeError } from "../_shared/error-mapper.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -300,13 +301,16 @@ serve(async (req) => {
 
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     await captureException(err, {
       functionName: 'process-refund',
       correlationId: ctx.correlationId,
     });
-    
+
     log.error("Unhandled error", err, { durationMs: log.duration() });
-    return corsJsonResponse(req, { error: err.message }, 500);
+
+    // E3: Map Stripe errors to user-friendly Spanish messages
+    const userMessage = mapStripeError(error);
+    return corsJsonResponse(req, { error: userMessage }, 500);
   }
 });

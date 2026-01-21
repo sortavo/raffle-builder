@@ -7,6 +7,7 @@ import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
 import { canManageSubscription } from "../_shared/role-validator.ts";
 import { checkTenantRateLimit, TENANT_RATE_LIMITS, tenantRateLimitResponse } from "../_shared/tenant-rate-limiter.ts";
+import { mapStripeError } from "../_shared/error-mapper.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -162,13 +163,16 @@ serve(async (req) => {
 
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     await captureException(err, {
       functionName: 'cancel-subscription',
       correlationId: ctx.correlationId,
     });
-    
+
     log.error("Unhandled error", err, { durationMs: log.duration() });
-    return corsJsonResponse(req, { error: err.message }, 500);
+
+    // E3: Map Stripe errors to user-friendly Spanish messages
+    const userMessage = mapStripeError(error);
+    return corsJsonResponse(req, { error: userMessage }, 500);
   }
 });

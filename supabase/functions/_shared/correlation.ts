@@ -13,10 +13,13 @@ const SENSITIVE_PATTERNS: { pattern: RegExp; replacement: string }[] = [
   { pattern: /\b([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Z|a-z]{2,})\b/g, replacement: '[EMAIL]@$2' },
 ];
 
+// E8: Expanded sensitive field list for enhanced log sanitization
 const SENSITIVE_FIELD_NAMES = [
-  'card_number', 'pan', 'cvv', 'cvc', 'security_code', 
+  'card_number', 'pan', 'cvv', 'cvc', 'security_code',
   'card', 'credit_card', 'debit_card', 'account_number',
-  'password', 'secret', 'token', 'api_key', 'private_key'
+  'password', 'secret', 'token', 'api_key', 'private_key',
+  'last4', 'exp_month', 'exp_year', 'fingerprint', 'routing_number',
+  'ssn', 'tax_id', 'bank_account'
 ];
 
 /**

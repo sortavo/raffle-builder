@@ -7,6 +7,7 @@ import { createRequestContext, enrichContext, createLogger } from "../_shared/co
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation, isStripeCircuitOpen } from "../_shared/stripe-client.ts";
 import { canViewBilling } from "../_shared/role-validator.ts";
+import { mapStripeError } from "../_shared/error-mapper.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -38,12 +39,17 @@ serve(async (req) => {
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated", { email: user.email });
 
-    // Get user's organization
-    const { data: profile } = await supabaseClient
+    // E4: Get user's organization with proper error checking
+    const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("organization_id")
       .eq("id", user.id)
       .single();
+
+    if (profileError) {
+      enrichedLog.warn("Failed to fetch profile", profileError);
+      // Non-critical for check-subscription - return default state
+    }
 
     // MT19: Validate user has role in organization before updating subscription data
     // This ensures SERVICE_ROLE_KEY updates are authorized
@@ -194,13 +200,16 @@ serve(async (req) => {
     }, 200);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     await captureException(err, {
       functionName: 'check-subscription',
       correlationId: ctx.correlationId,
     });
-    
+
     log.error("Unhandled error", err, { durationMs: log.duration() });
-    return corsJsonResponse(req, { error: err.message }, 500);
+
+    // E3: Map Stripe errors to user-friendly Spanish messages
+    const userMessage = mapStripeError(error);
+    return corsJsonResponse(req, { error: userMessage }, 500);
   }
 });

@@ -5,6 +5,7 @@ import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
+import { mapStripeError } from "../_shared/error-mapper.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,22 +38,33 @@ serve(async (req) => {
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated");
 
-    // Get user's organization
-    const { data: profile } = await supabaseClient
+    // E4: Get user's organization with proper error checking
+    const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("organization_id")
       .eq("id", user.id)
       .single();
 
+    if (profileError) {
+      enrichedLog.error("Failed to fetch profile", profileError);
+      throw new Error("Error al obtener perfil de usuario");
+    }
+
     if (!profile?.organization_id) {
       throw new Error("Could not find user's organization");
     }
 
-    const { data: org } = await supabaseClient
+    // E4: Get organization with proper error checking
+    const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
       .select("stripe_customer_id")
       .eq("id", profile.organization_id)
       .single();
+
+    if (orgError) {
+      enrichedLog.error("Failed to fetch organization", orgError);
+      throw new Error("Error al obtener organización");
+    }
 
     if (!org?.stripe_customer_id) {
       enrichedLog.info("No Stripe customer found");
@@ -108,13 +120,16 @@ serve(async (req) => {
     }, 200);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     await captureException(err, {
       functionName: 'list-invoices',
       correlationId: ctx.correlationId,
     });
-    
+
     log.error("Unhandled error", err, { durationMs: log.duration() });
-    return corsJsonResponse(req, { error: err.message }, 500);
+
+    // E3: Map Stripe errors to user-friendly Spanish messages
+    const userMessage = mapStripeError(error);
+    return corsJsonResponse(req, { error: userMessage }, 500);
   }
 });

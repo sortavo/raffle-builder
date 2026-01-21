@@ -50,9 +50,16 @@ export function PaymentMethodCard() {
     try {
       const { data, error } = await supabase.functions.invoke("get-payment-method");
       if (error) throw error;
+      // E7: Show user-friendly error if API returned one
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
       setPaymentMethod(data?.payment_method || null);
     } catch (error) {
       console.error("Error fetching payment method:", error);
+      // E7: Inform user of fetch error
+      toast.error("No se pudo cargar el método de pago");
     } finally {
       setIsLoading(false);
     }
