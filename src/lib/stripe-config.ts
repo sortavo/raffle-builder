@@ -131,7 +131,7 @@ const PLAN_METADATA = {
     limits: {
       maxActiveRaffles: 999,
       maxTicketsPerRaffle: 10000000,
-      templatesAvailable: 6,
+      templatesAvailable: 9,
     },
   },
 } as const;

@@ -23,6 +23,21 @@ serve(async (req) => {
     return handleCorsPrelight(req);
   }
 
+  // CRITICAL: Verify this is called from cron (service role) or admin
+  const authHeader = req.headers.get("Authorization");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!authHeader || !serviceRoleKey) {
+    logStep("Missing authorization", { hasAuth: !!authHeader });
+    return corsJsonResponse(req, { error: "Unauthorized" }, 401);
+  }
+  
+  const token = authHeader.replace("Bearer ", "");
+  if (token !== serviceRoleKey) {
+    logStep("Invalid authorization token");
+    return corsJsonResponse(req, { error: "Unauthorized" }, 401);
+  }
+
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",

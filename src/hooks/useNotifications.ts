@@ -249,6 +249,10 @@ export function useNotifications() {
         return '⚠️';
       case 'subscription':
         return '💳';
+      case 'payment_failed':
+        return '💔';
+      case 'trial_ending':
+        return '⏰';
       case 'system':
         return 'ℹ️';
       default:

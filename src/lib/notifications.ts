@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface CreateNotificationParams {
   userId: string;
   organizationId?: string;
-  type: 'ticket_sold' | 'payment_pending' | 'payment_approved' | 'payment_rejected' | 'raffle_completed' | 'raffle_ending_soon' | 'winner_selected' | 'system' | 'subscription';
+  type: 'ticket_sold' | 'payment_pending' | 'payment_approved' | 'payment_rejected' | 'raffle_completed' | 'raffle_ending_soon' | 'winner_selected' | 'system' | 'subscription' | 'payment_failed' | 'trial_ending';
   title: string;
   message: string;
   link?: string;

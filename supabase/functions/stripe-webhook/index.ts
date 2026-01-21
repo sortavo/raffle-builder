@@ -706,7 +706,8 @@ async function handlePaymentSucceeded(
     .eq("subscription_status", "past_due");
 
   if (updateError) {
-    logStep("Failed to update org status on payment success", { error: updateError.message, eventId }, "WARN");
+    logStep("Failed to update org status on payment success", { error: updateError.message, eventId }, "ERROR");
+    throw new Error(`Critical DB error: Failed to update org status - ${updateError.message}`);
   }
 
   logStep("Payment recorded", { orgId: org.id, eventId });
