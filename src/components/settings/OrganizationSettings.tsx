@@ -12,7 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2, AlertTriangle, Sparkles, Facebook, Instagram, Globe, MessageCircle, MapPin, Image, Mail, Phone } from "lucide-react";
+import { Loader2, Upload, Building2, AlertTriangle, Sparkles, Facebook, Instagram, Globe, MessageCircle, MapPin, Image, Mail, Phone, FileText } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { MultiContactInput } from "./MultiContactInput";
 import { PhoneInputWithCountry } from "./PhoneInputWithCountry";
 import { CoverMediaUploader, CoverMediaItem } from "./CoverMediaUploader";
@@ -69,6 +71,36 @@ const TIMEZONES = [
   { value: "Europe/Madrid", label: "Madrid (GMT+1)" },
 ];
 
+// RFC Validation - Mexican Tax ID (C7)
+function validateRFC(rfc: string): boolean {
+  const rfcPattern = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
+  return rfcPattern.test(rfc.toUpperCase());
+}
+
+// Tax ID Placeholders by Type (C7)
+function getTaxIdPlaceholder(type: string): string {
+  switch (type) {
+    case 'mx_rfc': return 'XAXX010101000';
+    case 'co_nit': return '900123456-7';
+    case 'ar_cuit': return '30-12345678-9';
+    case 'eu_vat': return 'ES12345678A';
+    case 'us_ein': return '12-3456789';
+    default: return 'Ingresa tu ID fiscal';
+  }
+}
+
+// Tax ID Labels by Type (C7)
+function getTaxIdLabel(type: string): string {
+  switch (type) {
+    case 'mx_rfc': return 'RFC';
+    case 'co_nit': return 'NIT';
+    case 'ar_cuit': return 'CUIT';
+    case 'eu_vat': return 'VAT ID';
+    case 'us_ein': return 'EIN';
+    default: return 'ID Fiscal';
+  }
+}
+
 export function OrganizationSettings() {
   const { organization, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -86,6 +118,11 @@ export function OrganizationSettings() {
   // Experience fields
   const [yearsExperience, setYearsExperience] = useState<number | null>(null);
   const [totalRafflesCompleted, setTotalRafflesCompleted] = useState<number>(0);
+  
+  // Tax Information State (C7)
+  const [taxIdType, setTaxIdType] = useState<string>("");
+  const [taxId, setTaxId] = useState<string>("");
+  const [taxExempt, setTaxExempt] = useState<boolean>(false);
   const [address, setAddress] = useState<string>("");
 
   // Sync contact arrays, cover media, and experience fields with organization data
@@ -110,6 +147,11 @@ export function OrganizationSettings() {
       setYearsExperience(org.years_experience ?? null);
       setTotalRafflesCompleted(org.total_raffles_completed ?? 0);
       setAddress(org.address ?? "");
+      
+      // Sync tax information (C7)
+      setTaxIdType(org.tax_id_type ?? "");
+      setTaxId(org.tax_id ?? "");
+      setTaxExempt(org.tax_exempt ?? false);
     }
   }, [organization]);
 
@@ -229,6 +271,10 @@ export function OrganizationSettings() {
           years_experience: yearsExperience,
           total_raffles_completed: totalRafflesCompleted,
           address: address || null,
+          // Tax information (C7)
+          tax_id_type: taxIdType || null,
+          tax_id: taxId || null,
+          tax_exempt: taxExempt,
         })
         .eq("id", organization.id);
 
@@ -732,6 +778,82 @@ export function OrganizationSettings() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* C7: Tax Information Section */}
+            <div className="pt-3 sm:pt-4 border-t space-y-3 sm:space-y-4">
+              <div>
+                <h3 className="text-xs sm:text-sm font-medium flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Información Fiscal
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Datos opcionales para facturación
+                </p>
+              </div>
+              
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                {/* Tax ID Type Selector */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm">Tipo de ID Fiscal</Label>
+                  <Select
+                    value={taxIdType}
+                    onValueChange={(value) => {
+                      setTaxIdType(value);
+                      setTaxId(''); // Clear tax ID when type changes
+                    }}
+                  >
+                    <SelectTrigger className="h-9 sm:h-10 text-sm">
+                      <SelectValue placeholder="Sin especificar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin especificar</SelectItem>
+                      <SelectItem value="mx_rfc">🇲🇽 RFC (México)</SelectItem>
+                      <SelectItem value="co_nit">🇨🇴 NIT (Colombia)</SelectItem>
+                      <SelectItem value="ar_cuit">🇦🇷 CUIT (Argentina)</SelectItem>
+                      <SelectItem value="eu_vat">🇪🇺 VAT (Europa)</SelectItem>
+                      <SelectItem value="us_ein">🇺🇸 EIN (USA)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tax ID Input */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-xs sm:text-sm">
+                    {taxIdType ? getTaxIdLabel(taxIdType) : 'ID Fiscal'}
+                  </Label>
+                  <Input
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value.toUpperCase())}
+                    placeholder={getTaxIdPlaceholder(taxIdType)}
+                    disabled={!taxIdType}
+                    className={cn(
+                      "h-9 sm:h-10 text-sm",
+                      taxIdType === 'mx_rfc' && taxId && !validateRFC(taxId) && "border-destructive"
+                    )}
+                  />
+                  {taxIdType === 'mx_rfc' && taxId && !validateRFC(taxId) && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      RFC inválido. Formato: XXXX000000XXX (12-13 caracteres)
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tax Exempt Checkbox */}
+              {taxIdType && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="tax_exempt"
+                    checked={taxExempt}
+                    onCheckedChange={(checked) => setTaxExempt(checked === true)}
+                  />
+                  <Label htmlFor="tax_exempt" className="text-xs sm:text-sm cursor-pointer">
+                    Exento de impuestos
+                  </Label>
+                </div>
+              )}
             </div>
 
             {/* ✅ AJUSTADO: Footer con spacing y botón responsive */}
