@@ -154,7 +154,7 @@ export function PhoneInputWithCountry({
           // ✅ AJUSTADO: Gap responsive en cada fila
           <div key={index} className="flex gap-1.5 sm:gap-2">
             <Select
-              value={entry.countryCode}
+              value={entry.countryCode || "+52"}
               onValueChange={(value) => handleCountryChange(index, value)}
             >
               {/* ✅ AJUSTADO: SelectTrigger responsive */}

@@ -595,7 +595,7 @@ export function OrganizationSettings() {
               <div className="space-y-1.5 sm:space-y-2">
                 <Label className="text-xs sm:text-sm">País</Label>
                 <Select
-                  value={form.watch("country_code")}
+                  value={form.watch("country_code") || "MX"}
                   onValueChange={(value) => form.setValue("country_code", value)}
                 >
                   <SelectTrigger className="h-9 sm:h-10 text-sm">
@@ -603,7 +603,7 @@ export function OrganizationSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.map((country) => (
-                      <SelectItem key={country.code} value={country.code}>
+                      <SelectItem key={country.code} value={country.code || "unknown"}>
                         {country.name}
                       </SelectItem>
                     ))}
@@ -614,7 +614,7 @@ export function OrganizationSettings() {
               <div className="space-y-1.5 sm:space-y-2">
                 <Label className="text-xs sm:text-sm">Moneda</Label>
                 <Select
-                  value={form.watch("currency_code")}
+                  value={form.watch("currency_code") || "MXN"}
                   onValueChange={(value) => form.setValue("currency_code", value)}
                 >
                   <SelectTrigger className="h-9 sm:h-10 text-sm">
@@ -622,7 +622,7 @@ export function OrganizationSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((currency) => (
-                      <SelectItem key={currency.code} value={currency.code}>
+                      <SelectItem key={currency.code} value={currency.code || "unknown"}>
                         {currency.name}
                       </SelectItem>
                     ))}
@@ -633,7 +633,7 @@ export function OrganizationSettings() {
               <div className="space-y-1.5 sm:space-y-2">
                 <Label className="text-xs sm:text-sm">Zona Horaria</Label>
                 <Select
-                  value={form.watch("timezone")}
+                  value={form.watch("timezone") || "America/Mexico_City"}
                   onValueChange={(value) => form.setValue("timezone", value)}
                 >
                   <SelectTrigger className="h-9 sm:h-10 text-sm">
@@ -641,7 +641,7 @@ export function OrganizationSettings() {
                   </SelectTrigger>
                   <SelectContent>
                     {TIMEZONES.map((tz) => (
-                      <SelectItem key={tz.value} value={tz.value}>
+                      <SelectItem key={tz.value} value={tz.value || "UTC"}>
                         {tz.label}
                       </SelectItem>
                     ))}
