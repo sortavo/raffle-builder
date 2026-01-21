@@ -1,21 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[LIST-INVOICES] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'list-invoices');
+  const log = createLogger(ctx);
+
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -35,7 +35,10 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated");
-    logStep("User authenticated", { userId: user.id });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated");
 
     // Get user's organization
     const { data: profile } = await supabaseClient
@@ -55,9 +58,12 @@ serve(async (req) => {
       .single();
 
     if (!org?.stripe_customer_id) {
-      logStep("No Stripe customer found");
+      enrichedLog.info("No Stripe customer found");
       return corsJsonResponse(req, { invoices: [] }, 200);
     }
+
+    const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
+    const finalLog = createLogger(finalCtx);
 
     const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
 
@@ -77,7 +83,7 @@ serve(async (req) => {
 
     const invoices = await stripe.invoices.list(invoicesParams);
 
-    logStep("Fetched invoices", { count: invoices.data.length, hasMore: invoices.has_more });
+    finalLog.info("Fetched invoices", { count: invoices.data.length, hasMore: invoices.has_more });
 
     const formattedInvoices = invoices.data.map((inv: Stripe.Invoice) => ({
       id: inv.id,
@@ -94,14 +100,22 @@ serve(async (req) => {
       description: inv.lines.data[0]?.description || "Suscripción",
     }));
 
+    finalLog.info("Request completed", { durationMs: log.duration() });
+
     return corsJsonResponse(req, { 
       invoices: formattedInvoices,
       has_more: invoices.has_more,
       next_cursor: invoices.data.length > 0 ? invoices.data[invoices.data.length - 1].id : null,
     }, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'list-invoices',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });

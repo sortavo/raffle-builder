@@ -6,6 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { getQueueStats } from "../_shared/job-queue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -361,6 +362,47 @@ Deno.serve(async (req) => {
       message: error instanceof Error ? error.message : "Error de conexión",
       lastChecked: checkedAt,
     });
+  }
+
+  // 7. Check Job Queue (O4: Add queue monitoring)
+  const redisUrl = Deno.env.get("UPSTASH_REDIS_REST_URL");
+  const redisToken = Deno.env.get("UPSTASH_REDIS_REST_TOKEN");
+
+  if (redisUrl && redisToken) {
+    try {
+      const queueStartTime = performance.now();
+      const stats = await getQueueStats(redisUrl, redisToken);
+      const queueDuration = Math.round(performance.now() - queueStartTime);
+      
+      if (stats) {
+        const totalPending = stats.high + stats.normal + stats.low;
+        
+        // Thresholds: >100 = degraded, >500 = outage
+        let queueStatus: "operational" | "degraded" | "outage" = "operational";
+        if (totalPending > 500) {
+          queueStatus = "outage";
+        } else if (totalPending > 100) {
+          queueStatus = "degraded";
+        }
+
+        services.push({
+          name: "Cola de Trabajos",
+          status: queueStatus,
+          responseTime: queueDuration,
+          lastChecked: checkedAt,
+          message: totalPending > 0 ? `${totalPending} trabajos pendientes` : undefined,
+        });
+      }
+    } catch (error) {
+      console.error("[HEALTH-CHECK] Job queue error:", error);
+      services.push({
+        name: "Cola de Trabajos",
+        status: "degraded",
+        responseTime: 0,
+        message: "No se pudo verificar la cola",
+        lastChecked: checkedAt,
+      });
+    }
   }
 
   // Calculate overall status

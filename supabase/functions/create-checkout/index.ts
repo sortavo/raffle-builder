@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { BASIC_PRICE_IDS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 // Bug #4: Origin validation whitelist
 const ALLOWED_ORIGINS = [
@@ -47,32 +44,31 @@ serve(async (req) => {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'create-checkout');
+  const log = createLogger(ctx);
+
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
   );
 
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     // Issue M1: Reject invalid origins instead of silent fallback
     const rawOrigin = req.headers.get("origin");
     if (!isAllowedOrigin(rawOrigin)) {
-      logStep("Origin rejected", { rawOrigin });
+      log.warn("Origin rejected", { rawOrigin });
       return corsJsonResponse(req, { error: "Origin not allowed" }, 403);
     }
     const safeOrigin = rawOrigin!;
     
-    logStep("Origin validated", { 
-      rawOrigin, 
-      safeOrigin, 
-      isAllowed: true 
-    });
+    log.info("Origin validated", { safeOrigin });
 
     // Detect Stripe mode from secret key
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
     const stripeMode = stripeKey.startsWith("sk_live_") ? "live" : "test";
-    logStep("Stripe mode detected", { mode: stripeMode });
+    log.info("Stripe mode detected", { mode: stripeMode });
 
     const { priceId } = await req.json();
     if (!priceId) {
@@ -92,11 +88,11 @@ serve(async (req) => {
     ];
     
     if (!VALID_PRICE_IDS.includes(priceId)) {
-      logStep("Invalid price ID rejected", { priceId });
+      log.warn("Invalid price ID rejected", { priceId });
       throw new Error("Invalid price ID");
     }
     
-    logStep("Price ID received and validated", { priceId });
+    log.info("Price ID validated", { priceId });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -105,10 +101,13 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated", { email: user.email });
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-08-27.basil",
+      apiVersion: STRIPE_API_VERSION,
     });
 
     // Get user's organization_id from profile
@@ -119,14 +118,14 @@ serve(async (req) => {
       .single();
     
     const organizationId = userProfile?.organization_id;
-    logStep("Organization ID retrieved", { organizationId, userId: user.id });
+    enrichedLog.info("Organization ID retrieved", { organizationId });
 
     // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      logStep("Found existing customer", { customerId });
+      enrichedLog.info("Found existing customer", { customerId });
       
       // CRITICAL: Check for existing active subscriptions to prevent duplicates
       const activeSubscriptions = await stripe.subscriptions.list({
@@ -136,9 +135,8 @@ serve(async (req) => {
       });
       
       if (activeSubscriptions.data.length > 0) {
-        logStep("BLOCKED: User already has active subscription", {
+        enrichedLog.warn("BLOCKED: User already has active subscription", {
           existingSubscriptionId: activeSubscriptions.data[0].id,
-          customerId,
         });
         throw new Error(
           "Ya tienes una suscripción activa. Usa 'Cambiar plan' para modificar tu suscripción."
@@ -153,9 +151,8 @@ serve(async (req) => {
       });
       
       if (trialingSubscriptions.data.length > 0) {
-        logStep("BLOCKED: User has trialing subscription", {
+        enrichedLog.warn("BLOCKED: User has trialing subscription", {
           existingSubscriptionId: trialingSubscriptions.data[0].id,
-          customerId,
         });
         throw new Error(
           "Ya tienes una suscripción en período de prueba. Usa 'Cambiar plan' para modificar tu suscripción."
@@ -170,9 +167,8 @@ serve(async (req) => {
       });
 
       if (pastDueSubscriptions.data.length > 0) {
-        logStep("BLOCKED: User has past_due subscription", {
+        enrichedLog.warn("BLOCKED: User has past_due subscription", {
           existingSubscriptionId: pastDueSubscriptions.data[0].id,
-          customerId,
         });
         throw new Error(
           "Tienes un pago pendiente. Por favor actualiza tu método de pago antes de continuar."
@@ -187,22 +183,24 @@ serve(async (req) => {
       });
 
       if (incompleteSubscriptions.data.length > 0) {
-        logStep("BLOCKED: User has incomplete subscription", {
+        enrichedLog.warn("BLOCKED: User has incomplete subscription", {
           existingSubscriptionId: incompleteSubscriptions.data[0].id,
-          customerId,
         });
         throw new Error(
           "Tienes una suscripción pendiente de pago. Completa el pago o cancela antes de crear una nueva."
         );
       }
       
-      logStep("No existing subscription found, proceeding with checkout");
+      enrichedLog.info("No existing subscription found, proceeding with checkout");
     }
 
     // Check if this is a Basic plan (gets 7 day trial)
     const isBasicPlan = BASIC_PRICE_IDS.includes(priceId);
-    logStep("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0, stripeMode });
+    enrichedLog.info("Plan type determined", { priceId, isBasicPlan, trialDays: isBasicPlan ? 7 : 0, stripeMode });
     
+    // O2: Add idempotency key for Stripe operations
+    const idempotencyKey = `checkout_${organizationId || user.id}_${priceId}_${Date.now()}`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -227,23 +225,35 @@ serve(async (req) => {
         },
         ...(isBasicPlan && { trial_period_days: 7 }),
       },
-    });
+    }, { idempotencyKey });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url, stripeMode, origin: safeOrigin });
+    enrichedLog.info("Checkout session created", { 
+      sessionId: session.id, 
+      stripeMode, 
+      origin: safeOrigin,
+      idempotencyKey,
+      durationMs: log.duration()
+    });
 
     return corsJsonResponse(req, { url: session.url }, 200);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'create-checkout',
+      correlationId: ctx.correlationId,
+    });
+
+    log.error("Error", err, { durationMs: log.duration() });
 
     // Issue M2: Map specific errors to user-friendly messages
     let userMessage = "Error al procesar. Intenta de nuevo.";
-    if (errorMessage.includes("Price ID") || errorMessage.includes("Invalid price")) {
+    if (err.message.includes("Price ID") || err.message.includes("Invalid price")) {
       userMessage = "Plan inválido seleccionado.";
-    } else if (errorMessage.includes("authenticated")) {
+    } else if (err.message.includes("authenticated")) {
       userMessage = "Debes iniciar sesión para continuar.";
-    } else if (errorMessage.includes("suscripción") || errorMessage.includes("pago pendiente")) {
-      userMessage = errorMessage; // Already user-friendly Spanish messages
+    } else if (err.message.includes("suscripción") || err.message.includes("pago pendiente")) {
+      userMessage = err.message; // Already user-friendly Spanish messages
     }
 
     return corsJsonResponse(req, { error: userMessage }, 500);

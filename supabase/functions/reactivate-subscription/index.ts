@@ -1,21 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getCorsHeaders, handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
-  console.log(`[REACTIVATE-SUBSCRIPTION] ${step}${detailsStr}`);
-};
+import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
+import { captureException } from "../_shared/sentry.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
   }
 
+  const ctx = createRequestContext(req, 'reactivate-subscription');
+  const log = createLogger(ctx);
+
   try {
-    logStep("Function started");
+    log.info("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -34,7 +34,10 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.id) throw new Error("User not authenticated");
-    logStep("User authenticated", { userId: user.id });
+    
+    const enrichedCtx = enrichContext(ctx, { userId: user.id });
+    const enrichedLog = createLogger(enrichedCtx);
+    enrichedLog.info("User authenticated");
 
     // Get user's organization
     const { data: profile, error: profileError } = await supabaseClient
@@ -46,7 +49,10 @@ serve(async (req) => {
     if (profileError || !profile?.organization_id) {
       throw new Error("Organization not found for user");
     }
-    logStep("Found organization", { organizationId: profile.organization_id });
+    
+    const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
+    const finalLog = createLogger(finalCtx);
+    finalLog.info("Found organization");
 
     // Get organization with subscription
     const { data: org, error: orgError } = await supabaseClient
@@ -59,7 +65,7 @@ serve(async (req) => {
       throw new Error("No tienes una suscripción activa para reactivar.");
     }
 
-    logStep("Found subscription pending cancellation", { subscriptionId: org.stripe_subscription_id });
+    finalLog.info("Found subscription pending cancellation", { subscriptionId: org.stripe_subscription_id });
 
     const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
 
@@ -74,14 +80,20 @@ serve(async (req) => {
       throw new Error("Tu suscripción ya está activa y no está programada para cancelarse.");
     }
 
-    // Reactivate subscription in Stripe
-    const reactivatedSub = await stripe.subscriptions.update(org.stripe_subscription_id, {
-      cancel_at_period_end: false,
-    });
+    // O2: Add idempotency key for Stripe operations
+    const idempotencyKey = `reactivate_${profile.organization_id}_${Date.now()}`;
 
-    logStep("Subscription reactivated", { 
+    // Reactivate subscription in Stripe
+    const reactivatedSub = await stripe.subscriptions.update(
+      org.stripe_subscription_id, 
+      { cancel_at_period_end: false },
+      { idempotencyKey }
+    );
+
+    finalLog.info("Subscription reactivated", { 
       status: reactivatedSub.status,
-      cancelAtPeriodEnd: reactivatedSub.cancel_at_period_end
+      cancelAtPeriodEnd: reactivatedSub.cancel_at_period_end,
+      idempotencyKey
     });
 
     // Update organization in database
@@ -94,9 +106,11 @@ serve(async (req) => {
 
     // Issue M3: Throw error on DB failure instead of silent warning
     if (updateError) {
-      logStep("Failed to update organization", { error: updateError.message });
+      finalLog.error("Failed to update organization", updateError);
       throw new Error("Error al actualizar la suscripción. Intenta de nuevo.");
     }
+
+    finalLog.info("Request completed", { durationMs: log.duration() });
 
     return corsJsonResponse(req, {
       success: true,
@@ -104,8 +118,14 @@ serve(async (req) => {
     }, 200);
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    await captureException(err, {
+      functionName: 'reactivate-subscription',
+      correlationId: ctx.correlationId,
+    });
+    
+    log.error("Unhandled error", err, { durationMs: log.duration() });
+    return corsJsonResponse(req, { error: err.message }, 500);
   }
 });
