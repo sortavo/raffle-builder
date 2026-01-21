@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
       );
       const buyerName = existingOrder.buyer_name || 'Un comprador';
 
+      // Create in-app notification
       await supabase.from('notifications').insert({
         user_id: raffle.created_by,
         organization_id: raffle.organization_id,
@@ -186,6 +187,21 @@ Deno.serve(async (req) => {
           replaced_previous: hadPreviousProof,
         },
       });
+
+      // Send Telegram notification with approve/reject buttons (non-blocking)
+      supabase.functions.invoke('telegram-notify', {
+        body: {
+          type: 'payment_proof_uploaded',
+          organizationId: raffle.organization_id,
+          data: {
+            raffleName: raffle.title,
+            buyerName: buyerName,
+            ticketCount: updatedCount,
+            reference: referenceCode,
+            orderId: existingOrder.id, // Include order ID for approve/reject buttons
+          },
+        },
+      }).catch((err: Error) => console.error('[TELEGRAM] Error sending notification:', err));
     }
 
     return new Response(

@@ -79,6 +79,32 @@ function generateLinkCode(): string {
   return code;
 }
 
+// Helper to expand compressed ticket ranges into display strings
+function expandTicketRanges(ranges: unknown, luckyIndices: unknown): string[] {
+  const result: string[] = [];
+  const rangeArray = ranges as { s: number; e: number }[] || [];
+  const luckyArray = luckyIndices as number[] || [];
+
+  for (const range of rangeArray) {
+    if (range.s === range.e) {
+      result.push(`#${range.s}`);
+    } else if (range.e - range.s <= 5) {
+      // Expand small ranges
+      for (let i = range.s; i <= range.e; i++) {
+        result.push(`#${i}`);
+      }
+    } else {
+      result.push(`#${range.s}-${range.e}`);
+    }
+  }
+
+  for (const idx of luckyArray) {
+    result.push(`#${idx}★`);
+  }
+
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
@@ -120,6 +146,150 @@ serve(async (req) => {
     if (callbackQuery) {
       const data = callbackQuery.data;
       logStep("Callback query", { data });
+
+      // Handle approve/reject order buttons
+      if (data.startsWith("approve_order_") || data.startsWith("reject_order_")) {
+        const isApprove = data.startsWith("approve_order_");
+        const orderId = data.replace(isApprove ? "approve_order_" : "reject_order_", "");
+
+        // Verify the user is authorized (is an organizer with this chat linked)
+        const { data: conn } = await supabase
+          .from("telegram_connections")
+          .select("organization_id")
+          .eq("telegram_chat_id", chatId)
+          .single();
+
+        if (!conn) {
+          await sendTelegramMessage(chatId, "❌ No tienes permisos para esta acción.");
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Get the order and verify it belongs to this organization
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .select("id, buyer_name, buyer_email, ticket_count, ticket_ranges, lucky_indices, status, raffle_id, raffles!inner(title, organization_id)")
+          .eq("id", orderId)
+          .single();
+
+        if (orderError || !order) {
+          await sendTelegramMessage(chatId, "❌ Orden no encontrada.");
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify the order belongs to this organization
+        const raffle = order.raffles as { title: string; organization_id: string };
+        if (raffle.organization_id !== conn.organization_id) {
+          await sendTelegramMessage(chatId, "❌ Esta orden no pertenece a tu organización.");
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if order is still in a state that can be approved/rejected
+        if (order.status !== "reserved") {
+          const statusMsg = order.status === "sold" ? "ya fue aprobada" : "ya fue procesada";
+          await sendTelegramMessage(chatId, `⚠️ Esta orden ${statusMsg}.`);
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if (isApprove) {
+          // Approve the order
+          const { error: updateError } = await supabase
+            .from("orders")
+            .update({
+              status: "sold",
+              approved_at: new Date().toISOString(),
+              sold_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+
+          if (updateError) {
+            logStep("Error approving order", { error: updateError.message });
+            await sendTelegramMessage(chatId, "❌ Error al aprobar la orden.");
+          } else {
+            // Send success message to organizer
+            await sendTelegramMessage(
+              chatId,
+              `✅ <b>Orden Aprobada</b>\n\n` +
+              `Comprador: ${order.buyer_name}\n` +
+              `Boletos: ${order.ticket_count}\n` +
+              `Sorteo: ${raffle.title}`
+            );
+
+            // Notify the buyer if they have Telegram linked
+            if (order.buyer_email) {
+              const { data: buyerLink } = await supabase
+                .from("telegram_buyer_links")
+                .select("telegram_chat_id, notify_payment_approved")
+                .eq("buyer_email", order.buyer_email)
+                .single();
+
+              if (buyerLink?.telegram_chat_id && buyerLink.notify_payment_approved) {
+                const ticketNumbers = expandTicketRanges(order.ticket_ranges, order.lucky_indices);
+                await sendTelegramMessage(
+                  buyerLink.telegram_chat_id,
+                  `✅ <b>¡Pago Confirmado!</b>\n\n` +
+                  `Sorteo: ${raffle.title}\n` +
+                  `Tus boletos:\n${ticketNumbers.slice(0, 10).map((t: string) => `• ${t}`).join("\n")}${ticketNumbers.length > 10 ? `\n... y ${ticketNumbers.length - 10} más` : ""}\n\n` +
+                  `¡Buena suerte! 🍀`
+                );
+              }
+            }
+
+            logStep("Order approved via Telegram", { orderId, approvedBy: chatId });
+          }
+        } else {
+          // Reject the order (delete it so tickets become available again)
+          const { error: deleteError } = await supabase
+            .from("orders")
+            .delete()
+            .eq("id", orderId);
+
+          if (deleteError) {
+            logStep("Error rejecting order", { error: deleteError.message });
+            await sendTelegramMessage(chatId, "❌ Error al rechazar la orden.");
+          } else {
+            // Send success message to organizer
+            await sendTelegramMessage(
+              chatId,
+              `🗑️ <b>Orden Rechazada</b>\n\n` +
+              `Comprador: ${order.buyer_name}\n` +
+              `Boletos liberados: ${order.ticket_count}\n` +
+              `Sorteo: ${raffle.title}`
+            );
+
+            // Notify the buyer if they have Telegram linked
+            if (order.buyer_email) {
+              const { data: buyerLink } = await supabase
+                .from("telegram_buyer_links")
+                .select("telegram_chat_id, notify_payment_rejected")
+                .eq("buyer_email", order.buyer_email)
+                .single();
+
+              if (buyerLink?.telegram_chat_id && buyerLink.notify_payment_rejected) {
+                await sendTelegramMessage(
+                  buyerLink.telegram_chat_id,
+                  `❌ <b>Pago Rechazado</b>\n\n` +
+                  `Tu pago para "${raffle.title}" fue rechazado.\n\n` +
+                  `Contacta al organizador para más información.`
+                );
+              }
+            }
+
+            logStep("Order rejected via Telegram", { orderId, rejectedBy: chatId });
+          }
+        }
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (data.startsWith("toggle_org_")) {
         const field = data.replace("toggle_org_", "");

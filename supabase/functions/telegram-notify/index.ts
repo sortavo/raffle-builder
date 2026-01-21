@@ -9,7 +9,17 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[TELEGRAM-NOTIFY] ${step}`, details ? JSON.stringify(details) : "");
 };
 
-async function sendTelegramMessage(chatId: string, text: string) {
+// Support for inline keyboard buttons
+interface InlineKeyboardButton {
+  text: string;
+  callback_data: string;
+}
+
+interface InlineKeyboard {
+  inline_keyboard: InlineKeyboardButton[][];
+}
+
+async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: InlineKeyboard) {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
   if (!token) {
     logStep("TELEGRAM_BOT_TOKEN not configured");
@@ -17,14 +27,21 @@ async function sendTelegramMessage(chatId: string, text: string) {
   }
 
   try {
+    const body: Record<string, unknown> = {
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+    };
+
+    // Add inline keyboard if provided
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+
     const response = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "HTML",
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -95,6 +112,9 @@ serve(async (req) => {
       if (connection?.telegram_chat_id && connection[prefField]) {
         let message = "";
         
+        // Variable to hold optional inline keyboard
+        let replyMarkup: InlineKeyboard | undefined;
+
         switch (type) {
           case "ticket_reserved":
             message = `🎫 <b>Nueva Reserva</b>\n\n` +
@@ -107,7 +127,21 @@ serve(async (req) => {
             message = `💳 <b>Comprobante Recibido</b>\n\n` +
               `Sorteo: ${data.raffleName}\n` +
               `Comprador: ${data.buyerName}\n` +
-              `Referencia: ${data.reference}`;
+              `Boletos: ${data.ticketCount || 1}\n` +
+              `Referencia: <code>${data.reference}</code>`;
+
+            // Add approve/reject buttons if orderId is provided
+            if (data.orderId) {
+              replyMarkup = {
+                inline_keyboard: [
+                  [
+                    { text: "✅ Aprobar", callback_data: `approve_order_${data.orderId}` },
+                    { text: "❌ Rechazar", callback_data: `reject_order_${data.orderId}` },
+                  ],
+                ],
+              };
+              message += `\n\n<i>Usa los botones para aprobar o rechazar:</i>`;
+            }
             break;
           case "payment_approved":
             message = `✅ <b>Pago Aprobado</b>\n\n` +
@@ -134,8 +168,8 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        sent = await sendTelegramMessage(connection.telegram_chat_id, message);
-        logStep("Organizer notification sent", { type, sent });
+        sent = await sendTelegramMessage(connection.telegram_chat_id, message, replyMarkup);
+        logStep("Organizer notification sent", { type, sent, hasButtons: !!replyMarkup });
       }
     }
 
