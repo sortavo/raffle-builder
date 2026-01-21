@@ -148,6 +148,24 @@ serve(async (req) => {
           chargeId: refundRequest.stripe_charge_id
         });
 
+        // MT18: Re-validate organization ownership before returning existing refund data
+        // This prevents race conditions where authorization might have changed
+        if (!isAdmin) {
+          const { data: currentProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("organization_id")
+            .eq("id", user.id)
+            .single();
+
+          if (currentProfile?.organization_id !== refundRequest.organization_id) {
+            finalLog.warn("MT18: Organization mismatch on idempotency check", {
+              userOrg: currentProfile?.organization_id,
+              refundOrg: refundRequest.organization_id,
+            });
+            throw new Error("Not authorized to access this refund");
+          }
+        }
+
         // Update request with existing refund ID and return success
         await supabaseAdmin
           .from("refund_requests")

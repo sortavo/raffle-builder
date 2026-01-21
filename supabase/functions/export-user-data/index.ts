@@ -82,13 +82,23 @@ serve(async (req) => {
           .limit(1000)
       : { data: [] };
 
-    // Fetch user's audit log entries
-    const { data: auditLog } = await supabase
-      .from("audit_log")
-      .select("id, action, resource_type, resource_name, created_at, metadata")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1000);
+    // MT20: Fetch user's audit log entries - filtered by current organization only
+    // This prevents leaking audit data from organizations user no longer belongs to
+    const { data: auditLog } = profile?.organization_id
+      ? await supabase
+          .from("audit_log")
+          .select("id, action, resource_type, resource_name, created_at, metadata")
+          .eq("user_id", user.id)
+          .eq("organization_id", profile.organization_id)
+          .order("created_at", { ascending: false })
+          .limit(1000)
+      : await supabase
+          .from("audit_log")
+          .select("id, action, resource_type, resource_name, created_at, metadata")
+          .eq("user_id", user.id)
+          .is("organization_id", null)  // Only user's personal actions without org
+          .order("created_at", { ascending: false })
+          .limit(1000);
 
     // Fetch billing audit log
     const { data: billingLog } = profile?.organization_id
@@ -107,13 +117,23 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .order("accepted_at", { ascending: false });
 
-    // Fetch notifications
-    const { data: notifications } = await supabase
-      .from("notifications")
-      .select("id, type, title, message, read, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    // MT20: Fetch notifications - filtered by current organization only
+    // This prevents leaking notifications from organizations user no longer belongs to
+    const { data: notifications } = profile?.organization_id
+      ? await supabase
+          .from("notifications")
+          .select("id, type, title, message, read, created_at")
+          .eq("user_id", user.id)
+          .or(`organization_id.eq.${profile.organization_id},organization_id.is.null`)
+          .order("created_at", { ascending: false })
+          .limit(500)
+      : await supabase
+          .from("notifications")
+          .select("id, type, title, message, read, created_at")
+          .eq("user_id", user.id)
+          .is("organization_id", null)
+          .order("created_at", { ascending: false })
+          .limit(500);
 
     // Fetch payment methods (if organization exists)
     const { data: paymentMethods } = profile?.organization_id
