@@ -65,14 +65,28 @@
 **Headers:** `stripe-signature`
 
 **Eventos manejados:**
-- `checkout.session.completed`
-- `customer.subscription.created`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-- `invoice.paid`
-- `invoice.payment_failed`
+- `checkout.session.completed` - Checkout completado
+- `customer.subscription.created` - Nueva suscripción
+- `customer.subscription.updated` - Cambio de plan/status
+- `customer.subscription.deleted` - Suscripción cancelada
+- `customer.subscription.trial_will_end` - Trial por terminar (3 días)
+- `invoice.payment_succeeded` - Pago exitoso
+- `invoice.payment_failed` - Pago fallido
+- `invoice.payment_action_required` - Requiere 3D Secure
+- `customer.updated` - Datos del cliente actualizados
+- `customer.deleted` - Cliente eliminado en Stripe
+- `charge.refunded` - Reembolso procesado
+
+**Características:**
+- Verificación de firma obligatoria (`stripe-signature`)
+- Deduplicación de eventos via `stripe_events` table
+- Procesamiento async para eventos pesados (via Upstash Redis)
+- Circuit breaker para llamadas a Stripe API
+- Logging estructurado con correlation IDs
 
 **Secretos:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+
+**Opcionales:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (para async)
 
 ---
 
@@ -151,9 +165,81 @@
 ### `list-invoices`
 **Propósito:** Listar facturas del cliente
 
-**Método:** GET
+**Método:** POST
 
 **Headers:** Authorization (JWT)
+
+**Body:**
+```json
+{
+  "limit": 12,
+  "starting_after": "in_xxx" // opcional, para paginación
+}
+```
+
+**Response:**
+```json
+{
+  "invoices": [...],
+  "has_more": true,
+  "next_cursor": "in_xxx"
+}
+```
+
+**Secretos:** `STRIPE_SECRET_KEY`
+
+---
+
+### `get-payment-method`
+**Propósito:** Obtener método de pago del cliente (tarjeta)
+
+**Método:** POST
+
+**Headers:** Authorization (JWT)
+
+**Response:**
+```json
+{
+  "payment_method": {
+    "id": "pm_xxx",
+    "brand": "visa",
+    "last4": "4242",
+    "exp_month": 12,
+    "exp_year": 2025
+  }
+}
+```
+
+**Secretos:** `STRIPE_SECRET_KEY`
+
+---
+
+### `process-dunning`
+**Propósito:** Procesar cobros fallidos y enviar emails de dunning
+
+**Método:** POST (Cron - solo service_role)
+
+**Headers:** Authorization (service_role key)
+
+**Frecuencia:** Diario
+
+**Acciones:**
+- Busca pagos fallidos no resueltos
+- Reintenta cobros según schedule configurado
+- Envía emails de notificación (first_notice, second_notice, final_notice)
+- Suspende cuentas después de X días
+- Cancela suscripciones después de Y días
+
+**Response:**
+```json
+{
+  "success": true,
+  "processed": 5,
+  "retried": 2,
+  "emailsSent": 3,
+  "suspended": 1
+}
+```
 
 **Secretos:** `STRIPE_SECRET_KEY`
 
@@ -516,6 +602,7 @@
 | `send-payment-reminders` | Diario 10:00 | Recordar pagos pendientes |
 | `notify-pending-approvals` | Cada 4 horas | Alertar sobre aprobaciones |
 | `check-subscription` | Diario 01:00 | Verificar suscripciones |
+| `process-dunning` | Diario 02:00 | Procesar cobros fallidos y dunning |
 | `sync-domains` | Cada 6 horas | Sincronizar dominios |
 | `monitor-domains` | Cada hora | Monitorear SSL |
 | `archive-old-raffles` | Semanal | Archivar rifas completadas antiguas |
