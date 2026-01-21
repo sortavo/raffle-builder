@@ -6,7 +6,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { getQueueStats } from "../_shared/job-queue.ts";
+import { getQueueStats, getDlqStats } from "../_shared/job-queue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -402,6 +402,30 @@ Deno.serve(async (req) => {
         message: "No se pudo verificar la cola",
         lastChecked: checkedAt,
       });
+    }
+
+    // 8. Check Dead Letter Queue (R7 - Failed jobs monitoring)
+    try {
+      const dlqStats = await getDlqStats(redisUrl, redisToken);
+      if (dlqStats.count > 0) {
+        let dlqStatus: "operational" | "degraded" | "outage" = "operational";
+        if (dlqStats.count > 50) {
+          dlqStatus = "outage";
+        } else if (dlqStats.count > 10) {
+          dlqStatus = "degraded";
+        }
+
+        services.push({
+          name: "Dead Letter Queue",
+          status: dlqStatus,
+          responseTime: 0,
+          lastChecked: checkedAt,
+          message: `${dlqStats.count} jobs fallidos pendientes de revisión`,
+        });
+      }
+    } catch (dlqError) {
+      console.error("[HEALTH-CHECK] DLQ stats error:", dlqError);
+      // Don't add to services if DLQ check fails - it's informational only
     }
   }
 
