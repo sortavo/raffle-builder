@@ -1,16 +1,50 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// C4 Security: Use centralized CORS with origin whitelist
+import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors.ts";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[TELEGRAM-WEBHOOK] ${step}`, details ? JSON.stringify(details) : "");
 };
+
+// C5 Security: Verify Telegram webhook signature
+// When setWebhook is called with secret_token, Telegram sends it in X-Telegram-Bot-Api-Secret-Token header
+function verifyTelegramWebhook(req: Request): boolean {
+  const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+
+  // If no secret configured, log warning but allow (for backwards compatibility during migration)
+  if (!webhookSecret) {
+    logStep("WARNING: TELEGRAM_WEBHOOK_SECRET not configured - webhook verification disabled");
+    return true;
+  }
+
+  const receivedToken = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
+
+  if (!receivedToken) {
+    logStep("Webhook verification failed: No secret token in request");
+    return false;
+  }
+
+  // Constant-time comparison to prevent timing attacks
+  if (receivedToken.length !== webhookSecret.length) {
+    logStep("Webhook verification failed: Token length mismatch");
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < receivedToken.length; i++) {
+    result |= receivedToken.charCodeAt(i) ^ webhookSecret.charCodeAt(i);
+  }
+
+  if (result !== 0) {
+    logStep("Webhook verification failed: Invalid secret token");
+    return false;
+  }
+
+  return true;
+}
 
 async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: object) {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
@@ -47,7 +81,18 @@ function generateLinkCode(): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
+  }
+
+  const corsHeaders = getCorsHeaders(req);
+
+  // C5 Security: Verify webhook authenticity before processing
+  if (!verifyTelegramWebhook(req)) {
+    logStep("Rejecting unauthenticated webhook request");
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabase = createClient(
@@ -57,7 +102,7 @@ serve(async (req) => {
 
   try {
     const update = await req.json();
-    logStep("Received update", { update_id: update.update_id });
+    logStep("Received verified update", { update_id: update.update_id });
 
     const message = update.message || update.callback_query?.message;
     const callbackQuery = update.callback_query;

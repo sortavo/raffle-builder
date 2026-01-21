@@ -7,11 +7,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { getQueueStats, getDlqStats } from "../_shared/job-queue.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// C4 Security: Use centralized CORS with origin whitelist instead of wildcard
+import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors.ts";
 
 interface ServiceHealth {
   name: string;
@@ -97,9 +94,10 @@ const measureTime = async <T>(fn: () => Promise<T>): Promise<{ result: T; durati
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
 
+  const corsHeaders = getCorsHeaders(req);
   const clientIP = getClientIP(req);
 
   // Rate limiting

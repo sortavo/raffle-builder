@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// C4 Security: Use centralized CORS with origin whitelist instead of wildcard
+import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors.ts";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
@@ -45,8 +42,10 @@ async function sendTelegramMessage(chatId: string, text: string) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",

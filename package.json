@@ -66,12 +66,13 @@
     "date-fns": "^3.6.0",
     "dompurify": "^3.3.1",
     "embla-carousel-react": "^8.6.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "input-otp": "^1.4.2",
     "jsdom": "^27.4.0",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.462.0",
     "msw": "^2.12.7",
@@ -93,7 +94,6 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
     "vitest": "^4.0.16",
-    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
