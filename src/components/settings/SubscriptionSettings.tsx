@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,13 +69,39 @@ export function SubscriptionSettings() {
     }
   };
 
-  // Mock usage data - in real app, fetch from database
-  const usageData = {
+  // Issue 8: Real usage data from database
+  const [usageData, setUsageData] = useState({
     activeRaffles: 0,
     maxRaffles: limits.maxActiveRaffles,
     ticketsThisMonth: 0,
     maxTickets: limits.maxTicketsPerRaffle,
-  };
+  });
+
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!organization?.id) return;
+
+      try {
+        // Get active raffles count
+        const { count: raffleCount } = await supabase
+          .from("raffles")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", organization.id)
+          .in("status", ["active"]);
+
+        setUsageData(prev => ({
+          ...prev,
+          activeRaffles: raffleCount || 0,
+          maxRaffles: limits.maxActiveRaffles,
+          maxTickets: limits.maxTicketsPerRaffle,
+        }));
+      } catch (error) {
+        console.error("Error fetching usage:", error);
+      }
+    };
+
+    fetchUsage();
+  }, [organization?.id, limits]);
 
   return (
     <div className="space-y-6">

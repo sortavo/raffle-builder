@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { differenceInDays, parseISO } from "date-fns";
-import { Clock, Sparkles, Gift, AlertTriangle, ArrowRight } from "lucide-react";
+import { Sparkles, Gift, AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+// Issue 9: Use centralized trial helper
+import { calculateTrialDaysRemaining } from "@/lib/subscription-utils";
 
 export function TrialBanner() {
   const { organization } = useAuth();
@@ -13,26 +14,14 @@ export function TrialBanner() {
     return null;
   }
 
-  // Handle case when trial_ends_at is not set
-  const hasTrialEndDate = !!organization?.trial_ends_at;
-  
-  let daysRemaining = 7; // Default to 7 days if no end date
-  
-  if (hasTrialEndDate) {
-    const trialEndDate = parseISO(organization.trial_ends_at!);
-    
-    // Normalizar fechas al inicio del día para cálculo correcto
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = new Date(trialEndDate);
-    endDate.setHours(0, 0, 0, 0);
-    
-    daysRemaining = differenceInDays(endDate, today);
+  // Use centralized helper for consistent trial day calculation
+  const daysRemaining = organization?.trial_ends_at 
+    ? calculateTrialDaysRemaining(organization.trial_ends_at)
+    : 7; // Default to 7 days if no end date
 
-    // Don't show if trial has expired
-    if (daysRemaining < 0) {
-      return null;
-    }
+  // Don't show if trial has expired
+  if (organization?.trial_ends_at && daysRemaining < 0) {
+    return null;
   }
 
   const isUrgent = daysRemaining <= 2;

@@ -64,7 +64,25 @@ serve(async (req) => {
     if (!priceId) {
       throw new Error("Price ID is required");
     }
-    logStep("Price ID received", { priceId });
+    
+    // Issue 1: Validate priceId against known products (account ANwomfV97e)
+    const VALID_PRICE_IDS = [
+      "price_1Sr9iWANwomfV97eI7ojW9KR", // basic monthly
+      "price_1Sr9jsANwomfV97efJQopwlu", // basic annual
+      "price_1Sr9iYANwomfV97eTKTKJ4nA", // pro monthly
+      "price_1Sr9jtANwomfV97eMAVPLDMq", // pro annual
+      "price_1Sr9iaANwomfV97eKjea9Y3w", // premium monthly
+      "price_1Sr9jvANwomfV97eQLYGvWDB", // premium annual
+      "price_1Sr9ibANwomfV97eZafLddgu", // enterprise monthly
+      "price_1Sr9jxANwomfV97eUbwB9owr", // enterprise annual
+    ];
+    
+    if (!VALID_PRICE_IDS.includes(priceId)) {
+      logStep("Invalid price ID rejected", { priceId });
+      throw new Error("Invalid price ID");
+    }
+    
+    logStep("Price ID received and validated", { priceId });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -127,6 +145,40 @@ serve(async (req) => {
         });
         throw new Error(
           "Ya tienes una suscripción en período de prueba. Usa 'Cambiar plan' para modificar tu suscripción."
+        );
+      }
+      
+      // Issue 2: Also check for past_due subscriptions (still have access)
+      const pastDueSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "past_due",
+        limit: 1,
+      });
+
+      if (pastDueSubscriptions.data.length > 0) {
+        logStep("BLOCKED: User has past_due subscription", {
+          existingSubscriptionId: pastDueSubscriptions.data[0].id,
+          customerId,
+        });
+        throw new Error(
+          "Tienes un pago pendiente. Por favor actualiza tu método de pago antes de continuar."
+        );
+      }
+
+      // Check for incomplete subscriptions (payment required)
+      const incompleteSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "incomplete",
+        limit: 1,
+      });
+
+      if (incompleteSubscriptions.data.length > 0) {
+        logStep("BLOCKED: User has incomplete subscription", {
+          existingSubscriptionId: incompleteSubscriptions.data[0].id,
+          customerId,
+        });
+        throw new Error(
+          "Tienes una suscripción pendiente de pago. Completa el pago o cancela antes de crear una nueva."
         );
       }
       

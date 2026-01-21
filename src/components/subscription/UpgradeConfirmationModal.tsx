@@ -135,8 +135,12 @@ export function UpgradeConfirmationModal({
                   <p className="font-medium text-foreground">
                     Tu período de prueba terminará
                   </p>
+                  {/* Issue 10: Clear message about trial credit */}
                   <p className="text-sm text-muted-foreground">
-                    {preview.trial_message || "Se cobrará el precio completo del nuevo plan inmediatamente."}
+                    {preview.trial_message || 
+                      "Al cambiar de plan, tu período de prueba terminará inmediatamente. " +
+                      "Se te cobrará el precio completo del nuevo plan. " +
+                      "No hay crédito por días de prueba no utilizados."}
                   </p>
                 </div>
               </div>
