@@ -77,8 +77,10 @@ interface OrganizationResult {
   id: string;
   subscription_tier?: string | null;
   subscription_status?: string | null;
+  stripe_customer_id?: string | null;
 }
 
+// MT1: Enhanced organization lookup with cross-validation to prevent misrouting
 async function findOrganizationByPaymentContext(
   supabase: SupabaseClient,
   customerId: string,
@@ -87,40 +89,39 @@ async function findOrganizationByPaymentContext(
   eventId: string,
   handlerName: string
 ): Promise<OrganizationResult | null> {
+  const candidates: Array<{ org: OrganizationResult; source: string; priority: number }> = [];
+
   // 1. Try by metadata organization_id (most reliable for new subscriptions)
   const orgIdFromMeta = subscriptionMetadata?.organization_id;
   if (orgIdFromMeta) {
     const { data: orgByMeta } = await supabase
       .from("organizations")
-      .select("id, subscription_tier, subscription_status")
+      .select("id, subscription_tier, subscription_status, stripe_customer_id")
       .eq("id", orgIdFromMeta)
       .single();
     if (orgByMeta) {
-      logStep(`${handlerName}: Org found by metadata`, { orgId: orgByMeta.id, eventId }, "DEBUG");
-      return orgByMeta;
+      candidates.push({ org: orgByMeta, source: 'metadata', priority: 1 });
     }
   }
 
   // 2. Try by stripe_customer_id (reliable for renewals)
   const { data: orgByCustomer } = await supabase
     .from("organizations")
-    .select("id, subscription_tier, subscription_status")
+    .select("id, subscription_tier, subscription_status, stripe_customer_id")
     .eq("stripe_customer_id", customerId)
     .single();
   if (orgByCustomer) {
-    logStep(`${handlerName}: Org found by stripe_customer_id`, { orgId: orgByCustomer.id, eventId }, "DEBUG");
-    return orgByCustomer;
+    candidates.push({ org: orgByCustomer, source: 'stripe_customer_id', priority: 2 });
   }
 
   // 3. Try by organization email
   const { data: orgByEmail } = await supabase
     .from("organizations")
-    .select("id, subscription_tier, subscription_status")
+    .select("id, subscription_tier, subscription_status, stripe_customer_id")
     .eq("email", customerEmail)
     .single();
   if (orgByEmail) {
-    logStep(`${handlerName}: Org found by org email`, { orgId: orgByEmail.id, eventId }, "DEBUG");
-    return orgByEmail;
+    candidates.push({ org: orgByEmail, source: 'org_email', priority: 3 });
   }
 
   // 4. Try by profile email -> organization_id
@@ -129,21 +130,78 @@ async function findOrganizationByPaymentContext(
     .select("organization_id")
     .eq("email", customerEmail)
     .single();
-  
+
   if (profileData?.organization_id) {
     const { data: orgByProfile } = await supabase
       .from("organizations")
-      .select("id, subscription_tier, subscription_status")
+      .select("id, subscription_tier, subscription_status, stripe_customer_id")
       .eq("id", profileData.organization_id)
       .single();
     if (orgByProfile) {
-      logStep(`${handlerName}: Org found via profile`, { orgId: orgByProfile.id, eventId }, "DEBUG");
-      return orgByProfile;
+      candidates.push({ org: orgByProfile, source: 'profile_email', priority: 4 });
     }
   }
 
-  logStep(`${handlerName}: Org not found`, { customerEmail, customerId, orgIdFromMeta, eventId }, "WARN");
-  return null;
+  if (candidates.length === 0) {
+    logStep(`${handlerName}: Org not found`, { customerEmail, customerId, orgIdFromMeta, eventId }, "WARN");
+    return null;
+  }
+
+  // MT1: Cross-validate candidates - ensure they all point to the same org
+  const uniqueOrgIds = new Set(candidates.map(c => c.id));
+
+  if (uniqueOrgIds.size > 1) {
+    // Multiple different organizations found - potential routing conflict
+    logStep(`${handlerName}: SECURITY WARNING - Multiple org candidates found`, {
+      eventId,
+      customerId,
+      customerEmail,
+      candidates: candidates.map(c => ({
+        orgId: c.org.id,
+        source: c.source,
+        hasCustomerId: !!c.org.stripe_customer_id,
+        customerIdMatch: c.org.stripe_customer_id === customerId
+      })),
+    }, "WARN");
+
+    // MT1: Prioritize by stripe_customer_id match, then by priority
+    const customerIdMatch = candidates.find(c => c.org.stripe_customer_id === customerId);
+    if (customerIdMatch) {
+      logStep(`${handlerName}: Resolved conflict using stripe_customer_id match`, {
+        eventId,
+        selectedOrg: customerIdMatch.org.id,
+        source: customerIdMatch.source,
+      }, "DEBUG");
+      return customerIdMatch.org;
+    }
+
+    // Fall back to highest priority (metadata > customer_id > email > profile)
+    candidates.sort((a, b) => a.priority - b.priority);
+    logStep(`${handlerName}: Resolved conflict using priority`, {
+      eventId,
+      selectedOrg: candidates[0].org.id,
+      source: candidates[0].source,
+    }, "DEBUG");
+    return candidates[0].org;
+  }
+
+  // All candidates point to the same org - safe
+  const result = candidates[0];
+
+  // MT1: Validate stripe_customer_id consistency
+  if (result.org.stripe_customer_id && result.org.stripe_customer_id !== customerId) {
+    logStep(`${handlerName}: SECURITY WARNING - Customer ID mismatch`, {
+      eventId,
+      orgId: result.org.id,
+      expectedCustomerId: result.org.stripe_customer_id,
+      receivedCustomerId: customerId,
+      source: result.source,
+    }, "WARN");
+    // Allow but log for investigation - could be legitimate customer ID change
+  }
+
+  logStep(`${handlerName}: Org found by ${result.source}`, { orgId: result.org.id, eventId }, "DEBUG");
+  return result.org;
 }
 
 serve(async (req) => {

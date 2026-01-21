@@ -6,6 +6,7 @@ import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation, isStripeCircuitOpen } from "../_shared/stripe-client.ts";
+import { canViewBilling } from "../_shared/role-validator.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,6 +44,21 @@ serve(async (req) => {
       .select("organization_id")
       .eq("id", user.id)
       .single();
+
+    // MT19: Validate user has role in organization before updating subscription data
+    // This ensures SERVICE_ROLE_KEY updates are authorized
+    if (profile?.organization_id) {
+      const roleCheck = await canViewBilling(supabaseClient, user.id, profile.organization_id);
+      if (!roleCheck.isValid) {
+        enrichedLog.warn("Unauthorized subscription check attempt", {
+          orgId: profile.organization_id,
+          role: roleCheck.role,
+          error: roleCheck.error
+        });
+        return corsJsonResponse(req, { error: "Not authorized to access this organization's billing" }, 403);
+      }
+      enrichedLog.info("Organization role validated", { role: roleCheck.role });
+    }
 
     // R5: Check if Stripe circuit is open - use cached data as fallback
     if (await isStripeCircuitOpen()) {

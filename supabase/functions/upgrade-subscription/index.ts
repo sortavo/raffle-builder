@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
+import { handleCorsPrelight, corsJsonResponse, getCorsHeaders } from "../_shared/cors.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
 import { stripeOperation } from "../_shared/stripe-client.ts";
+import { canManageSubscription } from "../_shared/role-validator.ts";
+import { checkTenantRateLimit, TENANT_RATE_LIMITS, tenantRateLimitResponse } from "../_shared/tenant-rate-limiter.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -52,10 +54,35 @@ serve(async (req) => {
     if (profileError || !profile?.organization_id) {
       throw new Error("Could not find user's organization");
     }
-    
+
     const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
     const finalLog = createLogger(finalCtx);
     finalLog.info("Found profile");
+
+    // MT12: Validate user has owner/admin role before allowing upgrade
+    const roleCheck = await canManageSubscription(supabaseClient, user.id, profile.organization_id);
+    if (!roleCheck.isValid) {
+      finalLog.warn("Unauthorized upgrade attempt", { role: roleCheck.role, error: roleCheck.error });
+      return corsJsonResponse(req, { error: roleCheck.error || "Not authorized to manage subscription" }, 403);
+    }
+    finalLog.info("Role validated", { role: roleCheck.role });
+
+    // MT8: Per-tenant rate limiting
+    const redisUrl = Deno.env.get("UPSTASH_REDIS_REST_URL");
+    const redisToken = Deno.env.get("UPSTASH_REDIS_REST_TOKEN");
+    if (redisUrl && redisToken) {
+      const rateLimitResult = await checkTenantRateLimit(
+        redisUrl,
+        redisToken,
+        profile.organization_id,
+        user.id,
+        TENANT_RATE_LIMITS.SUBSCRIPTION
+      );
+      if (!rateLimitResult.allowed) {
+        finalLog.warn("Rate limit exceeded", { blockedBy: rateLimitResult.blockedBy });
+        return tenantRateLimitResponse(rateLimitResult, getCorsHeaders(req));
+      }
+    }
 
     const { data: org, error: orgError } = await supabaseClient
       .from("organizations")
