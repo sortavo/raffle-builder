@@ -1,8 +1,6 @@
-import { differenceInDays, startOfDay } from "date-fns";
-
 /**
  * Calculate the number of days remaining in a trial period.
- * Normalizes dates to start of day for consistent counting across components.
+ * Issue M10: Uses UTC normalization for consistency across all timezones.
  * 
  * @param trialEndsAt - The trial end date as a string, Date, null, or undefined
  * @returns Number of days remaining (minimum 0)
@@ -11,10 +9,18 @@ export function calculateTrialDaysRemaining(trialEndsAt: string | Date | null | 
   if (!trialEndsAt) return 0;
 
   try {
-    const endDate = startOfDay(new Date(trialEndsAt));
-    const today = startOfDay(new Date());
+    // Parse as UTC to ensure consistency across timezones
+    const endDate = new Date(trialEndsAt);
+    const today = new Date();
 
-    return Math.max(0, differenceInDays(endDate, today));
+    // Normalize both to start of day in UTC
+    const endDateUTC = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+    const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+
+    const diffMs = endDateUTC - todayUTC;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
   } catch {
     return 0;
   }

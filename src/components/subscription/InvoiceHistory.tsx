@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Download, ExternalLink, Receipt } from "lucide-react";
 import { format } from "date-fns";
@@ -22,6 +23,35 @@ interface Invoice {
   hosted_invoice_url: string | null;
   description: string;
 }
+
+// Issue M12: Improved status badges with tooltips
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; tooltip: string }> = {
+  paid: {
+    label: "Pagada",
+    variant: "default",
+    tooltip: "Esta factura ha sido pagada exitosamente"
+  },
+  open: {
+    label: "Pendiente",
+    variant: "secondary",
+    tooltip: "Esta factura está pendiente de pago"
+  },
+  void: {
+    label: "Anulada",
+    variant: "outline",
+    tooltip: "Esta factura fue cancelada y no requiere pago"
+  },
+  uncollectible: {
+    label: "Incobrable",
+    variant: "destructive",
+    tooltip: "No se pudo cobrar esta factura después de varios intentos"
+  },
+  draft: {
+    label: "Borrador",
+    variant: "outline",
+    tooltip: "Esta factura aún no ha sido finalizada"
+  },
+};
 
 export function InvoiceHistory() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -53,20 +83,26 @@ export function InvoiceHistory() {
   };
 
   const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "paid":
-        return <Badge className="bg-green-100 text-green-800">Pagada</Badge>;
-      case "open":
-        return <Badge variant="secondary">Pendiente</Badge>;
-      case "draft":
-        return <Badge variant="outline">Borrador</Badge>;
-      case "uncollectible":
-        return <Badge variant="destructive">Incobrable</Badge>;
-      case "void":
-        return <Badge variant="outline">Anulada</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const config = statusConfig[status || ""] || { 
+      label: status || "Desconocido", 
+      variant: "secondary" as const, 
+      tooltip: "Estado de factura" 
+    };
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant={config.variant} className="cursor-help">
+              {config.label}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{config.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   if (isLoading) {

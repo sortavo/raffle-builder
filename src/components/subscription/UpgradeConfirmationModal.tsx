@@ -165,7 +165,7 @@ export function UpgradeConfirmationModal({
             </div>
           )}
 
-          {/* Downgrade Info */}
+          {/* Downgrade Info - Issue M13: Add consequences list */}
           {isDowngrade && !preview.is_trial_upgrade && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-3">
               <div className="flex items-start gap-3">
@@ -188,6 +188,18 @@ export function UpgradeConfirmationModal({
                   </span>
                 </div>
               )}
+              
+              {/* Downgrade consequences list */}
+              <div className="mt-3 pt-3 border-t border-amber-500/20">
+                <p className="font-medium text-sm text-amber-700 dark:text-amber-300 mb-2">
+                  Ten en cuenta:
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Si tienes más sorteos activos que el límite del nuevo plan, deberás archivar algunos</li>
+                  <li>• Perderás acceso a funciones premium como plantillas adicionales</li>
+                  <li>• No hay reembolso por el tiempo restante del plan actual</li>
+                </ul>
+              </div>
             </div>
           )}
 

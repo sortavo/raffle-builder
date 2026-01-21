@@ -45,14 +45,18 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Bug #4: Validate and sanitize origin
+    // Issue M1: Reject invalid origins instead of silent fallback
     const rawOrigin = req.headers.get("origin");
-    const safeOrigin = isAllowedOrigin(rawOrigin) ? rawOrigin : "https://sortavo.com";
+    if (!isAllowedOrigin(rawOrigin)) {
+      logStep("Origin rejected", { rawOrigin });
+      return corsJsonResponse(req, { error: "Origin not allowed" }, 403);
+    }
+    const safeOrigin = rawOrigin!;
     
     logStep("Origin validated", { 
       rawOrigin, 
       safeOrigin, 
-      isAllowed: isAllowedOrigin(rawOrigin) 
+      isAllowed: true 
     });
 
     // Detect Stripe mode from secret key
@@ -221,6 +225,17 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return corsJsonResponse(req, { error: errorMessage }, 500);
+
+    // Issue M2: Map specific errors to user-friendly messages
+    let userMessage = "Error al procesar. Intenta de nuevo.";
+    if (errorMessage.includes("Price ID") || errorMessage.includes("Invalid price")) {
+      userMessage = "Plan inválido seleccionado.";
+    } else if (errorMessage.includes("authenticated")) {
+      userMessage = "Debes iniciar sesión para continuar.";
+    } else if (errorMessage.includes("suscripción") || errorMessage.includes("pago pendiente")) {
+      userMessage = errorMessage; // Already user-friendly Spanish messages
+    }
+
+    return corsJsonResponse(req, { error: userMessage }, 500);
   }
 });

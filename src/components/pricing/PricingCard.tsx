@@ -129,7 +129,7 @@ export function PricingCard({
         <p className="text-sm text-white/50">{idealFor}</p>
       </div>
 
-      {/* Price - TIER S dramatic typography */}
+      {/* Price - Issue M8: Improved clarity for annual vs monthly display */}
       <div className="text-center mb-6">
         <div className="flex items-baseline justify-center gap-1">
           <span className="text-5xl lg:text-6xl font-black bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent tracking-tight">
@@ -137,9 +137,18 @@ export function PricingCard({
           </span>
           <span className="text-white/50 text-lg">USD/mes</span>
         </div>
-        {isAnnual && (
+        {isAnnual ? (
+          <div className="space-y-1 mt-2">
+            <p className="text-sm text-white/40">
+              ${price.toLocaleString()} USD facturado anualmente
+            </p>
+            <p className="text-xs text-emerald-400 font-medium">
+              Ahorras ${Math.round((monthlyEquivalent * 12) - price)} USD al año
+            </p>
+          </div>
+        ) : (
           <p className="text-sm text-white/40 mt-2">
-            Facturado anualmente (${price.toLocaleString()} USD)
+            Facturado mensualmente
           </p>
         )}
       </div>

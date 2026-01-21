@@ -8,6 +8,24 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
 };
 
+// Issue M15: Origin validation whitelist
+const ALLOWED_ORIGINS = [
+  "https://sortavo.com",
+  "https://www.sortavo.com",
+  "https://app.sortavo.com",
+  "https://sortavo-hub.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (origin.endsWith('.lovableproject.com')) return true;
+  if (origin.endsWith('.lovable.app')) return true;
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
@@ -45,10 +63,15 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    const origin = req.headers.get("origin") || "https://sortavo.com";
+    // Issue M15: Validate origin before using in return_url
+    const rawOrigin = req.headers.get("origin");
+    const returnUrl = isAllowedOrigin(rawOrigin)
+      ? `${rawOrigin}/dashboard/subscription`
+      : "https://sortavo.com/dashboard/subscription";
+      
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/dashboard/subscription`,
+      return_url: returnUrl,
     });
     logStep("Portal session created", { sessionId: portalSession.id });
 

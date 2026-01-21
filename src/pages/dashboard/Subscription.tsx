@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,29 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+
+// Issue M9: Helper to map errors to user-friendly messages
+function getErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  
+  const errorMap: Record<string, string> = {
+    "Invalid price": "El plan seleccionado no es válido.",
+    "authorization": "Tu sesión ha expirado. Por favor inicia sesión de nuevo.",
+    "authenticated": "Debes iniciar sesión para continuar.",
+    "pago pendiente": "Tienes un pago pendiente. Actualiza tu método de pago.",
+    "suscripción activa": "Ya tienes una suscripción activa.",
+    "network": "Error de conexión. Verifica tu internet.",
+    "Origin not allowed": "Origen no autorizado.",
+  };
+  
+  for (const [key, userMessage] of Object.entries(errorMap)) {
+    if (message.toLowerCase().includes(key.toLowerCase())) {
+      return userMessage;
+    }
+  }
+  
+  return "Ocurrió un error. Por favor intenta de nuevo.";
+}
 
 interface UpgradePreview {
   amount_due: number;

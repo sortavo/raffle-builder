@@ -48,6 +48,16 @@ function safeTimestampToISO(timestamp: number | null | undefined): string | null
   }
 }
 
+// Issue M7: Timeout wrapper for heavy processing to avoid Stripe timeout
+function withTimeout<T>(promise: Promise<T>, ms: number, eventId: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Processing timeout for event ${eventId}`)), ms)
+    )
+  ]);
+}
+
 // Events that should be processed asynchronously to avoid Stripe timeout
 const ASYNC_EVENTS = [
   'customer.subscription.created',
@@ -298,16 +308,25 @@ serve(async (req) => {
     logStep("Processing event", { eventId: event.id, eventType: event.type });
     
     switch (event.type) {
+      // Issue M7: Wrap heavy handlers with timeout to avoid Stripe 30s timeout
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionChange(supabaseAdmin, stripe, subscription, event.id);
+        await withTimeout(
+          handleSubscriptionChange(supabaseAdmin, stripe, subscription, event.id),
+          25000, // 25 seconds (leave margin for Stripe's 30s timeout)
+          event.id
+        );
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionCanceled(supabaseAdmin, stripe, subscription, event.id);
+        await withTimeout(
+          handleSubscriptionCanceled(supabaseAdmin, stripe, subscription, event.id),
+          25000,
+          event.id
+        );
         break;
       }
 
@@ -333,6 +352,20 @@ serve(async (req) => {
       case "customer.updated": {
         const customer = event.data.object as Stripe.Customer;
         await handleCustomerUpdated(supabaseAdmin, customer, event.id);
+        break;
+      }
+
+      // Issue M4: Handle customer deletion - clear Stripe references
+      case "customer.deleted": {
+        const customer = event.data.object as Stripe.Customer;
+        await handleCustomerDeleted(supabaseAdmin, customer, event.id);
+        break;
+      }
+
+      // Issue M18: Handle charge refunds for audit logging
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        await handleChargeRefunded(supabaseAdmin, charge, event.id);
         break;
       }
 
@@ -919,6 +952,82 @@ async function handleCustomerUpdated(
   if (error) {
     logStep("Failed to update customer ID on org", { error: error.message, eventId }, "WARN");
   }
+}
+
+// Issue M4: Handler for customer deletion - clear Stripe references
+async function handleCustomerDeleted(
+  supabase: SupabaseClient,
+  customer: Stripe.Customer,
+  eventId: string
+) {
+  logStep("handleCustomerDeleted started", {
+    eventId,
+    customerId: customer.id,
+    email: customer.email,
+  });
+
+  // Find organization by stripe_customer_id
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id, subscription_tier")
+    .eq("stripe_customer_id", customer.id)
+    .single();
+
+  if (!org) {
+    logStep("Customer deleted but no org found", { customerId: customer.id, eventId }, "DEBUG");
+    return;
+  }
+
+  // Clear Stripe references and reset to basic
+  const { error: updateError } = await supabase
+    .from("organizations")
+    .update({
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      subscription_status: "canceled",
+      subscription_tier: "basic",
+    })
+    .eq("id", org.id);
+
+  if (updateError) {
+    logStep("Failed to clear customer references", { error: updateError.message, eventId }, "ERROR");
+    throw new Error(`Failed to handle customer deletion: ${updateError.message}`);
+  }
+
+  logStep("Customer deleted, org references cleared", { orgId: org.id, eventId });
+}
+
+// Issue M18: Handler for charge refunds - audit logging
+async function handleChargeRefunded(
+  supabase: SupabaseClient,
+  charge: Stripe.Charge,
+  eventId: string
+) {
+  logStep("handleChargeRefunded started", {
+    eventId,
+    chargeId: charge.id,
+    amount: charge.amount,
+    amountRefunded: charge.amount_refunded,
+  });
+
+  // Log to billing_audit_log for compliance
+  const { error } = await supabase.from("billing_audit_log").insert({
+    actor_type: "stripe_webhook",
+    action: "refund_processed",
+    resource_type: "charge",
+    resource_id: charge.id,
+    new_values: {
+      amount_refunded: charge.amount_refunded,
+      refunded: charge.refunded,
+    },
+    stripe_event_id: eventId,
+  });
+
+  if (error) {
+    logStep("Failed to log refund to audit", { error: error.message, eventId }, "WARN");
+  }
+
+  logStep("Refund logged to audit", { chargeId: charge.id, eventId });
 }
 
 function getSubscriptionNotificationTitle(status: string, tier: string): string {
