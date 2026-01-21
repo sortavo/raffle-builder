@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,10 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    log.info("Stripe key verified");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -79,10 +75,11 @@ serve(async (req) => {
       throw new Error("No active subscription found. Please create a new subscription.");
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
-    // Retrieve current subscription
-    const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+    // R1: Use stripeOperation with circuit breaker - Retrieve current subscription
+    const subscription = await stripeOperation(
+      (stripe) => stripe.subscriptions.retrieve(org.stripe_subscription_id!),
+      'subscriptions.retrieve'
+    );
     finalLog.info("Retrieved subscription", { 
       subscriptionId: subscription.id,
       status: subscription.status,
@@ -111,8 +108,12 @@ serve(async (req) => {
 
     // Get current and new prices to determine if it's an upgrade or downgrade
     const currentPriceId = subscription.items.data[0]?.price.id;
-    const currentPrice = await stripe.prices.retrieve(currentPriceId);
-    const newPrice = await stripe.prices.retrieve(priceId);
+    
+    // R1: Use stripeOperation for price retrieval
+    const [currentPrice, newPrice] = await Promise.all([
+      stripeOperation((stripe) => stripe.prices.retrieve(currentPriceId), 'prices.retrieve.current'),
+      stripeOperation((stripe) => stripe.prices.retrieve(priceId), 'prices.retrieve.new'),
+    ]);
     
     const currentAmount = currentPrice.unit_amount || 0;
     const newAmount = newPrice.unit_amount || 0;
@@ -151,11 +152,14 @@ serve(async (req) => {
     // O2: Add idempotency key for Stripe operations
     const idempotencyKey = `upgrade_${profile.organization_id}_${priceId}_${Date.now()}`;
 
-    // Update the subscription with the new price
-    const updatedSubscription = await stripe.subscriptions.update(
-      org.stripe_subscription_id, 
-      updateParams,
-      { idempotencyKey }
+    // R1: Use stripeOperation with circuit breaker - Update the subscription
+    const updatedSubscription = await stripeOperation(
+      (stripe) => stripe.subscriptions.update(
+        org.stripe_subscription_id!, 
+        updateParams,
+        { idempotencyKey }
+      ),
+      'subscriptions.update'
     );
     finalLog.info("Subscription updated successfully", { 
       newStatus: updatedSubscription.status,
@@ -169,10 +173,10 @@ serve(async (req) => {
     let currency = "usd";
     
     if (!isDowngrade) {
-      const latestInvoice = await stripe.invoices.list({
-        subscription: org.stripe_subscription_id,
-        limit: 1,
-      });
+      const latestInvoice = await stripeOperation(
+        (stripe) => stripe.invoices.list({ subscription: org.stripe_subscription_id!, limit: 1 }),
+        'invoices.list'
+      );
       
       amountCharged = latestInvoice.data[0]?.amount_paid || 0;
       currency = latestInvoice.data[0]?.currency || "usd";

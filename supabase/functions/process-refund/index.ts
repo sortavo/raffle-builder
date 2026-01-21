@@ -3,9 +3,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { logBillingAction, logSubscriptionEvent } from "../_shared/audit-logger.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -23,9 +23,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
@@ -87,8 +84,6 @@ serve(async (req) => {
       throw new Error(`Refund is already ${refundRequest.status}`);
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
     if (action === 'reject') {
       // Reject the refund
       const { error: updateError } = await supabaseAdmin
@@ -137,10 +132,11 @@ serve(async (req) => {
 
     try {
       // Issue 5: Check for existing refund (idempotency)
-      const existingRefunds = await stripe.refunds.list({
-        charge: refundRequest.stripe_charge_id,
-        limit: 10,
-      });
+      // R1: Use stripeOperation with circuit breaker
+      const existingRefunds = await stripeOperation(
+        (stripe) => stripe.refunds.list({ charge: refundRequest.stripe_charge_id, limit: 10 }),
+        'refunds.list'
+      );
 
       const pendingOrSucceeded = existingRefunds.data.find(
         (r: Stripe.Refund) => r.status === 'succeeded' || r.status === 'pending'
@@ -172,18 +168,21 @@ serve(async (req) => {
       // O2: Add idempotency key for Stripe operations
       const idempotencyKey = `refund_${refundRequestId}_${Date.now()}`;
 
-      // Create the refund in Stripe
-      const refund = await stripe.refunds.create({
-        charge: refundRequest.stripe_charge_id,
-        amount: refundRequest.amount_cents,
-        reason: refundRequest.reason === 'duplicate' ? 'duplicate' 
-              : refundRequest.reason === 'fraudulent' ? 'fraudulent'
-              : 'requested_by_customer',
-        metadata: {
-          refund_request_id: refundRequestId,
-          organization_id: refundRequest.organization_id,
-        },
-      }, { idempotencyKey });
+      // R1: Use stripeOperation with circuit breaker - Create the refund
+      const refund = await stripeOperation(
+        (stripe) => stripe.refunds.create({
+          charge: refundRequest.stripe_charge_id,
+          amount: refundRequest.amount_cents,
+          reason: refundRequest.reason === 'duplicate' ? 'duplicate' 
+                : refundRequest.reason === 'fraudulent' ? 'fraudulent'
+                : 'requested_by_customer',
+          metadata: {
+            refund_request_id: refundRequestId,
+            organization_id: refundRequest.organization_id,
+          },
+        }, { idempotencyKey }),
+        'refunds.create'
+      );
 
       finalLog.info("Stripe refund created", { refundId: refund.id, status: refund.status, idempotencyKey });
 

@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { PRODUCT_TO_TIER, TIER_LIMITS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
+import { PRODUCT_TO_TIER, TIER_LIMITS } from "../_shared/stripe-config.ts";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation, isStripeCircuitOpen } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -23,9 +24,6 @@ serve(async (req) => {
   try {
     log.info("Function started");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
@@ -39,8 +37,53 @@ serve(async (req) => {
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated", { email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Get user's organization
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+
+    // R5: Check if Stripe circuit is open - use cached data as fallback
+    if (await isStripeCircuitOpen()) {
+      enrichedLog.warn("Stripe circuit open - using cached subscription data");
+
+      if (profile?.organization_id) {
+        const { data: org } = await supabaseClient
+          .from("organizations")
+          .select("subscription_tier, subscription_status, current_period_end, stripe_customer_id, stripe_subscription_id")
+          .eq("id", profile.organization_id)
+          .single();
+
+        if (org) {
+          return corsJsonResponse(req, {
+            subscribed: org.subscription_status === 'active' || org.subscription_status === 'trial',
+            tier: org.subscription_tier,
+            subscription_status: org.subscription_status,
+            subscription_end: org.current_period_end,
+            stripe_customer_id: org.stripe_customer_id,
+            stripe_subscription_id: org.stripe_subscription_id,
+            cached: true,
+            message: "Datos en caché. Stripe temporalmente no disponible."
+          }, 200);
+        }
+      }
+
+      // No cached data available
+      return corsJsonResponse(req, { 
+        subscribed: false,
+        tier: null,
+        subscription_end: null,
+        cached: true,
+        message: "Stripe temporalmente no disponible."
+      }, 200);
+    }
+
+    // R1: Use stripeOperation with circuit breaker
+    const customers = await stripeOperation(
+      (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
+      'customers.list'
+    );
 
     if (customers.data.length === 0) {
       enrichedLog.info("No customer found");
@@ -54,15 +97,15 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     enrichedLog.info("Found Stripe customer", { customerId });
 
-    // Check for active, trialing, AND past_due subscriptions (not just active)
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      limit: 10,
-    });
+    // Check for active, trialing, AND past_due subscriptions
+    const subscriptions = await stripeOperation(
+      (stripe) => stripe.subscriptions.list({ customer: customerId, limit: 10 }),
+      'subscriptions.list'
+    );
 
     // Find the most relevant subscription (active > trialing > past_due)
     const validStatuses = ["active", "trialing", "past_due"];
-    const validSubscription = subscriptions.data.find((sub: Stripe.Subscription) => 
+    const validSubscription = subscriptions.data.find((sub) => 
       validStatuses.includes(sub.status)
     );
 
@@ -87,12 +130,6 @@ serve(async (req) => {
       });
 
       // Update organization with subscription info
-      const { data: profile } = await supabaseClient
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .single();
-
       if (profile?.organization_id) {
         const limits = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.basic;
         

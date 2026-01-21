@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,9 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -67,10 +64,11 @@ serve(async (req) => {
 
     finalLog.info("Found subscription pending cancellation", { subscriptionId: org.stripe_subscription_id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
-    // Issue M6: Verify subscription exists in Stripe and is in a reactivatable state
-    const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+    // R1: Use stripeOperation with circuit breaker - Verify subscription exists
+    const subscription = await stripeOperation(
+      (stripe) => stripe.subscriptions.retrieve(org.stripe_subscription_id!),
+      'subscriptions.retrieve'
+    );
 
     if (subscription.status === "canceled") {
       throw new Error("Tu suscripción ya fue cancelada completamente. Debes crear una nueva suscripción.");
@@ -83,11 +81,14 @@ serve(async (req) => {
     // O2: Add idempotency key for Stripe operations
     const idempotencyKey = `reactivate_${profile.organization_id}_${Date.now()}`;
 
-    // Reactivate subscription in Stripe
-    const reactivatedSub = await stripe.subscriptions.update(
-      org.stripe_subscription_id, 
-      { cancel_at_period_end: false },
-      { idempotencyKey }
+    // R1: Use stripeOperation with circuit breaker - Reactivate subscription
+    const reactivatedSub = await stripeOperation(
+      (stripe) => stripe.subscriptions.update(
+        org.stripe_subscription_id!, 
+        { cancel_at_period_end: false },
+        { idempotencyKey }
+      ),
+      'subscriptions.update'
     );
 
     finalLog.info("Subscription reactivated", { 
@@ -104,7 +105,7 @@ serve(async (req) => {
       })
       .eq("id", profile.organization_id);
 
-    // Issue M3: Throw error on DB failure instead of silent warning
+    // O3: Throw error on DB failure instead of silent warning
     if (updateError) {
       finalLog.error("Failed to update organization", updateError);
       throw new Error("Error al actualizar la suscripción. Intenta de nuevo.");

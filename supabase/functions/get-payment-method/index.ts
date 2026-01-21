@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,9 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -63,10 +60,11 @@ serve(async (req) => {
     const finalLog = createLogger(finalCtx);
     finalLog.info("Found Stripe customer", { customerId: org.stripe_customer_id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
-    // Get customer's default payment method
-    const customer = await stripe.customers.retrieve(org.stripe_customer_id) as Stripe.Customer;
+    // R1: Use stripeOperation with circuit breaker - Get customer's default payment method
+    const customer = await stripeOperation(
+      (stripe) => stripe.customers.retrieve(org.stripe_customer_id!),
+      'customers.retrieve'
+    ) as Stripe.Customer;
     
     if (customer.deleted) {
       return corsJsonResponse(req, { payment_method: null }, 200);
@@ -76,7 +74,10 @@ serve(async (req) => {
     const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method;
 
     if (defaultPaymentMethodId) {
-      const pm = await stripe.paymentMethods.retrieve(defaultPaymentMethodId as string);
+      const pm = await stripeOperation(
+        (stripe) => stripe.paymentMethods.retrieve(defaultPaymentMethodId as string),
+        'paymentMethods.retrieve'
+      );
       
       // L2: Validate payment method type before accessing card properties
       if (pm.type !== 'card') {
@@ -99,10 +100,10 @@ serve(async (req) => {
       finalLog.info("Found payment method", { brand: card.brand, hasCard: true });
     } else {
       // Try to get from subscriptions (active or trialing)
-      const subscriptions = await stripe.subscriptions.list({
-        customer: org.stripe_customer_id,
-        limit: 5,
-      });
+      const subscriptions = await stripeOperation(
+        (stripe) => stripe.subscriptions.list({ customer: org.stripe_customer_id!, limit: 5 }),
+        'subscriptions.list'
+      );
 
       // Find active or trialing subscription
       const validSub = subscriptions.data.find((s: Stripe.Subscription) => 
@@ -113,7 +114,10 @@ serve(async (req) => {
         const pmId = validSub.default_payment_method;
         
         if (pmId) {
-          const pm = await stripe.paymentMethods.retrieve(pmId as string);
+          const pm = await stripeOperation(
+            (stripe) => stripe.paymentMethods.retrieve(pmId as string),
+            'paymentMethods.retrieve.fromSub'
+          );
           // L2: Validate payment method type before accessing card properties
           if (pm.type === 'card' && pm.card) {
             const card = pm.card;

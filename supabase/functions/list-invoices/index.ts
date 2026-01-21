@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,9 +16,6 @@ serve(async (req) => {
 
   try {
     log.info("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -65,8 +62,6 @@ serve(async (req) => {
     const finalCtx = enrichContext(enrichedCtx, { orgId: profile.organization_id });
     const finalLog = createLogger(finalCtx);
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-
     // Issue 4: Parse request body for pagination params
     const body = await req.json().catch(() => ({}));
     const { limit = 12, starting_after } = body;
@@ -81,7 +76,11 @@ serve(async (req) => {
       invoicesParams.starting_after = starting_after;
     }
 
-    const invoices = await stripe.invoices.list(invoicesParams);
+    // R1: Use stripeOperation with circuit breaker
+    const invoices = await stripeOperation(
+      (stripe) => stripe.invoices.list(invoicesParams),
+      'invoices.list'
+    );
 
     finalLog.info("Fetched invoices", { count: invoices.data.length, hasMore: invoices.has_more });
 

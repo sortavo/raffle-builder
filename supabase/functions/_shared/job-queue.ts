@@ -1,6 +1,12 @@
 /**
  * Phase 9: Async Job Queue
  * Redis-based job queue with priority levels, retry logic, and status tracking
+ * 
+ * Features:
+ * - Priority queues (high, normal, low)
+ * - Exponential backoff with jitter for retries
+ * - Dead Letter Queue (DLQ) for failed jobs
+ * - Status tracking and monitoring
  */
 
 import { redisCommand } from './redis-client.ts';
@@ -19,11 +25,19 @@ export interface Job {
   result?: unknown;
 }
 
+export interface DlqJob extends Job {
+  failedAt: number;
+  lastError: string;
+  movedToDlqAt: string;
+}
+
 export type JobPriority = 'high' | 'normal' | 'low';
 
 const QUEUE_PREFIX = 'jobqueue:';
+const DLQ_KEY = 'jobqueue:dlq';
 const JOB_TTL_PENDING = 86400; // 24 hours
 const JOB_TTL_COMPLETED = 3600; // 1 hour
+const DLQ_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 /**
  * Enqueue a new job for async processing
@@ -175,6 +189,80 @@ export async function completeJob(
 }
 
 /**
+ * Move a failed job to the Dead Letter Queue (R7)
+ */
+export async function moveToDeadLetterQueue(
+  redisUrl: string,
+  redisToken: string,
+  job: Job,
+  error: string
+): Promise<void> {
+  const dlqEntry: DlqJob = {
+    ...job,
+    failedAt: Date.now(),
+    lastError: error,
+    movedToDlqAt: new Date().toISOString(),
+  };
+
+  await redisCommand(redisUrl, redisToken, [
+    'LPUSH',
+    DLQ_KEY,
+    JSON.stringify(dlqEntry),
+  ]);
+
+  // Keep DLQ entries for 7 days
+  await redisCommand(redisUrl, redisToken, [
+    'EXPIRE',
+    DLQ_KEY,
+    DLQ_TTL_SECONDS.toString(),
+  ]);
+
+  console.warn(`[JOB-QUEUE] Job ${job.id} moved to DLQ after ${job.attempts} attempts: ${error}`);
+}
+
+/**
+ * Get Dead Letter Queue statistics for monitoring
+ */
+export async function getDlqStats(
+  redisUrl: string,
+  redisToken: string
+): Promise<{ count: number }> {
+  try {
+    const result = await redisCommand(redisUrl, redisToken, ['LLEN', DLQ_KEY]);
+    return { count: (result?.result as number) || 0 };
+  } catch {
+    return { count: 0 };
+  }
+}
+
+/**
+ * Get jobs from the Dead Letter Queue (for manual inspection)
+ */
+export async function getDlqJobs(
+  redisUrl: string,
+  redisToken: string,
+  limit: number = 10
+): Promise<DlqJob[]> {
+  try {
+    const result = await redisCommand(redisUrl, redisToken, [
+      'LRANGE',
+      DLQ_KEY,
+      '0',
+      (limit - 1).toString(),
+    ]);
+
+    if (result.error || !result.result) {
+      return [];
+    }
+
+    const jobs = result.result as string[];
+    return jobs.map(j => JSON.parse(j) as DlqJob);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Mark a job as failed, with automatic retry if under max attempts
  */
 export async function failJob(
@@ -199,9 +287,13 @@ export async function failJob(
     const shouldRetry = job.attempts < job.maxAttempts;
 
     if (shouldRetry) {
-      // Queue for retry with exponential backoff delay
+      // Queue for retry with exponential backoff delay + jitter (R6)
       job.status = 'pending';
-      const delayMs = Math.pow(2, job.attempts) * 1000; // 2s, 4s, 8s...
+      const baseDelay = Math.pow(2, job.attempts) * 1000; // 2s, 4s, 8s...
+      const jitter = Math.random() * 1000; // 0-1000ms random jitter
+      const delayMs = baseDelay + jitter;
+      
+      console.log(`[JOB-QUEUE] Retrying job ${jobId} in ${Math.round(delayMs)}ms (attempt ${job.attempts}/${job.maxAttempts})`);
       
       // Store updated job
       await redisCommand(redisUrl, redisToken, [
@@ -222,15 +314,15 @@ export async function failJob(
 
       return { retrying: true, success: true };
     } else {
-      // Max attempts reached, mark as permanently failed
+      // Max attempts reached - move to Dead Letter Queue (R7)
       job.status = 'failed';
       
+      await moveToDeadLetterQueue(redisUrl, redisToken, job, error);
+      
+      // Remove from active jobs
       await redisCommand(redisUrl, redisToken, [
-        'SET',
+        'DEL',
         `${QUEUE_PREFIX}job:${jobId}`,
-        JSON.stringify(job),
-        'EX',
-        JOB_TTL_PENDING.toString(),
       ]);
 
       return { retrying: false, success: true };

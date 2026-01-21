@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { handleCorsPrelight, corsJsonResponse } from "../_shared/cors.ts";
-import { STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
 import { createRequestContext, enrichContext, createLogger } from "../_shared/correlation.ts";
 import { captureException } from "../_shared/sentry.ts";
+import { stripeOperation } from "../_shared/stripe-client.ts";
 
 // Issue M15: Origin validation whitelist
 const ALLOWED_ORIGINS = [
@@ -45,9 +45,6 @@ serve(async (req) => {
   try {
     log.info("Function started");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -67,8 +64,11 @@ serve(async (req) => {
     const enrichedLog = createLogger(enrichedCtx);
     enrichedLog.info("User authenticated", { email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: STRIPE_API_VERSION });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // R1: Use stripeOperation with circuit breaker - Find customer
+    const customers = await stripeOperation(
+      (stripe) => stripe.customers.list({ email: user.email, limit: 1 }),
+      'customers.list'
+    );
     
     if (customers.data.length === 0) {
       throw new Error("No Stripe customer found for this user");
@@ -84,12 +84,16 @@ serve(async (req) => {
       : "https://sortavo.com/dashboard/subscription";
     
     // L5: Specific error handling for portal session creation
+    // R1: Use stripeOperation with circuit breaker
     let portalSession;
     try {
-      portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: returnUrl,
-      });
+      portalSession = await stripeOperation(
+        (stripe) => stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: returnUrl,
+        }),
+        'billingPortal.sessions.create'
+      );
     } catch (stripeError: unknown) {
       const error = stripeError as { message?: string; code?: string };
       enrichedLog.error("Failed to create portal session", null, {
