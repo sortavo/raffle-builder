@@ -190,8 +190,30 @@ Deno.serve(async (req) => {
       .update({ organization_id: null })
       .eq("organization_id", organizationId);
 
-    // Delete audit logs for this organization (optional, keeping for audit trail)
-    // await supabaseAdmin.from("audit_log").delete().eq("organization_id", organizationId);
+    // C3 GDPR Right to Erasure: Pseudonymize audit logs instead of deleting
+    // Keeps audit trail for compliance while removing PII
+    console.log("Pseudonymizing audit logs for GDPR compliance...");
+    
+    await supabaseAdmin
+      .from("audit_log")
+      .update({
+        user_email: 'deleted_user@anonymized.local',
+        user_name: 'Usuario Eliminado',
+        ip_address: null,
+        user_agent: null,
+      })
+      .eq("organization_id", organizationId);
+
+    // Also pseudonymize billing audit log
+    await supabaseAdmin
+      .from("billing_audit_log")
+      .update({
+        ip_address: null,
+        user_agent: null,
+      })
+      .eq("organization_id", organizationId);
+
+    console.log("Audit logs pseudonymized for compliance");
 
     // Finally delete the organization
     const { error: deleteError } = await supabaseAdmin

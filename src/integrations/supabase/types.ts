@@ -2131,6 +2131,47 @@ export type Database = {
           },
         ]
       }
+      terms_acceptance: {
+        Row: {
+          accepted_at: string
+          id: string
+          ip_address: unknown
+          organization_id: string | null
+          privacy_version: string
+          terms_version: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          id?: string
+          ip_address?: unknown
+          organization_id?: string | null
+          privacy_version: string
+          terms_version: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          id?: string
+          ip_address?: unknown
+          organization_id?: string | null
+          privacy_version?: string
+          terms_version?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_acceptance_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_block_status: {
         Row: {
           block_size: number
