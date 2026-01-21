@@ -161,6 +161,12 @@ serve(async (req) => {
               `"${data.raffleName}" termina en 24 horas.\n` +
               `Boletos vendidos: ${data.soldCount}/${data.totalCount}`;
             break;
+          case "reservation_expired":
+            message = `⚠️ <b>Reservas Expiradas</b>\n\n` +
+              `${data.expiredCount} reserva${data.expiredCount > 1 ? 's' : ''} expiró en "${data.raffleName}".\n` +
+              `Boletos liberados: ${data.totalTickets}\n` +
+              `Compradores: ${data.buyers?.slice(0, 3).join(', ')}${data.expiredCount > 3 ? '...' : ''}`;
+            break;
           case "winner_selected":
             message = `🏆 <b>¡Ganador Seleccionado!</b>\n\n` +
               `Sorteo: ${data.raffleName}\n` +

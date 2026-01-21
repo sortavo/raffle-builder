@@ -105,6 +105,17 @@ Deno.serve(async (req) => {
     let batchesProcessed = 0;
     let affectedRaffleIds: string[] = [];
     let autoScaled = false;
+    
+    interface ExpiredOrder {
+      id: string;
+      raffle_id: string;
+      buyer_email: string | null;
+      buyer_name: string | null;
+      organization_id: string;
+      ticket_count: number;
+      raffles: { title: string }[] | null;
+    }
+    let expiredOrders: ExpiredOrder[] = [];
 
     if (ticketCleanupError) {
       logStep("Error in batch ticket cleanup", { error: ticketCleanupError.message });
@@ -118,11 +129,12 @@ Deno.serve(async (req) => {
         })
         .eq('status', 'reserved')
         .lt('reserved_until', now)
-        .select('id, raffle_id');
+        .select('id, raffle_id, buyer_email, buyer_name, organization_id, ticket_count, raffles(title)');
 
       if (!expiredError && expiredReservations) {
         expiredTicketsReleased = expiredReservations.length;
         affectedRaffleIds = [...new Set(expiredReservations.map(o => o.raffle_id))];
+        expiredOrders = expiredReservations as unknown as ExpiredOrder[];
       }
     } else {
       const result = ticketCleanupData?.[0];
@@ -133,12 +145,60 @@ Deno.serve(async (req) => {
       // Check if auto-scaling was triggered (batch size > default 500)
       autoScaled = batchesProcessed > 20 || expiredTicketsReleased > 10000;
       
+      // Fetch expired orders for notifications if batch cleanup was used
+      if (expiredTicketsReleased > 0 && affectedRaffleIds.length > 0) {
+        const { data: recentExpired } = await supabase
+          .from('orders')
+          .select('id, raffle_id, buyer_email, buyer_name, organization_id, ticket_count, raffles(title)')
+          .eq('status', 'cancelled')
+          .gte('canceled_at', new Date(Date.now() - 60 * 1000).toISOString()) // Last minute
+          .in('raffle_id', affectedRaffleIds)
+          .limit(100);
+        
+        expiredOrders = (recentExpired || []) as unknown as ExpiredOrder[];
+      }
+      
       logStep("Expired ticket reservations cleaned", {
         released: expiredTicketsReleased,
         batches: batchesProcessed,
         raffles: affectedRaffleIds.length,
         autoScaled,
       });
+    }
+
+    // =========================================================================
+    // 1b. Send Telegram notifications for expired reservations
+    // =========================================================================
+    if (expiredOrders.length > 0) {
+      logStep("Sending reservation_expired notifications", { count: expiredOrders.length });
+      
+      // Group by organization to send batch notifications
+      const byOrg = new Map<string, typeof expiredOrders>();
+      for (const order of expiredOrders) {
+        const orgOrders = byOrg.get(order.organization_id) || [];
+        orgOrders.push(order);
+        byOrg.set(order.organization_id, orgOrders);
+      }
+
+      // Send notifications per organization (non-blocking)
+      for (const [orgId, orders] of byOrg) {
+        const totalTickets = orders.reduce((sum, o) => sum + (o.ticket_count || 0), 0);
+        const raffleData = orders[0]?.raffles as { title: string }[] | { title: string } | null;
+        const raffleName = (Array.isArray(raffleData) ? raffleData[0]?.title : (raffleData as { title: string } | null)?.title) || 'Sorteo';
+        
+        supabase.functions.invoke('telegram-notify', {
+          body: {
+            type: 'reservation_expired',
+            organizationId: orgId,
+            data: {
+              raffleName,
+              expiredCount: orders.length,
+              totalTickets,
+              buyers: orders.slice(0, 5).map(o => o.buyer_name || 'Anónimo'),
+            },
+          },
+        }).catch(err => logStep("Telegram notify error", { error: String(err) }));
+      }
     }
 
     // Invalidate Redis cache for affected raffles using pipeline
