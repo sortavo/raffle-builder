@@ -2063,7 +2063,9 @@ export type Database = {
       telegram_connections: {
         Row: {
           created_at: string | null
+          created_by: string | null
           daily_summary_hour: number | null
+          display_name: string | null
           id: string
           link_code: string | null
           link_code_expires_at: string | null
@@ -2076,14 +2078,16 @@ export type Database = {
           notify_ticket_reserved: boolean | null
           notify_winner_selected: boolean | null
           organization_id: string
-          telegram_chat_id: string
+          telegram_chat_id: string | null
           telegram_username: string | null
           updated_at: string | null
           verified_at: string | null
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           daily_summary_hour?: number | null
+          display_name?: string | null
           id?: string
           link_code?: string | null
           link_code_expires_at?: string | null
@@ -2096,14 +2100,16 @@ export type Database = {
           notify_ticket_reserved?: boolean | null
           notify_winner_selected?: boolean | null
           organization_id: string
-          telegram_chat_id: string
+          telegram_chat_id?: string | null
           telegram_username?: string | null
           updated_at?: string | null
           verified_at?: string | null
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           daily_summary_hour?: number | null
+          display_name?: string | null
           id?: string
           link_code?: string | null
           link_code_expires_at?: string | null
@@ -2116,7 +2122,7 @@ export type Database = {
           notify_ticket_reserved?: boolean | null
           notify_winner_selected?: boolean | null
           organization_id?: string
-          telegram_chat_id?: string
+          telegram_chat_id?: string | null
           telegram_username?: string | null
           updated_at?: string | null
           verified_at?: string | null
@@ -2125,7 +2131,7 @@ export type Database = {
           {
             foreignKeyName: "telegram_connections_organization_id_fkey"
             columns: ["organization_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },

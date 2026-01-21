@@ -55,7 +55,10 @@ export type BillingAction =
   // Dunning
   | 'dunning_email_sent'
   | 'account_suspended'
-  | 'account_reactivated';
+  | 'account_reactivated'
+  // Viewing/Fetching (audit purposes)
+  | 'payment_method_viewed'
+  | 'invoice_list_viewed';
 
 export type ResourceType = 
   | 'subscription'

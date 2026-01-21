@@ -47,7 +47,7 @@ serve(async (req) => {
       .single();
 
     if (profileError) {
-      enrichedLog.warn("Failed to fetch profile", profileError);
+      enrichedLog.warn("Failed to fetch profile", { message: profileError.message, code: profileError.code });
       // Non-critical for check-subscription - return default state
     }
 

@@ -12,7 +12,7 @@ interface MockStripeEvent {
 }
 
 // T4: Mock Stripe subscription object
-interface MockStripeSubscription {
+interface MockStripeSubscription extends Record<string, unknown> {
   id: string;
   customer: string;
   status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';
@@ -31,7 +31,7 @@ interface MockStripeSubscription {
 }
 
 // T4: Mock Stripe invoice object
-interface MockStripeInvoice {
+interface MockStripeInvoice extends Record<string, unknown> {
   id: string;
   customer: string;
   subscription: string;
@@ -288,7 +288,7 @@ describe('Stripe Webhook - Data Extraction', () => {
       id: 'sub_no_meta',
       customer: 'cus_123',
       status: 'active',
-      metadata: {},
+      metadata: {} as { organization_id?: string },
     };
 
     const orgId = subscription.metadata?.organization_id;

@@ -498,6 +498,21 @@ export function CheckoutModal({
                 )
               );
             }
+            // Send Telegram notification to organizer (non-blocking)
+            supabase.functions.invoke('telegram-notify', {
+              body: {
+                type: 'ticket_reserved',
+                organizationId: raffle.organization_id,
+                raffleId: raffle.id,
+                data: {
+                  raffleName: raffle.title,
+                  buyerName: data.name,
+                  ticketCount: result.tickets.length,
+                  total: total,
+                  currency: raffle.currency_code || 'MXN',
+                },
+              },
+            }).catch(err => console.error('[CheckoutModal] Telegram notify error:', err));
           } catch (err) {
             console.error('[CheckoutModal] Notification error:', err);
           }

@@ -68,7 +68,7 @@ export function TelegramSettings() {
         (c) => c.link_code && c.link_code_expires_at && new Date(c.link_code_expires_at) > new Date()
       );
 
-      setConnections(verified as TelegramConnection[]);
+      setConnections(verified as unknown as TelegramConnection[]);
 
       if (pending) {
         setPendingCode({
