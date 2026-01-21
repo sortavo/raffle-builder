@@ -179,7 +179,7 @@ async function findOrganizationByPaymentContext(
   }
 
   // MT1: Cross-validate candidates - ensure they all point to the same org
-  const uniqueOrgIds = new Set(candidates.map(c => c.id));
+  const uniqueOrgIds = new Set(candidates.map(c => c.org.id));
 
   if (uniqueOrgIds.size > 1) {
     // Multiple different organizations found - potential routing conflict

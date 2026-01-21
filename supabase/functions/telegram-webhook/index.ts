@@ -246,8 +246,9 @@ serve(async (req) => {
         }
 
         // Verify the order belongs to this organization
-        const raffle = order.raffles as { title: string; organization_id: string };
-        if (raffle.organization_id !== conn.organization_id) {
+        const raffleData = order.raffles as unknown as { title: string; organization_id: string }[] | { title: string; organization_id: string } | null;
+        const raffle = Array.isArray(raffleData) ? raffleData[0] : raffleData;
+        if (!raffle || raffle.organization_id !== conn.organization_id) {
           await sendTelegramMessage(callbackChatId, "❌ Esta orden no pertenece a tu organización.");
           return new Response(JSON.stringify({ ok: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
