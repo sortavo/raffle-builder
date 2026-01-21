@@ -55,25 +55,32 @@ serve(async (req) => {
       .single();
 
     if (orgError || !org?.stripe_subscription_id) {
-      throw new Error("No subscription found");
-    }
-
-    if (!org.cancel_at_period_end) {
-      throw new Error("Subscription is not scheduled for cancellation");
+      throw new Error("No tienes una suscripción activa para reactivar.");
     }
 
     logStep("Found subscription pending cancellation", { subscriptionId: org.stripe_subscription_id });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Reactivate subscription
-    const subscription = await stripe.subscriptions.update(org.stripe_subscription_id, {
+    // Issue M6: Verify subscription exists in Stripe and is in a reactivatable state
+    const subscription = await stripe.subscriptions.retrieve(org.stripe_subscription_id);
+
+    if (subscription.status === "canceled") {
+      throw new Error("Tu suscripción ya fue cancelada completamente. Debes crear una nueva suscripción.");
+    }
+
+    if (!subscription.cancel_at_period_end) {
+      throw new Error("Tu suscripción ya está activa y no está programada para cancelarse.");
+    }
+
+    // Reactivate subscription in Stripe
+    const reactivatedSub = await stripe.subscriptions.update(org.stripe_subscription_id, {
       cancel_at_period_end: false,
     });
 
     logStep("Subscription reactivated", { 
-      status: subscription.status,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end
+      status: reactivatedSub.status,
+      cancelAtPeriodEnd: reactivatedSub.cancel_at_period_end
     });
 
     // Update organization in database
@@ -84,13 +91,15 @@ serve(async (req) => {
       })
       .eq("id", profile.organization_id);
 
+    // Issue M3: Throw error on DB failure instead of silent warning
     if (updateError) {
-      logStep("Warning: Failed to update organization", { error: updateError.message });
+      logStep("Failed to update organization", { error: updateError.message });
+      throw new Error("Error al actualizar la suscripción. Intenta de nuevo.");
     }
 
     return corsJsonResponse(req, {
       success: true,
-      status: subscription.status,
+      status: reactivatedSub.status,
     }, 200);
 
   } catch (error) {

@@ -18,6 +18,29 @@ const DUNNING_SEQUENCE = [
   'account_suspended',
 ] as const;
 
+// Issue M5: Email sending with retry and exponential backoff
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendEmailWithRetry(
+  supabase: any,
+  emailData: { template: string; to: string; data: Record<string, unknown> },
+  maxRetries: number = 3
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { error } = await supabase.functions.invoke('send-email', { body: emailData });
+      if (!error) return true;
+      logStep(`Email send attempt ${attempt} failed`, { error: error.message });
+    } catch (err) {
+      logStep(`Email send attempt ${attempt} threw`, { error: String(err) });
+    }
+    if (attempt < maxRetries) {
+      // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return handleCorsPrelight(req);
@@ -224,25 +247,21 @@ serve(async (req) => {
           sent_to: org.email,
         });
 
-        // Call send-email function (if it exists)
-        try {
-          await supabaseAdmin.functions.invoke('send-email', {
-            body: {
-              template: `dunning_${emailToSend}`,
-              to: org.email,
-              data: {
-                organizationName: org.name,
-                amountDue: (failure.amount_cents / 100).toFixed(2),
-                currency: failure.currency?.toUpperCase() || 'USD',
-                daysSinceFailure,
-                updatePaymentUrl: `https://sortavo.com/dashboard/subscription?update_payment=true`,
-              },
-            },
-          });
-        } catch (emailError) {
-          logStep("Warning: Failed to send dunning email", { 
-            error: emailError instanceof Error ? emailError.message : String(emailError) 
-          });
+        // Issue M5: Call send-email function with retry logic
+        const emailSent = await sendEmailWithRetry(supabaseAdmin, {
+          template: `dunning_${emailToSend}`,
+          to: org.email,
+          data: {
+            organizationName: org.name,
+            amountDue: (failure.amount_cents / 100).toFixed(2),
+            currency: failure.currency?.toUpperCase() || 'USD',
+            daysSinceFailure,
+            updatePaymentUrl: `https://sortavo.com/dashboard/subscription?update_payment=true`,
+          },
+        });
+
+        if (!emailSent) {
+          logStep("All email attempts failed", { type: emailToSend, orgId: org.id });
         }
 
         await logBillingAction(supabaseAdmin, {
