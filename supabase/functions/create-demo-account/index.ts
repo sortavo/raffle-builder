@@ -2,6 +2,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPrelight } from "../_shared/cors.ts";
 import { verifyPlatformAdmin } from "../_shared/admin-auth.ts";
 
+// S1: Secure password generation for demo accounts
+function generateSecurePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 16; i++) {
+    password += chars[array[i] % chars.length];
+  }
+  return password;
+}
+
+function getDemoPassword(): string {
+  const envPassword = Deno.env.get("DEMO_ACCOUNT_PASSWORD");
+  if (envPassword) return envPassword;
+  
+  // Generate secure password if not configured
+  const generated = generateSecurePassword();
+  console.log("[CREATE-DEMO] No DEMO_ACCOUNT_PASSWORD configured, using generated password");
+  return generated;
+}
+
 const logStep = (step: string, details?: unknown) => {
   console.log(`[create-demo-account] ${step}`, details ? JSON.stringify(details) : '');
 };
@@ -57,7 +79,7 @@ const STATIC_SLUGS = {
 const DEMO_CONFIGS = {
   demo1: {
     email: "demo1@sortavo.com",
-    password: "Cone1591*",
+    password: getDemoPassword(),
     organization: {
       name: "Sorteos El Dorado",
       description: "Organizadores de sorteos premium desde 2015. Más de 500 sorteos realizados con transparencia total.",
@@ -258,7 +280,7 @@ const DEMO_CONFIGS = {
   },
   demo2: {
     email: "demo2@sortavo.com",
-    password: "Cone1591*",
+    password: getDemoPassword(),
     organization: {
       name: "Fundación Esperanza",
       description: "Sorteos benéficos para causas sociales. 100% de ganancias destinadas a educación infantil.",
@@ -465,7 +487,7 @@ const DEMO_CONFIGS = {
   },
   demo3: {
     email: "demo3@sortavo.com",
-    password: "Cone1591*",
+    password: getDemoPassword(),
     organization: {
       name: "Loterías Nacionales Premium",
       description: "Los sorteos más grandes de México. Más de $500 millones en premios entregados desde 2018.",
@@ -698,12 +720,22 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { demo_key, demo_secret } = body;
     
-    const DEMO_SECRET = "SORTAVO_DEMO_2026_CREATE";
-    const isInternalCall = demo_secret === DEMO_SECRET;
+    // S2: Use environment variable for demo secret instead of hardcoded value
+    const DEMO_SECRET = Deno.env.get("DEMO_CREATION_SECRET");
+    if (!DEMO_SECRET) {
+      console.warn("[CREATE-DEMO] DEMO_CREATION_SECRET not configured - internal auth disabled");
+    }
+    const isInternalCall = DEMO_SECRET && demo_secret === DEMO_SECRET;
     
+    // S3: Use strict equality with Bearer format instead of vulnerable includes()
     const authHeader = req.headers.get('Authorization');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const isServiceCall = authHeader?.includes(serviceKey || '');
+    const isServiceCall = serviceKey && authHeader === `Bearer ${serviceKey}`;
+    
+    // Audit log for internal calls
+    if (isInternalCall) {
+      logStep("Internal call authenticated", { demo_key });
+    }
     
     if (!isInternalCall && !isServiceCall) {
       const authResult = await verifyPlatformAdmin(req);

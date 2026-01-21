@@ -43,7 +43,11 @@ export function getCorsHeaders(request: Request): Record<string, string> {
   // For unknown HTTPS origins, use secure fallback
   // TODO: In the future, validate against verified custom_domains in DB
   else if (origin.startsWith('https://')) {
-    console.warn(`[CORS] Rejected unknown origin: ${origin}`);
+    // S4: Sanitize origin to prevent log injection attacks
+    const sanitizedOrigin = origin
+      .replace(/[\r\n\t]/g, '')  // Remove newlines/tabs
+      .slice(0, 100);             // Limit length
+    console.warn(`[CORS] Rejected unknown origin: ${sanitizedOrigin}`);
     allowedOrigin = ALLOWED_ORIGINS[0];
   }
   

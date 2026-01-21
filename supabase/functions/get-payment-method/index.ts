@@ -90,7 +90,8 @@ serve(async (req) => {
         exp_month: card.exp_month,
         exp_year: card.exp_year,
       };
-      logStep("Found payment method", { brand: card.brand, last4: card.last4 });
+      // S5: Remove sensitive last4 from logs (still returned in response for UI)
+      logStep("Found payment method", { brand: card.brand, hasCard: true });
     } else {
       // Try to get from subscriptions (active or trialing)
       const subscriptions = await stripe.subscriptions.list({
@@ -118,7 +119,8 @@ serve(async (req) => {
               exp_month: card.exp_month,
               exp_year: card.exp_year,
             };
-            logStep("Found payment method from subscription", { brand: card.brand, last4: card.last4 });
+            // S5: Remove sensitive last4 from logs (still returned in response for UI)
+            logStep("Found payment method from subscription", { brand: card.brand, hasCard: true });
           }
         }
       }
