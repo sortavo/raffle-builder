@@ -150,7 +150,113 @@ export const handlers = [
     return HttpResponse.json([mockOrganization]);
   }),
 
-  // Edge functions
+  // T3: Subscription Edge Functions with specific responses
+
+  // Customer Portal - returns Stripe billing portal URL
+  http.post(`${SUPABASE_URL}/functions/v1/customer-portal`, () => {
+    return HttpResponse.json({
+      url: 'https://billing.stripe.com/session/test_portal_session'
+    });
+  }),
+
+  // Create Checkout - returns Stripe checkout URL
+  http.post(`${SUPABASE_URL}/functions/v1/create-checkout`, async ({ request }) => {
+    const body = await request.json() as { priceId?: string };
+    return HttpResponse.json({
+      url: `https://checkout.stripe.com/c/pay/test_session?priceId=${body.priceId || 'price_test'}`,
+      sessionId: 'cs_test_session_123',
+    });
+  }),
+
+  // Preview Upgrade - returns proration preview
+  http.post(`${SUPABASE_URL}/functions/v1/preview-upgrade`, async ({ request }) => {
+    const body = await request.json() as { priceId?: string; planName?: string; currentPlanName?: string };
+    return HttpResponse.json({
+      amount_due: 1500, // $15.00 in cents
+      currency: 'usd',
+      proration_details: {
+        credit: 500,
+        debit: 2000,
+        items: [
+          { description: `Unused time on ${body.currentPlanName || 'Basic'}`, amount: -500 },
+          { description: `Time on ${body.planName || 'Pro'}`, amount: 2000 },
+        ],
+      },
+      effective_date: new Date().toISOString(),
+      next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      new_plan_name: body.planName || 'Pro',
+      old_plan_name: body.currentPlanName || 'Basic',
+    });
+  }),
+
+  // Upgrade Subscription - processes the upgrade
+  http.post(`${SUPABASE_URL}/functions/v1/upgrade-subscription`, async ({ request }) => {
+    const body = await request.json() as { priceId?: string };
+    return HttpResponse.json({
+      success: true,
+      subscription_id: 'sub_test_123',
+      amount_charged: 1500,
+      currency: 'usd',
+    });
+  }),
+
+  // Cancel Subscription
+  http.post(`${SUPABASE_URL}/functions/v1/cancel-subscription`, async ({ request }) => {
+    const body = await request.json() as { immediate?: boolean };
+    return HttpResponse.json({
+      success: true,
+      cancel_at: body.immediate
+        ? new Date().toISOString()
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }),
+
+  // Reactivate Subscription
+  http.post(`${SUPABASE_URL}/functions/v1/reactivate-subscription`, () => {
+    return HttpResponse.json({
+      success: true,
+      subscription_id: 'sub_test_123',
+    });
+  }),
+
+  // Get Payment Method
+  http.post(`${SUPABASE_URL}/functions/v1/get-payment-method`, () => {
+    return HttpResponse.json({
+      payment_method: {
+        id: 'pm_test_123',
+        brand: 'visa',
+        last4: '4242',
+        exp_month: 12,
+        exp_year: 2025,
+      },
+    });
+  }),
+
+  // List Invoices
+  http.post(`${SUPABASE_URL}/functions/v1/list-invoices`, () => {
+    return HttpResponse.json({
+      invoices: [
+        {
+          id: 'in_test_123',
+          number: 'INV-001',
+          amount_paid: 2900,
+          amount_due: 0,
+          currency: 'usd',
+          status: 'paid',
+          created: Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60,
+          period_start: Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60,
+          period_end: Math.floor(Date.now() / 1000),
+          invoice_pdf: 'https://pay.stripe.com/invoice/test_pdf',
+          hosted_invoice_url: 'https://invoice.stripe.com/test_invoice',
+          description: 'Plan Pro - Monthly',
+        },
+      ],
+      has_more: false,
+      next_cursor: null,
+    });
+  }),
+
+  // Generic fallback for other edge functions
   http.post(`${SUPABASE_URL}/functions/v1/*`, () => {
     return HttpResponse.json({ success: true });
   }),
