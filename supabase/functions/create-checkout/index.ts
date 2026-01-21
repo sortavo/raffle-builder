@@ -127,68 +127,37 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       enrichedLog.info("Found existing customer", { customerId });
-      
-      // CRITICAL: Check for existing active subscriptions to prevent duplicates
-      const activeSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
-        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "active", limit: 1 }),
-        'subscriptions.list.active'
-      );
-      
-      if (activeSubscriptions.data.length > 0) {
-        enrichedLog.warn("BLOCKED: User already has active subscription", {
-          existingSubscriptionId: activeSubscriptions.data[0].id,
-        });
-        throw new Error(
-          "Ya tienes una suscripción activa. Usa 'Cambiar plan' para modificar tu suscripción."
-        );
-      }
-      
-      // Also check for trialing subscriptions
-      const trialingSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
-        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "trialing", limit: 1 }),
-        'subscriptions.list.trialing'
-      );
-      
-      if (trialingSubscriptions.data.length > 0) {
-        enrichedLog.warn("BLOCKED: User has trialing subscription", {
-          existingSubscriptionId: trialingSubscriptions.data[0].id,
-        });
-        throw new Error(
-          "Ya tienes una suscripción en período de prueba. Usa 'Cambiar plan' para modificar tu suscripción."
-        );
-      }
-      
-      // Issue 2: Also check for past_due subscriptions (still have access)
-      const pastDueSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
-        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "past_due", limit: 1 }),
-        'subscriptions.list.past_due'
+
+      // P3: OPTIMIZED - Single API call instead of 4 separate calls
+      // Fetch all subscriptions and filter in memory
+      const allSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
+        (stripe) => stripe.subscriptions.list({ customer: customerId!, limit: 10 }),
+        'subscriptions.list'
       );
 
-      if (pastDueSubscriptions.data.length > 0) {
-        enrichedLog.warn("BLOCKED: User has past_due subscription", {
-          existingSubscriptionId: pastDueSubscriptions.data[0].id,
-        });
-        throw new Error(
-          "Tienes un pago pendiente. Por favor actualiza tu método de pago antes de continuar."
-        );
-      }
-
-      // Check for incomplete subscriptions (payment required)
-      const incompleteSubscriptions = await stripeOperation<Stripe.ApiList<Stripe.Subscription>>(
-        (stripe) => stripe.subscriptions.list({ customer: customerId!, status: "incomplete", limit: 1 }),
-        'subscriptions.list.incomplete'
+      // Filter subscriptions by status in memory
+      const blockingStatuses = ['active', 'trialing', 'past_due', 'incomplete'];
+      const blockingSubscription = allSubscriptions.data.find(
+        (sub: Stripe.Subscription) => blockingStatuses.includes(sub.status)
       );
 
-      if (incompleteSubscriptions.data.length > 0) {
-        enrichedLog.warn("BLOCKED: User has incomplete subscription", {
-          existingSubscriptionId: incompleteSubscriptions.data[0].id,
+      if (blockingSubscription) {
+        const statusMessages: Record<string, string> = {
+          active: "Ya tienes una suscripción activa. Usa 'Cambiar plan' para modificar tu suscripción.",
+          trialing: "Ya tienes una suscripción en período de prueba. Usa 'Cambiar plan' para modificar tu suscripción.",
+          past_due: "Tienes un pago pendiente. Por favor actualiza tu método de pago antes de continuar.",
+          incomplete: "Tienes una suscripción pendiente de pago. Completa el pago o cancela antes de crear una nueva.",
+        };
+
+        enrichedLog.warn(`BLOCKED: User has ${blockingSubscription.status} subscription`, {
+          existingSubscriptionId: blockingSubscription.id,
+          status: blockingSubscription.status,
         });
-        throw new Error(
-          "Tienes una suscripción pendiente de pago. Completa el pago o cancela antes de crear una nueva."
-        );
+
+        throw new Error(statusMessages[blockingSubscription.status] || "Ya tienes una suscripción existente.");
       }
-      
-      enrichedLog.info("No existing subscription found, proceeding with checkout");
+
+      enrichedLog.info("No blocking subscription found, proceeding with checkout");
     }
 
     // Check if this is a Basic plan (gets 7 day trial)

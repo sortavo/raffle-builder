@@ -111,10 +111,10 @@ serve(async (req) => {
       }, 200);
     }
 
-    // Get dunning config
+    // P6: Get dunning config - specific columns only
     const { data: dunningConfigs } = await supabaseAdmin
       .from("dunning_config")
-      .select("*");
+      .select("subscription_tier, grace_period_days, suspension_after_days, cancellation_after_days, retry_schedule, email_schedule");
 
     type DunningConfig = {
       subscription_tier: string;
@@ -124,11 +124,27 @@ serve(async (req) => {
       retry_schedule: number[];
       email_schedule: Record<string, number>;
     };
-    
+
     const configByTier = (dunningConfigs || []).reduce((acc, config) => {
       acc[config.subscription_tier] = config as DunningConfig;
       return acc;
     }, {} as Record<string, DunningConfig>);
+
+    // P4: Batch load all dunning emails for all failures upfront (avoid N+1)
+    const failureIds = failures.map(f => f.id);
+    const { data: allSentEmails } = await supabaseAdmin
+      .from("dunning_emails")
+      .select("payment_failure_id, email_type")
+      .in("payment_failure_id", failureIds);
+
+    // Group sent emails by failure ID for O(1) lookup
+    const sentEmailsByFailure = (allSentEmails || []).reduce((acc, email) => {
+      if (!acc[email.payment_failure_id]) {
+        acc[email.payment_failure_id] = new Set<string>();
+      }
+      acc[email.payment_failure_id].add(email.email_type);
+      return acc;
+    }, {} as Record<string, Set<string>>);
 
     let processed = 0;
     let suspended = 0;
@@ -225,12 +241,8 @@ serve(async (req) => {
 
       // Determine which dunning email to send
       const emailSchedule = config.email_schedule as Record<string, number>;
-      const { data: sentEmails } = await supabaseAdmin
-        .from("dunning_emails")
-        .select("email_type")
-        .eq("payment_failure_id", failure.id);
-
-      const sentTypes = new Set((sentEmails || []).map(e => e.email_type));
+      // P4: Use pre-loaded emails instead of querying in loop
+      const sentTypes = sentEmailsByFailure[failure.id] || new Set<string>();
       let emailToSend: typeof DUNNING_SEQUENCE[number] | null = null;
 
       for (const emailType of DUNNING_SEQUENCE) {

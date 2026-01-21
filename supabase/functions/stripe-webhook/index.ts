@@ -81,6 +81,7 @@ interface OrganizationResult {
 }
 
 // MT1: Enhanced organization lookup with cross-validation to prevent misrouting
+// P5: Optimized with parallel queries instead of sequential
 async function findOrganizationByPaymentContext(
   supabase: SupabaseClient,
   customerId: string,
@@ -90,55 +91,65 @@ async function findOrganizationByPaymentContext(
   handlerName: string
 ): Promise<OrganizationResult | null> {
   const candidates: Array<{ org: OrganizationResult; source: string; priority: number }> = [];
-
-  // 1. Try by metadata organization_id (most reliable for new subscriptions)
   const orgIdFromMeta = subscriptionMetadata?.organization_id;
-  if (orgIdFromMeta) {
-    const { data: orgByMeta } = await supabase
+
+  // P5: Run all lookups in parallel for better performance
+  const [metaResult, customerResult, emailResult, profileResult] = await Promise.all([
+    // 1. By metadata organization_id
+    orgIdFromMeta
+      ? supabase
+          .from("organizations")
+          .select("id, subscription_tier, subscription_status, stripe_customer_id")
+          .eq("id", orgIdFromMeta)
+          .single()
+      : Promise.resolve({ data: null }),
+
+    // 2. By stripe_customer_id
+    supabase
       .from("organizations")
       .select("id, subscription_tier, subscription_status, stripe_customer_id")
-      .eq("id", orgIdFromMeta)
-      .single();
-    if (orgByMeta) {
-      candidates.push({ org: orgByMeta, source: 'metadata', priority: 1 });
-    }
-  }
+      .eq("stripe_customer_id", customerId)
+      .single(),
 
-  // 2. Try by stripe_customer_id (reliable for renewals)
-  const { data: orgByCustomer } = await supabase
-    .from("organizations")
-    .select("id, subscription_tier, subscription_status, stripe_customer_id")
-    .eq("stripe_customer_id", customerId)
-    .single();
-  if (orgByCustomer) {
-    candidates.push({ org: orgByCustomer, source: 'stripe_customer_id', priority: 2 });
-  }
-
-  // 3. Try by organization email
-  const { data: orgByEmail } = await supabase
-    .from("organizations")
-    .select("id, subscription_tier, subscription_status, stripe_customer_id")
-    .eq("email", customerEmail)
-    .single();
-  if (orgByEmail) {
-    candidates.push({ org: orgByEmail, source: 'org_email', priority: 3 });
-  }
-
-  // 4. Try by profile email -> organization_id
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("organization_id")
-    .eq("email", customerEmail)
-    .single();
-
-  if (profileData?.organization_id) {
-    const { data: orgByProfile } = await supabase
+    // 3. By organization email
+    supabase
       .from("organizations")
       .select("id, subscription_tier, subscription_status, stripe_customer_id")
-      .eq("id", profileData.organization_id)
-      .single();
-    if (orgByProfile) {
-      candidates.push({ org: orgByProfile, source: 'profile_email', priority: 4 });
+      .eq("email", customerEmail)
+      .single(),
+
+    // 4. By profile email -> organization_id
+    supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("email", customerEmail)
+      .single(),
+  ]);
+
+  // Process results
+  if (metaResult.data) {
+    candidates.push({ org: metaResult.data, source: 'metadata', priority: 1 });
+  }
+  if (customerResult.data) {
+    candidates.push({ org: customerResult.data, source: 'stripe_customer_id', priority: 2 });
+  }
+  if (emailResult.data) {
+    candidates.push({ org: emailResult.data, source: 'org_email', priority: 3 });
+  }
+
+  // For profile lookup, we need a second query if organization_id exists
+  if (profileResult.data?.organization_id) {
+    // Check if we already have this org from another source
+    const alreadyFound = candidates.some(c => c.org.id === profileResult.data.organization_id);
+    if (!alreadyFound) {
+      const { data: orgByProfile } = await supabase
+        .from("organizations")
+        .select("id, subscription_tier, subscription_status, stripe_customer_id")
+        .eq("id", profileResult.data.organization_id)
+        .single();
+      if (orgByProfile) {
+        candidates.push({ org: orgByProfile, source: 'profile_email', priority: 4 });
+      }
     }
   }
 
