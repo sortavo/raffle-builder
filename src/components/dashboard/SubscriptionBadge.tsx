@@ -1,6 +1,7 @@
 import { Crown, Zap, Diamond, Sparkles, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { differenceInDays } from "date-fns";
+// Issue 9: Use centralized trial helper
+import { calculateTrialDaysRemaining } from "@/lib/subscription-utils";
 
 type SubscriptionTier = "basic" | "pro" | "premium" | "enterprise" | string | null | undefined;
 type SubscriptionStatus = "active" | "trial" | "past_due" | "canceled" | string | null | undefined;
@@ -50,15 +51,8 @@ export function SubscriptionBadge({
   const isPastDue = status === "past_due";
   const isCanceled = status === "canceled";
   
-  // Calculate days remaining for trial - normalize to start of day for accurate counting
-  let daysRemaining = 0;
-  if (trialEndsAt) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDate = new Date(trialEndsAt);
-    endDate.setHours(0, 0, 0, 0);
-    daysRemaining = Math.max(0, differenceInDays(endDate, today));
-  }
+  // Use centralized helper for consistent trial day calculation
+  const daysRemaining = calculateTrialDaysRemaining(trialEndsAt);
 
   // Handle special statuses
   if (isPastDue) {

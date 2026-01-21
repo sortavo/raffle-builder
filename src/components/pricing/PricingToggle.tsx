@@ -10,8 +10,11 @@ interface PricingToggleProps {
 export function PricingToggle({ isAnnual, onToggle }: PricingToggleProps) {
   return (
     <div className="relative inline-flex items-center gap-2 p-1.5 rounded-full bg-muted/80 backdrop-blur-sm border border-border shadow-lg">
+      {/* Issue 11: Accessibility labels */}
       <button
         onClick={() => onToggle(false)}
+        aria-label="Seleccionar facturación mensual"
+        aria-pressed={!isAnnual}
         className={`relative z-10 px-6 py-2.5 rounded-full text-sm font-semibold transition-colors duration-300 ${
           !isAnnual ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
         }`}
@@ -21,6 +24,8 @@ export function PricingToggle({ isAnnual, onToggle }: PricingToggleProps) {
       
       <button
         onClick={() => onToggle(true)}
+        aria-label="Seleccionar facturación anual con 2 meses gratis"
+        aria-pressed={isAnnual}
         className={`relative z-10 px-6 py-2.5 rounded-full text-sm font-semibold transition-colors duration-300 ${
           isAnnual ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
         }`}

@@ -130,6 +130,39 @@ serve(async (req) => {
       .eq("id", refundRequestId);
 
     try {
+      // Issue 5: Check for existing refund (idempotency)
+      const existingRefunds = await stripe.refunds.list({
+        charge: refundRequest.stripe_charge_id,
+        limit: 10,
+      });
+
+      const pendingOrSucceeded = existingRefunds.data.find(
+        (r: Stripe.Refund) => r.status === 'succeeded' || r.status === 'pending'
+      );
+
+      if (pendingOrSucceeded) {
+        logStep("Refund already exists (idempotency)", {
+          existingRefundId: pendingOrSucceeded.id,
+          chargeId: refundRequest.stripe_charge_id
+        });
+
+        // Update request with existing refund ID and return success
+        await supabaseAdmin
+          .from("refund_requests")
+          .update({
+            stripe_refund_id: pendingOrSucceeded.id,
+            status: "completed",
+            processed_at: new Date().toISOString()
+          })
+          .eq("id", refundRequestId);
+
+        return corsJsonResponse(req, {
+          success: true,
+          refund_id: pendingOrSucceeded.id,
+          message: "Refund already processed"
+        }, 200);
+      }
+
       // Create the refund in Stripe
       const refund = await stripe.refunds.create({
         charge: refundRequest.stripe_charge_id,

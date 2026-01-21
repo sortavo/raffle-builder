@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, ExternalLink, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditCard, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +20,21 @@ const brandLogos: Record<string, string> = {
   mastercard: "💳 Mastercard",
   amex: "💳 Amex",
   discover: "💳 Discover",
+};
+
+// Issue 7: Helper functions for card expiration detection
+const isCardExpiringSoon = (expMonth: number, expYear: number): boolean => {
+  const now = new Date();
+  const expDate = new Date(expYear, expMonth - 1); // Month is 0-indexed
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  return expDate <= thirtyDaysFromNow;
+};
+
+const isCardExpired = (expMonth: number, expYear: number): boolean => {
+  const now = new Date();
+  const expDate = new Date(expYear, expMonth); // End of expiration month
+  return expDate < now;
 };
 
 export function PaymentMethodCard() {
@@ -133,6 +149,26 @@ export function PaymentMethodCard() {
               Agregar Tarjeta
             </Button>
           </div>
+        )}
+        
+        {/* Issue 7: Card expiration warnings */}
+        {paymentMethod && isCardExpired(paymentMethod.exp_month, paymentMethod.exp_year) && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Tu tarjeta ha expirado. Por favor actualiza tu método de pago.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {paymentMethod && !isCardExpired(paymentMethod.exp_month, paymentMethod.exp_year) &&
+         isCardExpiringSoon(paymentMethod.exp_month, paymentMethod.exp_year) && (
+          <Alert className="mt-4 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              Tu tarjeta expira pronto. Considera actualizar tu método de pago.
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>

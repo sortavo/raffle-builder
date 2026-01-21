@@ -323,6 +323,13 @@ serve(async (req) => {
         break;
       }
 
+      // Issue 3: Handle 3D Secure / SCA payments that require additional action
+      case "invoice.payment_action_required": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handlePaymentActionRequired(supabaseAdmin, stripe, invoice, event.id);
+        break;
+      }
+
       case "customer.updated": {
         const customer = event.data.object as Stripe.Customer;
         await handleCustomerUpdated(supabaseAdmin, customer, event.id);
@@ -445,10 +452,30 @@ async function handleSubscriptionChange(
     eventId,
   }, "DEBUG");
 
-  // Determine tier from product
-  const priceItem = subscription.items.data[0];
-  const productId = priceItem?.price?.product as string;
-  const priceId = priceItem?.price?.id;
+  // Issue 12: Validate subscription items exist before processing
+  const subscriptionItems = subscription.items.data;
+
+  if (subscriptionItems.length === 0) {
+    logStep("Subscription has no items", { subscriptionId: subscription.id, eventId }, "WARN");
+    return;
+  }
+
+  if (subscriptionItems.length > 1) {
+    logStep("Subscription has multiple items, using first", {
+      subscriptionId: subscription.id,
+      itemCount: subscriptionItems.length,
+      eventId
+    }, "WARN");
+  }
+
+  const priceItem = subscriptionItems[0];
+  if (!priceItem?.price?.product) {
+    logStep("Price item has no product", { subscriptionId: subscription.id, eventId }, "WARN");
+    return;
+  }
+
+  const productId = priceItem.price.product as string;
+  const priceId = priceItem.price.id;
   const tier = PRODUCT_TO_TIER[productId] || "basic";
   const limits = TIER_LIMITS[tier];
 
@@ -799,6 +826,71 @@ async function handlePaymentFailed(
       logStep("Failed to create payment failed notification", { error: notifError.message, eventId }, "WARN");
     }
   }
+}
+
+// Issue 3: Handler for 3D Secure / SCA payments that require additional action
+async function handlePaymentActionRequired(
+  supabase: SupabaseClient,
+  stripe: Stripe,
+  invoice: Stripe.Invoice,
+  eventId: string
+) {
+  if (!invoice.subscription) {
+    logStep("Invoice has no subscription for action required", { invoiceId: invoice.id, eventId }, "DEBUG");
+    return;
+  }
+
+  logStep("handlePaymentActionRequired started", {
+    eventId,
+    invoiceId: invoice.id,
+    subscriptionId: invoice.subscription,
+    hostedInvoiceUrl: invoice.hosted_invoice_url,
+  });
+
+  const customerId = typeof invoice.customer === "string"
+    ? invoice.customer
+    : invoice.customer?.id;
+
+  if (!customerId) return;
+
+  const customer = await stripe.customers.retrieve(customerId);
+  if (customer.deleted || !customer.email) return;
+
+  const org = await findOrganizationByPaymentContext(
+    supabase,
+    customerId,
+    customer.email,
+    undefined,
+    eventId,
+    "handlePaymentActionRequired"
+  );
+
+  if (!org) return;
+
+  // Create notification for user to complete payment
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("organization_id", org.id)
+    .limit(1)
+    .single();
+
+  if (profile) {
+    const { error: notifError } = await supabase.from("notifications").insert({
+      user_id: profile.id,
+      organization_id: org.id,
+      type: "payment_pending",
+      title: "Acción requerida para completar pago",
+      message: "Tu banco requiere verificación adicional. Por favor completa el pago para mantener tu suscripción activa.",
+      link: invoice.hosted_invoice_url || "/dashboard/settings",
+    });
+
+    if (notifError) {
+      logStep("Failed to create payment action notification", { error: notifError.message, eventId }, "WARN");
+    }
+  }
+
+  logStep("Payment action required notification created", { orgId: org.id, eventId });
 }
 
 async function handleCustomerUpdated(

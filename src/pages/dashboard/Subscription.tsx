@@ -508,8 +508,10 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Invoice History - only show for active subscriptions */}
-        {currentStatus === "active" && <InvoiceHistory />}
+        {/* Issue 6: Invoice History - show for active, trial, and past_due users */}
+        {(currentStatus === "active" || currentStatus === "trial" || currentStatus === "past_due") && (
+          <InvoiceHistory />
+        )}
 
         {/* Upgrade Confirmation Modal */}
         <UpgradeConfirmationModal

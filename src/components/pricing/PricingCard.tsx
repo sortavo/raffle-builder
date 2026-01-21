@@ -79,7 +79,10 @@ export function PricingCard({
   const monthlyEquivalent = isAnnual ? Math.round(price / 12) : price;
 
   return (
+    // Issue 11: Accessibility - add role and aria-labelledby
     <motion.div
+      role="article"
+      aria-labelledby={`plan-${tier}-title`}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -121,8 +124,8 @@ export function PricingCard({
           </Badge>
         )}
 
-        {/* Plan name */}
-        <h3 className="text-2xl font-bold text-white mb-2">{name}</h3>
+        {/* Plan name - with id for aria-labelledby */}
+        <h3 id={`plan-${tier}-title`} className="text-2xl font-bold text-white mb-2">{name}</h3>
         <p className="text-sm text-white/50">{idealFor}</p>
       </div>
 
@@ -174,10 +177,11 @@ export function PricingCard({
         )}
       </div>
 
-      {/* CTA Button */}
+      {/* CTA Button - Issue 11: Accessibility label */}
       <Button
         asChild
         size="lg"
+        aria-label={`${cta} - Plan ${name} por $${monthlyEquivalent} USD al mes`}
         className={cn(
           'w-full mb-6 font-semibold transition-all duration-300 group',
           popular && 'bg-gradient-to-r from-primary to-emerald-400 hover:from-primary/90 hover:to-emerald-400/90 shadow-lg shadow-primary/25',

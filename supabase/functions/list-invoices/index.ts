@@ -60,13 +60,23 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Fetch invoices
-    const invoices = await stripe.invoices.list({
-      customer: org.stripe_customer_id,
-      limit: 12,
-    });
+    // Issue 4: Parse request body for pagination params
+    const body = await req.json().catch(() => ({}));
+    const { limit = 12, starting_after } = body;
 
-    logStep("Fetched invoices", { count: invoices.data.length });
+    // Fetch invoices with pagination support
+    const invoicesParams: Stripe.InvoiceListParams = {
+      customer: org.stripe_customer_id,
+      limit: Math.min(limit, 100), // Max 100 per Stripe API
+    };
+
+    if (starting_after) {
+      invoicesParams.starting_after = starting_after;
+    }
+
+    const invoices = await stripe.invoices.list(invoicesParams);
+
+    logStep("Fetched invoices", { count: invoices.data.length, hasMore: invoices.has_more });
 
     const formattedInvoices = invoices.data.map((inv: Stripe.Invoice) => ({
       id: inv.id,
@@ -83,7 +93,11 @@ serve(async (req) => {
       description: inv.lines.data[0]?.description || "Suscripción",
     }));
 
-    return corsJsonResponse(req, { invoices: formattedInvoices }, 200);
+    return corsJsonResponse(req, { 
+      invoices: formattedInvoices,
+      has_more: invoices.has_more,
+      next_cursor: invoices.data.length > 0 ? invoices.data[invoices.data.length - 1].id : null,
+    }, 200);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
