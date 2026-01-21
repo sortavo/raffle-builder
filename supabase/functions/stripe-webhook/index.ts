@@ -3,6 +3,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { enqueueJob } from '../_shared/job-queue.ts';
 import { PRODUCT_TO_TIER, TIER_LIMITS, STRIPE_API_VERSION } from "../_shared/stripe-config.ts";
+import { logBillingAction } from "../_shared/audit-logger.ts";
+import { sanitizeLogData } from "../_shared/correlation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,9 +14,12 @@ const corsHeaders = {
 // Enhanced logging with severity levels
 type LogLevel = "INFO" | "WARN" | "ERROR" | "DEBUG";
 
+// C1 PCI DSS: Log sanitization for all webhook logs
 const logStep = (step: string, details?: Record<string, unknown>, level: LogLevel = "INFO") => {
   const timestamp = new Date().toISOString();
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+  // Sanitize details to prevent PCI data leakage
+  const sanitizedDetails = details ? sanitizeLogData(details) : undefined;
+  const detailsStr = sanitizedDetails ? ` - ${JSON.stringify(sanitizedDetails)}` : "";
   const prefix = `[STRIPE-WEBHOOK] [${timestamp}] [${level}]`;
   
   switch (level) {
@@ -590,6 +595,18 @@ async function handleSubscriptionChange(
     period: subscriptionPeriod,
   });
 
+  // C4: Billing audit log for subscription changes
+  await logBillingAction(supabase, {
+    organizationId: org.id,
+    actorType: 'stripe_webhook',
+    action: subscription.status === 'active' ? 'subscription_updated' : 'subscription_created',
+    resourceType: 'subscription',
+    resourceId: subscription.id,
+    oldValues: { tier: org.subscription_tier, status: org.subscription_status },
+    newValues: { tier, status: subscriptionStatus, period: subscriptionPeriod },
+    stripeEventId: eventId,
+  });
+
   // Create notification for the user
   const { data: profile } = await supabase
     .from("profiles")
@@ -681,6 +698,18 @@ async function handleSubscriptionCanceled(
     orgId: org.id,
     previousTier: org.subscription_tier,
     eventId,
+  });
+
+  // C4: Billing audit log for subscription cancellation
+  await logBillingAction(supabase, {
+    organizationId: org.id,
+    actorType: 'stripe_webhook',
+    action: 'subscription_canceled',
+    resourceType: 'subscription',
+    resourceId: subscription.id,
+    oldValues: { tier: org.subscription_tier, status: org.subscription_status },
+    newValues: { tier: 'basic', status: 'canceled' },
+    stripeEventId: eventId,
   });
 
   // Create cancellation notification
@@ -836,6 +865,22 @@ async function handlePaymentFailed(
   }
   
   logStep("Organization marked as past_due", { orgId: org.id, eventId });
+
+  // C4: Billing audit log for payment failure
+  await logBillingAction(supabase, {
+    organizationId: org.id,
+    actorType: 'stripe_webhook',
+    action: 'payment_failed',
+    resourceType: 'invoice',
+    resourceId: invoice.id,
+    newValues: { 
+      status: 'past_due', 
+      attemptCount: invoice.attempt_count,
+      nextAttempt: safeTimestampToISO(invoice.next_payment_attempt),
+      amountDue: invoice.amount_due,
+    },
+    stripeEventId: eventId,
+  });
 
   // Create notification
   const { data: profile } = await supabase

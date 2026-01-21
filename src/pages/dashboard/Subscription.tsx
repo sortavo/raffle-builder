@@ -405,7 +405,7 @@ export default function Subscription() {
             </div>
           </CardContent>
           {currentStatus === "active" && (
-            <CardFooter className="flex gap-2">
+            <CardFooter className="flex flex-wrap gap-2 justify-between items-center">
               <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
                 {isPortalLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -414,14 +414,15 @@ export default function Subscription() {
                 )}
                 Gestionar Suscripción
               </Button>
+              {/* C12: Easy cancellation - more prominent button per EU regulations */}
               {!cancelAtPeriodEnd && (
                 <Button 
-                  variant="ghost" 
-                  className="text-muted-foreground hover:text-destructive"
+                  variant="outline" 
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
                   onClick={() => setShowCancelModal(true)}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar
+                  Cancelar Suscripción
                 </Button>
               )}
             </CardFooter>

@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ArrowRight, Check, Building2, Sparkles, Globe, MapPin, Gift, CreditCard, Zap, Crown } from "lucide-react";
+import { Loader2, ArrowRight, Check, Building2, Sparkles, Globe, MapPin, Gift, CreditCard, Zap, Crown, FileText } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { STRIPE_PLANS, getPriceId, type PlanKey, type BillingPeriod } from "@/lib/stripe-config";
 import { z } from "zod";
@@ -102,6 +103,8 @@ export default function Onboarding() {
   const [selectedTimezone, setSelectedTimezone] = useState("America/Mexico_City");
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  // C2 GDPR: Terms acceptance state
+  const [termsAccepted, setTermsAccepted] = useState(false);
   // Step 2: Plan Selection
   const urlPlan = searchParams.get("plan") as PlanKey | null;
   const validPlans: PlanKey[] = ["basic", "pro", "premium"];
@@ -360,26 +363,49 @@ export default function Onboarding() {
   const handleStep1Submit = async () => {
     if (!validateStep1() || !organization) return;
     
-    setIsSubmitting(true);
-    const { error } = await supabase
-      .from("organizations")
-      .update({ 
-        name: businessName, 
-        phone,
-        country_code: selectedCountry,
-        currency_code: selectedCurrency,
-        timezone: selectedTimezone,
-        city: city || null,
-      })
-      .eq("id", organization.id);
-    setIsSubmitting(false);
-
-    if (error) {
-      toast.error("Error al guardar información");
+    // C2 GDPR: Validate terms acceptance
+    if (!termsAccepted) {
+      toast.error("Debes aceptar los términos y la política de privacidad para continuar");
       return;
     }
     
-    setCurrentStep(2);
+    setIsSubmitting(true);
+    
+    try {
+      // C2 GDPR: Record terms acceptance
+      const { error: termsError } = await supabase.from('terms_acceptance').insert({
+        user_id: user!.id,
+        organization_id: organization.id,
+        terms_version: 'v1.0',
+        privacy_version: 'v1.0',
+      });
+      
+      if (termsError && !termsError.message.includes('duplicate')) {
+        console.error("Error recording terms acceptance:", termsError);
+        // Don't block on terms recording failure, just log
+      }
+      
+      const { error } = await supabase
+        .from("organizations")
+        .update({ 
+          name: businessName, 
+          phone,
+          country_code: selectedCountry,
+          currency_code: selectedCurrency,
+          timezone: selectedTimezone,
+          city: city || null,
+        })
+        .eq("id", organization.id);
+
+      if (error) {
+        toast.error("Error al guardar información");
+        return;
+      }
+      
+      setCurrentStep(2);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePlanSelect = async () => {
@@ -648,11 +674,31 @@ export default function Onboarding() {
                 </div>
               </div>
 
+              {/* C2 GDPR: Terms and Privacy acceptance checkbox */}
+              <div className="flex items-start gap-3 p-4 bg-gray-800/30 border border-white/10 rounded-lg">
+                <Checkbox 
+                  id="terms" 
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                  className="mt-1 border-white/30 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-300 leading-relaxed cursor-pointer">
+                  He leído y acepto los{' '}
+                  <Link to="/legal/terms" target="_blank" className="text-emerald-400 hover:text-emerald-300 underline">
+                    Términos y Condiciones
+                  </Link>{' '}
+                  y la{' '}
+                  <Link to="/legal/privacy" target="_blank" className="text-emerald-400 hover:text-emerald-300 underline">
+                    Política de Privacidad
+                  </Link>.
+                </label>
+              </div>
+
               <div className="flex justify-end pt-4">
                 <Button 
                   onClick={handleStep1Submit} 
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:-translate-y-0.5"
+                  disabled={isSubmitting || !termsAccepted}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Continuar
