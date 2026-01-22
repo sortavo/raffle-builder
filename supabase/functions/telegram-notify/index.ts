@@ -99,7 +99,17 @@ serve(async (req) => {
 
     // Handle organizer notifications (multi-user support: send to ALL connected users)
     if (organizerNotifications.includes(type) && organizationId) {
-      const prefField = `notify_${type.replace("_uploaded", "_proof")}` as const;
+      // Explicit mapping to avoid string manipulation bugs
+      const organizerPrefFieldMap: Record<string, string> = {
+        ticket_reserved: "notify_ticket_reserved",
+        payment_proof_uploaded: "notify_payment_proof",
+        payment_approved: "notify_payment_approved",
+        payment_rejected: "notify_payment_rejected",
+        reservation_expired: "notify_reservation_expired",
+        raffle_ending: "notify_raffle_ending",
+        winner_selected: "notify_winner_selected",
+      };
+      const prefField = organizerPrefFieldMap[type] || `notify_${type}`;
 
       // Fetch ALL connections for this organization (multi-user support)
       const { data: connections } = await supabase

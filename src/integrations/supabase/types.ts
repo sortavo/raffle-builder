@@ -2802,6 +2802,7 @@ export type Database = {
         }[]
       }
       cleanup_rate_limit_entries: { Args: never; Returns: undefined }
+      compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       confirm_order_sale_v2: { Args: { p_order_id: string }; Returns: boolean }
       expand_order_to_indices: {
         Args: { p_lucky_indices: number[]; p_ticket_ranges: Json }
