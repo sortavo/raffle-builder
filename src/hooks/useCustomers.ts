@@ -13,8 +13,6 @@ export interface Customer {
   total_spent: number;
   first_purchase_at: string | null;
   last_purchase_at: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface CustomerStats {
@@ -26,8 +24,8 @@ export interface CustomerStats {
 }
 
 /**
- * Hook to fetch all customers for an organization from the permanent customers table.
- * This data persists even after orders are archived (90+ days old).
+ * Hook to fetch aggregated customer data from orders table.
+ * Aggregates buyer information to provide customer-level insights.
  */
 export function useCustomers(organizationId: string | undefined) {
   return useQuery({
@@ -35,15 +33,52 @@ export function useCustomers(organizationId: string | undefined) {
     queryFn: async () => {
       if (!organizationId) return { customers: [], stats: emptyStats };
 
+      // Fetch orders and aggregate by buyer email/phone
       const { data, error } = await supabase
-        .from("customers")
-        .select("*")
+        .from("orders")
+        .select("id, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_count, order_total, created_at, status")
         .eq("organization_id", organizationId)
-        .order("total_spent", { ascending: false });
+        .in("status", ["approved", "sold"]);
 
       if (error) throw error;
 
-      const customers = (data || []) as Customer[];
+      // Aggregate customers by email or phone
+      const customerMap = new Map<string, Customer>();
+
+      (data || []).forEach((order) => {
+        const key = order.buyer_email || order.buyer_phone || order.buyer_name || order.id;
+        
+        const existing = customerMap.get(key);
+        if (existing) {
+          existing.total_orders += 1;
+          existing.total_tickets += order.ticket_count || 0;
+          existing.total_spent += order.order_total || 0;
+          if (!existing.first_purchase_at || order.created_at < existing.first_purchase_at) {
+            existing.first_purchase_at = order.created_at;
+          }
+          if (!existing.last_purchase_at || order.created_at > existing.last_purchase_at) {
+            existing.last_purchase_at = order.created_at;
+          }
+        } else {
+          customerMap.set(key, {
+            id: key,
+            organization_id: organizationId,
+            email: order.buyer_email,
+            phone: order.buyer_phone,
+            full_name: order.buyer_name || "Sin nombre",
+            city: order.buyer_city,
+            total_orders: 1,
+            total_tickets: order.ticket_count || 0,
+            total_spent: order.order_total || 0,
+            first_purchase_at: order.created_at,
+            last_purchase_at: order.created_at,
+          });
+        }
+      });
+
+      const customers = Array.from(customerMap.values()).sort(
+        (a, b) => b.total_spent - a.total_spent
+      );
 
       // Calculate stats
       const stats: CustomerStats = {
@@ -81,21 +116,52 @@ export function useCustomerSearch(
       if (!organizationId) return [];
 
       let query = supabase
-        .from("customers")
-        .select("*")
+        .from("orders")
+        .select("id, buyer_name, buyer_email, buyer_phone, buyer_city, ticket_count, order_total, created_at")
         .eq("organization_id", organizationId)
-        .order("total_spent", { ascending: false });
+        .in("status", ["approved", "sold"]);
 
       if (searchTerm) {
         query = query.or(
-          `full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`
+          `buyer_name.ilike.%${searchTerm}%,buyer_email.ilike.%${searchTerm}%,buyer_phone.ilike.%${searchTerm}%`
         );
       }
 
-      const { data, error } = await query.limit(100);
+      const { data, error } = await query.limit(500);
 
       if (error) throw error;
-      return (data || []) as Customer[];
+
+      // Aggregate by customer
+      const customerMap = new Map<string, Customer>();
+
+      (data || []).forEach((order) => {
+        const key = order.buyer_email || order.buyer_phone || order.buyer_name || order.id;
+        
+        const existing = customerMap.get(key);
+        if (existing) {
+          existing.total_orders += 1;
+          existing.total_tickets += order.ticket_count || 0;
+          existing.total_spent += order.order_total || 0;
+        } else {
+          customerMap.set(key, {
+            id: key,
+            organization_id: organizationId,
+            email: order.buyer_email,
+            phone: order.buyer_phone,
+            full_name: order.buyer_name || "Sin nombre",
+            city: order.buyer_city,
+            total_orders: 1,
+            total_tickets: order.ticket_count || 0,
+            total_spent: order.order_total || 0,
+            first_purchase_at: order.created_at,
+            last_purchase_at: order.created_at,
+          });
+        }
+      });
+
+      return Array.from(customerMap.values())
+        .sort((a, b) => b.total_spent - a.total_spent)
+        .slice(0, 100);
     },
     enabled: !!organizationId,
   });
