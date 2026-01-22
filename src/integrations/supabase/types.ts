@@ -2929,6 +2929,8 @@ export type Database = {
             }
             Returns: {
               approved_at: string
+              approved_by: string
+              approved_by_name: string
               buyer_city: string
               buyer_email: string
               buyer_name: string
