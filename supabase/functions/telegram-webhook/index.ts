@@ -102,6 +102,53 @@ async function editTelegramMessage(chatId: string, messageId: number, text: stri
   return response.ok;
 }
 
+// Edit ALL messages for an order across all team members (multi-user sync)
+// deno-lint-ignore no-explicit-any
+async function editAllOrderMessages(
+  supabaseClient: any,
+  orderId: string,
+  newText: string,
+  excludeChatId?: string,
+  excludeMessageId?: number
+): Promise<number> {
+  // Fetch all message records for this order
+  const { data: messages, error } = await supabaseClient
+    .from("telegram_order_messages")
+    .select("telegram_chat_id, message_id")
+    .eq("order_id", orderId);
+
+  if (error || !messages || messages.length === 0) {
+    logStep("No tracked messages to sync", { orderId, error: error?.message });
+    return 0;
+  }
+
+  logStep("Syncing all order messages", { orderId, messageCount: messages.length });
+
+  // Type the messages array
+  const typedMessages = messages as { telegram_chat_id: string; message_id: number }[];
+
+  // Edit all messages in parallel
+  const editResults = await Promise.all(
+    typedMessages.map(async (msg) => {
+      // Skip the message that was already edited by the caller
+      if (msg.telegram_chat_id === excludeChatId && msg.message_id === excludeMessageId) {
+        return true; // Consider as success since caller already handled it
+      }
+      return editTelegramMessage(msg.telegram_chat_id, msg.message_id, newText, null);
+    })
+  );
+
+  // Delete all records for this order after editing
+  await supabaseClient
+    .from("telegram_order_messages")
+    .delete()
+    .eq("order_id", orderId);
+
+  const successCount = editResults.filter(Boolean).length;
+  logStep("Order messages synced", { orderId, success: successCount, total: typedMessages.length });
+  return successCount;
+}
+
 // Answer callback query (stops loading indicator on button)
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
@@ -321,18 +368,19 @@ serve(async (req) => {
             logStep("Error approving order", { error: updateError.message });
             await sendTelegramMessage(callbackChatId, "❌ Error al aprobar la orden.");
           } else {
+            // Build the approval message
+            const approvalMessage = `✅ <b>APROBADA</b> por @${actionUsername}\n\n` +
+              `Sorteo: ${raffle.title}\n` +
+              `Comprador: ${order.buyer_name}\n` +
+              `Boletos: ${order.ticket_count}`;
+
             // Edit the original message to show approval (removes buttons)
             if (messageId) {
-              await editTelegramMessage(
-                callbackChatId,
-                messageId,
-                `✅ <b>APROBADA</b> por @${actionUsername}\n\n` +
-                `Sorteo: ${raffle.title}\n` +
-                `Comprador: ${order.buyer_name}\n` +
-                `Boletos: ${order.ticket_count}`,
-                null
-              );
+              await editTelegramMessage(callbackChatId, messageId, approvalMessage, null);
             }
+
+            // Sync ALL messages for this order across all team members
+            await editAllOrderMessages(supabase, orderId, approvalMessage, callbackChatId, messageId);
 
             // Notify the buyer if they have Telegram linked
             if (order.buyer_email) {
@@ -367,18 +415,19 @@ serve(async (req) => {
             logStep("Error rejecting order", { error: deleteError.message });
             await sendTelegramMessage(callbackChatId, "❌ Error al rechazar la orden.");
           } else {
+            // Build the rejection message
+            const rejectionMessage = `❌ <b>RECHAZADA</b> por @${actionUsername}\n\n` +
+              `Sorteo: ${raffle.title}\n` +
+              `Comprador: ${order.buyer_name}\n` +
+              `Boletos liberados: ${order.ticket_count}`;
+
             // Edit the original message to show rejection (removes buttons)
             if (messageId) {
-              await editTelegramMessage(
-                callbackChatId,
-                messageId,
-                `❌ <b>RECHAZADA</b> por @${actionUsername}\n\n` +
-                `Sorteo: ${raffle.title}\n` +
-                `Comprador: ${order.buyer_name}\n` +
-                `Boletos liberados: ${order.ticket_count}`,
-                null
-              );
+              await editTelegramMessage(callbackChatId, messageId, rejectionMessage, null);
             }
+
+            // Sync ALL messages for this order across all team members
+            await editAllOrderMessages(supabase, orderId, rejectionMessage, callbackChatId, messageId);
 
             // Notify the buyer if they have Telegram linked
             if (order.buyer_email) {

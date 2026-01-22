@@ -19,11 +19,12 @@ interface InlineKeyboard {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
-async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: InlineKeyboard) {
+// Returns message_id on success, null on failure
+async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: InlineKeyboard): Promise<number | null> {
   const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
   if (!token) {
     logStep("TELEGRAM_BOT_TOKEN not configured");
-    return false;
+    return null;
   }
 
   try {
@@ -47,13 +48,16 @@ async function sendTelegramMessage(chatId: string, text: string, replyMarkup?: I
     if (!response.ok) {
       const error = await response.text();
       logStep("Error sending message", { error, chatId });
-      return false;
+      return null;
     }
-    return true;
+    
+    // Extract message_id from response for tracking
+    const result = await response.json();
+    return result.result?.message_id || null;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     logStep("Exception sending message", { error: errorMessage });
-    return false;
+    return null;
   }
 }
 
@@ -187,18 +191,42 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        // Send to ALL connected users
-        const results = await Promise.all(
-          validConnections.map((conn) =>
-            sendTelegramMessage(conn.telegram_chat_id!, message, replyMarkup)
-          )
+        // Send to ALL connected users and collect message_ids
+        const sendResults = await Promise.all(
+          validConnections.map(async (conn) => {
+            const messageId = await sendTelegramMessage(conn.telegram_chat_id!, message, replyMarkup);
+            return { chatId: conn.telegram_chat_id!, messageId };
+          })
         );
 
-        sent = results.some((r) => r === true);
+        // If this is a payment_proof notification with buttons, save message_ids for multi-user sync
+        if (type === "payment_proof_uploaded" && data.orderId && replyMarkup) {
+          const messagesToSave = sendResults
+            .filter((r) => r.messageId !== null)
+            .map((r) => ({
+              order_id: data.orderId,
+              telegram_chat_id: r.chatId,
+              message_id: r.messageId,
+            }));
+
+          if (messagesToSave.length > 0) {
+            const { error: saveError } = await supabase
+              .from("telegram_order_messages")
+              .insert(messagesToSave);
+
+            if (saveError) {
+              logStep("Error saving message_ids for sync", { error: saveError.message });
+            } else {
+              logStep("Saved message_ids for multi-user sync", { count: messagesToSave.length });
+            }
+          }
+        }
+
+        sent = sendResults.some((r) => r.messageId !== null);
         logStep("Organizer notification sent", {
           type,
           recipients: validConnections.length,
-          successCount: results.filter(Boolean).length,
+          successCount: sendResults.filter((r) => r.messageId !== null).length,
           hasButtons: !!replyMarkup,
         });
       }
@@ -277,7 +305,8 @@ serve(async (req) => {
             message = `📢 Notificación: ${type}`;
         }
 
-        sent = await sendTelegramMessage(buyerLink.telegram_chat_id, message);
+        const buyerMessageId = await sendTelegramMessage(buyerLink.telegram_chat_id, message);
+        sent = buyerMessageId !== null;
         logStep("Buyer notification sent", { type, buyerEmail, sent });
       }
     }
