@@ -77,7 +77,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(stored);
         // Verify the simulation belongs to current admin
         if (parsed.adminUserId === actualUser.id) {
-          restoreSimulation(parsed.simulationId);
+          restoreSimulation(parsed);
         } else {
           localStorage.removeItem(SIMULATION_STORAGE_KEY);
         }
@@ -87,50 +87,42 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     }
   }, [actualUser?.id]);
 
-  const restoreSimulation = async (simulationId: string) => {
+  const restoreSimulation = async (storedData: {
+    simulatedUserId: string;
+    simulatedOrgId: string;
+    mode: SimulationMode;
+  }) => {
     try {
-      const { data: simulation, error } = await supabase
-        .from("admin_simulations")
-        .select("*")
-        .eq("id", simulationId)
-        .is("ended_at", null)
-        .single();
-
-      if (error || !simulation) {
-        localStorage.removeItem(SIMULATION_STORAGE_KEY);
-        return;
-      }
-
       // Fetch simulated user data
       const { data: userData } = await supabase
         .from("profiles")
         .select("id, email, full_name, avatar_url, organization_id")
-        .eq("id", simulation.simulated_user_id)
+        .eq("id", storedData.simulatedUserId)
         .single();
 
       // Fetch simulated org data
       const { data: orgData } = await supabase
         .from("organizations")
         .select("*")
-        .eq("id", simulation.simulated_org_id)
+        .eq("id", storedData.simulatedOrgId)
         .single();
 
       // Fetch role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", simulation.simulated_user_id)
-        .eq("organization_id", simulation.simulated_org_id)
+        .eq("user_id", storedData.simulatedUserId)
+        .eq("organization_id", storedData.simulatedOrgId)
         .single();
 
       if (userData && orgData) {
         setState({
           isSimulating: true,
-          simulationId: simulation.id,
+          simulationId: `local-${Date.now()}`,
           simulatedUser: userData,
           simulatedOrg: orgData,
           simulatedRole: roleData?.role || null,
-          mode: simulation.mode as SimulationMode,
+          mode: storedData.mode,
         });
       }
     } catch (error) {
@@ -143,20 +135,6 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     if (!actualUser) return;
 
     try {
-      // Create simulation record
-      const { data: simulation, error: simError } = await supabase
-        .from("admin_simulations")
-        .insert({
-          admin_user_id: actualUser.id,
-          simulated_user_id: userId,
-          simulated_org_id: orgId,
-          mode,
-        })
-        .select()
-        .single();
-
-      if (simError) throw simError;
-
       // Fetch simulated user data
       const { data: userData } = await supabase
         .from("profiles")
@@ -180,9 +158,11 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (userData && orgData) {
+        const simulationId = `sim-${Date.now()}`;
+        
         setState({
           isSimulating: true,
-          simulationId: simulation.id,
+          simulationId,
           simulatedUser: userData,
           simulatedOrg: orgData,
           simulatedRole: roleData?.role || null,
@@ -193,8 +173,10 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(
           SIMULATION_STORAGE_KEY,
           JSON.stringify({
-            simulationId: simulation.id,
+            simulatedUserId: userId,
+            simulatedOrgId: orgId,
             adminUserId: actualUser.id,
+            mode,
           })
         );
       }
@@ -205,44 +187,31 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   };
 
   const endSimulation = async () => {
-    if (!state.simulationId) return;
+    setState({
+      isSimulating: false,
+      simulationId: null,
+      simulatedUser: null,
+      simulatedOrg: null,
+      simulatedRole: null,
+      mode: "readonly",
+    });
 
-    try {
-      // Update simulation record with end time
-      await supabase
-        .from("admin_simulations")
-        .update({ ended_at: new Date().toISOString() })
-        .eq("id", state.simulationId);
-
-      setState({
-        isSimulating: false,
-        simulationId: null,
-        simulatedUser: null,
-        simulatedOrg: null,
-        simulatedRole: null,
-        mode: "readonly",
-      });
-
-      localStorage.removeItem(SIMULATION_STORAGE_KEY);
-    } catch (error) {
-      console.error("Error ending simulation:", error);
-    }
+    localStorage.removeItem(SIMULATION_STORAGE_KEY);
   };
 
   const toggleMode = async () => {
-    if (!state.simulationId) return;
-
     const newMode: SimulationMode = state.mode === "readonly" ? "full_access" : "readonly";
 
-    try {
-      await supabase
-        .from("admin_simulations")
-        .update({ mode: newMode })
-        .eq("id", state.simulationId);
+    setState((prev) => ({ ...prev, mode: newMode }));
 
-      setState((prev) => ({ ...prev, mode: newMode }));
-    } catch (error) {
-      console.error("Error toggling mode:", error);
+    // Update localStorage
+    const stored = localStorage.getItem(SIMULATION_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      localStorage.setItem(
+        SIMULATION_STORAGE_KEY,
+        JSON.stringify({ ...parsed, mode: newMode })
+      );
     }
   };
 
