@@ -32,6 +32,8 @@ interface TicketData {
   buyer_phone: string | null;
   buyer_city: string | null;
   status: string | null;
+  payment_proof_uploaded_at?: string | null;
+  approved_at?: string | null;
 }
 
 interface RaffleData {
@@ -189,6 +191,8 @@ export function TicketDetailDialog({
               buyer_name: buyerName,
               buyer_email: buyerEmail || '',
               status: currentTicket.status || 'reserved',
+              payment_proof_uploaded_at: currentTicket.payment_proof_uploaded_at || undefined,
+              approved_at: currentTicket.approved_at || undefined,
             }}
             raffle={{
               title: raffle.title,

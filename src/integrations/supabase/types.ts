@@ -429,6 +429,7 @@ export type Database = {
           order_total: number | null
           organization_id: string
           payment_method: string | null
+          payment_proof_uploaded_at: string | null
           payment_proof_url: string | null
           raffle_id: string
           reference_code: string
@@ -457,6 +458,7 @@ export type Database = {
           order_total?: number | null
           organization_id: string
           payment_method?: string | null
+          payment_proof_uploaded_at?: string | null
           payment_proof_url?: string | null
           raffle_id: string
           reference_code: string
@@ -485,6 +487,7 @@ export type Database = {
           order_total?: number | null
           organization_id?: string
           payment_method?: string | null
+          payment_proof_uploaded_at?: string | null
           payment_proof_url?: string | null
           raffle_id?: string
           reference_code?: string
@@ -2889,31 +2892,61 @@ export type Database = {
           ticket_count: number
         }[]
       }
-      get_buyers_paginated: {
-        Args: {
-          p_page?: number
-          p_page_size?: number
-          p_raffle_id: string
-          p_search?: string
-          p_status_filter?: string
-        }
-        Returns: {
-          buyer_city: string
-          buyer_email: string
-          buyer_name: string
-          buyer_phone: string
-          order_id: string
-          payment_method: string
-          payment_proof_url: string
-          reference_code: string
-          reserved_at: string
-          sold_at: string
-          status: string
-          ticket_count: number
-          ticket_numbers: string[]
-          total_amount: number
-        }[]
-      }
+      get_buyers_paginated:
+        | {
+            Args: {
+              p_page?: number
+              p_page_size?: number
+              p_raffle_id: string
+              p_search?: string
+              p_status_filter?: string
+            }
+            Returns: {
+              buyer_city: string
+              buyer_email: string
+              buyer_name: string
+              buyer_phone: string
+              order_id: string
+              payment_method: string
+              payment_proof_url: string
+              reference_code: string
+              reserved_at: string
+              sold_at: string
+              status: string
+              ticket_count: number
+              ticket_numbers: string[]
+              total_amount: number
+            }[]
+          }
+        | {
+            Args: {
+              p_city?: string
+              p_page?: number
+              p_page_size?: number
+              p_raffle_id: string
+              p_search?: string
+              p_status?: string
+            }
+            Returns: {
+              approved_at: string
+              buyer_city: string
+              buyer_email: string
+              buyer_name: string
+              buyer_phone: string
+              created_at: string
+              lucky_indices: number[]
+              order_id: string
+              order_total: number
+              payment_method: string
+              payment_proof_uploaded_at: string
+              payment_proof_url: string
+              reference_code: string
+              sold_at: string
+              status: string
+              ticket_count: number
+              ticket_ranges: Json
+            }[]
+          }
       get_dashboard_charts: {
         Args: { p_end_date: string; p_org_id: string; p_start_date: string }
         Returns: Json

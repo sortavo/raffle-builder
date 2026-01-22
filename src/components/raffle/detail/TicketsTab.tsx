@@ -471,6 +471,8 @@ export function TicketsTab({
                         buyer_name: selectedTicket.buyer_name || 'Sin nombre',
                         buyer_email: selectedTicket.buyer_email || '',
                         status: selectedTicket.status,
+                        payment_proof_uploaded_at: selectedTicket.payment_proof_uploaded_at || undefined,
+                        approved_at: selectedTicket.approved_at || undefined,
                       }}
                       raffle={{
                         title: raffleTitle,

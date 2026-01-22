@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -440,7 +441,7 @@ export function BuyersTab({
 
           {/* Desktop: Table - compact padding to prevent overflow */}
           <div className="hidden md:block rounded-md border overflow-x-auto">
-            <Table className="min-w-[700px] lg:min-w-[850px] text-xs lg:text-sm [&_th]:px-2 [&_td]:px-2 lg:[&_th]:px-3 lg:[&_td]:px-3">
+            <Table className="min-w-[700px] lg:min-w-[950px] text-xs lg:text-sm [&_th]:px-2 [&_td]:px-2 lg:[&_th]:px-3 lg:[&_td]:px-3">
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[90px] lg:min-w-[110px]">Nombre</TableHead>
@@ -451,6 +452,8 @@ export function BuyersTab({
                   <TableHead className="min-w-[60px] lg:min-w-[80px]">Total</TableHead>
                   <TableHead className="min-w-[70px] hidden xl:table-cell">Método</TableHead>
                   <TableHead className="min-w-[70px] hidden xl:table-cell">Referencia</TableHead>
+                  <TableHead className="min-w-[65px] hidden xl:table-cell">Subida</TableHead>
+                  <TableHead className="min-w-[65px] hidden xl:table-cell">Aprobado</TableHead>
                   <TableHead className="min-w-[70px] lg:min-w-[80px]">Estado</TableHead>
                   <TableHead className="text-right w-[70px] lg:w-[90px]">Acciones</TableHead>
                 </TableRow>
@@ -545,6 +548,16 @@ export function BuyersTab({
                         <span className="text-muted-foreground text-[10px] lg:text-xs">-</span>
                       )}
                     </TableCell>
+                    <TableCell className="hidden xl:table-cell text-[10px] lg:text-xs text-muted-foreground">
+                      {buyer.paymentProofUploadedAt 
+                        ? format(new Date(buyer.paymentProofUploadedAt), 'dd/MM HH:mm')
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-[10px] lg:text-xs text-muted-foreground">
+                      {buyer.approvedAt 
+                        ? format(new Date(buyer.approvedAt), 'dd/MM HH:mm')
+                        : '-'}
+                    </TableCell>
                     <TableCell>{getStatusBadge(buyer.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-0.5">
@@ -638,6 +651,8 @@ export function BuyersTab({
             buyer_phone: selectedBuyer.phone,
             buyer_city: selectedBuyer.city,
             status: selectedBuyer.status,
+            payment_proof_uploaded_at: selectedBuyer.paymentProofUploadedAt,
+            approved_at: selectedBuyer.approvedAt,
           }))}
           raffle={{
             id: raffleId,

@@ -10,6 +10,7 @@ export interface VerifiedTicket {
   reserved_at: string | null;
   sold_at: string | null;
   approved_at: string | null;
+  payment_proof_uploaded_at: string | null;
   raffle: {
     id: string;
     title: string;
@@ -50,6 +51,7 @@ export function useTicketVerification(ticketId: string | undefined) {
           reserved_at,
           sold_at,
           approved_at,
+          payment_proof_uploaded_at,
           raffles!inner (
             id,
             title,
@@ -92,6 +94,7 @@ export function useTicketVerification(ticketId: string | undefined) {
         reserved_at: order.reserved_at,
         sold_at: order.sold_at,
         approved_at: order.approved_at,
+        payment_proof_uploaded_at: order.payment_proof_uploaded_at,
         raffle: {
           id: raffle.id,
           title: raffle.title,
