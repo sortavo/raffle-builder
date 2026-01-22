@@ -130,6 +130,36 @@ function generateLinkCode(): string {
   return code;
 }
 
+// Generate a text-based progress bar
+function getProgressBar(percentage: number): string {
+  const filled = Math.round(percentage / 10);
+  const empty = 10 - filled;
+  return "▓".repeat(filled) + "░".repeat(empty);
+}
+
+// Format currency for display
+function formatMoney(amount: number, currency: string = "MXN"): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
+// Get human-readable time ago string
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "ahora";
+  if (diffMins < 60) return `${diffMins} min`;
+  if (diffHours < 24) return `${diffHours}h`;
+  return `${diffDays}d`;
+}
+
 // Helper to expand compressed ticket ranges into display strings
 function expandTicketRanges(ranges: unknown, luckyIndices: unknown): string[] {
   const result: string[] = [];
@@ -625,7 +655,7 @@ serve(async (req) => {
       await sendTelegramMessage(chatId, "⚙️ <b>Tus Preferencias de Notificación</b>\n\nToca para activar/desactivar:", keyboard);
     }
 
-    // Handle /ventas command - UPDATED to use orders table
+    // Handle /ventas command - Enhanced with more details
     else if (text === "/ventas") {
       const { data: conn } = await supabase
         .from("telegram_connections")
@@ -642,34 +672,75 @@ serve(async (req) => {
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
 
-      // Get raffle IDs for this organization
+      // Get active raffles for this organization with ticket price
       const { data: raffles } = await supabase
         .from("raffles")
-        .select("id")
-        .eq("organization_id", conn.organization_id);
-      
-      const raffleIds = raffles?.map(r => r.id) || [];
+        .select("id, title, ticket_price, currency_code")
+        .eq("organization_id", conn.organization_id)
+        .in("status", ["active", "paused"]);
 
-      // Sum ticket_count from orders table instead of counting sold_tickets
+      const raffleIds = raffles?.map(r => r.id) || [];
+      const defaultCurrency = raffles?.[0]?.currency_code || "MXN";
+
+      if (raffleIds.length === 0) {
+        await sendTelegramMessage(chatId, "📭 No tienes sorteos activos.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get today's sales
       const { data: todayOrders } = await supabase
         .from("orders")
-        .select("ticket_count")
+        .select("ticket_count, order_total, raffle_id")
         .eq("status", "sold")
         .gte("sold_at", today.toISOString())
         .in("raffle_id", raffleIds);
 
-      const todaySales = todayOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+      // Get yesterday's sales for comparison
+      const { data: yesterdayOrders } = await supabase
+        .from("orders")
+        .select("ticket_count")
+        .eq("status", "sold")
+        .gte("sold_at", yesterday.toISOString())
+        .lt("sold_at", today.toISOString())
+        .in("raffle_id", raffleIds);
+
+      const todayTickets = todayOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+      const todayRevenue = todayOrders?.reduce((sum, o) => sum + (o.order_total || 0), 0) || 0;
+      const yesterdayTickets = yesterdayOrders?.reduce((sum, o) => sum + (o.ticket_count || 0), 0) || 0;
+
+      // Calculate comparison
+      let comparison = "";
+      if (yesterdayTickets > 0) {
+        const diff = todayTickets - yesterdayTickets;
+        const pct = Math.round((diff / yesterdayTickets) * 100);
+        comparison = diff >= 0
+          ? `📈 +${diff} vs ayer (+${pct}%)`
+          : `📉 ${diff} vs ayer (${pct}%)`;
+      }
+
+      // Format currency
+      const formattedRevenue = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: defaultCurrency,
+        minimumFractionDigits: 0,
+      }).format(todayRevenue);
 
       await sendTelegramMessage(
         chatId,
         `📊 <b>Ventas de Hoy</b>\n\n` +
-        `Boletos vendidos: <b>${todaySales}</b>\n\n` +
-        `Visita el Dashboard para ver el reporte completo.`
+        `🎫 Boletos: <b>${todayTickets}</b>\n` +
+        `💰 Ingresos: <b>${formattedRevenue}</b>\n` +
+        (comparison ? `${comparison}\n` : "") +
+        `\nUsa /reporte para ver detalles por sorteo.`
       );
     }
 
-    // Handle /sorteos command
+    // Handle /sorteos command - Enhanced with sales progress
     else if (text === "/sorteos") {
       const { data: conn } = await supabase
         .from("telegram_connections")
@@ -686,9 +757,10 @@ serve(async (req) => {
 
       const { data: raffles } = await supabase
         .from("raffles")
-        .select("title, status, total_tickets")
+        .select("id, title, status, total_tickets, ticket_price, currency_code")
         .eq("organization_id", conn.organization_id)
         .in("status", ["active", "paused"])
+        .order("created_at", { ascending: false })
         .limit(5);
 
       if (!raffles?.length) {
@@ -698,8 +770,189 @@ serve(async (req) => {
         });
       }
 
-      const list = raffles.map((r, i) => `${i + 1}. ${r.title} (${r.status})`).join("\n");
-      await sendTelegramMessage(chatId, `🎰 <b>Tus Sorteos Activos</b>\n\n${list}`);
+      // Get sold tickets count for each raffle
+      const raffleIds = raffles.map(r => r.id);
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("raffle_id, ticket_count")
+        .in("raffle_id", raffleIds)
+        .eq("status", "sold");
+
+      // Count sold tickets per raffle
+      const soldByRaffle: Record<string, number> = {};
+      orders?.forEach(o => {
+        soldByRaffle[o.raffle_id] = (soldByRaffle[o.raffle_id] || 0) + (o.ticket_count || 0);
+      });
+
+      // Build the list with progress bars
+      const list = raffles.map((r, i) => {
+        const sold = soldByRaffle[r.id] || 0;
+        const total = r.total_tickets || 100;
+        const pct = Math.round((sold / total) * 100);
+        const statusIcon = r.status === "active" ? "🟢" : "⏸️";
+        const progressBar = getProgressBar(pct);
+
+        return `${i + 1}. ${statusIcon} <b>${r.title}</b>\n` +
+          `   ${progressBar} ${pct}%\n` +
+          `   ${sold}/${total} boletos`;
+      }).join("\n\n");
+
+      await sendTelegramMessage(chatId, `🎰 <b>Tus Sorteos</b>\n\n${list}`);
+    }
+
+    // Handle /reporte command - Full report with breakdown
+    else if (text === "/reporte") {
+      const { data: conn } = await supabase
+        .from("telegram_connections")
+        .select("organization_id")
+        .eq("telegram_chat_id", chatId)
+        .single();
+
+      if (!conn) {
+        await sendTelegramMessage(chatId, "❌ No tienes una cuenta vinculada.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get active raffles
+      const { data: raffles } = await supabase
+        .from("raffles")
+        .select("id, title, total_tickets, ticket_price, currency_code")
+        .eq("organization_id", conn.organization_id)
+        .in("status", ["active", "paused"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!raffles?.length) {
+        await sendTelegramMessage(chatId, "📭 No tienes sorteos activos.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const raffleIds = raffles.map(r => r.id);
+      const defaultCurrency = raffles[0]?.currency_code || "MXN";
+
+      // Get all orders for these raffles
+      const { data: allOrders } = await supabase
+        .from("orders")
+        .select("raffle_id, ticket_count, order_total, status")
+        .in("raffle_id", raffleIds);
+
+      // Calculate stats per raffle
+      const raffleStats = raffles.map(raffle => {
+        const raffleOrders = allOrders?.filter(o => o.raffle_id === raffle.id) || [];
+        const soldOrders = raffleOrders.filter(o => o.status === "sold");
+        const pendingOrders = raffleOrders.filter(o => o.status === "pending_approval");
+        const reservedOrders = raffleOrders.filter(o => o.status === "reserved");
+
+        const soldTickets = soldOrders.reduce((sum, o) => sum + (o.ticket_count || 0), 0);
+        const pendingTickets = pendingOrders.reduce((sum, o) => sum + (o.ticket_count || 0), 0);
+        const reservedTickets = reservedOrders.reduce((sum, o) => sum + (o.ticket_count || 0), 0);
+        const revenue = soldOrders.reduce((sum, o) => sum + (o.order_total || 0), 0);
+
+        const total = raffle.total_tickets || 100;
+        const pct = Math.round((soldTickets / total) * 100);
+
+        return {
+          title: raffle.title,
+          sold: soldTickets,
+          pending: pendingTickets,
+          reserved: reservedTickets,
+          total,
+          pct,
+          revenue,
+        };
+      });
+
+      // Build report message
+      const totalSold = raffleStats.reduce((sum, r) => sum + r.sold, 0);
+      const totalPending = raffleStats.reduce((sum, r) => sum + r.pending, 0);
+      const totalRevenue = raffleStats.reduce((sum, r) => sum + r.revenue, 0);
+
+      let message = `📋 <b>REPORTE COMPLETO</b>\n\n`;
+      message += `<b>Resumen General:</b>\n`;
+      message += `✅ Vendidos: ${totalSold} boletos\n`;
+      message += `⏳ Por aprobar: ${totalPending} boletos\n`;
+      message += `💰 Ingresos: ${formatMoney(totalRevenue, defaultCurrency)}\n\n`;
+      message += `<b>Por Sorteo:</b>\n`;
+
+      raffleStats.forEach(r => {
+        message += `\n🎰 <b>${r.title}</b>\n`;
+        message += `   ${getProgressBar(r.pct)} ${r.pct}%\n`;
+        message += `   ✅ ${r.sold} vendidos\n`;
+        if (r.pending > 0) message += `   ⏳ ${r.pending} por aprobar\n`;
+        if (r.reserved > 0) message += `   🔒 ${r.reserved} reservados\n`;
+        message += `   💰 ${formatMoney(r.revenue, defaultCurrency)}\n`;
+      });
+
+      await sendTelegramMessage(chatId, message);
+    }
+
+    // Handle /pendientes command - Orders pending approval
+    else if (text === "/pendientes") {
+      const { data: conn } = await supabase
+        .from("telegram_connections")
+        .select("organization_id")
+        .eq("telegram_chat_id", chatId)
+        .single();
+
+      if (!conn) {
+        await sendTelegramMessage(chatId, "❌ No tienes una cuenta vinculada.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get raffles for this organization
+      const { data: raffles } = await supabase
+        .from("raffles")
+        .select("id, title")
+        .eq("organization_id", conn.organization_id)
+        .in("status", ["active", "paused"]);
+
+      const raffleIds = raffles?.map(r => r.id) || [];
+      const raffleMap = new Map(raffles?.map(r => [r.id, r.title]) || []);
+
+      if (raffleIds.length === 0) {
+        await sendTelegramMessage(chatId, "📭 No tienes sorteos activos.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get pending approval orders
+      const { data: pendingOrders } = await supabase
+        .from("orders")
+        .select("id, buyer_name, ticket_count, raffle_id, reference_code, created_at")
+        .in("raffle_id", raffleIds)
+        .eq("status", "pending_approval")
+        .order("created_at", { ascending: true })
+        .limit(10);
+
+      if (!pendingOrders?.length) {
+        await sendTelegramMessage(chatId, "✅ <b>Sin pendientes</b>\n\nNo tienes órdenes esperando aprobación.");
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let message = `⏳ <b>Órdenes Pendientes</b> (${pendingOrders.length})\n\n`;
+
+      pendingOrders.forEach((order, i) => {
+        const raffleName = raffleMap.get(order.raffle_id) || "Sorteo";
+        const timeAgo = getTimeAgo(new Date(order.created_at));
+        message += `${i + 1}. <b>${order.buyer_name}</b>\n`;
+        message += `   📍 ${raffleName}\n`;
+        message += `   🎫 ${order.ticket_count} boletos\n`;
+        message += `   🕐 hace ${timeAgo}\n`;
+        message += `   Ref: <code>${order.reference_code}</code>\n\n`;
+      });
+
+      message += `\n💡 Aprueba desde el Dashboard o espera la notificación con botones cuando suban comprobante.`;
+
+      await sendTelegramMessage(chatId, message);
     }
 
     // Handle /desvincular command
@@ -734,13 +987,16 @@ serve(async (req) => {
       await sendTelegramMessage(
         chatId,
         `📖 <b>Comandos Disponibles</b>\n\n` +
-        `<b>Para Organizadores:</b>\n` +
+        `<b>📊 Reportes:</b>\n` +
+        `/ventas - Ventas de hoy con ingresos\n` +
+        `/sorteos - Estado de tus sorteos\n` +
+        `/reporte - Reporte completo detallado\n` +
+        `/pendientes - Órdenes por aprobar\n\n` +
+        `<b>⚙️ Configuración:</b>\n` +
         `/vincular CÓDIGO - Vincular cuenta\n` +
         `/config - Configurar notificaciones\n` +
-        `/ventas - Ver ventas de hoy\n` +
-        `/sorteos - Ver sorteos activos\n` +
         `/desvincular - Desvincular cuenta\n\n` +
-        `<b>Para Compradores:</b>\n` +
+        `<b>🛒 Para Compradores:</b>\n` +
         `/preferencias - Configurar notificaciones\n` +
         `/desvincular - Desvincular cuenta\n\n` +
         `/ayuda - Ver esta ayuda`
