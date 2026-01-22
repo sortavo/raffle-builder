@@ -153,6 +153,7 @@ export function TicketSelector({
     legendAvailable: 'bg-emerald-100 border-emerald-300',
     legendSold: 'bg-red-100 border-red-200',
     legendReserved: 'bg-amber-100 border-amber-300',
+    legendPendingApproval: 'bg-orange-100 border-orange-300',
     legendCard: 'bg-emerald-100 border-emerald-300',
     legendText: 'text-gray-500',
     emptyState: 'text-gray-400',
@@ -202,6 +203,7 @@ export function TicketSelector({
     legendAvailable: 'bg-emerald-500/20 border-emerald-500/40',
     legendSold: 'bg-red-500/15 border-red-500/30',
     legendReserved: 'bg-amber-500/20 border-amber-500/40',
+    legendPendingApproval: 'bg-orange-500/20 border-orange-500/40',
     legendCard: 'bg-emerald-500/20 border-emerald-500/40',
     legendText: 'text-white/50',
     emptyState: 'text-white/30',
@@ -676,9 +678,10 @@ export function TicketSelector({
       setPage(targetPage);
       
       toast.success(`Navegando al boleto ${ticketNum}`, {
-        description: ticket.status === 'available' ? 'Disponible' : 
-                     ticket.status === 'sold' ? 'Vendido' : 
-                     ticket.status === 'reserved' ? 'Reservado' : 'No disponible'
+        description: ticket.status === 'available' ? 'Disponible' :
+                     ticket.status === 'sold' ? 'Vendido' :
+                     ticket.status === 'reserved' ? 'Reservado' :
+                     ticket.status === 'pending_approval' ? 'Pendiente de aprobación' : 'No disponible'
       });
     } catch {
       toast.error('Error al buscar el boleto');
@@ -1340,6 +1343,10 @@ export function TicketSelector({
               <div className="flex items-center gap-2">
                 <div className={cn("w-6 h-6 rounded-lg border", colors.legendReserved)} />
                 <span className={colors.legendText}>Reservado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-6 h-6 rounded-lg border", colors.legendPendingApproval)} />
+                <span className={colors.legendText}>Pendiente</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className={cn("w-6 h-6 rounded-lg border", colors.legendSold)} />

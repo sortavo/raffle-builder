@@ -54,7 +54,7 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
   const isSelected = selectedTickets.includes(ticket.ticket_number);
 
   // Theme-aware colors - TRAFFIC LIGHT SYSTEM
-  // Green = Available | Red = Sold | Yellow = Reserved
+  // Green = Available | Red = Sold | Yellow/Amber = Reserved/Pending
   const colors = isLightTemplate ? {
     // AVAILABLE - Green
     available: 'bg-emerald-100 border-emerald-300 text-emerald-700 hover:bg-emerald-200',
@@ -63,6 +63,8 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
     sold: 'bg-red-100 border-red-200 text-red-400 cursor-not-allowed',
     // RESERVED - Amber
     reserved: 'bg-amber-100 border-amber-300 text-amber-600 cursor-not-allowed',
+    // PENDING_APPROVAL - Orange (awaiting payment confirmation)
+    pending_approval: 'bg-orange-100 border-orange-300 text-orange-600 cursor-not-allowed',
     // Fallback unavailable
     unavailable: 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed',
     checkBg: 'bg-white',
@@ -72,10 +74,12 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
     // AVAILABLE - Green
     available: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30',
     selected: 'bg-emerald-500 border-emerald-400 text-white',
-    // SOLD - Red  
+    // SOLD - Red
     sold: 'bg-red-500/15 border-red-500/30 text-red-400/60 cursor-not-allowed',
     // RESERVED - Amber
     reserved: 'bg-amber-500/20 border-amber-500/40 text-amber-400 cursor-not-allowed',
+    // PENDING_APPROVAL - Orange (awaiting payment confirmation)
+    pending_approval: 'bg-orange-500/20 border-orange-500/40 text-orange-400 cursor-not-allowed',
     // Fallback unavailable
     unavailable: 'bg-gray-500/10 border-gray-500/20 text-gray-500/50 cursor-not-allowed',
     checkBg: 'bg-background',
@@ -94,7 +98,8 @@ function CellComponent(props: CellComponentProps & CellData): ReactElement {
           isAvailable && isSelected && colors.selected,
           ticket.status === 'sold' && colors.sold,
           ticket.status === 'reserved' && colors.reserved,
-          !isAvailable && ticket.status !== 'sold' && ticket.status !== 'reserved' && colors.unavailable
+          ticket.status === 'pending_approval' && colors.pending_approval,
+          !isAvailable && !['sold', 'reserved', 'pending_approval'].includes(ticket.status) && colors.unavailable
         )}
       >
         {ticket.ticket_number}
