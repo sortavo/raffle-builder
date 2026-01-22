@@ -53,6 +53,9 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
       // RESERVED - Amber/Yellow (waiting state)
       reservedBg: 'bg-amber-100 border border-amber-300',
       reservedText: 'text-amber-600 cursor-not-allowed',
+      // PENDING_APPROVAL - Orange (awaiting payment confirmation)
+      pendingApprovalBg: 'bg-orange-100 border border-orange-300',
+      pendingApprovalText: 'text-orange-600 cursor-not-allowed',
       // CANCELED - Gray
       canceledBg: 'bg-gray-100 border border-gray-200',
       canceledText: 'text-gray-400 cursor-not-allowed',
@@ -72,6 +75,9 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
       // RESERVED - Amber/Yellow (waiting state)
       reservedBg: 'bg-amber-500/20 border border-amber-500/40',
       reservedText: 'text-amber-400 cursor-not-allowed',
+      // PENDING_APPROVAL - Orange (awaiting payment confirmation)
+      pendingApprovalBg: 'bg-orange-500/20 border border-orange-500/40',
+      pendingApprovalText: 'text-orange-400 cursor-not-allowed',
       // CANCELED - Muted gray
       canceledBg: 'bg-gray-500/10 border border-gray-500/20',
       canceledText: 'text-gray-500/50 cursor-not-allowed',
@@ -125,7 +131,13 @@ export const TicketButton = memo(forwardRef<HTMLButtonElement, TicketButtonProps
             colors.reservedBg,
             colors.reservedText,
           ],
-          
+
+          // Pending Approval
+          status === 'pending_approval' && [
+            colors.pendingApprovalBg,
+            colors.pendingApprovalText,
+          ],
+
           // Canceled
           status === 'canceled' && [
             colors.canceledBg,
