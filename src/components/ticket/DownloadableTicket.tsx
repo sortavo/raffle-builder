@@ -13,6 +13,8 @@ interface DownloadableTicketProps {
     buyer_name: string;
     buyer_email: string;
     status: string;
+    payment_proof_uploaded_at?: string;
+    approved_at?: string;
   };
   raffle: {
     title: string;
@@ -156,6 +158,19 @@ export function DownloadableTicket({ ticket, raffle, organization }: Downloadabl
 
           {/* Footer */}
           <div className="px-6 pb-4">
+            {/* Reliability timestamps for confirmed tickets */}
+            {isConfirmed && (ticket.payment_proof_uploaded_at || ticket.approved_at) && (
+              <div className="mb-2 pt-2 border-t border-slate-700/50 text-[10px] text-slate-500">
+                <div className="flex justify-between">
+                  {ticket.payment_proof_uploaded_at && (
+                    <span>📤 Comprobante: {format(new Date(ticket.payment_proof_uploaded_at), "dd/MM/yy HH:mm")}</span>
+                  )}
+                  {ticket.approved_at && (
+                    <span>✅ Aprobado: {format(new Date(ticket.approved_at), "dd/MM/yy HH:mm")}</span>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>ID: {ticket.id.slice(0, 8)}</span>
               <span>sortavo.com</span>

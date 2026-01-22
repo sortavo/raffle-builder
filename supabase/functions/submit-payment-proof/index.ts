@@ -142,10 +142,13 @@ Deno.serve(async (req) => {
       console.log('Replacing existing payment proof for reference:', referenceCode);
     }
 
-    // Update the order with the payment proof
+    // Update the order with the payment proof and timestamp
     const { error: updateError } = await supabase
       .from('orders')
-      .update({ payment_proof_url: publicUrl })
+      .update({ 
+        payment_proof_url: publicUrl,
+        payment_proof_uploaded_at: new Date().toISOString(),
+      })
       .eq('id', existingOrder.id);
 
     if (updateError) {

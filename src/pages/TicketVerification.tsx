@@ -463,6 +463,8 @@ export default function TicketVerification() {
                   buyer_name: ticket.buyer_name,
                   buyer_email: ticket.buyer_email || '',
                   status: ticket.status,
+                  payment_proof_uploaded_at: ticket.payment_proof_uploaded_at || undefined,
+                  approved_at: ticket.approved_at || undefined,
                 }}
                 raffle={{
                   title: ticket.raffle.title,

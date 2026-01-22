@@ -56,6 +56,8 @@ interface ExpandedTicket {
   order_total: number | null;
   reserved_at: string | null;
   sold_at: string | null;
+  approved_at: string | null;
+  payment_proof_uploaded_at: string | null;
   raffles: any;
 }
 
@@ -106,6 +108,8 @@ function expandOrdersToTickets(orders: any[]): ExpandedTicket[] {
         order_total: order.order_total,
         reserved_at: order.reserved_at,
         sold_at: order.sold_at,
+        approved_at: order.approved_at,
+        payment_proof_uploaded_at: order.payment_proof_uploaded_at,
         raffles: raffle,
       });
     }
@@ -841,6 +845,8 @@ export default function MyTickets() {
                       buyer_name: selectedTicket.ticket.buyer_name || 'Participante',
                       buyer_email: selectedTicket.ticket.buyer_email || '',
                       status: selectedTicket.ticket.status,
+                      payment_proof_uploaded_at: selectedTicket.ticket.payment_proof_uploaded_at || undefined,
+                      approved_at: selectedTicket.ticket.approved_at || undefined,
                     }}
                     raffle={{
                       title: selectedTicket.raffle?.title || '',
