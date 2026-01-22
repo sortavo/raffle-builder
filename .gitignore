@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 supabase/.temp/
+
+# Test credentials
+.env.test
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

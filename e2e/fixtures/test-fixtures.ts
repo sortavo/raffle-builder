@@ -19,6 +19,28 @@ export const TEST_RAFFLE = {
   title: 'Test Raffle E2E',
 };
 
+// Get the raffle URL - handles both /r/slug and /org/slug formats
+export function getRaffleUrl(slug: string): string {
+  // If slug contains a slash, it's likely in org/raffle format
+  if (slug.includes('/')) {
+    return `/${slug}`;
+  }
+  // Otherwise use the /r/ prefix
+  return `/r/${slug}`;
+}
+
+// Check if a raffle exists at the given slug
+export async function checkRaffleExists(page: Page, slug: string): Promise<boolean> {
+  await page.goto(getRaffleUrl(slug));
+  await page.waitForLoadState('networkidle');
+
+  // Check if we see the "not found" message
+  const notFound = page.locator('text=/no encontr|not found|no existe/i');
+  const hasNotFound = await notFound.count() > 0;
+
+  return !hasNotFound;
+}
+
 // Extended test with common utilities
 export const test = base.extend<{
   loginAsOrganizer: () => Promise<void>;
@@ -55,19 +77,27 @@ export async function waitForToast(page: Page, text?: string) {
 }
 
 export async function selectRandomTickets(page: Page, count: number = 3) {
-  // Wait for ticket grid to load
-  await page.waitForSelector('[data-ticket-number], .ticket-cell, button:has-text("#")', {
-    timeout: 10000
-  });
+  // Wait for ticket grid to load - look for tabpanel with buttons
+  await page.locator('[role="tabpanel"]').first().waitFor({ timeout: 15000 });
 
-  // Find available tickets and click them
-  const availableTickets = page.locator('[data-status="available"], button:not([disabled]):has-text("#")');
+  // Wait a bit for tickets to render
+  await page.waitForTimeout(1000);
+
+  // Find available tickets - they are buttons inside tabpanel that are not disabled
+  // The tickets are buttons with text like "0000001" or "● 0000001"
+  const availableTickets = page.locator('[role="tabpanel"] button:not([disabled])');
+
   const ticketCount = await availableTickets.count();
+
+  if (ticketCount === 0) {
+    console.log('No tickets found in tabpanel');
+    return 0;
+  }
 
   const toSelect = Math.min(count, ticketCount);
   for (let i = 0; i < toSelect; i++) {
     await availableTickets.nth(i).click();
-    await page.waitForTimeout(200); // Small delay between clicks
+    await page.waitForTimeout(300); // Small delay between clicks
   }
 
   return toSelect;
