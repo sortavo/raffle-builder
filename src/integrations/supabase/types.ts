@@ -1429,6 +1429,38 @@ export type Database = {
           },
         ]
       }
+      telegram_order_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message_id: number
+          order_id: string
+          telegram_chat_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message_id: number
+          order_id: string
+          telegram_chat_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message_id?: number
+          order_id?: string
+          telegram_chat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terms_acceptance: {
         Row: {
           accepted_at: string
