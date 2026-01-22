@@ -20,6 +20,8 @@ export interface Buyer {
   soldAt: string | null;
   approvedAt: string | null;
   paymentProofUploadedAt: string | null;
+  approvedBy: string | null;
+  approvedByName: string | null;
 }
 
 export interface BuyerFilters {
@@ -109,6 +111,8 @@ export const useBuyers = (raffleId: string | undefined) => {
           soldAt: row.sold_at || null,
           approvedAt: row.approved_at || null,
           paymentProofUploadedAt: row.payment_proof_uploaded_at || null,
+          approvedBy: row.approved_by || null,
+          approvedByName: row.approved_by_name || null,
         }));
 
         // Get total count separately
@@ -195,6 +199,8 @@ export const useBuyers = (raffleId: string | undefined) => {
           soldAt: row.sold_at || null,
           approvedAt: row.approved_at || null,
           paymentProofUploadedAt: row.payment_proof_uploaded_at || null,
+          approvedBy: row.approved_by || null,
+          approvedByName: row.approved_by_name || null,
         }));
 
         allBuyers.push(...buyers);
@@ -327,6 +333,8 @@ export function useBuyersCursor(
         soldAt: row.sold_at || null,
         approvedAt: row.approved_at || null,
         paymentProofUploadedAt: row.payment_proof_uploaded_at || null,
+        approvedBy: row.approved_by || null,
+        approvedByName: row.approved_by_name || null,
       }));
 
       const lastBuyer = buyers[buyers.length - 1];

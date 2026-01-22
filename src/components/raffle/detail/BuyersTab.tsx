@@ -554,9 +554,20 @@ export function BuyersTab({
                         : '-'}
                     </TableCell>
                     <TableCell className="hidden xl:table-cell text-[10px] lg:text-xs text-muted-foreground">
-                      {buyer.approvedAt 
-                        ? format(new Date(buyer.approvedAt), 'dd/MM HH:mm')
-                        : '-'}
+                      {buyer.approvedAt ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {format(new Date(buyer.approvedAt), 'dd/MM HH:mm')}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Aprobado por: {buyer.approvedByName || 'Usuario'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(buyer.status)}</TableCell>
                     <TableCell>
