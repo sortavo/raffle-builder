@@ -3145,6 +3145,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      invoke_edge_function: {
+        Args: { function_name: string; payload?: Json }
+        Returns: undefined
+      }
       is_index_in_order: {
         Args: {
           p_index: number
