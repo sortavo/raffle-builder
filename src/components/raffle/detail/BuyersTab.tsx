@@ -454,6 +454,7 @@ export function BuyersTab({
                   <TableHead className="min-w-[70px] hidden xl:table-cell">Referencia</TableHead>
                   <TableHead className="min-w-[65px] hidden xl:table-cell">Subida</TableHead>
                   <TableHead className="min-w-[65px] hidden xl:table-cell">Aprobado</TableHead>
+                  <TableHead className="min-w-[80px] hidden xl:table-cell">Aprobó</TableHead>
                   <TableHead className="min-w-[70px] lg:min-w-[80px]">Estado</TableHead>
                   <TableHead className="text-right w-[70px] lg:w-[90px]">Acciones</TableHead>
                 </TableRow>
@@ -554,20 +555,12 @@ export function BuyersTab({
                         : '-'}
                     </TableCell>
                     <TableCell className="hidden xl:table-cell text-[10px] lg:text-xs text-muted-foreground">
-                      {buyer.approvedAt ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help">
-                                {format(new Date(buyer.approvedAt), 'dd/MM HH:mm')}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Aprobado por: {buyer.approvedByName || 'Usuario'}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : '-'}
+                      {buyer.approvedAt 
+                        ? format(new Date(buyer.approvedAt), 'dd/MM HH:mm')
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-[10px] lg:text-xs text-muted-foreground truncate max-w-[80px]">
+                      {buyer.approvedByName || '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(buyer.status)}</TableCell>
                     <TableCell>
