@@ -323,19 +323,4 @@ export const handlers = [
     }
     return HttpResponse.json([]);
   }),
-
-  // Vista public_ticket_status
-  http.get(`${SUPABASE_URL}/rest/v1/public_ticket_status`, () => {
-    return HttpResponse.json([
-      {
-        id: '1',
-        raffle_id: '1',
-        ticket_ranges: [{ s: 0, e: 2 }],
-        lucky_indices: [0, 1, 2],
-        ticket_count: 3,
-        status: 'sold',
-        created_at: new Date().toISOString(),
-      }
-    ]);
-  }),
 ];

@@ -16,17 +16,6 @@ describe('RLS Security - Orders Table', () => {
     'payment_proof_url',
   ];
 
-  // Fields that ARE allowed in public views
-  const PUBLIC_TICKET_STATUS_FIELDS = [
-    'id',
-    'raffle_id',
-    'ticket_ranges',
-    'lucky_indices',
-    'ticket_count',
-    'status',
-    'created_at',
-  ];
-
   describe('Sensitive Field Protection', () => {
     it('should identify buyer_email as sensitive', () => {
       expect(SENSITIVE_ORDER_FIELDS).toContain('buyer_email');
@@ -38,87 +27,6 @@ describe('RLS Security - Orders Table', () => {
 
     it('should identify payment_proof_url as sensitive', () => {
       expect(SENSITIVE_ORDER_FIELDS).toContain('payment_proof_url');
-    });
-
-    it('should NOT include buyer_name in public view fields', () => {
-      expect(PUBLIC_TICKET_STATUS_FIELDS).not.toContain('buyer_name');
-    });
-
-    it('should NOT include buyer_email in public view fields', () => {
-      expect(PUBLIC_TICKET_STATUS_FIELDS).not.toContain('buyer_email');
-    });
-
-    it('should NOT include buyer_phone in public view fields', () => {
-      expect(PUBLIC_TICKET_STATUS_FIELDS).not.toContain('buyer_phone');
-    });
-  });
-
-  describe('public_ticket_status View', () => {
-    it('should only expose allowed fields', () => {
-      const mockPublicTicketData = {
-        id: '123',
-        raffle_id: 'raffle-1',
-        ticket_ranges: [{ s: 0, e: 5 }],
-        lucky_indices: [0, 1, 2, 3, 4, 5],
-        ticket_count: 6,
-        status: 'sold',
-        created_at: new Date().toISOString(),
-      };
-
-      const keys = Object.keys(mockPublicTicketData);
-      
-      // All keys should be in the allowed list
-      keys.forEach(key => {
-        expect(PUBLIC_TICKET_STATUS_FIELDS).toContain(key);
-      });
-    });
-
-    it('should validate view structure has no sensitive data', () => {
-      const mockViewResult = {
-        id: '123',
-        raffle_id: 'raffle-1',
-        ticket_ranges: [{ s: 0, e: 5 }],
-        ticket_count: 6,
-        status: 'sold',
-      };
-
-      // Verify sensitive fields are NOT present
-      expect(mockViewResult).not.toHaveProperty('buyer_email');
-      expect(mockViewResult).not.toHaveProperty('buyer_phone');
-      expect(mockViewResult).not.toHaveProperty('buyer_name');
-      expect(mockViewResult).not.toHaveProperty('payment_proof_url');
-      expect(mockViewResult).not.toHaveProperty('buyer_city');
-    });
-  });
-
-  describe('get_secure_order_by_reference RPC', () => {
-    it('should require reference_code parameter', () => {
-      const rpcParams = { p_reference_code: '' };
-      const isValid = rpcParams.p_reference_code.length > 0;
-      expect(isValid).toBe(false);
-    });
-
-    it('should return empty array for invalid reference', () => {
-      // Simulating the expected behavior of the RPC
-      const mockRpcResult = (referenceCode: string) => {
-        const validCodes = ['REF001', 'REF002'];
-        return validCodes.includes(referenceCode) ? [{ id: '1' }] : [];
-      };
-
-      expect(mockRpcResult('INVALID-CODE')).toEqual([]);
-      expect(mockRpcResult('REF001')).toHaveLength(1);
-    });
-
-    it('should validate reference code format', () => {
-      const isValidReferenceFormat = (code: string) => {
-        // Reference codes should be alphanumeric with optional dashes
-        return /^[A-Z0-9-]+$/i.test(code) && code.length >= 6;
-      };
-
-      expect(isValidReferenceFormat('REF001')).toBe(true);
-      expect(isValidReferenceFormat('ABC-123-XYZ')).toBe(true);
-      expect(isValidReferenceFormat('')).toBe(false);
-      expect(isValidReferenceFormat('ab')).toBe(false);
     });
   });
 

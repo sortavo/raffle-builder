@@ -14,50 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_simulations: {
-        Row: {
-          actions_taken: Json | null
-          admin_user_id: string
-          created_at: string | null
-          ended_at: string | null
-          id: string
-          mode: string
-          simulated_org_id: string
-          simulated_user_id: string
-          started_at: string | null
-        }
-        Insert: {
-          actions_taken?: Json | null
-          admin_user_id: string
-          created_at?: string | null
-          ended_at?: string | null
-          id?: string
-          mode?: string
-          simulated_org_id: string
-          simulated_user_id: string
-          started_at?: string | null
-        }
-        Update: {
-          actions_taken?: Json | null
-          admin_user_id?: string
-          created_at?: string | null
-          ended_at?: string | null
-          id?: string
-          mode?: string
-          simulated_org_id?: string
-          simulated_user_id?: string
-          started_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_simulations_simulated_org_id_fkey"
-            columns: ["simulated_org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       analytics_events: {
         Row: {
           created_at: string | null
@@ -118,90 +74,6 @@ export type Database = {
             foreignKeyName: "analytics_events_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "analytics_events_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      archived_raffle_summary: {
-        Row: {
-          archived_at: string | null
-          buyer_cities: Json | null
-          created_at: string | null
-          draw_executed_at: string | null
-          raffle_id: string
-          sales_by_day: Json | null
-          sales_by_hour: Json | null
-          tickets_reserved: number | null
-          tickets_sold: number | null
-          top_buyers: Json | null
-          total_revenue: number | null
-          unique_buyers: number | null
-          winners: Json | null
-        }
-        Insert: {
-          archived_at?: string | null
-          buyer_cities?: Json | null
-          created_at?: string | null
-          draw_executed_at?: string | null
-          raffle_id: string
-          sales_by_day?: Json | null
-          sales_by_hour?: Json | null
-          tickets_reserved?: number | null
-          tickets_sold?: number | null
-          top_buyers?: Json | null
-          total_revenue?: number | null
-          unique_buyers?: number | null
-          winners?: Json | null
-        }
-        Update: {
-          archived_at?: string | null
-          buyer_cities?: Json | null
-          created_at?: string | null
-          draw_executed_at?: string | null
-          raffle_id?: string
-          sales_by_day?: Json | null
-          sales_by_hour?: Json | null
-          tickets_reserved?: number | null
-          tickets_sold?: number | null
-          top_buyers?: Json | null
-          total_revenue?: number | null
-          unique_buyers?: number | null
-          winners?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: true
-            referencedRelation: "mv_top_raffles"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: true
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: true
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: true
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -257,110 +129,6 @@ export type Database = {
           user_name?: string | null
         }
         Relationships: []
-      }
-      billing_audit_log: {
-        Row: {
-          action: string
-          actor_id: string | null
-          actor_type: string
-          created_at: string | null
-          id: string
-          ip_address: unknown
-          metadata: Json | null
-          new_values: Json | null
-          old_values: Json | null
-          organization_id: string | null
-          request_id: string | null
-          resource_id: string | null
-          resource_type: string
-          stripe_event_id: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          actor_type: string
-          created_at?: string | null
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          organization_id?: string | null
-          request_id?: string | null
-          resource_id?: string | null
-          resource_type: string
-          stripe_event_id?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          actor_type?: string
-          created_at?: string | null
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          new_values?: Json | null
-          old_values?: Json | null
-          organization_id?: string | null
-          request_id?: string | null
-          resource_id?: string | null
-          resource_type?: string
-          stripe_event_id?: string | null
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_audit_log_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "billing_audit_log_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      coupon_usage: {
-        Row: {
-          coupon_id: string
-          discount_applied: number
-          id: string
-          ticket_id: string | null
-          used_at: string | null
-          user_email: string | null
-        }
-        Insert: {
-          coupon_id: string
-          discount_applied: number
-          id?: string
-          ticket_id?: string | null
-          used_at?: string | null
-          user_email?: string | null
-        }
-        Update: {
-          coupon_id?: string
-          discount_applied?: number
-          id?: string
-          ticket_id?: string | null
-          used_at?: string | null
-          user_email?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coupon_usage_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       coupons: {
         Row: {
@@ -461,13 +229,6 @@ export type Database = {
             foreignKeyName: "coupons_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "coupons_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -523,62 +284,6 @@ export type Database = {
           },
         ]
       }
-      customers: {
-        Row: {
-          city: string | null
-          created_at: string | null
-          email: string | null
-          first_purchase_at: string | null
-          full_name: string
-          id: string
-          last_purchase_at: string | null
-          organization_id: string
-          phone: string | null
-          total_orders: number | null
-          total_spent: number | null
-          total_tickets: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          city?: string | null
-          created_at?: string | null
-          email?: string | null
-          first_purchase_at?: string | null
-          full_name: string
-          id?: string
-          last_purchase_at?: string | null
-          organization_id: string
-          phone?: string | null
-          total_orders?: number | null
-          total_spent?: number | null
-          total_tickets?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          city?: string | null
-          created_at?: string | null
-          email?: string | null
-          first_purchase_at?: string | null
-          full_name?: string
-          id?: string
-          last_purchase_at?: string | null
-          organization_id?: string
-          phone?: string | null
-          total_orders?: number | null
-          total_spent?: number | null
-          total_tickets?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dunning_config: {
         Row: {
           cancellation_after_days: number | null
@@ -611,54 +316,6 @@ export type Database = {
           suspension_after_days?: number | null
         }
         Relationships: []
-      }
-      dunning_emails: {
-        Row: {
-          clicked_at: string | null
-          email_type: string
-          id: string
-          opened_at: string | null
-          organization_id: string | null
-          payment_failure_id: string | null
-          sent_at: string | null
-          sent_to: string
-        }
-        Insert: {
-          clicked_at?: string | null
-          email_type: string
-          id?: string
-          opened_at?: string | null
-          organization_id?: string | null
-          payment_failure_id?: string | null
-          sent_at?: string | null
-          sent_to: string
-        }
-        Update: {
-          clicked_at?: string | null
-          email_type?: string
-          id?: string
-          opened_at?: string | null
-          organization_id?: string | null
-          payment_failure_id?: string | null
-          sent_at?: string | null
-          sent_to?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dunning_emails_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dunning_emails_payment_failure_id_fkey"
-            columns: ["payment_failure_id"]
-            isOneToOne: false
-            referencedRelation: "payment_failures"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       notification_preferences: {
         Row: {
@@ -842,13 +499,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "orders_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -868,13 +518,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "orders_raffle_id_fkey"
@@ -1085,68 +728,6 @@ export type Database = {
           years_experience?: number | null
         }
         Relationships: []
-      }
-      payment_failures: {
-        Row: {
-          amount_cents: number
-          attempt_count: number | null
-          created_at: string | null
-          currency: string | null
-          failure_code: string | null
-          failure_message: string | null
-          id: string
-          next_retry_at: string | null
-          organization_id: string
-          resolution: string | null
-          resolved_at: string | null
-          stripe_invoice_id: string
-          stripe_payment_intent_id: string | null
-          stripe_subscription_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          amount_cents: number
-          attempt_count?: number | null
-          created_at?: string | null
-          currency?: string | null
-          failure_code?: string | null
-          failure_message?: string | null
-          id?: string
-          next_retry_at?: string | null
-          organization_id: string
-          resolution?: string | null
-          resolved_at?: string | null
-          stripe_invoice_id: string
-          stripe_payment_intent_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount_cents?: number
-          attempt_count?: number | null
-          created_at?: string | null
-          currency?: string | null
-          failure_code?: string | null
-          failure_message?: string | null
-          id?: string
-          next_retry_at?: string | null
-          organization_id?: string
-          resolution?: string | null
-          resolved_at?: string | null
-          stripe_invoice_id?: string
-          stripe_payment_intent_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_failures_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       payment_methods: {
         Row: {
@@ -1361,13 +942,6 @@ export type Database = {
             foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "raffle_custom_numbers_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -1465,13 +1039,6 @@ export type Database = {
             foreignKeyName: "raffle_draws_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "raffle_draws_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
             referencedRelation: "raffles"
             referencedColumns: ["id"]
           },
@@ -1522,13 +1089,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_raffles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "raffle_packages_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
           },
           {
             foreignKeyName: "raffle_packages_raffle_id_fkey"
@@ -1693,274 +1253,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      rate_limit_entries: {
-        Row: {
-          id: string
-          identifier: string
-          key_prefix: string
-          timestamp: string | null
-        }
-        Insert: {
-          id?: string
-          identifier: string
-          key_prefix: string
-          timestamp?: string | null
-        }
-        Update: {
-          id?: string
-          identifier?: string
-          key_prefix?: string
-          timestamp?: string | null
-        }
-        Relationships: []
-      }
-      refund_audit_log: {
-        Row: {
-          action: string
-          actor_id: string | null
-          created_at: string | null
-          details: Json | null
-          id: string
-          refund_request_id: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          created_at?: string | null
-          details?: Json | null
-          id?: string
-          refund_request_id?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          created_at?: string | null
-          details?: Json | null
-          id?: string
-          refund_request_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "refund_audit_log_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refund_audit_log_refund_request_id_fkey"
-            columns: ["refund_request_id"]
-            isOneToOne: false
-            referencedRelation: "refund_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      refund_requests: {
-        Row: {
-          amount_cents: number
-          approved_by: string | null
-          created_at: string | null
-          currency: string | null
-          id: string
-          organization_id: string
-          processed_at: string | null
-          reason: string
-          reason_details: string | null
-          rejected_by: string | null
-          rejection_reason: string | null
-          requested_by: string | null
-          status: string | null
-          stripe_charge_id: string
-          stripe_payment_intent_id: string | null
-          stripe_refund_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          amount_cents: number
-          approved_by?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string
-          organization_id: string
-          processed_at?: string | null
-          reason: string
-          reason_details?: string | null
-          rejected_by?: string | null
-          rejection_reason?: string | null
-          requested_by?: string | null
-          status?: string | null
-          stripe_charge_id: string
-          stripe_payment_intent_id?: string | null
-          stripe_refund_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          amount_cents?: number
-          approved_by?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string
-          organization_id?: string
-          processed_at?: string | null
-          reason?: string
-          reason_details?: string | null
-          rejected_by?: string | null
-          rejection_reason?: string | null
-          requested_by?: string | null
-          status?: string | null
-          stripe_charge_id?: string
-          stripe_payment_intent_id?: string | null
-          stripe_refund_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "refund_requests_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refund_requests_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refund_requests_rejected_by_fkey"
-            columns: ["rejected_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refund_requests_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stripe_events: {
-        Row: {
-          created_at: string | null
-          event_id: string
-          event_type: string
-          id: string
-          processed_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_id: string
-          event_type: string
-          id?: string
-          processed_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          event_id?: string
-          event_type?: string
-          id?: string
-          processed_at?: string | null
-        }
-        Relationships: []
-      }
-      subscription_events: {
-        Row: {
-          created_at: string | null
-          event_type: string
-          from_tier: string | null
-          id: string
-          metadata: Json | null
-          mrr_change_cents: number | null
-          organization_id: string | null
-          stripe_event_id: string | null
-          to_tier: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_type: string
-          from_tier?: string | null
-          id?: string
-          metadata?: Json | null
-          mrr_change_cents?: number | null
-          organization_id?: string | null
-          stripe_event_id?: string | null
-          to_tier?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          event_type?: string
-          from_tier?: string | null
-          id?: string
-          metadata?: Json | null
-          mrr_change_cents?: number | null
-          organization_id?: string | null
-          stripe_event_id?: string | null
-          to_tier?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_events_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      system_alerts: {
-        Row: {
-          alert_type: string
-          created_at: string | null
-          id: string
-          message: string
-          metadata: Json | null
-          resolved_at: string | null
-          severity: string
-        }
-        Insert: {
-          alert_type: string
-          created_at?: string | null
-          id?: string
-          message: string
-          metadata?: Json | null
-          resolved_at?: string | null
-          severity: string
-        }
-        Update: {
-          alert_type?: string
-          created_at?: string | null
-          id?: string
-          message?: string
-          metadata?: Json | null
-          resolved_at?: string | null
-          severity?: string
-        }
-        Relationships: []
-      }
-      system_settings: {
-        Row: {
-          key: string
-          updated_at: string | null
-          value: string
-        }
-        Insert: {
-          key: string
-          updated_at?: string | null
-          value: string
-        }
-        Update: {
-          key?: string
-          updated_at?: string | null
-          value?: string
-        }
-        Relationships: []
       }
       team_invitations: {
         Row: {
@@ -2178,65 +1470,6 @@ export type Database = {
           },
         ]
       }
-      ticket_block_status: {
-        Row: {
-          block_size: number
-          block_start: number
-          id: string
-          raffle_id: string
-          reserved_count: number | null
-          sold_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          block_size?: number
-          block_start: number
-          id?: string
-          raffle_id: string
-          reserved_count?: number | null
-          sold_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          block_size?: number
-          block_start?: number
-          id?: string
-          raffle_id?: string
-          reserved_count?: number | null
-          sold_count?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ticket_block_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "mv_top_raffles"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "ticket_block_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_block_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "ticket_block_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ticket_reservation_status: {
         Row: {
           created_at: string | null
@@ -2271,13 +1504,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_trs_order"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "public_ticket_status"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_trs_raffle"
             columns: ["raffle_id"]
             isOneToOne: false
@@ -2293,83 +1519,6 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_trs_raffle"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "fk_trs_raffle"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ticket_reservation_status_old: {
-        Row: {
-          created_at: string | null
-          order_id: string
-          raffle_id: string
-          reserved_until: string | null
-          status: string
-          ticket_index: number
-        }
-        Insert: {
-          created_at?: string | null
-          order_id: string
-          raffle_id: string
-          reserved_until?: string | null
-          status: string
-          ticket_index: number
-        }
-        Update: {
-          created_at?: string | null
-          order_id?: string
-          raffle_id?: string
-          reserved_until?: string | null
-          status?: string
-          ticket_index?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ticket_reservation_status_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_reservation_status_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "public_ticket_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "mv_top_raffles"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "ticket_reservation_status_raffle_id_fkey"
             columns: ["raffle_id"]
             isOneToOne: false
             referencedRelation: "raffles"
@@ -3526,103 +2675,6 @@ export type Database = {
           },
         ]
       }
-      public_ticket_status: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          lucky_indices: number[] | null
-          organization_id: string | null
-          raffle_id: string | null
-          reserved_until: string | null
-          status: string | null
-          ticket_count: number | null
-          ticket_ranges: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          lucky_indices?: number[] | null
-          organization_id?: string | null
-          raffle_id?: string | null
-          reserved_until?: string | null
-          status?: string | null
-          ticket_count?: number | null
-          ticket_ranges?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          lucky_indices?: number[] | null
-          organization_id?: string | null
-          raffle_id?: string | null
-          reserved_until?: string | null
-          status?: string | null
-          ticket_count?: number | null
-          ticket_ranges?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "mv_top_raffles"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "public_raffles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffle_stats_mv"
-            referencedColumns: ["raffle_id"]
-          },
-          {
-            foreignKeyName: "orders_raffle_id_fkey"
-            columns: ["raffle_id"]
-            isOneToOne: false
-            referencedRelation: "raffles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      raffle_stats_mv: {
-        Row: {
-          created_at: string | null
-          draw_date: string | null
-          organization_id: string | null
-          raffle_id: string | null
-          reserved_count: number | null
-          revenue: number | null
-          sold_count: number | null
-          status: Database["public"]["Enums"]["raffle_status"] | null
-          ticket_price: number | null
-          title: string | null
-          total_tickets: number | null
-          unique_buyers: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "raffles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       approve_order: {
@@ -3690,14 +2742,6 @@ export type Database = {
           starting_subscribers: number
         }[]
       }
-      calculate_mrr: {
-        Args: never
-        Returns: {
-          mrr_cents: number
-          subscriber_count: number
-          tier: string
-        }[]
-      }
       can_have_custom_domains: { Args: { org_id: string }; Returns: boolean }
       cancel_order_and_release_v2: {
         Args: { p_order_id: string }
@@ -3735,7 +2779,6 @@ export type Database = {
           unavailable_indices: number[]
         }[]
       }
-      cleanup_expired_orders: { Args: never; Returns: number }
       cleanup_expired_reservations_batch: {
         Args: { p_batch_size?: number; p_max_batches?: number }
         Returns: {
@@ -3759,16 +2802,13 @@ export type Database = {
         }[]
       }
       cleanup_rate_limit_entries: { Args: never; Returns: undefined }
-      compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       confirm_order_sale_v2: { Args: { p_order_id: string }; Returns: boolean }
-      count_tickets_in_ranges: { Args: { ranges: Json }; Returns: number }
       expand_order_to_indices: {
         Args: { p_lucky_indices: number[]; p_ticket_ranges: Json }
         Returns: {
           ticket_index: number
         }[]
       }
-      expand_ticket_ranges: { Args: { ranges: Json }; Returns: number[] }
       format_virtual_ticket: {
         Args: {
           p_numbering_config: Json
@@ -3849,7 +2889,6 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
-      get_expired_reservations_count: { Args: never; Returns: number }
       get_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -3917,34 +2956,6 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_raffle_stats_fast: {
-        Args: { p_raffle_id: string }
-        Returns: {
-          available_count: number
-          last_updated: string
-          pending_count: number
-          reserved_count: number
-          sold_count: number
-          total_revenue: number
-          total_tickets: number
-          unique_buyers: number
-        }[]
-      }
-      get_raffle_stats_for_org: {
-        Args: { p_organization_id: string }
-        Returns: {
-          created_at: string
-          draw_date: string
-          raffle_id: string
-          reserved_count: number
-          revenue: number
-          sold_count: number
-          status: Database["public"]["Enums"]["raffle_status"]
-          ticket_price: number
-          title: string
-          total_tickets: number
-        }[]
-      }
       get_raffle_stats_list: {
         Args: { p_organization_id: string }
         Returns: {
@@ -3975,15 +2986,6 @@ export type Database = {
           status: string
           ticket_count: number
           ticket_ranges: Json
-        }[]
-      }
-      get_ticket_counts_from_blocks: {
-        Args: { p_raffle_id: string }
-        Returns: {
-          available_count: number
-          reserved_count: number
-          sold_count: number
-          total_count: number
         }[]
       }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
@@ -4048,16 +3050,6 @@ export type Database = {
           ticket_number: string
         }[]
       }
-      get_virtual_tickets_optimized: {
-        Args: { p_page?: number; p_page_size?: number; p_raffle_id: string }
-        Returns: {
-          buyer_name: string
-          order_id: string
-          status: string
-          ticket_index: number
-          ticket_number: string
-        }[]
-      }
       get_virtual_tickets_v2: {
         Args: {
           p_page_number?: number
@@ -4084,14 +3076,6 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
-      }
-      initialize_ticket_blocks: {
-        Args: { p_raffle_id: string }
-        Returns: number
-      }
-      invoke_edge_function: {
-        Args: { function_name: string; payload?: Json }
-        Returns: number
       }
       is_index_in_order: {
         Args: {
@@ -4129,14 +3113,6 @@ export type Database = {
           ticket_number: string
         }[]
       }
-      refresh_all_materialized_views: {
-        Args: never
-        Returns: {
-          error_message: string
-          success: boolean
-          view_name: string
-        }[]
-      }
       refresh_raffle_stats: {
         Args: never
         Returns: {
@@ -4152,7 +3128,6 @@ export type Database = {
           ticket_count: number
         }[]
       }
-      release_expired_tickets: { Args: never; Returns: number }
       reserve_tickets_v2: {
         Args: {
           p_buyer_city?: string
@@ -4203,7 +3178,6 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
-      sync_raffle_blocks: { Args: { p_raffle_id: string }; Returns: undefined }
       update_order_with_version: {
         Args: {
           p_approved_at?: string
