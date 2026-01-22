@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     // Query the orders table (new compressed architecture)
     const { data: existingOrder, error: queryError } = await supabase
       .from('orders')
-      .select('id, ticket_count, ticket_ranges, lucky_indices, buyer_email, buyer_name, payment_proof_url')
+      .select('id, ticket_count, ticket_ranges, lucky_indices, buyer_email, buyer_name, payment_proof_url, order_total')
       .eq('raffle_id', raffleId)
       .eq('reference_code', referenceCode)
       .eq('status', 'reserved')
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     // Notify the organizer
     const { data: raffle } = await supabase
       .from('raffles')
-      .select('title, organization_id, created_by')
+      .select('title, organization_id, created_by, currency_code')
       .eq('id', raffleId)
       .single();
 
@@ -198,7 +198,10 @@ Deno.serve(async (req) => {
             buyerName: buyerName,
             ticketCount: updatedCount,
             reference: referenceCode,
-            orderId: existingOrder.id, // Include order ID for approve/reject buttons
+            orderId: existingOrder.id,
+            total: existingOrder.order_total || 0,
+            currency: raffle.currency_code || 'MXN',
+            paymentProofUrl: publicUrl,
           },
         },
       }).catch((err: Error) => console.error('[TELEGRAM] Error sending notification:', err));

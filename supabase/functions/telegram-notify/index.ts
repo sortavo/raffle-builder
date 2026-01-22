@@ -145,7 +145,13 @@ serve(async (req) => {
               `Sorteo: ${data.raffleName}\n` +
               `Comprador: ${data.buyerName}\n` +
               `Boletos: ${data.ticketCount || 1}\n` +
+              `💰 <b>Total: $${data.total || 0} ${data.currency || 'MXN'}</b>\n` +
               `Referencia: <code>${data.reference}</code>`;
+
+            // Add link to payment proof if available
+            if (data.paymentProofUrl) {
+              message += `\n\n📎 <a href="${data.paymentProofUrl}">Ver comprobante</a>`;
+            }
 
             // Add approve/reject buttons if orderId is provided
             if (data.orderId) {
@@ -157,7 +163,6 @@ serve(async (req) => {
                   ],
                 ],
               };
-              message += `\n\n<i>Usa los botones para aprobar o rechazar:</i>`;
             }
             break;
           case "payment_approved":
