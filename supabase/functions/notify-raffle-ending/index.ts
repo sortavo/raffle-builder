@@ -46,13 +46,13 @@ Deno.serve(async (req) => {
         id,
         title,
         organization_id,
-        end_date,
+        draw_date,
         total_tickets,
         ticket_price
       `)
       .eq('status', 'active')
-      .gte('end_date', in24Hours.toISOString())
-      .lt('end_date', in25Hours.toISOString());
+      .gte('draw_date', in24Hours.toISOString())
+      .lt('draw_date', in25Hours.toISOString());
 
     if (fetchError) {
       logStep("Error fetching ending raffles", { error: fetchError.message });
