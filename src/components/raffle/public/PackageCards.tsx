@@ -22,6 +22,7 @@ interface PackageCardsProps {
   bestPackageId?: string;
   isLightTemplate?: boolean;
   primaryColor?: string;
+  useOpportunitiesLanguage?: boolean;
 }
 
 export function PackageCards({
@@ -34,8 +35,12 @@ export function PackageCards({
   bestPackageId,
   isLightTemplate = false,
   primaryColor,
+  useOpportunitiesLanguage = false,
 }: PackageCardsProps) {
   if (packages.length === 0) return null;
+  
+  // Language helper
+  const ticketLabel = useOpportunitiesLanguage ? 'oportunidades' : 'boletos';
 
   // Theme-aware colors
   const colors = isLightTemplate ? {
@@ -91,8 +96,12 @@ export function PackageCards({
           <Sparkles className="w-6 h-6 text-emerald-400" />
         </div>
         <div>
-          <h3 className={cn("font-bold text-lg tracking-tight", colors.text)}>Paquetes con Descuento</h3>
-          <p className={cn("text-sm", colors.textMuted)}>Ahorra más comprando en paquete</p>
+          <h3 className={cn("font-bold text-lg tracking-tight", colors.text)}>
+            {useOpportunitiesLanguage ? 'Paquetes de Oportunidades' : 'Paquetes con Descuento'}
+          </h3>
+          <p className={cn("text-sm", colors.textMuted)}>
+            {useOpportunitiesLanguage ? 'Multiplica tus oportunidades de ganar' : 'Ahorra más comprando en paquete'}
+          </p>
         </div>
       </div>
       
@@ -111,7 +120,7 @@ export function PackageCards({
               onClick={() => {
                 onSelect(pkg.quantity);
                 // Show toast with quick checkout action
-                toast.success(`${pkg.quantity} boletos seleccionados`, {
+                toast.success(`${pkg.quantity} ${ticketLabel} seleccionados`, {
                   description: `Total: ${formatCurrency(pkg.price, currency)}`,
                   action: onOpenCheckout ? {
                     label: 'Ir a pagar',
@@ -184,7 +193,7 @@ export function PackageCards({
                     {pkg.quantity}
                   </motion.span>
                   <p className={cn("text-sm mt-1.5", colors.textMuted)}>
-                    boletos
+                    {ticketLabel}
                   </p>
                 </div>
                 
