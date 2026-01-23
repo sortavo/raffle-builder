@@ -100,7 +100,8 @@ BEGIN
     RETURN;
   END IF;
 
-  v_reference := 'ORD-' || upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+  -- Use generate_reference_code() for 8 character codes without prefix
+  v_reference := generate_reference_code();
   v_reserved_until := NOW() + (p_reservation_minutes || ' minutes')::INTERVAL;
   v_order_id := gen_random_uuid();
 
