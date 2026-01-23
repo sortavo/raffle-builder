@@ -171,21 +171,25 @@ export default function RaffleDetail() {
           />
         )}
 
-        {/* Tabs - scrollable on all screen sizes */}
+        {/* Tabs - scrollable on mobile with fade indicator */}
         <Tabs defaultValue="overview" className="space-y-4 w-full">
-          <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
-            <TabsList className="inline-flex w-max h-auto gap-1 p-1">
-              {tabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center gap-1.5 px-2 md:px-3 py-2 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
-                >
-                  <tab.icon className="h-4 w-4 shrink-0" />
-                  <span>{tab.label}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="relative">
+            <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+              <TabsList className="inline-flex w-max h-auto gap-1 p-1">
+                {tabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="flex items-center gap-1.5 px-2 md:px-3 py-2 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
+                  >
+                    <tab.icon className="h-4 w-4 shrink-0" />
+                    <span>{tab.label}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            {/* Fade indicator for scroll - mobile only */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
           </div>
 
           <TabsContent value="overview">

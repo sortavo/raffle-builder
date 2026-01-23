@@ -60,43 +60,47 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="w-full overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
-            <TabsList className="inline-flex w-max gap-1 p-1 h-auto">
-              <TabsTrigger value="organization" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Building2 className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Org</span>
-              </TabsTrigger>
-              <TabsTrigger value="payment-methods" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <CreditCard className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Pagos</span>
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Bell className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Alertas</span>
-              </TabsTrigger>
-              <TabsTrigger value="team" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Users className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Equipo</span>
-              </TabsTrigger>
-              <TabsTrigger value="telegram" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Send className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">TG</span>
-              </TabsTrigger>
-              <TabsTrigger value="domains" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Globe className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Dominios</span>
-              </TabsTrigger>
-              <TabsTrigger value="privacy" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                <Shield className="h-4 w-4 shrink-0" />
-                <span className="hidden xs:inline">Privacidad</span>
-              </TabsTrigger>
-              {isSortavoEmail && (
-                <TabsTrigger value="security" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
-                  <ShieldCheck className="h-4 w-4 shrink-0" />
-                  <span className="hidden xs:inline">Seguridad</span>
+          <div className="relative">
+            <div className="w-full overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+              <TabsList className="inline-flex w-max gap-1 p-1 h-auto">
+                <TabsTrigger value="organization" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Org</span>
                 </TabsTrigger>
-              )}
-            </TabsList>
+                <TabsTrigger value="payment-methods" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <CreditCard className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Pagos</span>
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Bell className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Alertas</span>
+                </TabsTrigger>
+                <TabsTrigger value="team" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Equipo</span>
+                </TabsTrigger>
+                <TabsTrigger value="telegram" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Send className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">TG</span>
+                </TabsTrigger>
+                <TabsTrigger value="domains" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Globe className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Dominios</span>
+                </TabsTrigger>
+                <TabsTrigger value="privacy" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                  <Shield className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">Privacidad</span>
+                </TabsTrigger>
+                {isSortavoEmail && (
+                  <TabsTrigger value="security" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                    <span className="hidden xs:inline">Seguridad</span>
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
+            {/* Fade indicator for scroll - mobile only */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none md:hidden" />
           </div>
 
           <TabsContent value="organization" className="animate-fade-in">
