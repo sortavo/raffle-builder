@@ -60,8 +60,8 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="w-full overflow-x-auto pb-1 -mx-1 px-1">
-            <TabsList className="inline-flex w-max min-w-full sm:w-auto sm:min-w-0 gap-1 p-1 h-auto">
+          <div className="w-full overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+            <TabsList className="inline-flex w-max gap-1 p-1 h-auto">
               <TabsTrigger value="organization" className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
                 <Building2 className="h-4 w-4 shrink-0" />
                 <span className="hidden xs:inline">Org</span>

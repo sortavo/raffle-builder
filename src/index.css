@@ -239,20 +239,22 @@
 
   html {
     touch-action: manipulation;
-    overflow-x: hidden;
+    /* Removed overflow-x: hidden - was blocking internal scroll containers */
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    overflow-x: hidden;
+    /* Removed overflow-x: hidden - was blocking internal scroll containers */
     min-height: 100vh;
     min-height: 100dvh;
   }
-  
+
   #root {
-    overflow-x: hidden;
+    /* Removed overflow-x: hidden - was blocking internal scroll containers */
     min-height: 100vh;
     min-height: 100dvh;
+    /* Use overflow-x-clip instead - clips overflow without blocking scroll inside */
+    overflow-x: clip;
   }
   
   /* Premium Typography Scale */

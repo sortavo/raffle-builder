@@ -98,7 +98,7 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
         <DashboardSidebar />
       </div>
       
-      <SidebarInset className="flex flex-col min-h-screen bg-gradient-to-br from-background via-background to-primary/5 dark:from-background dark:via-background dark:to-primary/10">
+      <SidebarInset className="flex flex-col min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 dark:from-background dark:via-background dark:to-primary/10">
         {/* Mobile Header */}
         <header className="md:hidden flex h-14 items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 safe-area-top">
           <Link to="/dashboard" className="flex items-center gap-2 group">
@@ -209,9 +209,9 @@ export function DashboardLayout({ children, title, breadcrumbs }: DashboardLayou
           </div>
         </header>
         
-        <main 
-          id="main-content" 
-          className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0"
+        <main
+          id="main-content"
+          className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 w-full max-w-full min-w-0 overflow-x-auto"
           tabIndex={-1}
         >
           <TrialBanner />

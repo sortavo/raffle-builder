@@ -173,8 +173,8 @@ export default function RaffleDetail() {
 
         {/* Tabs - scrollable on all screen sizes */}
         <Tabs defaultValue="overview" className="space-y-4 w-full">
-          <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
-            <TabsList className="inline-flex w-auto min-w-full h-auto gap-1 p-1">
+          <div className="overflow-x-auto -mx-4 px-4 scrollbar-hide">
+            <TabsList className="inline-flex w-max h-auto gap-1 p-1">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
