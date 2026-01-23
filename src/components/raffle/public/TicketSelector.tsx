@@ -100,6 +100,8 @@ interface TicketSelectorProps {
   // Numbering config - needed for consistent index calculation
   numberStart?: number;
   step?: number;
+  // Opportunities language
+  useOpportunitiesLanguage?: boolean;
 }
 
 export function TicketSelector({
@@ -121,9 +123,13 @@ export function TicketSelector({
   primaryColor,
   numberStart = 1,
   step = 1,
+  useOpportunitiesLanguage = false,
 }: TicketSelectorProps) {
   const isMobile = useIsMobile();
   const { trackRemoveFromCart } = useTrackingEvents();
+  
+  // Language helper
+  const ticketLabel = useOpportunitiesLanguage ? 'oportunidades' : 'boletos';
 
   // Theme-aware colors - comprehensive palette
   const colors = isLightTemplate ? {
@@ -1545,7 +1551,7 @@ export function TicketSelector({
                                 randomCount === pkg.quantity && "bg-gradient-to-r from-primary to-accent"
                               )}
                             >
-                              {pkg.label || `${pkg.quantity} boletos`}
+                              {pkg.label || `${pkg.quantity} ${ticketLabel}`}
                               {pkg.discount_percent && pkg.discount_percent > 0 && (
                                 <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700">
                                   -{pkg.discount_percent}%

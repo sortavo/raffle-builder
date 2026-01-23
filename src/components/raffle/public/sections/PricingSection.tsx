@@ -23,6 +23,8 @@ interface PricingSectionProps {
   isLightTemplate?: boolean;
   primaryColor?: string;
   onPackageSelect?: (quantity: number) => void;
+  useOpportunitiesLanguage?: boolean;
+  opportunitiesMultiplier?: number; // For display: "4 OPORTUNIDADES" badge
 }
 
 export function PricingSection({
@@ -32,6 +34,8 @@ export function PricingSection({
   isLightTemplate = false,
   primaryColor,
   onPackageSelect,
+  useOpportunitiesLanguage = false,
+  opportunitiesMultiplier,
 }: PricingSectionProps) {
   // Theme-aware colors
   const colors = isLightTemplate ? {
@@ -64,7 +68,7 @@ export function PricingSection({
           colors.cardBg, colors.border
         )}>
           <p className={cn("text-sm font-medium mb-2", colors.textMuted)}>
-            Precio por boleto
+            {useOpportunitiesLanguage ? 'Precio por oportunidad' : 'Precio por boleto'}
           </p>
           <p 
             className="text-4xl sm:text-5xl font-black tabular-nums tracking-tight"
@@ -72,6 +76,19 @@ export function PricingSection({
           >
             {formatCurrency(ticketPrice, currencyCode)}
           </p>
+          
+          {/* Badge de oportunidades cuando hay multiplicador */}
+          {useOpportunitiesLanguage && opportunitiesMultiplier && opportunitiesMultiplier > 1 && (
+            <div className="mt-4">
+              <span 
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-lg font-bold text-white animate-pulse"
+                style={{ background: `linear-gradient(135deg, ${primaryColor || '#10b981'}, ${primaryColor ? `${primaryColor}cc` : '#059669'})` }}
+              >
+                <Sparkles className="w-5 h-5" />
+                ×{opportunitiesMultiplier} OPORTUNIDADES
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Paquetes de descuento - debajo del precio */}

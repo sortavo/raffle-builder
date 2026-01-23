@@ -89,6 +89,54 @@ const PACKAGE_TEMPLATES = [
   },
 ];
 
+// Templates enfocados en "Oportunidades" (4x1, 5x1, etc)
+const OPPORTUNITY_TEMPLATES = [
+  {
+    id: '4x1',
+    name: '4 Oportunidades',
+    shortName: '4x1',
+    icon: Sparkles,
+    description: '4 oportunidades por 1',
+    quantity: 1,
+    bonus_tickets: 3,
+    discount_percent: 0,
+    label: '🎯 4x1',
+  },
+  {
+    id: '5x1',
+    name: '5 Oportunidades',
+    shortName: '5x1',
+    icon: Zap,
+    description: '5 oportunidades por 1',
+    quantity: 1,
+    bonus_tickets: 4,
+    discount_percent: 0,
+    label: '⚡ 5x1',
+  },
+  {
+    id: '6x1',
+    name: '6 Oportunidades',
+    shortName: '6x1',
+    icon: Gift,
+    description: '6 oportunidades por 1',
+    quantity: 1,
+    bonus_tickets: 5,
+    discount_percent: 0,
+    label: '🎁 6x1',
+  },
+  {
+    id: '10x1',
+    name: '10 Oportunidades',
+    shortName: '10x1',
+    icon: TrendingDown,
+    description: '¡Mega pack!',
+    quantity: 1,
+    bonus_tickets: 9,
+    discount_percent: 0,
+    label: '🔥 10x1',
+  },
+];
+
 
 export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: Step3Props) => {
   const { organization } = useAuth();
@@ -313,7 +361,9 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
 
   // Agregar paquete desde template
   const addPackageFromTemplate = (templateId: string) => {
-    const template = PACKAGE_TEMPLATES.find(t => t.id === templateId);
+    // Search in both template arrays
+    const template = PACKAGE_TEMPLATES.find(t => t.id === templateId) 
+      || OPPORTUNITY_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
     
     const normalPrice = basePrice * template.quantity;
@@ -704,15 +754,76 @@ export const Step3Tickets = ({ form, existingTicketCount = 0, raffleStatus }: St
 
       <Card className="border-0 shadow-none md:border md:shadow-sm">
         <CardHeader className="px-0 md:px-6">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Paquetes de Boletos
-          </CardTitle>
-          <CardDescription>
-            Crea promociones atractivas para incentivar compras de mayor volumen
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Paquetes de Boletos
+              </CardTitle>
+              <CardDescription>
+                Crea promociones atractivas para incentivar compras de mayor volumen
+              </CardDescription>
+            </div>
+          </div>
+          
+          {/* Toggle para lenguaje de oportunidades */}
+          <FormField
+            control={form.control}
+            name="customization.use_opportunities_language"
+            render={({ field }) => (
+              <FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-gradient-to-r from-primary/5 to-primary/10">
+                <div className="space-y-0.5">
+                  <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    Usar lenguaje de "Oportunidades"
+                  </FormLabel>
+                  <FormDescription className="text-xs">
+                    Muestra "4 oportunidades" en lugar de "4 boletos" en la página pública
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <input
+                    type="checkbox"
+                    checked={field.value || false}
+                    onChange={field.onChange}
+                    className="h-5 w-9 appearance-none rounded-full bg-gray-200 dark:bg-gray-700 checked:bg-primary relative cursor-pointer transition-colors before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:w-4 before:h-4 before:bg-white before:rounded-full before:transition-transform checked:before:translate-x-4"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </CardHeader>
         <CardContent className="px-0 md:px-6 space-y-4">
+          {/* Templates de Oportunidades (cuando está activado) */}
+          {form.watch('customization.use_opportunities_language') && (
+            <div className="space-y-2 p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Paquetes de Oportunidades
+              </label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Estos paquetes dan múltiples oportunidades por un solo pago
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {OPPORTUNITY_TEMPLATES.map((template) => {
+                  const TemplateIcon = template.icon;
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => addPackageFromTemplate(template.id)}
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg border-2 border-dashed border-amber-500/30 hover:border-amber-500 hover:bg-amber-500/10 transition-colors text-center group"
+                    >
+                      <TemplateIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-600 transition-colors" />
+                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{template.shortName}</span>
+                      <span className="text-[10px] text-muted-foreground">{template.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
           {/* Promociones Populares - Templates rápidos */}
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">

@@ -327,6 +327,9 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
   const showUrgencyBadge = customization.show_urgency_badge !== false;
   const showStickyBanner = customization.show_sticky_banner !== false;
   const showSocialProof = customization.show_social_proof !== false;
+  
+  // Opportunities language toggle
+  const useOpportunitiesLanguage = customization.use_opportunities_language === true;
 
   // Organization branding - ALWAYS available
   const org = raffle.organization;
@@ -558,6 +561,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
             onPackageSelect={(qty) => {
               scrollToTickets();
             }}
+            useOpportunitiesLanguage={useOpportunitiesLanguage}
           />
         )}
         
@@ -613,6 +617,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 onPackageSelect={(qty) => {
                   scrollToTickets();
                 }}
+                useOpportunitiesLanguage={useOpportunitiesLanguage}
               />
             )}
 
@@ -664,7 +669,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
         {showTicketGrid && (
           <div ref={ticketsRef} className="py-20 lg:py-28" id="tickets">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <motion.div 
+                <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -674,14 +679,17 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                   "text-xs font-medium uppercase tracking-[0.2em] mb-4",
                   isLightTemplate ? "text-gray-500" : "text-gray-400"
                 )}>
-                  Selección de boletos
+                  {useOpportunitiesLanguage ? 'Selección de oportunidades' : 'Selección de boletos'}
                 </p>
                 <h2 className="text-3xl lg:text-5xl font-bold mb-4">
                   <span 
                     className="bg-clip-text text-transparent"
                     style={{ backgroundImage: `linear-gradient(to right, ${primaryColor}, ${primaryColor}dd, ${primaryColor})` }}
                   >
-                    {isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos"}
+                    {useOpportunitiesLanguage 
+                      ? (isMobile ? "Elige tus Oportunidades" : "Selecciona tus Oportunidades")
+                      : (isMobile ? "Elige tus Boletos" : "Selecciona tus Boletos")
+                    }
                   </span>
                 </h2>
                 <p className={cn(
@@ -711,6 +719,7 @@ export default function PublicRaffle({ tenantOrgSlug, raffleSlugOverride }: Publ
                 primaryColor={primaryColor}
                 numberStart={((raffle as any).numbering_config as any)?.start_number ?? 1}
                 step={((raffle as any).numbering_config as any)?.step ?? 1}
+                useOpportunitiesLanguage={useOpportunitiesLanguage}
               />
 
               {showSocialProof && (
