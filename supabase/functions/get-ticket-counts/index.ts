@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPrelight } from '../_shared/cors.ts';
 
 const CACHE_TTL = 10; // seconds
 
@@ -82,13 +78,15 @@ async function redisDelete(url: string, token: string, key: string): Promise<boo
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPrelight(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const body = await req.json();
     const { raffle_id, invalidate } = body;
-    
+
     if (!raffle_id) {
       return new Response(
         JSON.stringify({ error: 'raffle_id is required' }),
@@ -99,7 +97,6 @@ Deno.serve(async (req) => {
     const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
     const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
     const cacheKey = `counts:${raffle_id}`;
-    
 
     // Handle cache invalidation request
     if (invalidate && redisUrl && redisToken) {
@@ -113,7 +110,7 @@ Deno.serve(async (req) => {
     // Try cache first if Redis is configured
     if (redisUrl && redisToken) {
       const cached = await redisGet(redisUrl, redisToken, cacheKey);
-      
+
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -139,7 +136,7 @@ Deno.serve(async (req) => {
 
     // Try the optimized blocks-based function first
     let counts: { total_count: number; sold_count: number; reserved_count: number; available_count: number } | null = null;
-    
+
     const { data: blockData, error: blockError } = await supabase
       .rpc('get_ticket_counts_from_blocks', { p_raffle_id: raffle_id });
 
