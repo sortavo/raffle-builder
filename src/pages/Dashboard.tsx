@@ -238,21 +238,21 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl hidden sm:block"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-32 -translate-x-32 blur-3xl hidden sm:block"></div>
           
-          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
-              <div className="space-y-1 sm:space-y-2">
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6 min-w-0">
+              <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary-foreground">
                   ¡Bienvenido, {profile?.full_name?.split(" ")[0] || "Usuario"}! 👋
                 </h1>
-                <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg">
-                  {stats?.ticketsSold && stats.ticketsSold > 0 
-                    ? `Has vendido ${stats.ticketsSold} boletos con ingresos de ${formatCurrency(stats.totalRevenue || 0)}`
+                <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg break-words">
+                  {stats?.ticketsSold && stats.ticketsSold > 0
+                    ? `Has vendido ${stats.ticketsSold.toLocaleString()} boletos con ingresos de ${formatCurrency(stats.totalRevenue || 0)}`
                     : "Aquí está un resumen de tus sorteos y actividad reciente"
                   }
                 </p>
               </div>
-              
-              <div className="flex items-center gap-4">
-                <Button 
+
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <Button
                   size="default"
                   className="bg-background text-primary hover:bg-background/90 shadow-xl w-full sm:w-auto"
                   onClick={() => navigate('/dashboard/raffles/new')}
@@ -348,7 +348,7 @@ export default function Dashboard() {
           {/* Content Grid */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Active Raffles */}
-            <div className="bg-card rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow duration-200 min-w-0">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight text-foreground">Sorteos Activos</h3>
@@ -427,7 +427,7 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-card rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow duration-200 min-w-0">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-lg font-semibold tracking-tight text-foreground">Actividad Reciente</h3>

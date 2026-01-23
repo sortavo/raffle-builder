@@ -250,11 +250,9 @@
   }
 
   #root {
-    /* Removed overflow-x: hidden - was blocking internal scroll containers */
     min-height: 100vh;
     min-height: 100dvh;
-    /* Use overflow-x-clip instead - clips overflow without blocking scroll inside */
-    overflow-x: clip;
+    /* No overflow restrictions - let children handle their own overflow */
   }
   
   /* Premium Typography Scale */
