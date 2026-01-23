@@ -106,7 +106,7 @@ export function PackageCards({
       </div>
       
       {/* Horizontal scroll on mobile, grid on desktop */}
-      <div className="relative flex gap-4 overflow-x-auto pb-3 -mx-2 px-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:mx-0 md:px-0">
+      <div className="relative flex gap-4 overflow-x-auto overflow-y-visible pt-4 pb-3 -mx-2 px-2 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:mx-0 md:px-0">
         {sortedPackages.map((pkg, index) => {
           const isSelected = selectedQuantity === pkg.quantity;
           const isBest = pkg.id === actualBestId;
@@ -159,9 +159,9 @@ export function PackageCards({
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"
+                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10"
                 >
-                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 shimmer-badge border border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30">
                     <Star className="w-3 h-3 fill-current" />
                     Mejor Valor
                   </span>
