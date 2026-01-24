@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useSortavoClient, useSortavoContext } from './provider';
 import { useSortavoStore, selectUser, selectIsAuthenticated, selectCurrentRaffle, selectSelectedTickets } from '../store';
-import type { Raffle, Ticket, Purchase, PaginatedResponse } from '../types';
+import type { Raffle, Ticket, Purchase, Notification, PaginatedResponse } from '../types';
 
 // ==================== Authentication Hooks ====================
 
@@ -337,6 +337,134 @@ export function useMyPurchases() {
   }, [client]);
 
   return { purchases, isLoading, error };
+}
+
+// ==================== Notification Hooks ====================
+
+export function useNotifications(options: {
+  unreadOnly?: boolean;
+  realtime?: boolean;
+} = {}) {
+  const client = useSortavoClient();
+  const { unreadOnly = false, realtime = true } = options;
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.getNotifications({ unreadOnly });
+
+    if (result.success && result.data) {
+      setNotifications(result.data.data);
+      // Update unread count
+      const count = result.data.data.filter((n) => !n.read).length;
+      setUnreadCount(count);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client, unreadOnly]);
+
+  // Fetch unread count separately (for badge)
+  const fetchUnreadCount = useCallback(async () => {
+    const result = await client.getUnreadCount();
+    if (result.success && result.data !== undefined) {
+      setUnreadCount(result.data);
+    }
+  }, [client]);
+
+  // Mark as read
+  const markAsRead = useCallback(async (notificationId: string) => {
+    const result = await client.markNotificationAsRead(notificationId);
+    if (result.success) {
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId ? { ...n, read: true, readAt: new Date() } : n
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    return result;
+  }, [client]);
+
+  // Mark all as read
+  const markAllAsRead = useCallback(async () => {
+    const result = await client.markAllNotificationsAsRead();
+    if (result.success) {
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true, readAt: new Date() }))
+      );
+      setUnreadCount(0);
+    }
+    return result;
+  }, [client]);
+
+  // Delete notification
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    const notification = notifications.find((n) => n.id === notificationId);
+    const result = await client.deleteNotification(notificationId);
+    if (result.success) {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      if (notification && !notification.read) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    }
+    return result;
+  }, [client, notifications]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!realtime) return;
+
+    const unsubscribe = client.subscribeToNotifications({
+      onNew: (notification) => {
+        setNotifications((prev) => [notification, ...prev]);
+        if (!notification.read) {
+          setUnreadCount((prev) => prev + 1);
+        }
+      },
+      onUpdate: (notification) => {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? notification : n))
+        );
+        // Recalculate unread count
+        fetchUnreadCount();
+      },
+      onDelete: (notificationId) => {
+        setNotifications((prev) => {
+          const notification = prev.find((n) => n.id === notificationId);
+          if (notification && !notification.read) {
+            setUnreadCount((c) => Math.max(0, c - 1));
+          }
+          return prev.filter((n) => n.id !== notificationId);
+        });
+      },
+    });
+
+    return unsubscribe;
+  }, [client, realtime, fetchUnreadCount]);
+
+  return {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    refetch: fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  };
 }
 
 // ==================== Utility Hooks ====================

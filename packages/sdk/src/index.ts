@@ -18,6 +18,8 @@ export type {
   Ticket,
   TicketPackage,
   Purchase,
+  Notification,
+  NotificationType,
   PaginatedResponse,
   ApiResponse,
 } from './types';

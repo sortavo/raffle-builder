@@ -17,6 +17,8 @@ export {
   // Purchases
   usePurchase,
   useMyPurchases,
+  // Notifications
+  useNotifications,
   // Utilities
   useSortavoError,
   useTenant,
@@ -33,6 +35,8 @@ export type {
   Ticket,
   TicketPackage,
   Purchase,
+  Notification,
+  NotificationType,
   PaginatedResponse,
   ApiResponse,
 } from '../types';

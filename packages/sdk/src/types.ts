@@ -162,3 +162,27 @@ export interface ApiResponse<T> {
   data?: T;
   error?: SortavoError;
 }
+
+// Notification Types
+export type NotificationType =
+  | 'purchase_confirmed'
+  | 'raffle_starting'
+  | 'raffle_ending'
+  | 'winner_announcement'
+  | 'ticket_reminder'
+  | 'promotion'
+  | 'system';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  imageUrl?: string;
+  read: boolean;
+  actionUrl?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  readAt?: Date;
+}

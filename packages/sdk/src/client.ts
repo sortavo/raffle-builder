@@ -5,6 +5,7 @@ import type {
   Raffle,
   Ticket,
   Purchase,
+  Notification,
   PaginatedResponse,
   ApiResponse,
   SortavoError,
@@ -369,6 +370,175 @@ export class SortavoClient {
     };
   }
 
+  // ==================== Notifications ====================
+
+  async getNotifications(options: {
+    page?: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  } = {}): Promise<ApiResponse<PaginatedResponse<Notification>>> {
+    try {
+      const { page = 1, limit = 50, unreadOnly = false } = options;
+      const offset = (page - 1) * limit;
+
+      let query = this.supabase
+        .from('notifications')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (unreadOnly) {
+        query = query.eq('read', false);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const notifications = (data || []).map(this.mapNotification);
+      const total = count || 0;
+
+      return {
+        success: true,
+        data: {
+          data: notifications,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+          },
+        },
+      };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getUnreadCount(): Promise<ApiResponse<number>> {
+    try {
+      const { count, error } = await this.supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('read', false);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true, data: count || 0 };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await this.supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('id', notificationId);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async markAllNotificationsAsRead(): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await this.supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('read', false);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async deleteNotification(notificationId: string): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await this.supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  subscribeToNotifications(callbacks: {
+    onNew?: (notification: Notification) => void;
+    onUpdate?: (notification: Notification) => void;
+    onDelete?: (notificationId: string) => void;
+  }) {
+    const channel = this.supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          if (callbacks.onNew) {
+            callbacks.onNew(this.mapNotification(payload.new));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          if (callbacks.onUpdate) {
+            callbacks.onUpdate(this.mapNotification(payload.new));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          if (callbacks.onDelete) {
+            callbacks.onDelete((payload.old as any).id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }
+
   // ==================== Helper Methods ====================
 
   private mapRaffle(data: any): Raffle {
@@ -436,6 +606,22 @@ export class SortavoClient {
       paymentIntentId: data.payment_intent_id,
       createdAt: new Date(data.created_at),
       completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
+    };
+  }
+
+  private mapNotification(data: any): Notification {
+    return {
+      id: data.id,
+      userId: data.user_id,
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      imageUrl: data.image_url,
+      read: data.read || false,
+      actionUrl: data.action_url,
+      metadata: data.metadata,
+      createdAt: new Date(data.created_at),
+      readAt: data.read_at ? new Date(data.read_at) : undefined,
     };
   }
 
