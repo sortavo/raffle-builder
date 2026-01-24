@@ -33,8 +33,8 @@ export function RaffleList({
         style={[
           styles.cardContainer,
           columns === 2 && styles.cardContainerGrid,
-          columns === 2 && index % 2 === 0 && { paddingRight: theme.spacing.sm / 2 },
-          columns === 2 && index % 2 === 1 && { paddingLeft: theme.spacing.sm / 2 },
+          columns === 2 && index % 2 === 0 && { paddingRight: (theme.spacing.sm || 8) / 2 },
+          columns === 2 && index % 2 === 1 && { paddingLeft: (theme.spacing.sm || 8) / 2 },
         ]}
       >
         <RaffleCard

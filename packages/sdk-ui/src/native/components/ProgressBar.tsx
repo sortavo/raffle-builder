@@ -1,6 +1,6 @@
 // Progress Bar Component for React Native
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, type DimensionValue } from 'react-native';
 import { useTheme } from '../theme';
 import type { ProgressBarProps } from '../../types';
 
@@ -17,7 +17,7 @@ export function ProgressBar({
   const theme = useTheme();
 
   const percentage = total > 0 ? Math.round((sold / total) * 100) : 0;
-  const progressWidth = `${Math.min(percentage, 100)}%`;
+  const progressWidth: DimensionValue = `${Math.min(percentage, 100)}%` as DimensionValue;
 
   const barColor = color || theme.colors.primary;
   const bgColor = backgroundColor || theme.colors.surface;
