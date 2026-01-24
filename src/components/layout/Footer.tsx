@@ -104,7 +104,7 @@ export function Footer() {
                 <Twitter className="h-5 w-5" />
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/sortavo/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-emerald-400 transition-colors"
