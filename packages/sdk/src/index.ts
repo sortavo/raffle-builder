@@ -22,6 +22,13 @@ export type {
   NotificationType,
   PaginatedResponse,
   ApiResponse,
+  // Marketplace types
+  Organization,
+  OrganizationCategory,
+  OrganizationFollow,
+  FeedItem,
+  FeedFilters,
+  WinnerAnnouncement,
 } from './types';
 
 // Version

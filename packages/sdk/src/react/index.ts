@@ -19,6 +19,17 @@ export {
   useMyPurchases,
   // Notifications
   useNotifications,
+  // Organizations (Marketplace)
+  useOrganizations,
+  useOrganization,
+  useOrganizationBySlug,
+  useFollowOrganization,
+  useFollowedOrganizations,
+  // Feed (Marketplace)
+  useFeed,
+  useOrganizationRaffles,
+  useRecentWinners,
+  useSearchRaffles,
   // Utilities
   useSortavoError,
   useTenant,
@@ -39,6 +50,13 @@ export type {
   NotificationType,
   PaginatedResponse,
   ApiResponse,
+  // Marketplace types
+  Organization,
+  OrganizationCategory,
+  OrganizationFollow,
+  FeedItem,
+  FeedFilters,
+  WinnerAnnouncement,
 } from '../types';
 
 // Re-export store selectors for advanced usage

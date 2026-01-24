@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useSortavoClient, useSortavoContext } from './provider';
 import { useSortavoStore, selectUser, selectIsAuthenticated, selectCurrentRaffle, selectSelectedTickets } from '../store';
-import type { Raffle, Ticket, Purchase, Notification, PaginatedResponse } from '../types';
+import type { Raffle, Ticket, Purchase, Notification, PaginatedResponse, Organization, WinnerAnnouncement } from '../types';
 
 // ==================== Authentication Hooks ====================
 
@@ -464,6 +464,335 @@ export function useNotifications(options: {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+  };
+}
+
+// ==================== Organization Hooks (Marketplace) ====================
+
+export function useOrganizations(options: {
+  category?: string;
+  search?: string;
+  verified?: boolean;
+  sortBy?: 'popular' | 'newest' | 'name';
+  page?: number;
+  limit?: number;
+} = {}) {
+  const client = useSortavoClient();
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchOrganizations = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.getOrganizations(options as any);
+
+    if (result.success && result.data) {
+      setData(result.data);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client, options.category, options.search, options.verified, options.sortBy, options.page, options.limit]);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, [fetchOrganizations]);
+
+  return {
+    organizations: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    error,
+    refetch: fetchOrganizations,
+  };
+}
+
+export function useOrganization(organizationId: string | null) {
+  const client = useSortavoClient();
+  const [organization, setOrganization] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!organizationId) {
+      setOrganization(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    client.getOrganization(organizationId).then((result) => {
+      if (result.success && result.data) {
+        setOrganization(result.data);
+      } else if (result.error) {
+        setError(new Error(result.error.message));
+      }
+      setIsLoading(false);
+    });
+  }, [client, organizationId]);
+
+  return { organization, isLoading, error };
+}
+
+export function useOrganizationBySlug(slug: string | null) {
+  const client = useSortavoClient();
+  const [organization, setOrganization] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!slug) {
+      setOrganization(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    client.getOrganizationBySlug(slug).then((result) => {
+      if (result.success && result.data) {
+        setOrganization(result.data);
+      } else if (result.error) {
+        setError(new Error(result.error.message));
+      }
+      setIsLoading(false);
+    });
+  }, [client, slug]);
+
+  return { organization, isLoading, error };
+}
+
+export function useFollowOrganization(organizationId: string) {
+  const client = useSortavoClient();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const follow = useCallback(async () => {
+    setIsProcessing(true);
+    const result = await client.followOrganization(organizationId);
+    if (result.success) {
+      setIsFollowing(true);
+    }
+    setIsProcessing(false);
+    return result;
+  }, [client, organizationId]);
+
+  const unfollow = useCallback(async () => {
+    setIsProcessing(true);
+    const result = await client.unfollowOrganization(organizationId);
+    if (result.success) {
+      setIsFollowing(false);
+    }
+    setIsProcessing(false);
+    return result;
+  }, [client, organizationId]);
+
+  const toggle = useCallback(async () => {
+    return isFollowing ? unfollow() : follow();
+  }, [isFollowing, follow, unfollow]);
+
+  return {
+    isFollowing,
+    setIsFollowing,
+    follow,
+    unfollow,
+    toggle,
+    isProcessing,
+  };
+}
+
+export function useFollowedOrganizations() {
+  const client = useSortavoClient();
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchFollowed = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.getFollowedOrganizations();
+
+    if (result.success && result.data) {
+      setOrganizations(result.data);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client]);
+
+  useEffect(() => {
+    fetchFollowed();
+  }, [fetchFollowed]);
+
+  return {
+    organizations,
+    isLoading,
+    error,
+    refetch: fetchFollowed,
+  };
+}
+
+// ==================== Feed Hooks (Marketplace) ====================
+
+export function useFeed(options: {
+  filters?: {
+    category?: string;
+    status?: 'active' | 'ending_soon' | 'new';
+    priceRange?: { min?: number; max?: number };
+    sortBy?: 'trending' | 'ending_soon' | 'newest' | 'price_low' | 'price_high';
+    followedOnly?: boolean;
+  };
+  page?: number;
+  limit?: number;
+} = {}) {
+  const client = useSortavoClient();
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchFeed = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.getFeed(options as any);
+
+    if (result.success && result.data) {
+      setData(result.data);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client, JSON.stringify(options)]);
+
+  useEffect(() => {
+    fetchFeed();
+  }, [fetchFeed]);
+
+  return {
+    raffles: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    error,
+    refetch: fetchFeed,
+  };
+}
+
+export function useOrganizationRaffles(organizationId: string | null, options: {
+  status?: 'active' | 'completed' | 'all';
+  page?: number;
+  limit?: number;
+} = {}) {
+  const client = useSortavoClient();
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchRaffles = useCallback(async () => {
+    if (!organizationId) {
+      setData(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.getOrganizationRaffles(organizationId, options);
+
+    if (result.success && result.data) {
+      setData(result.data);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client, organizationId, options.status, options.page, options.limit]);
+
+  useEffect(() => {
+    fetchRaffles();
+  }, [fetchRaffles]);
+
+  return {
+    raffles: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    error,
+    refetch: fetchRaffles,
+  };
+}
+
+export function useRecentWinners(options: {
+  limit?: number;
+  organizationId?: string;
+} = {}) {
+  const client = useSortavoClient();
+  const [winners, setWinners] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+
+    client.getRecentWinners(options).then((result) => {
+      if (result.success && result.data) {
+        setWinners(result.data);
+      } else if (result.error) {
+        setError(new Error(result.error.message));
+      }
+      setIsLoading(false);
+    });
+  }, [client, options.limit, options.organizationId]);
+
+  return { winners, isLoading, error };
+}
+
+export function useSearchRaffles(query: string, options: {
+  page?: number;
+  limit?: number;
+} = {}) {
+  const client = useSortavoClient();
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const search = useCallback(async () => {
+    if (!query || query.length < 2) {
+      setData(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await client.searchRaffles(query, options);
+
+    if (result.success && result.data) {
+      setData(result.data);
+    } else if (result.error) {
+      setError(new Error(result.error.message));
+    }
+
+    setIsLoading(false);
+  }, [client, query, options.page, options.limit]);
+
+  useEffect(() => {
+    const debounce = setTimeout(search, 300);
+    return () => clearTimeout(debounce);
+  }, [search]);
+
+  return {
+    results: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    error,
   };
 }
 

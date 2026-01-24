@@ -1,9 +1,12 @@
 // SDK Types - Enterprise-ready multi-tenant configuration
 
 export interface SortavoConfig {
-  // Tenant identification
-  tenantId: string;                    // Organization/raffle organizer ID
+  // Tenant identification (optional for marketplace mode)
+  tenantId?: string;                   // Organization/raffle organizer ID (optional in marketplace mode)
   tenantSlug?: string;                 // For URL-based routing
+
+  // Marketplace mode - browse all organizers
+  marketplaceMode?: boolean;           // Default: false - enables multi-org browsing
 
   // Optional API overrides (for enterprise clients with own infrastructure)
   apiUrl?: string;
@@ -185,4 +188,84 @@ export interface Notification {
   metadata?: Record<string, unknown>;
   createdAt: Date;
   readAt?: Date;
+}
+
+// Organization Types (for marketplace mode)
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  verified: boolean;
+  category?: OrganizationCategory;
+  location?: string;
+  socialLinks?: {
+    website?: string;
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+    tiktok?: string;
+  };
+  stats: {
+    totalRaffles: number;
+    activeRaffles: number;
+    completedRaffles: number;
+    totalParticipants: number;
+    rating?: number;
+    reviewCount?: number;
+  };
+  isFollowing?: boolean;
+  followerCount?: number;
+  createdAt: Date;
+}
+
+export type OrganizationCategory =
+  | 'charity'
+  | 'sports'
+  | 'entertainment'
+  | 'education'
+  | 'community'
+  | 'business'
+  | 'religious'
+  | 'other';
+
+export interface OrganizationFollow {
+  id: string;
+  userId: string;
+  organizationId: string;
+  createdAt: Date;
+}
+
+// Feed Types
+export interface FeedItem {
+  id: string;
+  type: 'raffle' | 'winner' | 'new_organizer';
+  raffle?: Raffle;
+  organization?: Organization;
+  winner?: WinnerAnnouncement;
+  timestamp: Date;
+}
+
+export interface WinnerAnnouncement {
+  id: string;
+  raffleId: string;
+  raffleTitle: string;
+  prizeTitle: string;
+  winnerName: string;
+  winnerAvatar?: string;
+  ticketNumber: string;
+  organizationName: string;
+  organizationSlug: string;
+  announcedAt: Date;
+}
+
+// Feed Filters
+export interface FeedFilters {
+  category?: OrganizationCategory;
+  status?: 'active' | 'ending_soon' | 'new';
+  priceRange?: { min?: number; max?: number };
+  sortBy?: 'trending' | 'ending_soon' | 'newest' | 'price_low' | 'price_high';
+  followedOnly?: boolean;
 }

@@ -10,6 +10,11 @@ import type {
   ApiResponse,
   SortavoError,
   SortavoUser,
+  Organization,
+  OrganizationCategory,
+  FeedItem,
+  FeedFilters,
+  WinnerAnnouncement,
 } from './types';
 
 // Default production values
@@ -539,6 +544,461 @@ export class SortavoClient {
     };
   }
 
+  // ==================== Organizations (Marketplace Mode) ====================
+
+  async getOrganizations(options: {
+    page?: number;
+    limit?: number;
+    category?: OrganizationCategory;
+    search?: string;
+    verified?: boolean;
+    sortBy?: 'popular' | 'newest' | 'name';
+  } = {}): Promise<ApiResponse<PaginatedResponse<Organization>>> {
+    try {
+      const { page = 1, limit = 20, category, search, verified, sortBy = 'popular' } = options;
+      const offset = (page - 1) * limit;
+
+      let query = this.supabase
+        .from('organizations')
+        .select(`
+          *,
+          organization_stats(*),
+          organization_follows(count)
+        `, { count: 'exact' })
+        .eq('status', 'active')
+        .range(offset, offset + limit - 1);
+
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+      }
+
+      if (verified !== undefined) {
+        query = query.eq('verified', verified);
+      }
+
+      // Sort options
+      switch (sortBy) {
+        case 'popular':
+          query = query.order('follower_count', { ascending: false, nullsFirst: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'name':
+          query = query.order('name', { ascending: true });
+          break;
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const organizations = (data || []).map((org: any) => this.mapOrganization(org));
+      const total = count || 0;
+
+      return {
+        success: true,
+        data: {
+          data: organizations,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+          },
+        },
+      };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getOrganization(organizationId: string): Promise<ApiResponse<Organization>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('organizations')
+        .select(`
+          *,
+          organization_stats(*),
+          organization_follows(count)
+        `)
+        .eq('id', organizationId)
+        .single();
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      // Check if current user follows this org
+      const { data: { user } } = await this.supabase.auth.getUser();
+      let isFollowing = false;
+
+      if (user) {
+        const { data: follow } = await this.supabase
+          .from('organization_follows')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        isFollowing = !!follow;
+      }
+
+      return { success: true, data: this.mapOrganization(data, isFollowing) };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<ApiResponse<Organization>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('organizations')
+        .select(`
+          *,
+          organization_stats(*),
+          organization_follows(count)
+        `)
+        .eq('slug', slug)
+        .single();
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      // Check if current user follows this org
+      const { data: { user } } = await this.supabase.auth.getUser();
+      let isFollowing = false;
+
+      if (user) {
+        const { data: follow } = await this.supabase
+          .from('organization_follows')
+          .select('id')
+          .eq('organization_id', data.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        isFollowing = !!follow;
+      }
+
+      return { success: true, data: this.mapOrganization(data, isFollowing) };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async followOrganization(organizationId: string): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await this.supabase
+        .from('organization_follows')
+        .insert({ organization_id: organizationId });
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async unfollowOrganization(organizationId: string): Promise<ApiResponse<void>> {
+    try {
+      const { error } = await this.supabase
+        .from('organization_follows')
+        .delete()
+        .eq('organization_id', organizationId);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getFollowedOrganizations(): Promise<ApiResponse<Organization[]>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('organization_follows')
+        .select(`
+          organization:organizations(
+            *,
+            organization_stats(*)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const organizations = (data || [])
+        .map((f: any) => f.organization)
+        .filter(Boolean)
+        .map((org: any) => this.mapOrganization(org, true));
+
+      return { success: true, data: organizations };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  // ==================== Feed (Marketplace Mode) ====================
+
+  async getFeed(options: {
+    page?: number;
+    limit?: number;
+    filters?: FeedFilters;
+  } = {}): Promise<ApiResponse<PaginatedResponse<Raffle>>> {
+    try {
+      const { page = 1, limit = 20, filters = {} } = options;
+      const offset = (page - 1) * limit;
+
+      let query = this.supabase
+        .from('raffles')
+        .select(`
+          *,
+          raffle_prizes(*),
+          ticket_packages(*),
+          organizations!inner(id, name, slug, logo_url, verified)
+        `, { count: 'exact' })
+        .eq('status', 'active')
+        .range(offset, offset + limit - 1);
+
+      // Filter by category (via organization)
+      if (filters.category) {
+        query = query.eq('organizations.category', filters.category);
+      }
+
+      // Filter by price range
+      if (filters.priceRange?.min !== undefined) {
+        query = query.gte('ticket_price', filters.priceRange.min);
+      }
+      if (filters.priceRange?.max !== undefined) {
+        query = query.lte('ticket_price', filters.priceRange.max);
+      }
+
+      // Filter by followed organizations only
+      if (filters.followedOnly) {
+        const { data: follows } = await this.supabase
+          .from('organization_follows')
+          .select('organization_id');
+
+        if (follows && follows.length > 0) {
+          const orgIds = follows.map(f => f.organization_id);
+          query = query.in('organizer_id', orgIds);
+        } else {
+          // No followed orgs, return empty
+          return {
+            success: true,
+            data: {
+              data: [],
+              pagination: { page, limit, total: 0, totalPages: 0, hasMore: false },
+            },
+          };
+        }
+      }
+
+      // Sorting
+      switch (filters.sortBy) {
+        case 'ending_soon':
+          query = query.order('end_date', { ascending: true });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        case 'price_low':
+          query = query.order('ticket_price', { ascending: true });
+          break;
+        case 'price_high':
+          query = query.order('ticket_price', { ascending: false });
+          break;
+        case 'trending':
+        default:
+          query = query.order('sold_tickets', { ascending: false });
+          break;
+      }
+
+      // Filter ending soon (within 24 hours)
+      if (filters.status === 'ending_soon') {
+        const tomorrow = new Date();
+        tomorrow.setHours(tomorrow.getHours() + 24);
+        query = query.lt('end_date', tomorrow.toISOString());
+      }
+
+      // Filter new (created in last 7 days)
+      if (filters.status === 'new') {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        query = query.gte('created_at', weekAgo.toISOString());
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const raffles = (data || []).map((r: any) => this.mapRaffleWithOrg(r));
+      const total = count || 0;
+
+      return {
+        success: true,
+        data: {
+          data: raffles,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+          },
+        },
+      };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getOrganizationRaffles(organizationId: string, options: {
+    page?: number;
+    limit?: number;
+    status?: 'active' | 'completed' | 'all';
+  } = {}): Promise<ApiResponse<PaginatedResponse<Raffle>>> {
+    try {
+      const { page = 1, limit = 20, status = 'active' } = options;
+      const offset = (page - 1) * limit;
+
+      let query = this.supabase
+        .from('raffles')
+        .select('*, raffle_prizes(*), ticket_packages(*)', { count: 'exact' })
+        .eq('organizer_id', organizationId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (status !== 'all') {
+        query = query.eq('status', status);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const raffles = (data || []).map(this.mapRaffle);
+      const total = count || 0;
+
+      return {
+        success: true,
+        data: {
+          data: raffles,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+          },
+        },
+      };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async getRecentWinners(options: {
+    limit?: number;
+    organizationId?: string;
+  } = {}): Promise<ApiResponse<WinnerAnnouncement[]>> {
+    try {
+      const { limit = 10, organizationId } = options;
+
+      let query = this.supabase
+        .from('raffle_winners')
+        .select(`
+          *,
+          raffles!inner(id, title, organizer_id),
+          raffle_prizes(title),
+          profiles(full_name, avatar_url),
+          organizations!raffles(name, slug)
+        `)
+        .order('announced_at', { ascending: false })
+        .limit(limit);
+
+      if (organizationId) {
+        query = query.eq('raffles.organizer_id', organizationId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const winners = (data || []).map((w: any) => this.mapWinnerAnnouncement(w));
+
+      return { success: true, data: winners };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
+  async searchRaffles(query: string, options: {
+    page?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<PaginatedResponse<Raffle>>> {
+    try {
+      const { page = 1, limit = 20 } = options;
+      const offset = (page - 1) * limit;
+
+      const { data, error, count } = await this.supabase
+        .from('raffles')
+        .select(`
+          *,
+          raffle_prizes(*),
+          ticket_packages(*),
+          organizations!inner(id, name, slug, logo_url, verified)
+        `, { count: 'exact' })
+        .eq('status', 'active')
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .order('sold_tickets', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        return { success: false, error: this.mapError(error) };
+      }
+
+      const raffles = (data || []).map((r: any) => this.mapRaffleWithOrg(r));
+      const total = count || 0;
+
+      return {
+        success: true,
+        data: {
+          data: raffles,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasMore: offset + limit < total,
+          },
+        },
+      };
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
   // ==================== Helper Methods ====================
 
   private mapRaffle(data: any): Raffle {
@@ -622,6 +1082,68 @@ export class SortavoClient {
       metadata: data.metadata,
       createdAt: new Date(data.created_at),
       readAt: data.read_at ? new Date(data.read_at) : undefined,
+    };
+  }
+
+  private mapOrganization(data: any, isFollowing = false): Organization {
+    const stats = data.organization_stats?.[0] || data.organization_stats || {};
+    const followCount = data.organization_follows?.[0]?.count || data.follower_count || 0;
+
+    return {
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      description: data.description,
+      logoUrl: data.logo_url,
+      coverImageUrl: data.cover_image_url,
+      verified: data.verified || false,
+      category: data.category,
+      location: data.location,
+      socialLinks: data.social_links || {},
+      stats: {
+        totalRaffles: stats.total_raffles || 0,
+        activeRaffles: stats.active_raffles || 0,
+        completedRaffles: stats.completed_raffles || 0,
+        totalParticipants: stats.total_participants || 0,
+        rating: stats.rating,
+        reviewCount: stats.review_count,
+      },
+      isFollowing,
+      followerCount: followCount,
+      createdAt: new Date(data.created_at),
+    };
+  }
+
+  private mapRaffleWithOrg(data: any): Raffle {
+    const raffle = this.mapRaffle(data);
+    // Add organization info to metadata
+    if (data.organizations) {
+      raffle.metadata = {
+        ...raffle.metadata,
+        organization: {
+          id: data.organizations.id,
+          name: data.organizations.name,
+          slug: data.organizations.slug,
+          logoUrl: data.organizations.logo_url,
+          verified: data.organizations.verified,
+        },
+      };
+    }
+    return raffle;
+  }
+
+  private mapWinnerAnnouncement(data: any): WinnerAnnouncement {
+    return {
+      id: data.id,
+      raffleId: data.raffle_id,
+      raffleTitle: data.raffles?.title || '',
+      prizeTitle: data.raffle_prizes?.title || '',
+      winnerName: data.profiles?.full_name || 'Ganador',
+      winnerAvatar: data.profiles?.avatar_url,
+      ticketNumber: data.ticket_number,
+      organizationName: data.organizations?.name || '',
+      organizationSlug: data.organizations?.slug || '',
+      announcedAt: new Date(data.announced_at || data.created_at),
     };
   }
 
