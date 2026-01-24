@@ -7,7 +7,7 @@
     "dev": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "build": "eas build",
+    "build": "echo 'Mobile builds run via EAS, not Vercel'",
     "build:preview": "eas build --profile preview",
     "build:production": "eas build --profile production",
     "test": "jest",
