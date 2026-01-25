@@ -54,6 +54,19 @@ export {
 
   // Winner Components
   WinnerBanner,
+  WinnerCard,
+  WinnersList,
+
+  // Organization Components (Marketplace)
+  OrganizationCard,
+  OrganizationList,
+  OrganizationProfile,
+
+  // Feed Components (Marketplace)
+  FeedView,
+
+  // Action Components
+  FollowButton,
 } from './components';
 
 // Utilities

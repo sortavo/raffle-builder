@@ -9,75 +9,31 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@sortavo/sdk/react';
 import { Ionicons } from '@expo/vector-icons';
+import { useEmailAuth } from '../../src/hooks/useEmailAuth';
+import { usePhoneAuth } from '../../src/hooks/usePhoneAuth';
+import { useTranslation } from '../../src/i18n';
 
 type AuthMode = 'email' | 'phone';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithPhone, verifyPhone } = useAuth();
-
   const [mode, setMode] = useState<AuthMode>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [showCodeInput, setShowCodeInput] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
-  const handleEmailLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
-      return;
-    }
-
-    setIsLoading(true);
-    const result = await signIn(email, password);
-    setIsLoading(false);
-
-    if (result.success) {
-      router.back();
-    } else {
-      Alert.alert('Error', result.error?.message || 'No pudimos iniciar sesión');
-    }
+  const handleSuccess = () => {
+    router.back();
   };
 
-  const handlePhoneLogin = async () => {
-    if (!phone) {
-      Alert.alert('Error', 'Por favor ingresa tu número de teléfono');
-      return;
-    }
+  const emailAuth = useEmailAuth({ onSuccess: handleSuccess });
+  const phoneAuth = usePhoneAuth({ onSuccess: handleSuccess });
 
-    setIsLoading(true);
-    const result = await signInWithPhone(phone);
-    setIsLoading(false);
-
-    if (result.success) {
-      setShowCodeInput(true);
-    } else {
-      Alert.alert('Error', result.error?.message || 'No pudimos enviar el código');
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    if (!code) {
-      Alert.alert('Error', 'Por favor ingresa el código');
-      return;
-    }
-
-    setIsLoading(true);
-    const result = await verifyPhone(phone, code);
-    setIsLoading(false);
-
-    if (result.success) {
-      router.back();
-    } else {
-      Alert.alert('Error', result.error?.message || 'Código inválido');
+  const handleModeChange = (newMode: AuthMode) => {
+    setMode(newMode);
+    if (newMode === 'email') {
+      phoneAuth.resetToPhoneInput();
     }
   };
 
@@ -95,9 +51,9 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>Sortavo</Text>
-          <Text style={styles.title}>Inicia sesión</Text>
+          <Text style={styles.title}>{t('auth.login.title')}</Text>
           <Text style={styles.subtitle}>
-            Accede a tu cuenta para comprar boletos y ver tus rifas
+            {t('auth.login.subtitle')}
           </Text>
         </View>
 
@@ -105,10 +61,7 @@ export default function LoginScreen() {
         <View style={styles.modeToggle}>
           <TouchableOpacity
             style={[styles.modeButton, mode === 'email' && styles.modeButtonActive]}
-            onPress={() => {
-              setMode('email');
-              setShowCodeInput(false);
-            }}
+            onPress={() => handleModeChange('email')}
           >
             <Ionicons
               name="mail-outline"
@@ -118,13 +71,13 @@ export default function LoginScreen() {
             <Text
               style={[styles.modeButtonText, mode === 'email' && styles.modeButtonTextActive]}
             >
-              Email
+              {t('auth.login.email')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.modeButton, mode === 'phone' && styles.modeButtonActive]}
-            onPress={() => setMode('phone')}
+            onPress={() => handleModeChange('phone')}
           >
             <Ionicons
               name="phone-portrait-outline"
@@ -134,7 +87,7 @@ export default function LoginScreen() {
             <Text
               style={[styles.modeButtonText, mode === 'phone' && styles.modeButtonTextActive]}
             >
-              Teléfono
+              {t('auth.login.phone')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -146,13 +99,13 @@ export default function LoginScreen() {
               <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
               <TextInput
                 style={styles.input}
-                placeholder="Correo electrónico"
+                placeholder={t('auth.login.emailPlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                value={email}
-                onChangeText={setEmail}
+                value={emailAuth.email}
+                onChangeText={emailAuth.setEmail}
               />
             </View>
 
@@ -160,16 +113,16 @@ export default function LoginScreen() {
               <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
               <TextInput
                 style={styles.input}
-                placeholder="Contraseña"
+                placeholder={t('auth.login.passwordPlaceholder')}
                 placeholderTextColor="#9CA3AF"
-                secureTextEntry={!showPassword}
+                secureTextEntry={!emailAuth.showPassword}
                 autoComplete="password"
-                value={password}
-                onChangeText={setPassword}
+                value={emailAuth.password}
+                onChangeText={emailAuth.setPassword}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity onPress={emailAuth.toggleShowPassword}>
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={emailAuth.showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color="#9CA3AF"
                 />
@@ -177,89 +130,89 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handleEmailLogin}
-              disabled={isLoading}
+              style={[styles.button, emailAuth.isLoading && styles.buttonDisabled]}
+              onPress={emailAuth.handleEmailSignIn}
+              disabled={emailAuth.isLoading}
             >
-              {isLoading ? (
+              {emailAuth.isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>Iniciar sesión</Text>
+                <Text style={styles.buttonText}>{t('auth.login.loginButton')}</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+              <Text style={styles.forgotPasswordText}>{t('auth.login.forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Phone Form */}
-        {mode === 'phone' && !showCodeInput && (
+        {mode === 'phone' && !phoneAuth.showCodeInput && (
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <Text style={styles.phonePrefix}>+52</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Número de teléfono"
+                placeholder={t('auth.login.phonePlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
+                value={phoneAuth.phone}
+                onChangeText={phoneAuth.setPhone}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handlePhoneLogin}
-              disabled={isLoading}
+              style={[styles.button, phoneAuth.isLoading && styles.buttonDisabled]}
+              onPress={phoneAuth.handleSendCode}
+              disabled={phoneAuth.isLoading}
             >
-              {isLoading ? (
+              {phoneAuth.isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>Enviar código</Text>
+                <Text style={styles.buttonText}>{t('auth.login.sendCode')}</Text>
               )}
             </TouchableOpacity>
           </View>
         )}
 
         {/* Code Verification */}
-        {mode === 'phone' && showCodeInput && (
+        {mode === 'phone' && phoneAuth.showCodeInput && (
           <View style={styles.form}>
             <Text style={styles.codeMessage}>
-              Enviamos un código de verificación a {phone}
+              {t('auth.login.verificationCodeSent', { phone: phoneAuth.phone })}
             </Text>
 
             <View style={styles.inputContainer}>
               <Ionicons name="keypad-outline" size={20} color="#9CA3AF" />
               <TextInput
                 style={styles.input}
-                placeholder="Código de verificación"
+                placeholder={t('auth.login.verificationCodePlaceholder')}
                 placeholderTextColor="#9CA3AF"
                 keyboardType="number-pad"
                 maxLength={6}
-                value={code}
-                onChangeText={setCode}
+                value={phoneAuth.code}
+                onChangeText={phoneAuth.setCode}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handleVerifyCode}
-              disabled={isLoading}
+              style={[styles.button, phoneAuth.isLoading && styles.buttonDisabled]}
+              onPress={phoneAuth.handleVerifyCode}
+              disabled={phoneAuth.isLoading}
             >
-              {isLoading ? (
+              {phoneAuth.isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>Verificar</Text>
+                <Text style={styles.buttonText}>{t('auth.login.verify')}</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.resendCode}
-              onPress={() => setShowCodeInput(false)}
+              onPress={phoneAuth.resetToPhoneInput}
             >
-              <Text style={styles.resendCodeText}>Usar otro número</Text>
+              <Text style={styles.resendCodeText}>{t('auth.login.useAnotherNumber')}</Text>
             </TouchableOpacity>
           </View>
         )}

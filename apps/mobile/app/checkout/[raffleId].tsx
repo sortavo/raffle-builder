@@ -1,5 +1,5 @@
-// Checkout Screen
-import React, { useState } from 'react';
+// Checkout Screen - Ticket Reservation (payments handled on web)
+import React from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRaffle, usePurchase, useAuth } from '@sortavo/sdk/react';
-import { PurchaseSummary, formatCurrency } from '@sortavo/sdk-ui/native';
+import { useRaffle, useAuth } from '@sortavo/sdk/react';
+import { formatCurrency } from '@sortavo/sdk-ui/native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CheckoutScreen() {
@@ -19,34 +20,28 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const { raffle } = useRaffle(raffleId);
   const { user } = useAuth();
-  const { createPurchase, isProcessing } = usePurchase();
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'oxxo'>('card');
+  const selectedPackage = raffle?.packages?.find((p: { id: string }) => p.id === packageId);
 
-  const selectedPackage = raffle?.packages.find((p) => p.id === packageId);
+  const handleContinueToPayment = async () => {
+    if (!raffle || !selectedPackage) return;
 
-  const handleConfirmPurchase = async () => {
-    if (!selectedPackage) return;
+    // Open web checkout in browser
+    const webCheckoutUrl = `https://sortavo.com/checkout/${raffle.id}?package=${packageId}`;
 
     try {
-      const result = await createPurchase();
-
-      if (result.success) {
-        Alert.alert(
-          '¡Compra exitosa!',
-          'Tus boletos han sido comprados correctamente',
-          [
-            {
-              text: 'Ver mis boletos',
-              onPress: () => router.replace('/my-tickets'),
-            },
-          ]
-        );
+      const supported = await Linking.canOpenURL(webCheckoutUrl);
+      if (supported) {
+        await Linking.openURL(webCheckoutUrl);
       } else {
-        Alert.alert('Error', result.error?.message || 'No pudimos procesar la compra');
+        Alert.alert(
+          'Continuar en web',
+          'Para completar tu compra, visita sortavo.com desde tu navegador',
+          [{ text: 'Entendido' }]
+        );
       }
-    } catch (e) {
-      Alert.alert('Error', 'Ocurrió un error al procesar la compra');
+    } catch (error) {
+      Alert.alert('Error', 'No pudimos abrir el enlace de pago');
     }
   };
 
@@ -57,6 +52,9 @@ export default function CheckoutScreen() {
       </View>
     );
   }
+
+  const totalAmount = selectedPackage.price;
+  const pricePerTicket = selectedPackage.price / selectedPackage.quantity;
 
   return (
     <View style={styles.container}>
@@ -77,7 +75,7 @@ export default function CheckoutScreen() {
             <View style={styles.orderRow}>
               <Text style={styles.orderLabel}>Precio por boleto</Text>
               <Text style={styles.orderValue}>
-                {formatCurrency(selectedPackage.price / selectedPackage.quantity, raffle.currency)}
+                {formatCurrency(pricePerTicket, raffle.currency)}
               </Text>
             </View>
             {selectedPackage.discount && selectedPackage.discount > 0 && (
@@ -88,90 +86,56 @@ export default function CheckoutScreen() {
                 </Text>
               </View>
             )}
+            <View style={[styles.orderRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(totalAmount, raffle.currency)}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Método de pago</Text>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'card' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setPaymentMethod('card')}
-          >
-            <Ionicons
-              name="card-outline"
-              size={24}
-              color={paymentMethod === 'card' ? '#6366F1' : '#6B7280'}
-            />
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Tarjeta de crédito/débito</Text>
-              <Text style={styles.paymentDescription}>Visa, Mastercard, AMEX</Text>
-            </View>
-            <View
-              style={[
-                styles.radio,
-                paymentMethod === 'card' && styles.radioSelected,
-              ]}
-            >
-              {paymentMethod === 'card' && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'oxxo' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setPaymentMethod('oxxo')}
-          >
-            <View style={styles.oxxoIcon}>
-              <Text style={styles.oxxoText}>OXXO</Text>
-            </View>
-            <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>Pago en OXXO</Text>
-              <Text style={styles.paymentDescription}>Paga en efectivo en cualquier OXXO</Text>
-            </View>
-            <View
-              style={[
-                styles.radio,
-                paymentMethod === 'oxxo' && styles.radioSelected,
-              ]}
-            >
-              {paymentMethod === 'oxxo' && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
-        </View>
-
         {/* User Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos del comprador</Text>
+        {user && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Datos del comprador</Text>
 
-          <View style={styles.userCard}>
-            <View style={styles.userRow}>
-              <Ionicons name="person-outline" size={18} color="#6B7280" />
-              <Text style={styles.userValue}>{user?.name || 'Usuario'}</Text>
-            </View>
-            <View style={styles.userRow}>
-              <Ionicons name="mail-outline" size={18} color="#6B7280" />
-              <Text style={styles.userValue}>{user?.email}</Text>
-            </View>
-            {user?.phone && (
+            <View style={styles.userCard}>
               <View style={styles.userRow}>
-                <Ionicons name="call-outline" size={18} color="#6B7280" />
-                <Text style={styles.userValue}>{user.phone}</Text>
+                <Ionicons name="person-outline" size={18} color="#6B7280" />
+                <Text style={styles.userValue}>{user?.name || 'Usuario'}</Text>
               </View>
-            )}
+              <View style={styles.userRow}>
+                <Ionicons name="mail-outline" size={18} color="#6B7280" />
+                <Text style={styles.userValue}>{user?.email}</Text>
+              </View>
+              {user?.phone && (
+                <View style={styles.userRow}>
+                  <Ionicons name="call-outline" size={18} color="#6B7280" />
+                  <Text style={styles.userValue}>{user.phone}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Payment Info */}
+        <View style={styles.section}>
+          <View style={styles.infoCard}>
+            <Ionicons name="globe-outline" size={24} color="#6366F1" />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoTitle}>Pago seguro en web</Text>
+              <Text style={styles.infoDescription}>
+                Al continuar serás redirigido a nuestra página web segura para completar tu pago con tarjeta o en OXXO.
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Terms */}
         <View style={styles.termsContainer}>
           <Text style={styles.termsText}>
-            Al confirmar tu compra aceptas nuestros{' '}
+            Al continuar aceptas nuestros{' '}
             <Text style={styles.termsLink}>Términos y Condiciones</Text> y{' '}
             <Text style={styles.termsLink}>Política de Privacidad</Text>
           </Text>
@@ -179,15 +143,29 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <PurchaseSummary
-        ticketCount={selectedPackage.quantity}
-        totalAmount={selectedPackage.price}
-        currency={raffle.currency}
-        onConfirm={handleConfirmPurchase}
-        onCancel={() => router.back()}
-        isLoading={isProcessing}
-        showBreakdown={false}
-      />
+      <View style={styles.footer}>
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerTotalLabel}>Total a pagar</Text>
+          <Text style={styles.footerTotalAmount}>
+            {formatCurrency(totalAmount, raffle.currency)}
+          </Text>
+        </View>
+        <View style={styles.footerButtons}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleContinueToPayment}
+          >
+            <Text style={styles.confirmButtonText}>Continuar al pago</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -244,63 +222,21 @@ const styles = StyleSheet.create({
   discountValue: {
     color: '#059669',
   },
-  paymentOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: 'transparent',
+  totalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    marginTop: 8,
+    paddingTop: 16,
   },
-  paymentOptionSelected: {
-    borderColor: '#6366F1',
-  },
-  paymentInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  paymentTitle: {
-    fontSize: 15,
+  totalLabel: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#111827',
   },
-  paymentDescription: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  oxxoIcon: {
-    width: 48,
-    height: 32,
-    backgroundColor: '#FFD600',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  oxxoText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#000000',
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    borderColor: '#6366F1',
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#6366F1',
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
   },
   userCard: {
     backgroundColor: '#FFFFFF',
@@ -317,6 +253,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  infoDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
   termsContainer: {
     paddingHorizontal: 8,
     marginBottom: 24,
@@ -329,5 +286,58 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     color: '#6366F1',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    padding: 16,
+    paddingBottom: 32,
+  },
+  footerTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  footerTotalLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  footerTotalAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  confirmButton: {
+    flex: 2,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#6366F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

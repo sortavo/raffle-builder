@@ -69,13 +69,6 @@
           "icon": "./assets/notification-icon.png",
           "color": "#6366F1"
         }
-      ],
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.sortavo",
-          "enableGooglePay": true
-        }
       ]
     ],
     "experiments": {
@@ -86,7 +79,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "sortavo-mobile"
       }
     }
   }

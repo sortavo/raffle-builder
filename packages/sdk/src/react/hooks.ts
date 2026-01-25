@@ -46,6 +46,16 @@ export function useAuth() {
     return result;
   }, [client, setUser]);
 
+  const updateProfile = useCallback(async (data: { name?: string; phone?: string; avatar?: string }) => {
+    const result = await client.updateProfile(data);
+    if (result.success && result.data) {
+      setUser(result.data);
+    } else if (result.error) {
+      setError(result.error);
+    }
+    return result;
+  }, [client, setUser, setError]);
+
   return {
     user,
     isAuthenticated,
@@ -54,6 +64,7 @@ export function useAuth() {
     signInWithPhone,
     verifyPhone,
     signOut,
+    updateProfile,
   };
 }
 

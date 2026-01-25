@@ -129,6 +129,48 @@ export class SortavoClient {
     }
   }
 
+  async updateProfile(data: {
+    name?: string;
+    phone?: string;
+    avatar?: string;
+  }): Promise<ApiResponse<SortavoUser>> {
+    try {
+      const { data: { user } } = await this.supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated', timestamp: new Date() } };
+      }
+
+      // Update profile in profiles table
+      const { error: profileError } = await this.supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: data.name,
+          avatar_url: data.avatar,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+        return { success: false, error: this.mapError(profileError) };
+      }
+
+      // Update phone in auth if provided
+      if (data.phone) {
+        const { error: authError } = await this.supabase.auth.updateUser({
+          phone: data.phone,
+        });
+        if (authError) {
+          console.warn('Failed to update phone:', authError.message);
+        }
+      }
+
+      // Fetch updated user
+      return this.getCurrentUser();
+    } catch (e) {
+      return { success: false, error: this.mapError(e) };
+    }
+  }
+
   // ==================== Raffles ====================
 
   async getRaffles(options: {

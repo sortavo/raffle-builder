@@ -3,8 +3,8 @@ import React, { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SortavoProvider } from '@sortavo/sdk/react';
 import { ThemeProvider } from '@sortavo/sdk-ui/native';
+import { TranslationProvider } from '../i18n';
 import { useTenantFromDeepLink } from '../hooks/useTenantFromDeepLink';
-import { StripeProvider } from '@stripe/stripe-react-native';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -15,9 +15,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Stripe publishable key
-const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_...';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -34,27 +31,24 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StripeProvider
-        publishableKey={STRIPE_PUBLISHABLE_KEY}
-        merchantIdentifier="merchant.com.sortavo"
+      <SortavoProvider
+        config={{
+          tenantId: tenantId || 'default',
+          tenantSlug: tenantSlug ?? undefined,
+          features: {
+            enablePayments: false, // Payments handled on web, not in app
+            enableNotifications: true,
+            enableAnalytics: true,
+            enableOfflineMode: false,
+          },
+        }}
       >
-        <SortavoProvider
-          config={{
-            tenantId: tenantId || 'default',
-            tenantSlug,
-            features: {
-              enablePayments: true,
-              enableNotifications: true,
-              enableAnalytics: true,
-              enableOfflineMode: false,
-            },
-          }}
-        >
+        <TranslationProvider defaultLocale="es">
           <ThemeProvider>
             {children}
           </ThemeProvider>
-        </SortavoProvider>
-      </StripeProvider>
+        </TranslationProvider>
+      </SortavoProvider>
     </QueryClientProvider>
   );
 }

@@ -1,23 +1,37 @@
 // Profile Screen
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, AccessibilityRole } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth, useTenant } from '@sortavo/sdk/react';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+  borderRadius,
+  sizes,
+  commonStyles,
+} from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
+
+// Minimum touch target size for accessibility (44x44 points)
+const MIN_TOUCH_TARGET = 44;
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, signOut } = useAuth();
-  const { tenantId, tenantSlug } = useTenant();
+  const { tenantSlug } = useTenant();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro que deseas cerrar sesión?',
+      t('profile.signOut.confirmTitle'),
+      t('profile.signOut.confirmMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Cerrar sesión',
+          text: t('profile.signOut.button'),
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -27,26 +41,36 @@ export default function ProfileScreen() {
     );
   };
 
+  const openExternalLink = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(t('common.error'), t('profile.errors.openLink'));
+    }
+  };
+
   if (!isAuthenticated) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="person-outline" size={64} color="#9CA3AF" />
-        <Text style={styles.title}>Inicia sesión</Text>
-        <Text style={styles.subtitle}>
-          Accede a tu cuenta para ver tu perfil y gestionar tus boletos
+      <View style={commonStyles.centerContainer}>
+        <Ionicons name="person-outline" size={sizes.iconXxl} color={colors.textMuted} />
+        <Text style={commonStyles.title}>{t('profile.loginPrompt.title')}</Text>
+        <Text style={commonStyles.subtitle}>
+          {t('profile.loginPrompt.subtitle')}
         </Text>
         <TouchableOpacity
-          style={styles.loginButton}
+          style={[commonStyles.buttonPrimary, styles.loginButton]}
           onPress={() => router.push('/auth/login')}
+          accessibilityLabel={t('auth.login.loginButton')}
+          accessibilityRole="button"
         >
-          <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          <Text style={commonStyles.buttonPrimaryText}>{t('auth.login.loginButton')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={commonStyles.container}>
       {/* Profile Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -54,62 +78,70 @@ export default function ProfileScreen() {
             {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.name || 'Usuario'}</Text>
+        <Text style={styles.name}>{user?.name || t('profile.header.defaultName')}</Text>
         <Text style={styles.email}>{user?.email}</Text>
       </View>
 
       {/* Menu Items */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cuenta</Text>
+      <View style={commonStyles.section}>
+        <Text style={commonStyles.sectionTitle}>{t('profile.sections.account')}</Text>
 
         <MenuItem
           icon="person-outline"
-          label="Editar perfil"
-          onPress={() => {}}
+          label={t('profile.menu.editProfile')}
+          onPress={() => router.push('/profile/edit' as any)}
         />
         <MenuItem
-          icon="card-outline"
-          label="Métodos de pago"
-          onPress={() => {}}
+          icon="receipt-outline"
+          label={t('profile.menu.purchaseHistory')}
+          onPress={() => router.push('/profile/purchases' as any)}
         />
         <MenuItem
           icon="notifications-outline"
-          label="Preferencias de notificación"
-          onPress={() => {}}
+          label={t('profile.menu.notificationPreferences')}
+          onPress={() => router.push('/profile/notifications' as any)}
         />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Soporte</Text>
+      <View style={commonStyles.section}>
+        <Text style={commonStyles.sectionTitle}>{t('profile.sections.support')}</Text>
 
         <MenuItem
           icon="help-circle-outline"
-          label="Centro de ayuda"
-          onPress={() => {}}
+          label={t('profile.menu.helpCenter')}
+          onPress={() => openExternalLink('https://sortavo.com/ayuda')}
+          accessibilityRole="link"
         />
         <MenuItem
           icon="document-text-outline"
-          label="Términos y condiciones"
-          onPress={() => {}}
+          label={t('profile.menu.termsAndConditions')}
+          onPress={() => openExternalLink('https://sortavo.com/terminos')}
+          accessibilityRole="link"
         />
         <MenuItem
           icon="shield-checkmark-outline"
-          label="Política de privacidad"
-          onPress={() => {}}
+          label={t('profile.menu.privacyPolicy')}
+          onPress={() => openExternalLink('https://sortavo.com/privacidad')}
+          accessibilityRole="link"
         />
       </View>
 
       {/* Sign Out Button */}
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-        <Text style={styles.signOutText}>Cerrar sesión</Text>
+      <TouchableOpacity
+        style={styles.signOutButton}
+        onPress={handleSignOut}
+        accessibilityLabel={t('profile.signOut.button')}
+        accessibilityRole="button"
+      >
+        <Ionicons name="log-out-outline" size={sizes.iconMd} color={colors.error} />
+        <Text style={styles.signOutText}>{t('profile.signOut.button')}</Text>
       </TouchableOpacity>
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>Sortavo v1.0.0</Text>
+        <Text style={styles.appVersion}>{t('profile.appInfo.version', { version: '1.0.0' })}</Text>
         {tenantSlug && (
-          <Text style={styles.tenantInfo}>Organización: {tenantSlug}</Text>
+          <Text style={styles.tenantInfo}>{t('profile.appInfo.organization', { name: tenantSlug })}</Text>
         )}
       </View>
     </ScrollView>
@@ -120,142 +152,93 @@ function MenuItem({
   icon,
   label,
   onPress,
+  accessibilityRole = 'button',
 }: {
   icon: string;
   label: string;
   onPress: () => void;
+  accessibilityRole?: AccessibilityRole;
 }) {
   return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <Ionicons name={icon as any} size={22} color="#6B7280" />
-      <Text style={styles.menuLabel}>{label}</Text>
-      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+    <TouchableOpacity
+      style={[commonStyles.menuItem, styles.menuItemAccessible]}
+      onPress={onPress}
+      accessibilityLabel={label}
+      accessibilityRole={accessibilityRole}
+    >
+      <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={22} color={colors.textSecondary} />
+      <Text style={commonStyles.menuItemLabel}>{label}</Text>
+      <Ionicons name="chevron-forward" size={fontSize.lg} color={colors.textMuted} />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#F9FAFB',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 16,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   loginButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 24,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: spacing['2xl'],
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#6366F1',
+    width: sizes.avatarLg,
+    height: sizes.avatarLg,
+    borderRadius: sizes.avatarLg / 2,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: fontSize['3xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   name: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 12,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    marginTop: spacing.md,
   },
   email: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  section: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 2,
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-    marginLeft: 12,
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 16,
-    marginTop: 32,
+    marginHorizontal: spacing.base,
+    marginTop: spacing['2xl'],
     paddingVertical: 14,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
+    backgroundColor: colors.errorLight,
+    borderRadius: borderRadius.lg,
+    minHeight: MIN_TOUCH_TARGET,
+  },
+  menuItemAccessible: {
+    minHeight: MIN_TOUCH_TARGET,
   },
   signOutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
-    marginLeft: 8,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.error,
+    marginLeft: spacing.sm,
   },
   appInfo: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing.xl,
   },
   appVersion: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
   },
   tenantInfo: {
     fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 4,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
 });
