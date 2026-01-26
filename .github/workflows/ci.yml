@@ -158,7 +158,6 @@ jobs:
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
     environment:
       name: staging
-      url: ${{ secrets.STAGING_URL }}
     steps:
       - uses: actions/checkout@v4
 
