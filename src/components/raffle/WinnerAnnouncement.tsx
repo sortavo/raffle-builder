@@ -1,7 +1,8 @@
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Download, Facebook, Twitter, Share2, Copy, Check } from 'lucide-react';
+import { Download, Facebook, Share2, Copy, Check } from 'lucide-react';
+import { FaXTwitter } from "react-icons/fa6";
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -54,14 +55,14 @@ export function WinnerAnnouncement({
 
   const shareText = `🎉 ¡Tenemos ganador! El boleto #${ticketNumber} de ${winnerName} ha ganado ${prizeName} en el sorteo "${raffleTitle}" organizado por ${orgName}. ¡Felicidades! 🏆`;
 
-  const handleShare = (platform: 'facebook' | 'twitter' | 'whatsapp') => {
+  const handleShare = (platform: 'facebook' | 'x' | 'whatsapp') => {
     const encodedText = encodeURIComponent(shareText);
     const url = window.location.href;
     const encodedUrl = encodeURIComponent(url);
 
-    const links: Record<string, string> = {
+  const links: Record<string, string> = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`,
-      twitter: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      x: `https://x.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
       whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
     };
 
@@ -166,11 +167,11 @@ export function WinnerAnnouncement({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleShare('twitter')}
-            className="text-[#1DA1F2] hover:text-[#1DA1F2]"
+            onClick={() => handleShare('x')}
+            className="text-foreground hover:text-foreground"
           >
-            <Twitter className="h-4 w-4 mr-2" />
-            Twitter
+            <FaXTwitter className="h-4 w-4 mr-2" />
+            X
           </Button>
 
           <Button

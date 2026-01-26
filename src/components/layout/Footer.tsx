@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Facebook, Instagram, Linkedin } from 'lucide-react';
+import { FaXTwitter } from "react-icons/fa6";
 import sortavoLogo from "@/assets/sortavo-logo.png";
 import { scrollToSection } from '@/lib/scroll-utils';
 
@@ -95,13 +96,13 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://twitter.com"
+                href="https://x.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-emerald-400 transition-colors"
-                aria-label="Twitter"
+                aria-label="X"
               >
-                <Twitter className="h-5 w-5" />
+                <FaXTwitter className="h-5 w-5" />
               </a>
               <a
                 href="https://www.instagram.com/sortavo/"
