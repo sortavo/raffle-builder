@@ -317,6 +317,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          data: Json
+          error: string | null
+          id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template: string
+          to_email: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          data?: Json
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template: string
+          to_email: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          data?: Json
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template?: string
+          to_email?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
@@ -364,8 +403,11 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_url: string | null
+          body: string | null
           created_at: string | null
           id: string
+          image_url: string | null
           link: string | null
           message: string
           metadata: Json | null
@@ -377,8 +419,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          action_url?: string | null
+          body?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           link?: string | null
           message: string
           metadata?: Json | null
@@ -390,8 +435,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          action_url?: string | null
+          body?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           link?: string | null
           message?: string
           metadata?: Json | null
@@ -3243,6 +3291,18 @@ export type Database = {
           ticket_index: number
           ticket_number: string
         }[]
+      }
+      send_notification: {
+        Args: {
+          p_action_url?: string
+          p_body: string
+          p_image_url?: string
+          p_metadata?: Json
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
       }
       set_primary_domain: {
         Args: { p_domain_id: string; p_organization_id: string }

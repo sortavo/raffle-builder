@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Facebook, Twitter, Link2, MessageCircle } from "lucide-react";
+import { Facebook, Link2, MessageCircle } from "lucide-react";
+import { FaXTwitter } from "react-icons/fa6";
 import { useTrackingEvents } from "@/hooks/useTrackingEvents";
 
 interface ShareButtonsProps {
@@ -42,10 +43,10 @@ export function ShareButtons({ url, title, description, raffleId }: ShareButtons
     });
   };
 
-  const handleTwitter = () => {
-    handleShare('twitter', () => {
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
-      window.open(twitterUrl, '_blank', 'width=600,height=400');
+  const handleX = () => {
+    handleShare('x', () => {
+      const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
+      window.open(xUrl, '_blank', 'width=600,height=400');
     });
   };
 
@@ -88,10 +89,10 @@ export function ShareButtons({ url, title, description, raffleId }: ShareButtons
       <Button
         variant="outline"
         size="lg"
-        onClick={handleTwitter}
+        onClick={handleX}
         className="bg-muted/50 hover:bg-muted text-foreground border-border/50"
       >
-        <Twitter className="h-5 w-5" />
+        <FaXTwitter className="h-5 w-5" />
       </Button>
       <Button
         variant="outline"
