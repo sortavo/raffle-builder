@@ -73,25 +73,26 @@ export function ExportMenu({ raffleId, raffleName }: ExportMenuProps) {
     
     try {
       switch (type) {
-        case 'buyers':
+        case 'buyers': {
           const buyersResult = await exportBuyersToCSV(raffleId, raffleName);
           toast.success(`Exportados ${buyersResult.count.toLocaleString()} compradores`);
           break;
-        
-        case 'tickets':
+        }
+        case 'tickets': {
           const ticketsResult = await exportTicketsToCSV(raffleId, raffleName);
           toast.success(`Exportados ${ticketsResult.count.toLocaleString()} boletos`);
           break;
-        
-        case 'transactions':
+        }
+        case 'transactions': {
           const transResult = await exportTransactionsToExcel(raffleId, raffleName);
           toast.success(`Exportadas ${transResult.count.toLocaleString()} transacciones`);
           break;
-        
-        case 'financial':
+        }
+        case 'financial': {
           await exportFinancialReportPDF(raffleId, raffleName);
           toast.success('Reporte financiero generado');
           break;
+        }
       }
     } catch (error) {
       console.error('Export error:', error);

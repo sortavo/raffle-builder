@@ -48,6 +48,27 @@ interface SalesChartProps {
   ticketsChange: number;
 }
 
+interface TooltipPayload {
+  value?: number;
+  payload?: RaffleSales;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+  currency?: string;
+}
+
+interface SalesTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+}
+
+interface LegendEntry {
+  payload?: RaffleSales;
+}
+
 const formatCurrency = (value: number, currency: string = 'MXN') => {
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
@@ -57,7 +78,7 @@ const formatCurrency = (value: number, currency: string = 'MXN') => {
   }).format(value);
 };
 
-const CustomTooltip = ({ active, payload, label, currency = 'MXN' }: any) => {
+const CustomTooltip = ({ active, payload, label, currency = 'MXN' }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-xl p-4 shadow-xl">
@@ -80,7 +101,7 @@ const CustomTooltip = ({ active, payload, label, currency = 'MXN' }: any) => {
   return null;
 };
 
-const SalesTooltip = ({ active, payload }: any) => {
+const SalesTooltip = ({ active, payload }: SalesTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0]?.payload;
     return (
@@ -295,7 +316,7 @@ export function SalesChart({ data, totalTickets, ticketsChange }: SalesChartProp
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry: any) => (
+                formatter={(_value, entry: LegendEntry) => (
                   <span className="text-xs sm:text-sm text-muted-foreground">{truncateName(entry.payload?.name || '', 15)}</span>
                 )}
               />

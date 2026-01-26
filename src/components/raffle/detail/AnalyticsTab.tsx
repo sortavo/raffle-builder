@@ -85,7 +85,7 @@ export function AnalyticsTab({ raffle }: AnalyticsTabProps) {
       
       // Transform orders to ticket-like objects for analytics helpers
       // Each order represents multiple tickets
-      const expandedData: any[] = [];
+      const expandedData: Array<{ buyer_email: string | null; buyer_city: string | null; sold_at: string | null }> = [];
       for (const order of data || []) {
         for (let i = 0; i < (order.ticket_count || 1); i++) {
           expandedData.push({

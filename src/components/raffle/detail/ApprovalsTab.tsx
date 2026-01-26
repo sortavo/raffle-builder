@@ -61,12 +61,17 @@ interface ApprovalsTabProps {
   currencyCode?: string;
 }
 
+interface TicketInfo {
+  ticket_number: number;
+  id: string;
+}
+
 interface OrderGroup {
   referenceCode: string;
   buyerName: string | null;
   buyerPhone: string | null;
   buyerEmail: string | null;
-  tickets: any[];
+  tickets: TicketInfo[];
   reservedUntil: string | null;
   hasProof: boolean;
   proofUrl: string | null;
@@ -362,7 +367,7 @@ export function ApprovalsTab({ raffleId, raffleTitle = '', raffleSlug = '', tick
     const isProcessing = processingOrders.has(order.referenceCode);
     const ticketCount = order.tickets.length;
     const unitTotal = ticketCount * ticketPrice;
-    const packagePrice = (rafflePackages as any[]).find(p => p.quantity === ticketCount)?.price;
+    const packagePrice = rafflePackages.find(p => p.quantity === ticketCount)?.price;
     const packageTotal = packagePrice != null ? Number(packagePrice) : unitTotal;
 
     // Use saved orderTotal (with discount) if available, otherwise package pricing, otherwise unit pricing
