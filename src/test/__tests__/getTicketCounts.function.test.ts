@@ -301,7 +301,7 @@ describe('get-ticket-counts - Error Handling', () => {
   });
 
   it('should handle unknown error types', () => {
-    const error = 'string error';
+    const error: unknown = 'string error';
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     expect(errorMessage).toBe('Unknown error');
