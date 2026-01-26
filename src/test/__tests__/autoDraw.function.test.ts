@@ -649,7 +649,7 @@ describe('auto-draw - Error Handling', () => {
   });
 
   it('should handle non-Error thrown values', () => {
-    const error = 'string error';
+    const error: unknown = 'string error';
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     expect(errorMessage).toBe('Unknown error');

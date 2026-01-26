@@ -595,8 +595,8 @@ describe('confirmOrder - Concurrent Access', () => {
   });
 
   it('should reject if version mismatch', () => {
-    const originalVersion = 1;
-    const currentVersion = 2; // Changed by another process
+    const originalVersion: number = 1;
+    const currentVersion: number = 2; // Changed by another process
 
     const canProceed = originalVersion === currentVersion;
     expect(canProceed).toBe(false);
