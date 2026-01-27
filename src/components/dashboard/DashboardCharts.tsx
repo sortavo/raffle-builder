@@ -65,9 +65,8 @@ interface SalesTooltipProps {
   payload?: TooltipPayload[];
 }
 
-interface LegendEntry {
-  payload?: RaffleSales;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LegendEntry = any;
 
 const formatCurrency = (value: number, currency: string = 'MXN') => {
   return new Intl.NumberFormat('es-MX', {

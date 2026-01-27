@@ -62,8 +62,10 @@ interface ApprovalsTabProps {
 }
 
 interface TicketInfo {
-  ticket_number: number;
+  ticket_number: string;
+  ticket_numbers?: string[];
   id: string;
+  [key: string]: unknown; // Allow additional properties from order
 }
 
 interface OrderGroup {
