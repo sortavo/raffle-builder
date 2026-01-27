@@ -16,7 +16,7 @@ export interface CityDataPoint {
   percentage: number;
 }
 
-export function aggregateByDate(tickets: Array<{ created_at: string | null; sold_at?: string | null }>): SalesDataPoint[] {
+export function aggregateByDate(tickets: Array<{ created_at?: string | null; sold_at?: string | null }>): SalesDataPoint[] {
   const grouped = tickets.reduce((acc, ticket) => {
     const dateStr = ticket.sold_at || ticket.created_at;
     if (!dateStr) return acc;
@@ -34,7 +34,7 @@ export function aggregateByDate(tickets: Array<{ created_at: string | null; sold
   );
 }
 
-export function aggregateByHour(tickets: Array<{ created_at: string | null; sold_at?: string | null }>): HourlyDataPoint[] {
+export function aggregateByHour(tickets: Array<{ created_at?: string | null; sold_at?: string | null }>): HourlyDataPoint[] {
   const hours: HourlyDataPoint[] = Array.from({ length: 24 }, (_, i) => ({
     hour: i,
     label: `${i.toString().padStart(2, '0')}:00`,
@@ -88,7 +88,7 @@ export function calculateProjectedRevenue(
 }
 
 export function calculateSalesVelocity(
-  tickets: Array<{ sold_at?: string | null; created_at: string | null }>,
+  tickets: Array<{ sold_at?: string | null; created_at?: string | null }>,
   startDate: Date
 ): { dailyAverage: number; projectedDays: number } {
   const now = new Date();
