@@ -1129,7 +1129,11 @@ export function TicketSelector({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20"
+                  className={cn(
+                    "p-4 rounded-xl border",
+                    colors.successBg,
+                    colors.successBorder
+                  )}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
