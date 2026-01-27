@@ -3005,6 +3005,12 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
+      get_distinct_buyer_cities: {
+        Args: { p_raffle_id: string }
+        Returns: {
+          buyer_city: string
+        }[]
+      }
       get_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -3015,6 +3021,14 @@ export type Database = {
           invited_by: string
           organization_id: string
           role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      get_multiple_raffle_counts: {
+        Args: { p_raffle_ids: string[] }
+        Returns: {
+          available_count: number
+          raffle_id: string
+          sold_count: number
         }[]
       }
       get_occupied_indices: { Args: { p_raffle_id: string }; Returns: number[] }
