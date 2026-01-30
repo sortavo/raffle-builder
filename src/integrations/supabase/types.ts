@@ -79,6 +79,82 @@ export type Database = {
           },
         ]
       }
+      archived_raffle_summary: {
+        Row: {
+          archived_at: string
+          average_order_value: number | null
+          buyer_cities: Json | null
+          created_at: string
+          draw_executed_at: string | null
+          id: string
+          raffle_id: string
+          sales_by_day: Json | null
+          tickets_canceled: number
+          tickets_reserved: number
+          tickets_sold: number
+          top_buyers: Json | null
+          total_revenue: number
+          unique_buyers: number
+          winners: Json | null
+        }
+        Insert: {
+          archived_at?: string
+          average_order_value?: number | null
+          buyer_cities?: Json | null
+          created_at?: string
+          draw_executed_at?: string | null
+          id?: string
+          raffle_id: string
+          sales_by_day?: Json | null
+          tickets_canceled?: number
+          tickets_reserved?: number
+          tickets_sold?: number
+          top_buyers?: Json | null
+          total_revenue?: number
+          unique_buyers?: number
+          winners?: Json | null
+        }
+        Update: {
+          archived_at?: string
+          average_order_value?: number | null
+          buyer_cities?: Json | null
+          created_at?: string
+          draw_executed_at?: string | null
+          id?: string
+          raffle_id?: string
+          sales_by_day?: Json | null
+          tickets_canceled?: number
+          tickets_reserved?: number
+          tickets_sold?: number
+          top_buyers?: Json | null
+          total_revenue?: number
+          unique_buyers?: number
+          winners?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "mv_top_raffles"
+            referencedColumns: ["raffle_id"]
+          },
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "public_raffles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "archived_raffle_summary_raffle_id_fkey"
+            columns: ["raffle_id"]
+            isOneToOne: true
+            referencedRelation: "raffles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -2810,6 +2886,7 @@ export type Database = {
         }[]
       }
       archive_old_raffles: { Args: { days_old?: number }; Returns: number }
+      archive_raffle: { Args: { p_raffle_id: string }; Returns: Json }
       atomic_reserve_tickets: {
         Args: {
           p_buyer_city?: string
