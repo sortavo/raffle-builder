@@ -356,6 +356,47 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_capi_queue: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          event_data: Json
+          event_type: string
+          id: string
+          organization_id: string | null
+          processed_at: string | null
+          retry_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          event_data: Json
+          event_type: string
+          id?: string
+          organization_id?: string | null
+          processed_at?: string | null
+          retry_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          event_data?: Json
+          event_type?: string
+          id?: string
+          organization_id?: string | null
+          processed_at?: string | null
+          retry_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_capi_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
