@@ -32,8 +32,8 @@ export function getCorsHeaders(request: Request): Record<string, string> {
   else if (SUBDOMAIN_PATTERN.test(origin)) {
     allowedOrigin = origin;
   }
-  // Check lovable.app domains (preview environments)
-  else if (origin.endsWith('.lovable.app')) {
+  // Check lovable.app and lovableproject.com domains (preview environments)
+  else if (origin.endsWith('.lovable.app') || origin.endsWith('.lovableproject.com')) {
     allowedOrigin = origin;
   }
   // Allow dev origins in development (check env)
