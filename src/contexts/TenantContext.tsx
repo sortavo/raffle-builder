@@ -74,6 +74,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     hostname !== "localhost" && 
     !hostname.includes("sortavo.com") && 
     !hostname.includes("lovable.app") &&
+    !hostname.includes("lovableproject.com") &&
     !hostname.includes("127.0.0.1") &&
     !hostname.includes("vercel.app");
 
