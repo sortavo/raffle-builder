@@ -109,10 +109,14 @@ export function TicketsTab({
   const { data: stats } = useTicketStats();
 
   const tickets = ticketsData?.tickets || [];
-  // Use totalTickets for correct pagination (total virtual tickets, not filtered count)
-  const totalTickets = ticketsData?.totalTickets || ticketsData?.count || 0;
+  const isSearchResult = ticketsData?.isSearchResult || false;
+  // Use totalTickets for regular pagination, but count for search results
+  const totalTickets = ticketsData?.totalTickets || 0;
   const totalFilteredCount = ticketsData?.count || 0;
-  const totalPages = Math.ceil(totalTickets / TICKETS_PER_PAGE);
+  // When searching, paginate based on search results count; otherwise use total tickets
+  const totalPages = isSearchResult 
+    ? Math.ceil(totalFilteredCount / TICKETS_PER_PAGE) 
+    : Math.ceil(totalTickets / TICKETS_PER_PAGE);
 
   // Highlight effect for found tickets
   useEffect(() => {

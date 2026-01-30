@@ -2928,6 +2928,14 @@ export type Database = {
       cleanup_rate_limit_entries: { Args: never; Returns: undefined }
       compress_ticket_indices: { Args: { p_indices: number[] }; Returns: Json }
       confirm_order_sale_v2: { Args: { p_order_id: string }; Returns: boolean }
+      count_dashboard_tickets_search: {
+        Args: {
+          p_raffle_id: string
+          p_search: string
+          p_status_filter?: string
+        }
+        Returns: number
+      }
       expand_order_to_indices: {
         Args: { p_lucky_indices: number[]; p_ticket_ranges: Json }
         Returns: {
@@ -3322,6 +3330,28 @@ export type Database = {
           reserved_until: string
           success: boolean
           ticket_count: number
+        }[]
+      }
+      search_dashboard_tickets: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_raffle_id: string
+          p_search: string
+          p_status_filter?: string
+        }
+        Returns: {
+          buyer_city: string
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          order_id: string
+          payment_proof_url: string
+          reference_code: string
+          reserved_until: string
+          status: string
+          ticket_index: number
+          ticket_number: string
         }[]
       }
       search_public_tickets: {
