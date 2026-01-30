@@ -50,11 +50,11 @@ function isSortavoDomain(): boolean {
   return sortavoDomains.includes(hostname);
 }
 
-// Get Sortavo's own pixel IDs from environment
+// Get Sortavo's own pixel IDs - hardcoded for reliability
 function getSortavoPixelIds() {
   return {
     gtmId: import.meta.env.VITE_SORTAVO_GTM_ID || null,
-    ga4Id: import.meta.env.VITE_SORTAVO_GA4_ID || null,
+    ga4Id: 'G-N45GPVWM00', // Sortavo GA4 - hardcoded for reliability
     metaPixelId: '1215706887335413', // Sortavo Meta Pixel - hardcoded for reliability
     tiktokPixelId: null, // TikTok disabled for now
   };
