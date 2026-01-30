@@ -19,8 +19,8 @@ function getSortavoPixelIds() {
   return {
     gtmId: import.meta.env.VITE_SORTAVO_GTM_ID || null,
     ga4Id: import.meta.env.VITE_SORTAVO_GA4_ID || null,
-    metaPixelId: import.meta.env.VITE_SORTAVO_META_PIXEL_ID || null,
-    tiktokPixelId: import.meta.env.VITE_SORTAVO_TIKTOK_PIXEL_ID || null,
+    metaPixelId: '1215706887335413', // Sortavo Meta Pixel - hardcoded for reliability
+    tiktokPixelId: null, // TikTok disabled for now
   };
 }
 
