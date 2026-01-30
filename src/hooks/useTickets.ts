@@ -25,11 +25,12 @@ export const useTickets = (raffleId: string | undefined) => {
   const useVirtualTicketsList = (filters?: TicketFilters) => {
     const page = filters?.page || 1;
     const pageSize = filters?.pageSize || 100;
+    const hasSearch = !!filters?.search && filters.search.length > 0;
 
     return useQuery({
       queryKey: ['virtual-tickets', raffleId, filters],
       queryFn: async () => {
-        if (!raffleId) return { tickets: [], count: 0, totalTickets: 0 };
+        if (!raffleId) return { tickets: [], count: 0, totalTickets: 0, isSearchResult: false };
 
         // First get raffle total_tickets for correct pagination
         const { data: raffle } = await supabase
@@ -39,10 +40,57 @@ export const useTickets = (raffleId: string | undefined) => {
           .single();
 
         const totalTickets = raffle?.total_tickets || 0;
-        const numberStart = (raffle?.numbering_config as any)?.start ?? 1;
-        const padding = String(totalTickets + numberStart - 1).length;
 
-        // Calculate range for current page
+        // If there's a search query, use the global search RPC
+        if (hasSearch) {
+          const offset = (page - 1) * pageSize;
+          
+          // Use the flexible search RPC for dashboard (type cast for new function)
+          const { data: searchResults, error: searchError } = await (supabase.rpc as any)('search_dashboard_tickets', {
+            p_raffle_id: raffleId,
+            p_search: filters.search!,
+            p_status_filter: filters?.status && filters.status !== 'all' ? filters.status : null,
+            p_offset: offset,
+            p_limit: pageSize,
+          });
+
+          if (searchError) {
+            console.error('Search error:', searchError);
+            throw searchError;
+          }
+
+          // Map search results to display format
+          const tickets = (searchResults || []).map((t: any) => ({
+            id: t.order_id || `virtual-${t.ticket_index}`,
+            ticket_number: t.ticket_number,
+            ticket_index: t.ticket_index,
+            status: t.status || 'available',
+            buyer_name: t.buyer_name,
+            buyer_email: t.buyer_email,
+            buyer_phone: t.buyer_phone,
+            buyer_city: t.buyer_city,
+            order_id: t.order_id,
+            reference_code: t.reference_code,
+            reserved_until: t.reserved_until,
+            payment_proof_url: t.payment_proof_url,
+          }));
+
+          // Get total count for search results (type cast for new function)
+          const { data: countData } = await (supabase.rpc as any)('count_dashboard_tickets_search', {
+            p_raffle_id: raffleId,
+            p_search: filters.search!,
+            p_status_filter: filters?.status && filters.status !== 'all' ? filters.status : null,
+          });
+
+          return { 
+            tickets, 
+            count: countData || tickets.length,
+            totalTickets,
+            isSearchResult: true,
+          };
+        }
+
+        // No search - use regular pagination
         const startIndex = (page - 1) * pageSize;
         const endIndex = Math.min(startIndex + pageSize - 1, totalTickets - 1);
 
@@ -55,10 +103,10 @@ export const useTickets = (raffleId: string | undefined) => {
 
         if (error) throw error;
 
-        // Map virtual tickets to display format - use ticket_number from RPC (already formatted with padding)
+        // Map virtual tickets to display format
         let tickets = (virtualTickets || []).map((t: any) => ({
           id: t.order_id || `virtual-${t.ticket_index}`,
-          ticket_number: t.ticket_number, // RPC now returns correctly formatted number
+          ticket_number: t.ticket_number,
           ticket_index: t.ticket_index,
           status: t.status || 'available',
           buyer_name: t.buyer_name,
@@ -76,19 +124,11 @@ export const useTickets = (raffleId: string | undefined) => {
           tickets = tickets.filter((t: any) => t.status === filters.status);
         }
 
-        // Apply search filter for ticket number
-        if (filters?.search) {
-          const searchNum = filters.search.replace(/^0+/, ''); // Remove leading zeros
-          tickets = tickets.filter((t: any) => 
-            t.ticket_number.includes(filters.search!) || 
-            t.ticket_number.replace(/^0+/, '') === searchNum
-          );
-        }
-
         return { 
           tickets, 
-          count: filters?.status || filters?.search ? tickets.length : totalTickets,
-          totalTickets 
+          count: filters?.status ? tickets.length : totalTickets,
+          totalTickets,
+          isSearchResult: false,
         };
       },
       enabled: !!raffleId,
